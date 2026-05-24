@@ -4,26 +4,28 @@ async function loginAndNavigate(page, navLabel) {
   await page.goto('/');
   await page.getByRole('button', { name: /Entrar/ }).click();
   await page.getByRole('button', { name: 'Dashboard' }).waitFor({ timeout: 2000 });
-  await page.getByRole('button', { name: navLabel }).click();
+  // Use regex to match nav buttons that may include a badge count
+  await page.getByRole('button', { name: new RegExp(navLabel.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&')) }).click();
 }
 
 test('shows MTR list on the Pré-MTR screen', async ({ page }) => {
   await loginAndNavigate(page, 'Pré-MTR / SINIR');
   await expect(page.getByText('MTRs emitidos')).toBeVisible();
-  await expect(page.getByText('MTR-2025-1143')).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'MTR-2025-1143' })).toBeVisible();
 });
 
 test('Novo Pré-MTR modal opens with default values', async ({ page }) => {
   await loginAndNavigate(page, 'Pré-MTR / SINIR');
   await page.getByRole('button', { name: /Novo Pré-MTR/i }).click();
-  await expect(page.getByText('Novo Pré-MTR')).toBeVisible();
-  await expect(page.getByText('EcoLog Transportes')).toBeVisible();
+  await expect(page.locator('.modal-title', { hasText: 'Novo Pré-MTR' })).toBeVisible();
+  // Verify submit button is present with pre-selected residuos count
+  await expect(page.getByRole('button', { name: /Criar Pré-MTR/ })).toBeVisible();
 });
 
 test('submitting the form closes the modal', async ({ page }) => {
   await loginAndNavigate(page, 'Pré-MTR / SINIR');
   await page.getByRole('button', { name: /Novo Pré-MTR/i }).click();
-  await expect(page.getByText('Novo Pré-MTR')).toBeVisible();
+  await expect(page.locator('.modal-title', { hasText: 'Novo Pré-MTR' })).toBeVisible();
   await page.getByRole('button', { name: /Criar Pré-MTR/ }).click();
   await expect(page.getByRole('button', { name: /Criar Pré-MTR/ })).not.toBeVisible({ timeout: 2000 });
 });

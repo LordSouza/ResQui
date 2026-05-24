@@ -33,5 +33,5 @@ test('Novo reagente modal opens, accepts input, and submits', async ({ page }) =
   await page.getByPlaceholder(/ex: Ácido Acético/i).fill('Reagente E2E');
   await page.getByPlaceholder('64-19-7').fill('0001-01-1');
   await page.getByRole('button', { name: /Cadastrar reagente/i }).click();
-  await expect(page.getByText('Reagente E2E')).toBeVisible({ timeout: 2000 });
+  await expect(page.getByText('Reagente E2E').first()).toBeVisible({ timeout: 2000 });
 });
