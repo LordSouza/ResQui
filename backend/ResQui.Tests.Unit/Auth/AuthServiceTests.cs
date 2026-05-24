@@ -70,4 +70,20 @@ public class AuthServiceTests
         result.Should().NotBeNull();
         result!.Matricula.Should().Be("MAT-001");
     }
+
+    [Fact]
+    public async Task RegisterAsync_ValidCmd_ReturnsProfile()
+    {
+        _repo.CreateAsync("new@resqui.local", "Pass@123", "MAT-002", "Tecnico")
+             .Returns("u2");
+        _repo.GetRolesAsync("u2").Returns((IList<string>)["Tecnico"]);
+
+        var result = await _sut.RegisterAsync(
+            new RegisterCmd("new@resqui.local", "Pass@123", "MAT-002", "Tecnico"));
+
+        result.Email.Should().Be("new@resqui.local");
+        result.Papel.Should().Be("Tecnico");
+        result.Roles.Should().Contain("Tecnico");
+        await _repo.Received(1).AddToRoleAsync("u2", "Tecnico");
+    }
 }
