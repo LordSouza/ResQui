@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="ResQui.API/ResQui.API.csproj" />
+  <Project Path="ResQui.Application/ResQui.Application.csproj" />
+  <Project Path="ResQui.Domain/ResQui.Domain.csproj" />
+  <Project Path="ResQui.Infrastructure/ResQui.Infrastructure.csproj" />
+  <Project Path="ResQui.Tests.Unit/ResQui.Tests.Unit.csproj" />
+</Solution>
