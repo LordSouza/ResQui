@@ -1,0 +1,82 @@
+using Microsoft.AspNetCore.Identity;
+using ResQui.Domain.Interfaces;
+using ResQui.Infrastructure.Identity;
+
+namespace ResQui.Infrastructure.Auth;
+
+public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepository
+{
+    public async Task<UsuarioInfo?> FindByEmailAsync(string email)
+    {
+        var u = await userManager.FindByEmailAsync(email);
+        if (u is null || u.Arquivado) return null;
+        var roles = await userManager.GetRolesAsync(u);
+        return new UsuarioInfo(u.Id, u.Email!, u.Matricula, u.Papel, roles);
+    }
+
+    public async Task<UsuarioInfo?> FindByIdAsync(string id)
+    {
+        var u = await userManager.FindByIdAsync(id);
+        if (u is null || u.Arquivado) return null;
+        var roles = await userManager.GetRolesAsync(u);
+        return new UsuarioInfo(u.Id, u.Email!, u.Matricula, u.Papel, roles);
+    }
+
+    public async Task<bool> CheckPasswordAsync(string userId, string password)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return false;
+        return await userManager.CheckPasswordAsync(u, password);
+    }
+
+    public async Task<string> CreateAsync(string email, string password, string? matricula, string papel)
+    {
+        var u = new Usuario { UserName = email, Email = email, Matricula = matricula, Papel = papel };
+        var result = await userManager.CreateAsync(u, password);
+        if (!result.Succeeded)
+            throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+        return u.Id;
+    }
+
+    public async Task AddToRoleAsync(string userId, string role)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is not null) await userManager.AddToRoleAsync(u, role);
+    }
+
+    public async Task<IList<string>> GetRolesAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return [];
+        return await userManager.GetRolesAsync(u);
+    }
+
+    public async Task<IEnumerable<UsuarioInfo>> GetAllAsync()
+    {
+        var users = userManager.Users.Where(u => !u.Arquivado).ToList();
+        var result = new List<UsuarioInfo>();
+        foreach (var u in users)
+        {
+            var roles = await userManager.GetRolesAsync(u);
+            result.Add(new UsuarioInfo(u.Id, u.Email!, u.Matricula, u.Papel, roles));
+        }
+        return result;
+    }
+
+    public async Task UpdateRoleAsync(string userId, string newRole)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return;
+        var currentRoles = await userManager.GetRolesAsync(u);
+        await userManager.RemoveFromRolesAsync(u, currentRoles);
+        await userManager.AddToRoleAsync(u, newRole);
+        u.Papel = newRole;
+        await userManager.UpdateAsync(u);
+    }
+
+    public async Task SoftDeleteAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is not null) { u.Arquivado = true; await userManager.UpdateAsync(u); }
+    }
+}
