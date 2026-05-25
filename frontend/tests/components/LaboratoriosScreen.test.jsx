@@ -4,29 +4,37 @@ import userEvent from '@testing-library/user-event';
 import { LaboratoriosScreen } from '../../src/screens/LaboratoriosScreen';
 import { initialState } from '../../src/store/reducer';
 
+const mockReturn = {
+  data: [
+    {
+      id: 'Lab-001', nome: 'Química Inorgânica', responsavel: 'Profa. Ana Lima',
+      email: null, sala: 'Bloco IMC · 2º andar · Sala 201',
+      areas: ['Ácidos'], armarios: ['Armário A', 'Armário B'],
+      capacidade: 30, area_m2: 52.5, ventilacao: 'chapel', cor: '#1465c0',
+      criado: '2024-01-01',
+    },
+    {
+      id: 'Lab-002', nome: 'Química Orgânica', responsavel: 'Prof. Renan Costa',
+      email: null, sala: 'Bloco IMC · 2º andar · Sala 203',
+      areas: [], armarios: ['Armário Inflamáveis'],
+      capacidade: 40, area_m2: 58.0, ventilacao: 'chapel', cor: '#b76e00',
+      criado: '2024-01-01',
+    },
+  ],
+  isPending: false,
+  isError: false,
+  refetch: vi.fn(),
+};
+
 vi.mock('../../src/laboratorios/useLaboratorios', () => ({
-  useLaboratorios: () => ({
-    data: [
-      {
-        id: 'Lab-001', nome: 'Química Inorgânica', responsavel: 'Profa. Ana Lima',
-        email: null, sala: 'Bloco IMC · 2º andar · Sala 201',
-        areas: ['Ácidos'], armarios: ['Armário A', 'Armário B'],
-        capacidade: 30, area_m2: 52.5, ventilacao: 'chapel', cor: '#1465c0',
-        criado: '2024-01-01',
-      },
-      {
-        id: 'Lab-002', nome: 'Química Orgânica', responsavel: 'Prof. Renan Costa',
-        email: null, sala: 'Bloco IMC · 2º andar · Sala 203',
-        areas: [], armarios: ['Armário Inflamáveis'],
-        capacidade: 40, area_m2: 58.0, ventilacao: 'chapel', cor: '#b76e00',
-        criado: '2024-01-01',
-      },
-    ],
-    isPending: false,
-    isError: false,
-    refetch: vi.fn(),
-  }),
+  useLaboratorios: vi.fn(),
 }));
+
+import { useLaboratorios } from '../../src/laboratorios/useLaboratorios';
+
+beforeEach(() => {
+  useLaboratorios.mockReturnValue(mockReturn);
+});
 
 describe('LaboratoriosScreen', () => {
   it('renders the page title', () => {
@@ -48,9 +56,7 @@ describe('LaboratoriosScreen', () => {
   });
 
   it('exibe estado de loading quando isPending=true', () => {
-    vi.mock('../../src/laboratorios/useLaboratorios', () => ({
-      useLaboratorios: () => ({ data: [], isPending: true, isError: false, refetch: vi.fn() }),
-    }));
+    useLaboratorios.mockReturnValue({ data: [], isPending: true, isError: false, refetch: vi.fn() });
     render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
     expect(screen.queryByText('Química Inorgânica')).not.toBeInTheDocument();
   });
