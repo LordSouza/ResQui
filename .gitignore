@@ -4,8 +4,32 @@ frontend/node_modules/
 
 # Build output
 frontend/dist/
-backend/bin/
-backend/obj/
+backend/**/bin/
+backend/**/obj/
+
+# .NET
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+_UpgradeReport_Files/
+
+# .NET test results
+backend/TestResults/
+backend/**/*.trx
+backend/**/*.coverage
+
+# EF Core migrations (keep source, ignore snapshots? No — keep them)
+# (migrations are intentionally tracked)
+
+# dotnet tool manifest (keep .config/dotnet-tools.json)
+.dotnet/
 
 # Environment
 .env
