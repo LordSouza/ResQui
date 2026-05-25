@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ResQui.Domain.Entities;
@@ -7,17 +6,19 @@ namespace ResQui.Infrastructure.Data.Configurations;
 
 public class LaboratorioConfiguration : IEntityTypeConfiguration<Laboratorio>
 {
-    private static readonly JsonSerializerOptions _json = new();
-
     public void Configure(EntityTypeBuilder<Laboratorio> builder)
     {
         builder.HasKey(l => l.Id);
+        builder.Property(l => l.Id)
+            .HasMaxLength(20)
+            .HasDefaultValueSql("'Lab-' || lpad(nextval('laboratorios_id_seq')::text, 3, '0')")
+            .ValueGeneratedOnAdd();
         builder.Property(l => l.Nome).HasMaxLength(200).IsRequired();
-
-        builder.Property(l => l.Areas)
-            .HasColumnType("jsonb")
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, _json),
-                v => JsonSerializer.Deserialize<List<string>>(v, _json) ?? new List<string>());
+        builder.Property(l => l.Sala).HasMaxLength(200);
+        builder.Property(l => l.Ventilacao).HasMaxLength(200);
+        builder.Property(l => l.Cor).HasMaxLength(20);
+        builder.Property(l => l.AreaM2).HasPrecision(8, 2);
+        builder.Property(l => l.Areas).HasColumnType("text[]");
+        builder.Property(l => l.Armarios).HasColumnType("text[]");
     }
 }
