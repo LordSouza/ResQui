@@ -329,11 +329,10 @@ export const PERMISSION_GROUPS = [
 export const ALL_PERMS = PERMISSION_GROUPS.flatMap(g => g.items.map(([k]) => k));
 
 export const ROLES = {
-  admin:       { label: 'Administrador',         desc: 'Acesso total · gestor da plataforma',            cor: '#0d4a8c', perms: ALL_PERMS },
-  coordenador: { label: 'Coordenador',            desc: 'Responsável por um ou mais laboratórios',        cor: '#5b3c8c', perms: ALL_PERMS.filter(p => !p.startsWith('sys.')) },
-  tecnico:     { label: 'Técnico de laboratório', desc: 'Operação diária · estoque, baixa e resíduos',    cor: '#1f7a3e', perms: ['inv.view','inv.add','inv.edit','inv.consume','inv.move','res.view','res.register','res.classify','mtr.view','mtr.draft','compat.view','lab.view','audit.view','rel.view'] },
-  pesquisador: { label: 'Pesquisador',            desc: 'Professores e alunos de pós com bancada',        cor: '#1465c0', perms: ['inv.view','inv.consume','res.view','res.register','compat.view','lab.view','rel.view'] },
-  visualizador:{ label: 'Visualizador',           desc: 'Apenas leitura · auditoria externa',             cor: '#7b8493', perms: ['inv.view','res.view','mtr.view','compat.view','lab.view','audit.view','rel.view'] },
+  Admin:       { label: 'Administrador',         desc: 'Acesso total · gestor da plataforma',            cor: '#0d4a8c', perms: ALL_PERMS },
+  Gestor:      { label: 'Gestor',                 desc: 'Responsável por um ou mais laboratórios',        cor: '#5b3c8c', perms: ALL_PERMS.filter(p => !p.startsWith('sys.')) },
+  Tecnico:     { label: 'Técnico de laboratório', desc: 'Operação diária · estoque, baixa e resíduos',    cor: '#1f7a3e', perms: ['inv.view','inv.add','inv.edit','inv.consume','inv.move','res.view','res.register','res.classify','mtr.view','mtr.draft','compat.view','lab.view','audit.view','rel.view'] },
+  Visualizador:{ label: 'Visualizador',           desc: 'Apenas leitura · auditoria externa',             cor: '#7b8493', perms: ['inv.view','res.view','mtr.view','compat.view','lab.view','audit.view','rel.view'] },
 };
 
 export const USUARIOS = [
