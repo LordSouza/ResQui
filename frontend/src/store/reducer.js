@@ -13,6 +13,7 @@ export const initialState = {
   modalReagente: null,
   modalLab: null,
   modalUsuario: null,
+  modalResiduo: null,
 };
 
 export function reducer(state, action) {
@@ -34,9 +35,16 @@ export function reducer(state, action) {
     case 'refresh':
       return { ...state, tick: state.tick + 1, flashId: action.flashId || null };
     case 'openModal':
-      return { ...state, modal: action.kind, modalReagente: action.reagente || null, modalLab: action.lab || null, modalUsuario: action.usuario || null };
+      return {
+        ...state,
+        modal: action.kind,
+        modalReagente: action.reagente || null,
+        modalLab: action.lab || null,
+        modalUsuario: action.usuario || null,
+        modalResiduo: action.residuo || null,
+      };
     case 'closeModal':
-      return { ...state, modal: null, modalReagente: null, modalLab: null, modalUsuario: null };
+      return { ...state, modal: null, modalReagente: null, modalLab: null, modalUsuario: null, modalResiduo: null };
     case 'consume': {
       const r = REAGENTES.find(x => x.id === action.id);
       if (r) r.estoque = Math.max(0, Number((r.estoque - (action.quantidade || 0.1)).toFixed(2)));
