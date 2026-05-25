@@ -1,0 +1,43 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useCriarUsuario } from '../../../src/usuarios/useCriarUsuario';
+
+function wrapper({ children }) {
+  const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+}
+
+describe('useCriarUsuario', () => {
+  let mockFetch;
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      data: {}, setItem(k, v) { this.data[k] = String(v); },
+      getItem(k) { return this.data[k] ?? null; },
+      removeItem(k) { delete this.data[k]; },
+      clear() { this.data = {}; },
+    });
+    mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('envia POST /api/usuarios com RegisterCmd', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ id: 'u-new' }) });
+    const { result } = renderHook(() => useCriarUsuario(), { wrapper });
+    const cmd = { Email: 'novo@instituto.example', Senha: 'Senha@123', Matricula: 'MAT-999', Papel: 'Tecnico', Nome: 'Novo Usuário' };
+    act(() => result.current.mutate(cmd));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/usuarios');
+    expect(mockFetch.mock.calls[0][1].method).toBe('POST');
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual(cmd);
+  });
+
+  it('seta isError em resposta não-ok', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, json: async () => ({}) });
+    const { result } = renderHook(() => useCriarUsuario(), { wrapper });
+    act(() => result.current.mutate({}));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error.message).toBe('Erro ao criar usuário');
+  });
+});
