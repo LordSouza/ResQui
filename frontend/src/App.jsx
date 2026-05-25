@@ -421,6 +421,7 @@ export default function App() {
       {state.modal === 'docs' && <FormDocs onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'reportar' && <FormReportar onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoResiduo' && <FormNovoResiduo onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'editarResiduo' && state.modalResiduo && <FormEditarResiduo residuo={state.modalResiduo} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoMtr' && <FormNovoMtr onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'baixa' && state.modalReagente && <FormBaixa reagente={state.modalReagente} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'editarReagente' && state.modalReagente && (
