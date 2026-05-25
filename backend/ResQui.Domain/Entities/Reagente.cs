@@ -2,7 +2,7 @@ namespace ResQui.Domain.Entities;
 
 public class Reagente
 {
-    public string Id { get; set; } = "";
+    public string Id { get; set; } = null!;
     public string Nome { get; set; } = "";
     public string Cas { get; set; } = "";
     public string Formula { get; set; } = "";

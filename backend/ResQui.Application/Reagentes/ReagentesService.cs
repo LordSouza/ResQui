@@ -45,7 +45,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
     {
         var r = new Reagente
         {
-            Id = cmd.Id, Nome = cmd.Nome, Cas = cmd.Cas, Formula = cmd.Formula,
+            Nome = cmd.Nome, Cas = cmd.Cas, Formula = cmd.Formula,
             Sinonimo = cmd.Sinonimo, ClasseReatividade = cmd.ClasseReatividade,
             Estoque = cmd.Estoque, EstoqueMin = cmd.EstoqueMin, Unidade = cmd.Unidade,
             Validade = DateOnly.Parse(cmd.Validade), Local = cmd.Local,

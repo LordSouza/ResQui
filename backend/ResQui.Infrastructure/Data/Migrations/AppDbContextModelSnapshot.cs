@@ -335,8 +335,10 @@ namespace ResQui.Infrastructure.Data.Migrations
             modelBuilder.Entity("ResQui.Domain.Entities.Reagente", b =>
                 {
                     b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValueSql("'R-' || lpad(nextval('reagentes_id_seq')::text, 5, '0')");
 
                     b.Property<DateOnly?>("AberturaData")
                         .HasColumnType("date");

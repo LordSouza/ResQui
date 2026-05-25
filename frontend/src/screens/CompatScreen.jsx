@@ -6,12 +6,14 @@ import { useReagente } from '../reagentes/useReagente';
 import { exportCsv, logAudit } from '../utils';
 
 export function CompatScreen({ state, dispatch }) {
-  const a = state.compatA || 'R-00128';
-  const b = state.compatB || 'R-00135';
-
   const { data: listData, isPending: listPending, isError: listError, refetch: refetchList } = useReagentes({ pageSize: 200 });
-  const { data: ra } = useReagente(a);
-  const { data: rb } = useReagente(b);
+  const allReagentes = listData?.items ?? [];
+
+  const a = state.compatA || allReagentes[0]?.id || '';
+  const b = state.compatB || allReagentes[1]?.id || '';
+
+  const { data: ra } = useReagente(a || null);
+  const { data: rb } = useReagente(b || null);
 
   const score = ra && rb ? (COMPAT_MATRIX[ra.classe]?.[rb.classe - 1] ?? 0) : 0;
   const kind = score === 3 ? 'danger' : score === 2 ? 'danger' : score === 1 ? 'warn' : 'ok';
@@ -21,7 +23,6 @@ export function CompatScreen({ state, dispatch }) {
               : 'Proibido: reação violenta esperada';
 
   // Build reduced matrix from unique classes present
-  const allReagentes = listData?.items ?? [];
   const classesPresentes = [...new Set(allReagentes.map(r => r.classe))].toSorted((x, y) => x - y);
   const exportDate = useMemo(() => new Date(), []);
 

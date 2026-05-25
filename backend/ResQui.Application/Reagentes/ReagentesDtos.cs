@@ -35,7 +35,7 @@ public record ReagenteDetalheDto(
 public record GhsDto(List<string> Pictos, string Signal, List<string> FrasesH, List<string> FrasesP);
 
 public record CriarReagenteCmd(
-    string Id,
+    string? Id,
     string Nome,
     string Cas,
     string Formula,
