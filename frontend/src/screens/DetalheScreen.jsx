@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Icon, Badge, SectionTitle, Picto, Empty, validadeBadge } from '../components';
 import { REATIVIDADE_CLASSES, COMPAT_MATRIX } from '../data';
 import { logAudit } from '../utils';
@@ -12,6 +13,11 @@ export function DetalheScreen({ state, dispatch }) {
   const deletarMutation = useDeletarReagente();
   const { user } = useAuth();
 
+  // Redirect to inventario when reagent not found (404)
+  useEffect(() => {
+    if (r === null) dispatch({ type: 'nav', screen: 'inventario' });
+  }, [r, dispatch]);
+
   if (isPending) {
     return <div className="page-loading"><Icon name="refresh" size={16}/> Carregando...</div>;
   }
@@ -24,12 +30,7 @@ export function DetalheScreen({ state, dispatch }) {
     );
   }
 
-  if (r === null) {
-    dispatch({ type: 'nav', screen: 'inventario' });
-    return null;
-  }
-
-  if (!r) return <Empty>Reagente não encontrado.</Empty>;
+  if (r === null || !r) return null;  // useEffect handles redirect; just suppress render
 
   const todosReagentes = listData?.items ?? [];
   const mesmoArmario = todosReagentes.filter(
