@@ -5,30 +5,13 @@ describe('apiFetch', () => {
   let mockFetch;
 
   beforeEach(() => {
-    // Use jsdom's localStorage implementation (with null coercion fix)
     vi.stubGlobal('localStorage', {
       data: {},
-      setItem(key, value) {
-        this.data[key] = String(value);
-      },
-      getItem(key) {
-        return this.data[key] ?? null;
-      },
-      removeItem(key) {
-        delete this.data[key];
-      },
-      clear() {
-        this.data = {};
-      },
-      key(index) {
-        return Object.keys(this.data)[index] ?? null;
-      },
-      get length() {
-        return Object.keys(this.data).length;
-      },
+      setItem(key, value) { this.data[key] = String(value); },
+      getItem(key) { return this.data[key] ?? null; },
+      removeItem(key) { delete this.data[key]; },
+      clear() { this.data = {}; },
     });
-    localStorage.clear();
-
     mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
   });
