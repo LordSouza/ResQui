@@ -432,6 +432,13 @@ export default function App() {
       )}
       {state.modal === 'novoLab' && <FormNovoLab onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'removerLab' && state.modalLab && <ConfirmRemoverLab lab={state.modalLab} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'editarLab' && state.modalLab && (
+        <FormEditarLaboratorio
+          lab={state.modalLab}
+          onClose={() => dispatch({ type: 'closeModal' })}
+          dispatch={dispatch}
+        />
+      )}
       {state.modal === 'novoUsuario' && <FormNovoUsuario onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'arquivarUsuario' && state.modalUsuario && <ConfirmArquivarUsuario usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'excluirUsuario' && state.modalUsuario && <ConfirmExcluirUsuario usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
