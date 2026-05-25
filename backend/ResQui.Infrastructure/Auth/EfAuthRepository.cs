@@ -11,7 +11,7 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         var u = await userManager.FindByEmailAsync(email);
         if (u is null || u.Arquivado) return null;
         var roles = await userManager.GetRolesAsync(u);
-        return new UsuarioInfo(u.Id, u.Email!, u.Matricula, u.Papel, roles);
+        return new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado);
     }
 
     public async Task<UsuarioInfo?> FindByIdAsync(string id)
@@ -19,7 +19,7 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         var u = await userManager.FindByIdAsync(id);
         if (u is null || u.Arquivado) return null;
         var roles = await userManager.GetRolesAsync(u);
-        return new UsuarioInfo(u.Id, u.Email!, u.Matricula, u.Papel, roles);
+        return new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado);
     }
 
     public async Task<bool> CheckPasswordAsync(string userId, string password)
@@ -29,9 +29,9 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         return await userManager.CheckPasswordAsync(u, password);
     }
 
-    public async Task<string> CreateAsync(string email, string password, string? matricula, string papel)
+    public async Task<string> CreateAsync(string email, string password, string? matricula, string papel, string? nome)
     {
-        var u = new Usuario { UserName = email, Email = email, Matricula = matricula, Papel = papel };
+        var u = new Usuario { UserName = email, Email = email, Matricula = matricula, Papel = papel, Nome = nome };
         var result = await userManager.CreateAsync(u, password);
         if (!result.Succeeded)
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
@@ -53,12 +53,12 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
 
     public async Task<IEnumerable<UsuarioInfo>> GetAllAsync()
     {
-        var users = userManager.Users.Where(u => !u.Arquivado).ToList();
+        var users = userManager.Users.ToList();
         var result = new List<UsuarioInfo>();
         foreach (var u in users)
         {
             var roles = await userManager.GetRolesAsync(u);
-            result.Add(new UsuarioInfo(u.Id, u.Email!, u.Matricula, u.Papel, roles));
+            result.Add(new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado));
         }
         return result;
     }

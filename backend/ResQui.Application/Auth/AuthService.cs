@@ -18,23 +18,23 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions) : IAuthSer
 
         var expireAt = DateTime.UtcNow.AddHours(jwtOptions.ExpirationHours);
         var token = GenerateToken(user, expireAt);
-        var profile = new UserProfileDto(user.Id, user.Email, user.Matricula, user.Papel, user.Roles);
+        var profile = new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula, user.Papel, user.Roles);
         return new TokenDto(token, expireAt, profile);
     }
 
     public async Task<UserProfileDto> RegisterAsync(RegisterCmd cmd)
     {
-        var id = await repo.CreateAsync(cmd.Email, cmd.Senha, cmd.Matricula, cmd.Papel);
+        var id = await repo.CreateAsync(cmd.Email, cmd.Senha, cmd.Matricula, cmd.Papel, cmd.Nome);
         await repo.AddToRoleAsync(id, cmd.Papel);
         var roles = await repo.GetRolesAsync(id);
-        return new UserProfileDto(id, cmd.Email, cmd.Matricula, cmd.Papel, roles);
+        return new UserProfileDto(id, cmd.Email, cmd.Nome, cmd.Matricula, cmd.Papel, roles);
     }
 
     public async Task<UserProfileDto?> GetMeAsync(string userId)
     {
         var user = await repo.FindByIdAsync(userId);
         if (user is null) return null;
-        return new UserProfileDto(user.Id, user.Email, user.Matricula, user.Papel, user.Roles);
+        return new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula, user.Papel, user.Roles);
     }
 
     private string GenerateToken(UsuarioInfo user, DateTime expireAt)

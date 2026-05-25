@@ -25,7 +25,7 @@ public class AuthServiceTests
     [Fact]
     public async Task LoginAsync_ValidCredentials_ReturnsToken()
     {
-        var user = new UsuarioInfo("u1", "admin@resqui.local", null, "Admin", ["Admin"]);
+        var user = new UsuarioInfo("u1", "admin@resqui.local", null, null, "Admin", ["Admin"], false);
         _repo.FindByEmailAsync("admin@resqui.local").Returns(user);
         _repo.CheckPasswordAsync("u1", "Admin@123").Returns(true);
 
@@ -40,7 +40,7 @@ public class AuthServiceTests
     [Fact]
     public async Task LoginAsync_WrongPassword_ReturnsNull()
     {
-        var user = new UsuarioInfo("u1", "admin@resqui.local", null, "Admin", ["Admin"]);
+        var user = new UsuarioInfo("u1", "admin@resqui.local", null, null, "Admin", ["Admin"], false);
         _repo.FindByEmailAsync("admin@resqui.local").Returns(user);
         _repo.CheckPasswordAsync("u1", "wrong").Returns(false);
 
@@ -62,27 +62,29 @@ public class AuthServiceTests
     [Fact]
     public async Task GetMeAsync_ExistingId_ReturnsProfile()
     {
-        var user = new UsuarioInfo("u1", "admin@resqui.local", "MAT-001", "Admin", ["Admin"]);
+        var user = new UsuarioInfo("u1", "admin@resqui.local", "Admin Resqui", "MAT-001", "Admin", ["Admin"], false);
         _repo.FindByIdAsync("u1").Returns(user);
 
         var result = await _sut.GetMeAsync("u1");
 
         result.Should().NotBeNull();
         result!.Matricula.Should().Be("MAT-001");
+        result.Nome.Should().Be("Admin Resqui");
     }
 
     [Fact]
     public async Task RegisterAsync_ValidCmd_ReturnsProfile()
     {
-        _repo.CreateAsync("new@resqui.local", "Pass@123", "MAT-002", "Tecnico")
+        _repo.CreateAsync("new@resqui.local", "Pass@123", "MAT-002", "Tecnico", "Novo Usuário")
              .Returns("u2");
         _repo.GetRolesAsync("u2").Returns((IList<string>)["Tecnico"]);
 
         var result = await _sut.RegisterAsync(
-            new RegisterCmd("new@resqui.local", "Pass@123", "MAT-002", "Tecnico"));
+            new RegisterCmd("new@resqui.local", "Pass@123", "MAT-002", "Tecnico", "Novo Usuário"));
 
         result.Email.Should().Be("new@resqui.local");
         result.Papel.Should().Be("Tecnico");
+        result.Nome.Should().Be("Novo Usuário");
         result.Roles.Should().Contain("Tecnico");
         await _repo.Received(1).AddToRoleAsync("u2", "Tecnico");
     }

@@ -524,6 +524,9 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<string>("Matricula")
                         .HasColumnType("text");
 
+                    b.Property<string>("Nome")
+                        .HasColumnType("text");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
