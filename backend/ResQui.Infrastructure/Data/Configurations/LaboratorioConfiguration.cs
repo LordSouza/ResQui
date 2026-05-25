@@ -14,7 +14,7 @@ public class LaboratorioConfiguration : IEntityTypeConfiguration<Laboratorio>
         builder.HasKey(l => l.Id);
         builder.Property(l => l.Nome).HasMaxLength(200).IsRequired();
 
-        builder.Property(l => l.AreasDeArmazenamento)
+        builder.Property(l => l.Areas)
             .HasColumnType("jsonb")
             .HasConversion(
                 v => JsonSerializer.Serialize(v, _json),

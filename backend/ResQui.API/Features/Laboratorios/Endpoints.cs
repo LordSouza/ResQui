@@ -9,7 +9,7 @@ public static class Endpoints
         group.MapGet("/", async (ILaboratoriosService svc) =>
             Results.Ok(await svc.ListarAsync()));
 
-        group.MapGet("/{id:int}", async (int id, ILaboratoriosService svc) =>
+        group.MapGet("/{id}", async (string id, ILaboratoriosService svc) =>
         {
             var l = await svc.ObterPorIdAsync(id);
             return l is null ? Results.NotFound() : Results.Ok(l);
@@ -22,14 +22,14 @@ public static class Endpoints
         })
         .RequireAuthorization("Gestor");
 
-        group.MapPut("/{id:int}", async (int id, AtualizarLaboratorioCmd cmd, ILaboratoriosService svc) =>
+        group.MapPut("/{id}", async (string id, AtualizarLaboratorioCmd cmd, ILaboratoriosService svc) =>
         {
             var l = await svc.AtualizarAsync(id, cmd);
             return l is null ? Results.NotFound() : Results.Ok(l);
         })
         .RequireAuthorization("Gestor");
 
-        group.MapDelete("/{id:int}", async (int id, ILaboratoriosService svc) =>
+        group.MapDelete("/{id}", async (string id, ILaboratoriosService svc) =>
         {
             var ok = await svc.DeletarAsync(id);
             return ok ? Results.NoContent() : Results.NotFound();

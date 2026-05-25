@@ -10,7 +10,7 @@ public class EfLaboratoriosRepository(AppDbContext db) : ILaboratoriosRepository
     public async Task<IEnumerable<Laboratorio>> GetAllAsync() =>
         await db.Laboratorios.ToListAsync();
 
-    public async Task<Laboratorio?> GetByIdAsync(int id) =>
+    public async Task<Laboratorio?> GetByIdAsync(string id) =>
         await db.Laboratorios.FindAsync(id);
 
     public async Task AddAsync(Laboratorio lab) =>
@@ -22,7 +22,7 @@ public class EfLaboratoriosRepository(AppDbContext db) : ILaboratoriosRepository
         return Task.CompletedTask;
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(string id)
     {
         var l = await db.Laboratorios.FindAsync(id);
         if (l is not null) db.Laboratorios.Remove(l);
