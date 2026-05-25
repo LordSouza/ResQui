@@ -22,7 +22,7 @@ import { ChamadosScreen } from './screens/ChamadosScreen';
 import { ChatMCP } from './chat/ChatMCP';
 
 import { FormNovoReagente, FormImportarCSV, FormEditarRegrasCompat, FormPreviewFispq, FormBaixa } from './forms/reagentes';
-import { FormNovoResiduo, FormNovoMtr, FormPreviewMtrPdf, FormConfigurarPgrs } from './forms/residuos';
+import { FormNovoResiduo, FormEditarResiduo, FormNovoMtr, FormPreviewMtrPdf, FormConfigurarPgrs } from './forms/residuos';
 import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/laboratorios';
 import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario } from './forms/usuarios';
 import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes, FormAtalhos, FormDocs, FormReportar } from './forms/sistema';
