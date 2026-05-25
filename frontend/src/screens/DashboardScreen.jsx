@@ -5,8 +5,8 @@ import { useReagentes } from '../reagentes/useReagentes';
 
 export function DashboardScreen({ state, dispatch }) {
   const residuos = RESIDUOS;
-  const { data: totalData } = useReagentes({ pageSize: 1 });
-  const { data: expirData } = useReagentes({ pageSize: 1, vencendo: true });
+  const { data: totalData, isError: totalError, refetch: refetchTotal } = useReagentes({ pageSize: 1 });
+  const { data: expirData, isError: expirError, refetch: refetchExpir } = useReagentes({ pageSize: 1, vencendo: true });
   const totalReagentes = totalData?.total;
   const expirando = expirData?.total;
   const aguardando = residuos.filter(r => r.status === 'aguardando-coleta').length;
@@ -37,6 +37,13 @@ export function DashboardScreen({ state, dispatch }) {
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'refresh'})}><Icon name="refresh" size={13}/> Atualizar</button>
         </div>
       </div>
+
+      {(totalError || expirError) && (
+        <div className="page-error">
+          Erro ao carregar dados de reagentes.{' '}
+          <button type="button" onClick={() => { refetchTotal(); refetchExpir(); }}>Tentar novamente</button>
+        </div>
+      )}
 
       <div className="kpi-grid">
         <div className="kpi">

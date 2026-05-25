@@ -70,6 +70,9 @@ export function FormNovoReagente({ onClose, dispatch }) {
           {criarMutation.isPending ? 'Salvando…' : 'Cadastrar reagente'}
         </button>
       </>}>
+      {criarMutation.isError && (
+        <div className="login-err" style={{marginBottom: 12}}>{criarMutation.error?.message ?? 'Erro ao cadastrar reagente.'}</div>
+      )}
       <div className="form-row">
         <div className="field"><label htmlFor={ids.nome}>Nome *</label><input id={ids.nome} aria-label="Nome do reagente" value={f.nome} onChange={e => upd('nome', e.target.value)} placeholder="ex: Ácido Acético"/></div>
         <div className="field"><label htmlFor={ids.sinonimo}>Sinônimo / nome comercial</label><input id={ids.sinonimo} aria-label="Sinônimo ou nome comercial do reagente" value={f.sinonimo} onChange={e => upd('sinonimo', e.target.value)} placeholder="ex: CH3COOH glacial"/></div>
@@ -195,6 +198,9 @@ export function FormBaixa({ reagente, onClose, dispatch }) {
           {baixaMutation.isPending ? 'Salvando…' : 'Confirmar baixa'}
         </button>
       </>}>
+      {baixaMutation.isError && (
+        <div className="login-err" style={{marginBottom: 12}}>{baixaMutation.error?.message ?? 'Erro ao registrar baixa.'}</div>
+      )}
       <div className="form-row">
         <div className="field"><label htmlFor={ids.quantidade}>Quantidade *</label>
           <div style={{display: 'flex', gap: 6}}>

@@ -9,7 +9,7 @@ export function CompatScreen({ state, dispatch }) {
   const a = state.compatA || 'R-00128';
   const b = state.compatB || 'R-00135';
 
-  const { data: listData, isPending: listPending } = useReagentes({ pageSize: 200 });
+  const { data: listData, isPending: listPending, isError: listError, refetch: refetchList } = useReagentes({ pageSize: 200 });
   const { data: ra } = useReagente(a);
   const { data: rb } = useReagente(b);
 
@@ -49,6 +49,13 @@ export function CompatScreen({ state, dispatch }) {
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'editarRegrasCompat'})}><Icon name="settings" size={13}/> Editar regras</button>
         </div>
       </div>
+
+      {listError && (
+        <div className="page-error">
+          Erro ao carregar reagentes.{' '}
+          <button type="button" onClick={refetchList}>Tentar novamente</button>
+        </div>
+      )}
 
       <div className="grid-2" style={{marginBottom: 16}}>
         <div className="card">
