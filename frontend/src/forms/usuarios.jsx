@@ -88,10 +88,6 @@ export function ConfirmExcluirUsuario({ usuario, onClose, dispatch }) {
   const podeExcluir = conf.trim().toUpperCase() === 'EXCLUIR';
   const submit = () => {
     if (!podeExcluir) return;
-    const i = USUARIOS.findIndex(u => u.id === usuario.id);
-    if (i >= 0) USUARIOS.splice(i, 1);
-    logAuditUser('Lucas Souza', 'user.delete', 'Sistema/Usuários',
-      `Excluiu definitivamente usuário ${usuario.nome} (${usuario.id})`, 'high');
     dispatch({type: 'refresh'});
     onClose();
   };
