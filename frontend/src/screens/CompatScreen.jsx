@@ -58,6 +58,7 @@ export function CompatScreen({ state, dispatch }) {
               <div className="field">
                 <label htmlFor="compat-select-a">Substância A</label>
                 <select id="compat-select-a" value={a} disabled={listPending} onChange={e => dispatch({ type: 'setCompat', a: e.target.value })}>
+                  {listPending && <option>Carregando...</option>}
                   {allReagentes.map(r => <option key={r.id} value={r.id}>{r.nome} ({r.id})</option>)}
                 </select>
                 {ra && <div className="mono small muted" style={{marginTop: 4}}>Classe {ra.classe} · {REATIVIDADE_CLASSES[ra.classe]}</div>}
@@ -65,6 +66,7 @@ export function CompatScreen({ state, dispatch }) {
               <div className="field">
                 <label htmlFor="compat-select-b">Substância B</label>
                 <select id="compat-select-b" value={b} disabled={listPending} onChange={e => dispatch({ type: 'setCompat', b: e.target.value })}>
+                  {listPending && <option>Carregando...</option>}
                   {allReagentes.map(r => <option key={r.id} value={r.id}>{r.nome} ({r.id})</option>)}
                 </select>
                 {rb && <div className="mono small muted" style={{marginTop: 4}}>Classe {rb.classe} · {REATIVIDADE_CLASSES[rb.classe]}</div>}
