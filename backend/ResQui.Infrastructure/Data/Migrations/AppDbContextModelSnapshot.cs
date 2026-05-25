@@ -308,12 +308,21 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CodigoIbama")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("DataEmissao")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Destinador")
+                        .HasColumnType("text");
 
                     b.Property<string>("Gerador")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<decimal>("Massa")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("Numero")
                         .IsRequired()
@@ -471,11 +480,18 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Composicao")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("DataRegistro")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Destino")
                         .HasColumnType("text");
 
                     b.Property<int>("LaboratorioId")
@@ -484,9 +500,24 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<int?>("MtrId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Risco")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Unidade")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Volume")
+                        .HasColumnType("numeric");
 
                     b.HasKey("Id");
 
