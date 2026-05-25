@@ -2,7 +2,7 @@
 import { useState, useEffect, useReducer, useRef } from 'react';
 
 import { useAuth } from './auth/AuthContext';
-import { REAGENTES, NOTIFICACOES } from './data';
+import { NOTIFICACOES } from './data';
 import { pgrsTs, exportCsv, logAudit } from './utils';
 import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge, mtrStatusBadge } from './components';
 import { reducer, initialState } from './store/reducer';
@@ -26,6 +26,7 @@ import { FormNovoResiduo, FormNovoMtr, FormPreviewMtrPdf, FormConfigurarPgrs } f
 import { FormNovoLab, ConfirmRemoverLab } from './forms/laboratorios';
 import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario } from './forms/usuarios';
 import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes, FormAtalhos, FormDocs, FormReportar } from './forms/sistema';
+import { FormEditarReagente } from './forms/FormEditarReagente';
 
 import { LoginScreen } from './Login';
 
@@ -422,6 +423,13 @@ export default function App() {
       {state.modal === 'novoResiduo' && <FormNovoResiduo onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoMtr' && <FormNovoMtr onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'baixa' && state.modalReagente && <FormBaixa reagente={state.modalReagente} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'editarReagente' && state.modalReagente && (
+        <FormEditarReagente
+          reagente={state.modalReagente}
+          onClose={() => dispatch({ type: 'closeModal' })}
+          dispatch={dispatch}
+        />
+      )}
       {state.modal === 'novoLab' && <FormNovoLab onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'removerLab' && state.modalLab && <ConfirmRemoverLab lab={state.modalLab} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoUsuario' && <FormNovoUsuario onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
