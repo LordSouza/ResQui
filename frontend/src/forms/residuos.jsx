@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon, Badge, riscoBadge } from '../components';
-import { AUDITORIA } from '../data';
+import { AUDITORIA, LABORATORIOS } from '../data';
 import { pgrsTs } from '../utils';
 import Modal from './Modal';
 import { useCriarResiduo } from '../residuos/useCriarResiduo';
