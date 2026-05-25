@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { AuthProvider, useAuth } from '../../src/auth/AuthContext';
 
@@ -18,6 +18,10 @@ describe('AuthContext', () => {
       removeItem(key) { delete this.data[key]; },
       clear() { this.data = {}; },
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('initializes with null user and token when localStorage is empty', () => {
