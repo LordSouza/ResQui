@@ -16,7 +16,7 @@ export function LoginScreen() {
   };
 
   const loading = loginMutation.isPending;
-  const err = loginMutation.isError ? 'E-mail ou senha incorretos.' : '';
+  const err = loginMutation.isError ? (loginMutation.error?.message ?? 'E-mail ou senha incorretos.') : '';
 
   return (
     <div className="login-shell">
