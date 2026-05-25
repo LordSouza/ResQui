@@ -3,17 +3,16 @@ import { apiFetch } from '../../src/lib/api';
 
 describe('apiFetch', () => {
   let mockFetch;
-  let mockLocalStorage;
 
   beforeEach(() => {
-    // Create a mock localStorage
-    mockLocalStorage = {
+    // Use jsdom's localStorage implementation (with null coercion fix)
+    vi.stubGlobal('localStorage', {
       data: {},
       setItem(key, value) {
         this.data[key] = String(value);
       },
       getItem(key) {
-        return this.data[key] || null;
+        return this.data[key] ?? null;
       },
       removeItem(key) {
         delete this.data[key];
@@ -22,14 +21,14 @@ describe('apiFetch', () => {
         this.data = {};
       },
       key(index) {
-        return Object.keys(this.data)[index] || null;
+        return Object.keys(this.data)[index] ?? null;
       },
       get length() {
         return Object.keys(this.data).length;
       },
-    };
+    });
+    localStorage.clear();
 
-    vi.stubGlobal('localStorage', mockLocalStorage);
     mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
   });
