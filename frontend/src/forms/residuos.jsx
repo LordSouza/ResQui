@@ -11,35 +11,35 @@ import { useResíduos } from '../residuos/useResíduos';
 
 // ---------- Novo Resíduo ----------
 export function FormNovoResiduo({ onClose, dispatch }) {
-  const [submitting, setSubmitting] = useState(false);
+  const criarResiduo = useCriarResiduo();
+  const { data: labs = [] } = useLaboratorios();
   const [f, setF] = useState({
     tipo: 'Solventes orgânicos não-halogenados',
     volume: '', unidade: 'L',
-    gerador: 'Lab-201', composicao: '', risco: 'medio',
-    embalagem: 'Bombona 5L', neutralizado: false, obs: '',
+    laboratorioId: '', composicao: '', risco: 'medio',
   });
-  const upd = (k, v) => setF(s => ({...s, [k]: v}));
+  const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
-    if (submitting) return;
-    if (!f.volume || !f.composicao) { alert('Volume e composição são obrigatórios.'); return; }
-    setSubmitting(true);
-    const last = RESIDUOS.map(r => parseInt(r.id.replace('W-', ''))).reduce((a, b) => Math.max(a, b), 0);
-    const id = 'W-' + String(last + 1).padStart(4, '0');
-    const novo = {
-      id, tipo: f.tipo, volume: Number(f.volume), unidade: f.unidade,
-      gerador: f.gerador, composicao: f.composicao, risco: f.risco,
-      status: 'aguardando-coleta', registrado: new Date().toISOString().slice(0, 10),
-      mtr: null,
-    };
-    RESIDUOS.unshift(novo);
-    AUDITORIA.unshift({
-      ts: pgrsTs(),
-      who: 'Lucas Souza', what: 'waste.create', where: f.gerador,
-      detail: `Registrou resíduo ${id} — ${f.tipo}, ${f.volume} ${f.unidade}`, risk: 'low',
-    });
-    dispatch({type: 'refresh', flashId: id});
-    onClose();
+    if (!f.volume || !f.composicao || !f.laboratorioId) {
+      alert('Volume, composição e laboratório são obrigatórios.');
+      return;
+    }
+    criarResiduo.mutate(
+      {
+        Descricao: f.composicao.slice(0, 80),
+        LaboratorioId: Number(f.laboratorioId),
+        Tipo: f.tipo,
+        Volume: Number(f.volume),
+        Unidade: f.unidade,
+        Composicao: f.composicao,
+        Risco: f.risco,
+        Destino: null,
+      },
+      {
+        onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); },
+      }
+    );
   };
 
   return (
@@ -47,7 +47,9 @@ export function FormNovoResiduo({ onClose, dispatch }) {
       onClose={onClose} width={620}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={submitting}>Registrar resíduo</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={criarResiduo.isPending}>
+          {criarResiduo.isPending ? 'Salvando…' : 'Registrar resíduo'}
+        </button>
       </>}>
       <div className="form-row">
         <div className="field"><label htmlFor="residuo-tipo">Tipo de resíduo *</label>
@@ -72,58 +74,102 @@ export function FormNovoResiduo({ onClose, dispatch }) {
           </select>
         </div>
       </div>
-
       <div className="form-row">
         <div className="field"><label htmlFor="residuo-volume">Volume / massa *</label>
-          <div style={{display: 'flex', gap: 6}}>
-            <input id="residuo-volume" style={{flex: 1}} type="number" step="0.1" value={f.volume} onChange={e => upd('volume', e.target.value)} aria-label="Volume"/>
-            <select style={{width: 80}} value={f.unidade} onChange={e => upd('unidade', e.target.value)} aria-label="Unidade de volume">
-              <option>L</option><option>mL</option><option>kg</option><option>g</option>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input id="residuo-volume" style={{ flex: 1 }} type="number" step="0.1" value={f.volume} onChange={e => upd('volume', e.target.value)} aria-label="Volume" />
+            <select style={{ width: 80 }} value={f.unidade} onChange={e => upd('unidade', e.target.value)} aria-label="Unidade de volume">
+              <option>L</option><option>mL</option><option>kg</option><option>g</option><option>m³</option>
             </select>
           </div>
         </div>
-        <div className="field"><label htmlFor="residuo-embalagem">Embalagem</label>
-          <select id="residuo-embalagem" value={f.embalagem} onChange={e => upd('embalagem', e.target.value)}>
-            <option>Bombona 5L</option><option>Bombona 20L</option>
-            <option>Frasco vidro 1L</option><option>Pote 1kg</option>
-            <option>Big-bag</option><option>Tambor 50L</option>
+        <div className="field"><label htmlFor="residuo-lab">Laboratório *</label>
+          <select id="residuo-lab" value={f.laboratorioId} onChange={e => upd('laboratorioId', e.target.value)}>
+            <option value="">Selecione…</option>
+            {labs.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
           </select>
         </div>
       </div>
-
-      <div className="form-row">
-        <div className="field"><label htmlFor="residuo-gerador">Gerador (laboratório)</label>
-          <select id="residuo-gerador" value={f.gerador} onChange={e => upd('gerador', e.target.value)}>
-            <option>Lab-201</option><option>Lab-203</option>
-            <option>Lab-205</option><option>Lab-209</option>
-            <option>Lab-211</option>
-          </select>
-        </div>
-        <div className="field" style={{display: 'flex', alignItems: 'flex-end'}}>
-          <label htmlFor="residuo-neutralizado" style={{display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer'}}>
-            <input id="residuo-neutralizado" type="checkbox" aria-label="Já passou por neutralização / tratamento prévio" checked={f.neutralizado} onChange={e => upd('neutralizado', e.target.checked)}/>
-            Já passou por neutralização / tratamento prévio
-          </label>
-        </div>
-      </div>
-
       <div className="form-row full">
         <div className="field"><label htmlFor="residuo-composicao">Composição declarada *</label>
-          <textarea id="residuo-composicao" aria-label="Composição declarada" rows={3} value={f.composicao} onChange={e => upd('composicao', e.target.value)}
-            placeholder="Ex: 60% acetona + 30% etanol + traços de HCl, pH 6"/>
+          <textarea id="residuo-composicao" rows={3} value={f.composicao} onChange={e => upd('composicao', e.target.value)}
+            placeholder="Ex: 60% acetona + 30% etanol + traços de HCl, pH 6" />
         </div>
       </div>
-
-      <div className="form-row full">
-        <div className="field"><label htmlFor="residuo-obs">Observações</label>
-          <textarea id="residuo-obs" aria-label="Observações" rows={2} value={f.obs} onChange={e => upd('obs', e.target.value)}
-            placeholder="Procedimento que gerou, riscos adicionais, etc."/>
-        </div>
-      </div>
-
       <div className="residuo-warning-banner">
-        <Icon name="warning" size={14}/>
-        <span>Após cadastrar, o sistema rotula automaticamente o recipiente e move para "aguardando coleta". Verifique a compatibilidade antes de armazenar.</span>
+        <Icon name="warning" size={14} />
+        <span>Após cadastrar, o sistema rotula automaticamente o recipiente e move para "aguardando coleta".</span>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------- Editar Resíduo ----------
+export function FormEditarResiduo({ residuo, onClose, dispatch }) {
+  const atualizarResiduo = useAtualizarResiduo();
+  const [f, setF] = useState({
+    tipo: residuo.tipo ?? '',
+    volume: residuo.volume ?? '',
+    unidade: residuo.unidade ?? 'L',
+    composicao: residuo.composicao ?? '',
+    risco: residuo.risco ?? 'medio',
+  });
+  const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
+
+  const submit = () => {
+    if (!f.volume || !f.composicao) { alert('Volume e composição são obrigatórios.'); return; }
+    atualizarResiduo.mutate(
+      { id: residuo.id, Tipo: f.tipo, Volume: Number(f.volume), Unidade: f.unidade, Composicao: f.composicao, Risco: f.risco },
+      { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
+    );
+  };
+
+  return (
+    <Modal title="Editar resíduo" sub={`Resíduo #${residuo.id}`}
+      onClose={onClose} width={560}
+      footer={<>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={atualizarResiduo.isPending}>
+          {atualizarResiduo.isPending ? 'Salvando…' : 'Salvar alterações'}
+        </button>
+      </>}>
+      <div className="form-row">
+        <div className="field"><label htmlFor="edit-tipo">Tipo</label>
+          <select id="edit-tipo" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
+            <option>Solventes orgânicos não-halogenados</option>
+            <option>Solventes halogenados</option>
+            <option>Ácidos inorgânicos</option>
+            <option>Ácidos orgânicos</option>
+            <option>Bases inorgânicas</option>
+            <option>Metais pesados</option>
+            <option>Oxidantes</option>
+            <option>Compostos cianetos</option>
+            <option>Vidraria contaminada</option>
+            <option>Material biológico contaminado</option>
+          </select>
+        </div>
+        <div className="field"><label htmlFor="edit-risco">Risco</label>
+          <select id="edit-risco" value={f.risco} onChange={e => upd('risco', e.target.value)}>
+            <option value="baixo">Baixo</option>
+            <option value="medio">Médio</option>
+            <option value="alto">Alto</option>
+          </select>
+        </div>
+      </div>
+      <div className="form-row">
+        <div className="field"><label htmlFor="edit-volume">Volume / massa</label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input id="edit-volume" style={{ flex: 1 }} type="number" step="0.1" value={f.volume} onChange={e => upd('volume', e.target.value)} />
+            <select style={{ width: 80 }} value={f.unidade} onChange={e => upd('unidade', e.target.value)}>
+              <option>L</option><option>mL</option><option>kg</option><option>g</option><option>m³</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div className="form-row full">
+        <div className="field"><label htmlFor="edit-composicao">Composição</label>
+          <textarea id="edit-composicao" rows={3} value={f.composicao} onChange={e => upd('composicao', e.target.value)} />
+        </div>
       </div>
     </Modal>
   );
