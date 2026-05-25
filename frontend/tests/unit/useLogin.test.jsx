@@ -64,6 +64,7 @@ describe('useLogin', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
+    expect(result.current.error.message).toBe('Credenciais inválidas');
     expect(localStorage.getItem('resqui_token')).toBeNull();
   });
 
