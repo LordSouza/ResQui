@@ -7,8 +7,8 @@ function normalizeItem(r) {
     classe: r.classeReatividade,
     validade_status: r.validadeStatus,
     estoque_min: r.estoqueMin,
-    pictos: [],
-    signal: '',
+    pictos: r.ghs?.pictos ?? [],
+    signal: r.ghs?.signal ?? '',
   };
 }
 

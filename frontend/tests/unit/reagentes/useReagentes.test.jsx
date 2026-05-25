@@ -62,7 +62,11 @@ describe('useReagentes', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true, status: 200,
       json: async () => ({
-        items: [{ id: 'R-001', nome: 'Etanol', classeReatividade: 5, validadeStatus: 'expira-breve', estoqueMin: 0.5 }],
+        items: [{
+          id: 'R-001', nome: 'Etanol',
+          classeReatividade: 5, validadeStatus: 'expira-breve', estoqueMin: 0.5,
+          ghs: { pictos: ['flame', 'exclam'], signal: 'Perigo', frasesH: [], frasesP: [] },
+        }],
         total: 1, page: 1, pageSize: 20,
       }),
     });
@@ -74,7 +78,25 @@ describe('useReagentes', () => {
     expect(item.classe).toBe(5);
     expect(item.validade_status).toBe('expira-breve');
     expect(item.estoque_min).toBe(0.5);
+    expect(item.pictos).toEqual(['flame', 'exclam']);
+    expect(item.signal).toBe('Perigo');
+  });
+
+  it('defaults pictos to [] and signal to empty string when ghs is absent', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true, status: 200,
+      json: async () => ({
+        items: [{ id: 'R-002', nome: 'Agua', classeReatividade: 1, validadeStatus: 'ok', estoqueMin: null }],
+        total: 1, page: 1, pageSize: 20,
+      }),
+    });
+
+    const { result } = renderHook(() => useReagentes(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const item = result.current.data.items[0];
     expect(item.pictos).toEqual([]);
+    expect(item.signal).toBe('');
   });
 
   it('sets isError on non-ok response', async () => {
