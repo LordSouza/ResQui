@@ -176,56 +176,25 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
 }
 
 // ---------- Novo Pré-MTR ----------
-function mtrReducer(state, action) {
-  switch (action.type) {
-    case 'toggle':
-      return { ...state, selected: state.selected.includes(action.id) ? state.selected.filter(x => x !== action.id) : [...state.selected, action.id] };
-    case 'setTransp': return { ...state, transp: action.value };
-    case 'setDest':   return { ...state, dest: action.value };
-    case 'setCodigo': return { ...state, codigo: action.value };
-    case 'submit':    return { ...state, submitting: true };
-    default: return state;
-  }
-}
-
 export function FormNovoMtr({ onClose, dispatch }) {
-  const [mtr, mtrDispatch] = useReducer(mtrReducer, null, () => {
-    const aguardando = RESIDUOS.filter(r => r.status === 'aguardando-coleta');
-    return { submitting: false, selected: aguardando.map(r => r.id), transp: 'EcoLog Transportes', dest: 'EcoQuímica SA', codigo: 'A099' };
-  });
-  const { submitting, selected, transp, dest, codigo } = mtr;
-  const aguardando = RESIDUOS.filter(r => r.status === 'aguardando-coleta');
+  const criarMtr = useCriarMtr();
+  const { data: residuos = [] } = useResíduos({ status: 'aguardando-coleta' });
+  const [selected, setSelected] = useState([]);
+  const [f, setF] = useState({ transp: 'EcoLog Transportes', dest: 'EcoQuímica SA', codigo: 'A099', gerador: 'Unifei' });
 
-  const toggle = (id) => mtrDispatch({ type: 'toggle', id });
+  const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  const toKg = { kg: 1, g: 0.001, L: 1.0, mL: 0.001, 'm³': 1000 };
   const massa = selected.reduce((s, id) => {
-    const r = RESIDUOS.find(x => x.id === id);
-    const toKg = { kg: 1, g: 0.001, L: 1.0, mL: 0.001 };
+    const r = residuos.find(x => x.id === id);
     return s + (r ? r.volume * (toKg[r.unidade] ?? 1.0) : 0);
   }, 0);
 
   const submit = () => {
-    if (submitting) return;
     if (selected.length === 0) { alert('Selecione ao menos um resíduo.'); return; }
-    mtrDispatch({ type: 'submit' });
-    const last = MTRS.map(m => parseInt(m.id.replace('MTR-2025-', ''))).reduce((a, b) => Math.max(a, b), 0);
-    const id = 'MTR-2025-' + String(last + 1).padStart(4, '0');
-    const novo = {
-      id, emissao: new Date().toISOString().slice(0, 10),
-      status: 'rascunho', transportador: transp, destinador: dest,
-      residuos: selected, massa: Number(massa.toFixed(1)), codigo_ibama: codigo,
-    };
-    MTRS.unshift(novo);
-    selected.forEach(rid => {
-      const r = RESIDUOS.find(x => x.id === rid);
-      if (r) { r.mtr = id; r.status = 'em-coleta'; }
-    });
-    AUDITORIA.unshift({
-      ts: pgrsTs(),
-      who: 'Lucas Souza', what: 'mtr.draft', where: '-',
-      detail: `Criou pré-MTR ${id} (${selected.length} resíduos · ${massa.toFixed(1)} kg)`, risk: 'low',
-    });
-    dispatch({type: 'refresh', flashId: id});
-    onClose();
+    criarMtr.mutate(
+      { Gerador: f.gerador, Transportadora: f.transp, Destinador: f.dest, CodigoIbama: f.codigo, ResiduoIds: selected },
+      { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
+    );
   };
 
   return (
@@ -233,49 +202,47 @@ export function FormNovoMtr({ onClose, dispatch }) {
       onClose={onClose} width={680}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={submitting}>Criar Pré-MTR ({selected.length})</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={criarMtr.isPending}>
+          {criarMtr.isPending ? 'Criando…' : `Criar Pré-MTR (${selected.length})`}
+        </button>
       </>}>
       <div className="form-row">
+        <div className="field"><label htmlFor="mtr-gerador">Gerador</label>
+          <input id="mtr-gerador" value={f.gerador} onChange={e => setF(s => ({ ...s, gerador: e.target.value }))} />
+        </div>
+        <div className="field"><label htmlFor="mtr-codigo-ibama">Código IBAMA</label>
+          <input id="mtr-codigo-ibama" value={f.codigo} onChange={e => setF(s => ({ ...s, codigo: e.target.value }))} placeholder="Ex: A099" />
+        </div>
+      </div>
+      <div className="form-row">
         <div className="field"><label htmlFor="mtr-transportador">Transportador</label>
-          <select id="mtr-transportador" value={transp} onChange={e => mtrDispatch({ type: 'setTransp', value: e.target.value })}>
+          <select id="mtr-transportador" value={f.transp} onChange={e => setF(s => ({ ...s, transp: e.target.value }))}>
             <option>EcoLog Transportes</option><option>CleanWaste</option>
           </select>
         </div>
         <div className="field"><label htmlFor="mtr-destinador">Destinador</label>
-          <select id="mtr-destinador" value={dest} onChange={e => mtrDispatch({ type: 'setDest', value: e.target.value })}>
+          <select id="mtr-destinador" value={f.dest} onChange={e => setF(s => ({ ...s, dest: e.target.value }))}>
             <option>EcoQuímica SA</option><option>Resitec Ambiental</option>
           </select>
         </div>
       </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor="mtr-codigo-ibama">Código IBAMA</label>
-          <select id="mtr-codigo-ibama" value={codigo} onChange={e => mtrDispatch({ type: 'setCodigo', value: e.target.value })}>
-            <option value="A099">A099: Resíduos químicos diversos</option>
-            <option value="A002">A002: Soluções ácidas</option>
-            <option value="A007">A007: Solventes halogenados</option>
-            <option value="A004">A004: Metais pesados</option>
-          </select>
-        </div>
-        <div className="field"><label htmlFor="mtr-massa-total">Massa total estimada</label>
-          <input id="mtr-massa-total" aria-label="Massa total estimada" value={massa.toFixed(1) + ' kg'} readOnly/>
-        </div>
+      <div style={{ marginTop: 12 }}>
+        <p className="small muted" style={{ marginBottom: 6 }}>Resíduos aguardando coleta ({residuos.length})</p>
+        {residuos.length === 0 && <p className="muted small">Nenhum resíduo aguardando coleta.</p>}
+        {residuos.map((r) => (
+          <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
+            <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} />
+            <span className="mono small">#{r.id}</span>
+            <span>{r.tipo}</span>
+            <span className="muted small">{r.volume} {r.unidade}</span>
+          </label>
+        ))}
       </div>
-
-      <fieldset className="field mtr-residuos-fieldset" style={{marginTop: 8}}>
-        <legend className="mtr-residuos-legend">Selecione resíduos a consolidar ({selected.length} / {aguardando.length})</legend>
-        <div style={{border: '1px solid var(--border)', borderRadius: 'var(--radius)', maxHeight: 220, overflow: 'auto'}}>
-          {aguardando.map(r => (
-            <label key={r.id} className="mtr-residuo-row"
-              style={{background: selected.includes(r.id) ? 'var(--accent-soft)' : 'transparent'}}>
-              <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} aria-label={`Selecionar resíduo ${r.id}`}/>
-              <span className="mono">{r.id}</span>
-              <span>{r.tipo} · <span className="muted">{r.composicao}</span></span>
-              <span className="mono right">{r.volume} {r.unidade}</span>
-              <span>{riscoBadge(r.risco)}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {selected.length > 0 && (
+        <p className="small" style={{ marginTop: 10 }}>
+          Massa estimada: <strong>{massa.toFixed(1)} kg</strong> ({selected.length} resíduos)
+        </p>
+      )}
     </Modal>
   );
 }
