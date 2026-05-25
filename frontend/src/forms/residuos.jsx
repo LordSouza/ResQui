@@ -1,8 +1,13 @@
-import { useState, useReducer } from 'react';
+import { useState } from 'react';
 import { Icon, Badge, riscoBadge } from '../components';
-import { RESIDUOS, MTRS, AUDITORIA, LABORATORIOS } from '../data';
+import { AUDITORIA } from '../data';
 import { pgrsTs } from '../utils';
 import Modal from './Modal';
+import { useCriarResiduo } from '../residuos/useCriarResiduo';
+import { useAtualizarResiduo } from '../residuos/useAtualizarResiduo';
+import { useLaboratorios } from '../laboratorios/useLaboratorios';
+import { useCriarMtr } from '../mtrs/useCriarMtr';
+import { useResíduos } from '../residuos/useResíduos';
 
 // ---------- Novo Resíduo ----------
 export function FormNovoResiduo({ onClose, dispatch }) {
