@@ -48,7 +48,8 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             Nome = cmd.Nome, Cas = cmd.Cas, Formula = cmd.Formula,
             Sinonimo = cmd.Sinonimo, ClasseReatividade = cmd.ClasseReatividade,
             Estoque = cmd.Estoque, EstoqueMin = cmd.EstoqueMin, Unidade = cmd.Unidade,
-            Validade = DateOnly.Parse(cmd.Validade), Local = cmd.Local,
+            Validade = cmd.Validade is not null ? DateOnly.Parse(cmd.Validade) : DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            Local = cmd.Local,
             Responsavel = cmd.Responsavel, Controlado = cmd.Controlado, Lote = cmd.Lote,
             Ghs = cmd.Ghs is null ? null : new ReagenteGhs
             {
@@ -69,7 +70,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         if (r is null) return null;
         r.Nome = cmd.Nome; r.Estoque = cmd.Estoque; r.EstoqueMin = cmd.EstoqueMin;
         r.Local = cmd.Local; r.Responsavel = cmd.Responsavel;
-        r.Validade = DateOnly.Parse(cmd.Validade);
+        if (cmd.Validade is not null) r.Validade = DateOnly.Parse(cmd.Validade);
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
         await auditoria.RegistrarAsync(usuarioEmail, "reagente.atualizar", "Inventário",

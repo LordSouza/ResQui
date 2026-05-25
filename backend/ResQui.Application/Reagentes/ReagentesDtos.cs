@@ -44,7 +44,7 @@ public record CriarReagenteCmd(
     decimal Estoque,
     decimal? EstoqueMin,
     string Unidade,
-    string Validade,
+    string? Validade,
     string Local,
     string Responsavel,
     bool Controlado,
@@ -58,7 +58,7 @@ public record AtualizarReagenteCmd(
     decimal? EstoqueMin,
     string Local,
     string Responsavel,
-    string Validade
+    string? Validade
 );
 
 public record BaixaCmd(decimal Quantidade);
