@@ -44,7 +44,6 @@ export function CompatScreen({ state, dispatch }) {
             rows.push([]);
             rows.push(['Legenda', '0 = compatível', '1 = cautela', '2 = perigo', '3 = proibido']);
             exportCsv(rows, `matriz-compatibilidade-${exportDate.toISOString().slice(0,10)}.csv`);
-            logAudit('compat.export', `Exportou matriz de compatibilidade (${classesPresentes.length} classes)`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar matriz</button>
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'editarRegrasCompat'})}><Icon name="settings" size={13}/> Editar regras</button>
