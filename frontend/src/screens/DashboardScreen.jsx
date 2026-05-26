@@ -1,6 +1,6 @@
 import { Icon, Tag, SectionTitle, riscoBadge } from '../components';
 import { RESIDUOS, MTRS, NOTIFICACOES, GERACAO_MENSAL, GERACAO_POR_LAB } from '../data';
-import { exportCsv, logAudit } from '../utils';
+import { exportCsv } from '../utils';
 import { useReagentes } from '../reagentes/useReagentes';
 
 export function DashboardScreen({ state, dispatch }) {
