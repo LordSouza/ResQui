@@ -37,7 +37,6 @@ public class LaboratoriosServiceTests
     {
         _repo.AddAsync(Arg.Any<Laboratorio>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
-        _repo.GetByIdAsync(Arg.Any<string>()).Returns((Laboratorio?)null);
 
         await _sut.CriarAsync(CriarCmd(), "admin@lab.com");
 
