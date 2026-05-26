@@ -1,6 +1,9 @@
 using FluentAssertions;
 using NSubstitute;
+using ResQui.Application.Auditoria;
 using ResQui.Application.Auth;
+using ResQui.Domain.Entities;
+using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Tests.Unit.Auth;
@@ -8,20 +11,68 @@ namespace ResQui.Tests.Unit.Auth;
 public class AuthServiceTests
 {
     private readonly IAuthRepository _repo = Substitute.For<IAuthRepository>();
+    private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly JwtOptions _jwt = new()
     {
-        Key = "super_secret_key_for_testing_32ch!",
+        Key = "secret-key-32-chars-long-enough!!",
         Issuer = "resqui",
-        Audience = "resqui-frontend",
+        Audience = "resqui-app",
         ExpirationHours = 8
     };
     private readonly AuthService _sut;
 
     public AuthServiceTests()
     {
-        _sut = new AuthService(_repo, _jwt);
+        _sut = new AuthService(_repo, _jwt, _audit);
     }
 
+    private static UsuarioInfo FakeUser() => new(
+        "user-1", "ana@lab.com", "Ana Silva", "M-001", "Gestor",
+        new List<string> { "Gestor" }, false);
+
+    [Fact]
+    public async Task LoginAsync_CredenciaisValidas_RegistraAuditoria()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.GetRolesAsync("user-1").Returns(new List<string> { "Gestor" });
+
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "senha123"));
+
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "user.login", "Auth",
+            Arg.Any<string>(), RiscoAuditoria.Low);
+    }
+
+    [Fact]
+    public async Task LoginAsync_CredenciaisInvalidas_NaoRegistraAuditoria()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns((UsuarioInfo?)null);
+
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"));
+
+        await _audit.DidNotReceive().RegistrarAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task RegisterAsync_RegistraAuditoria()
+    {
+        _repo.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
+            Arg.Any<string>(), Arg.Any<string?>()).Returns("new-user-id");
+        _repo.AddToRoleAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(Task.CompletedTask);
+        _repo.GetRolesAsync("new-user-id").Returns(new List<string> { "Tecnico" });
+
+        var cmd = new RegisterCmd("novo@lab.com", "senha123", null, "Tecnico", "Novo User");
+        await _sut.RegisterAsync(cmd, "admin@lab.com");
+
+        await _audit.Received(1).RegistrarAsync(
+            "admin@lab.com", "user.criar", "Usuários",
+            Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
+
+    // Keeping existing tests
     [Fact]
     public async Task LoginAsync_ValidCredentials_ReturnsToken()
     {
@@ -80,7 +131,8 @@ public class AuthServiceTests
         _repo.GetRolesAsync("u2").Returns((IList<string>)["Tecnico"]);
 
         var result = await _sut.RegisterAsync(
-            new RegisterCmd("new@resqui.local", "Pass@123", "MAT-002", "Tecnico", "Novo Usuário"));
+            new RegisterCmd("new@resqui.local", "Pass@123", "MAT-002", "Tecnico", "Novo Usuário"),
+            "admin@resqui.local");
 
         result.Email.Should().Be("new@resqui.local");
         result.Papel.Should().Be("Tecnico");
