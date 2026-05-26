@@ -124,4 +124,33 @@ public class ResiduosServiceTests
         result.Risco.Should().Be("alto");
         result.Unidade.Should().Be("L"); // campo não alterado permanece
     }
+
+    [Fact]
+    public async Task CriarAsync_RegistraAuditoria()
+    {
+        var cmd = new CriarResiduoCmd("Solventes", 1, "Solventes orgânicos", 4.2m, "L", "Acetona", "medio", null);
+        _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        await _sut.CriarAsync(cmd, "ana@lab.com");
+
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "residuo.criar", "Resíduos",
+            Arg.Any<string>(), RiscoAuditoria.Low);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ResiduoExistente_RegistraAuditoria()
+    {
+        var r = new Residuo { Id = 1, Descricao = "R1", LaboratorioId = 1, Tipo = "Solventes", Volume = 4.2m, Unidade = "L", Composicao = "Acetona", Risco = "medio", Status = "aguardando-coleta" };
+        _repo.GetByIdAsync(1).Returns(r);
+        _repo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, "alto", null, null, null), "ana@lab.com");
+
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "residuo.atualizar", "Resíduos",
+            Arg.Any<string>(), RiscoAuditoria.Low);
+    }
 }
