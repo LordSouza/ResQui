@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Icon, Badge, SectionTitle, Picto, Empty, validadeBadge } from '../components';
 import { REATIVIDADE_CLASSES, COMPAT_MATRIX } from '../data';
-import { logAudit } from '../utils';
 import { useReagente } from '../reagentes/useReagente';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useDeletarReagente } from '../reagentes/useDeletarReagente';
