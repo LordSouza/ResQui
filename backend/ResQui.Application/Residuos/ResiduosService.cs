@@ -1,9 +1,11 @@
+using ResQui.Application.Auditoria;
 using ResQui.Domain.Entities;
+using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Residuos;
 
-public class ResiduosService(IResiduosRepository repo) : IResiduosService
+public class ResiduosService(IResiduosRepository repo, IAuditoriaService auditoria) : IResiduosService
 {
     public async Task<IEnumerable<ResiduoDto>> ListarAsync(int? labId, int? mtrId, string? status)
     {
@@ -14,7 +16,7 @@ public class ResiduosService(IResiduosRepository repo) : IResiduosService
         return all.Select(ToDto);
     }
 
-    public async Task<ResiduoDto> CriarAsync(CriarResiduoCmd cmd)
+    public async Task<ResiduoDto> CriarAsync(CriarResiduoCmd cmd, string usuarioEmail)
     {
         var r = new Residuo
         {
@@ -29,10 +31,12 @@ public class ResiduosService(IResiduosRepository repo) : IResiduosService
         };
         await repo.AddAsync(r);
         await repo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "residuo.criar", "Resíduos",
+            $"Registrou resíduo {r.Id} — {r.Descricao}", RiscoAuditoria.Low);
         return ToDto(r);
     }
 
-    public async Task<ResiduoDto?> AtualizarAsync(int id, AtualizarResiduoCmd cmd)
+    public async Task<ResiduoDto?> AtualizarAsync(int id, AtualizarResiduoCmd cmd, string usuarioEmail)
     {
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
@@ -47,6 +51,8 @@ public class ResiduosService(IResiduosRepository repo) : IResiduosService
         if (cmd.MtrId is not null) r.MtrId = cmd.MtrId;
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "residuo.atualizar", "Resíduos",
+            $"Editou resíduo {id}", RiscoAuditoria.Low);
         return ToDto(r);
     }
 
