@@ -77,7 +77,7 @@ public class MtrsServiceTests
     {
         _repo.GetByIdAsync(999).Returns((Mtr?)null);
 
-        var result = await _sut.EnviarSinirAsync(999);
+        var result = await _sut.EnviarSinirAsync(999, "user@lab.com");
 
         result.Sucesso.Should().BeFalse();
         result.Mensagem.Should().Be("MTR não encontrado");
@@ -88,7 +88,7 @@ public class MtrsServiceTests
     {
         _repo.GetByIdAsync(1).Returns(FakeMtr(1, MtrStatus.AceitoSinir));
 
-        var result = await _sut.EnviarSinirAsync(1);
+        var result = await _sut.EnviarSinirAsync(1, "user@lab.com");
 
         result.Sucesso.Should().BeFalse();
         result.Mensagem.Should().Contain("não está em estado enviável");
@@ -105,8 +105,40 @@ public class MtrsServiceTests
         _repo.UpdateAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        var results = (await _sut.EnviarBatchAsync()).ToList();
+        var results = (await _sut.EnviarBatchAsync("user@lab.com")).ToList();
 
         results.Should().HaveCount(1); // só o rascunho
+    }
+
+    [Fact]
+    public async Task CriarAsync_RegistraAuditoria()
+    {
+        _repo.AddAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+        _repo.UpdateAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
+        _residuosRepo.GetAllAsync().Returns(new List<Residuo>().AsEnumerable());
+        _residuosRepo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        var cmd = new CriarMtrCmd("Unifei", "EcoLog", "EcoQuím", "A099", new List<int>());
+        await _sut.CriarAsync(cmd, "user-1", "ana@lab.com");
+
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "mtr.criar", "MTR",
+            Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task EnviarSinirAsync_MtrExistente_RegistraAuditoria()
+    {
+        var mtr = FakeMtr(1);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _repo.UpdateAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        await _sut.EnviarSinirAsync(1, "ana@lab.com");
+
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "mtr.enviar-sinir", "MTR",
+            Arg.Any<string>(), RiscoAuditoria.High);
     }
 }
