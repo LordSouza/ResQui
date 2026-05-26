@@ -110,9 +110,6 @@ export function CompatScreen({ state, dispatch }) {
                   titulo: `Risco identificado: ${ra?.nome} + ${rb?.nome} (score ${score})`,
                   sev: score === 3 ? 'red' : 'amber', t: 'agora', lida: false,
                 });
-                logAudit('compat.notify',
-                  `Notificou ${respA}${respA !== respB ? ' e ' + respB : ''} sobre risco ${ra?.id} × ${rb?.id}`,
-                  'med');
                 alert(`Notificação enviada para ${respA}${respA !== respB ? ' e ' + respB : ''}.`);
                 dispatch({type: 'refresh'});
               }}><Icon name="bell" size={13}/> Notificar responsáveis</button>
