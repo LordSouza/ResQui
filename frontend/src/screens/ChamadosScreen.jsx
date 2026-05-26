@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useReducer } from 'react';
 import { Icon, Badge } from '../components';
 import { CHAMADOS, AUDITORIA } from '../data';
-import { pgrsTs, exportCsv, logAudit } from '../utils';
+import { pgrsTs, exportCsv } from '../utils';
 
 const statusChamado = (s) => {
   const map = {
