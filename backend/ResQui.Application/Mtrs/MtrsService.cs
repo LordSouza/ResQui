@@ -1,10 +1,11 @@
+using ResQui.Application.Auditoria;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Mtrs;
 
-public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo) : IMtrsService
+public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo, IAuditoriaService auditoria) : IMtrsService
 {
     public async Task<IEnumerable<MtrDto>> ListarAsync()
     {
@@ -21,7 +22,7 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo)
         return ToDto(m, residuos);
     }
 
-    public async Task<MtrDto> CriarAsync(CriarMtrCmd cmd, string usuarioId)
+    public async Task<MtrDto> CriarAsync(CriarMtrCmd cmd, string usuarioId, string usuarioEmail)
     {
         var numero = $"MTR-{DateTime.UtcNow.Year}-{Random.Shared.Next(1000, 9999)}";
         var m = new Mtr
@@ -36,7 +37,6 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo)
         await repo.AddAsync(m);
         await repo.SaveChangesAsync();
 
-        // Vincula resíduos e calcula massa
         var residuos = new List<Residuo>();
         foreach (var rid in cmd.ResiduoIds)
         {
@@ -51,11 +51,12 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo)
         await repo.UpdateAsync(m);
         await residuosRepo.SaveChangesAsync();
         await repo.SaveChangesAsync();
-
+        await auditoria.RegistrarAsync(usuarioEmail, "mtr.criar", "MTR",
+            $"Criou MTR {m.Numero} com {residuos.Count} resíduo(s)", RiscoAuditoria.Medium);
         return ToDto(m, residuos);
     }
 
-    public async Task<EnviarSinirResult> EnviarSinirAsync(int id)
+    public async Task<EnviarSinirResult> EnviarSinirAsync(int id, string usuarioEmail)
     {
         var m = await repo.GetByIdAsync(id);
         if (m is null) return new EnviarSinirResult(false, "MTR não encontrado", "");
@@ -66,15 +67,19 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo)
         m.Status = sucesso ? MtrStatus.AceitoSinir : MtrStatus.PendenteSinir;
         await repo.UpdateAsync(m);
         await repo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "mtr.enviar-sinir", "MTR",
+            $"Enviou MTR {m.Numero} ao SINIR — {(sucesso ? "aceito" : "pendente")}", RiscoAuditoria.High);
         return new EnviarSinirResult(sucesso, sucesso ? "Aceito pelo SINIR" : "Pendente no SINIR", m.Status.ToString());
     }
 
-    public async Task<IEnumerable<EnviarSinirResult>> EnviarBatchAsync()
+    public async Task<IEnumerable<EnviarSinirResult>> EnviarBatchAsync(string usuarioEmail)
     {
         var rascunhos = (await repo.GetAllAsync()).Where(m => m.Status == MtrStatus.Rascunho).ToList();
         var results = new List<EnviarSinirResult>();
         foreach (var m in rascunhos)
-            results.Add(await EnviarSinirAsync(m.Id));
+            results.Add(await EnviarSinirAsync(m.Id, usuarioEmail));
+        await auditoria.RegistrarAsync(usuarioEmail, "mtr.enviar-batch", "MTR",
+            $"Enviou batch de {rascunhos.Count} MTR(s) ao SINIR", RiscoAuditoria.High);
         return results;
     }
 
