@@ -56,6 +56,19 @@ public class AuthServiceTests
     }
 
     [Fact]
+    public async Task LoginAsync_SenhaErrada_NaoRegistraAuditoria()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser());
+        _repo.CheckPasswordAsync("user-1", "errada").Returns(false);
+
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"));
+
+        await _audit.DidNotReceive().RegistrarAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
     public async Task RegisterAsync_RegistraAuditoria()
     {
         _repo.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
