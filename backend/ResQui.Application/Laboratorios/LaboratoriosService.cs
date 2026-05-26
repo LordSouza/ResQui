@@ -1,9 +1,11 @@
+using ResQui.Application.Auditoria;
 using ResQui.Domain.Entities;
+using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Laboratorios;
 
-public class LaboratoriosService(ILaboratoriosRepository repo) : ILaboratoriosService
+public class LaboratoriosService(ILaboratoriosRepository repo, IAuditoriaService auditoria) : ILaboratoriosService
 {
     public async Task<IEnumerable<LaboratorioDto>> ListarAsync() =>
         (await repo.GetAllAsync()).Select(ToDto);
@@ -11,7 +13,7 @@ public class LaboratoriosService(ILaboratoriosRepository repo) : ILaboratoriosSe
     public async Task<LaboratorioDto?> ObterPorIdAsync(string id) =>
         (await repo.GetByIdAsync(id)) is { } l ? ToDto(l) : null;
 
-    public async Task<LaboratorioDto> CriarAsync(CriarLaboratorioCmd cmd)
+    public async Task<LaboratorioDto> CriarAsync(CriarLaboratorioCmd cmd, string usuarioEmail)
     {
         var l = new Laboratorio
         {
@@ -23,10 +25,12 @@ public class LaboratoriosService(ILaboratoriosRepository repo) : ILaboratoriosSe
         };
         await repo.AddAsync(l);
         await repo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "lab.criar", "Laboratórios",
+            $"Criou laboratório {l.Id} — {l.Nome}", RiscoAuditoria.Low);
         return ToDto(l);
     }
 
-    public async Task<LaboratorioDto?> AtualizarAsync(string id, AtualizarLaboratorioCmd cmd)
+    public async Task<LaboratorioDto?> AtualizarAsync(string id, AtualizarLaboratorioCmd cmd, string usuarioEmail)
     {
         var l = await repo.GetByIdAsync(id);
         if (l is null) return null;
@@ -36,14 +40,18 @@ public class LaboratoriosService(ILaboratoriosRepository repo) : ILaboratoriosSe
         l.Ventilacao = cmd.Ventilacao; l.Cor = cmd.Cor;
         await repo.UpdateAsync(l);
         await repo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "lab.atualizar", "Laboratórios",
+            $"Editou laboratório {id} — {l.Nome}", RiscoAuditoria.Low);
         return ToDto(l);
     }
 
-    public async Task<bool> DeletarAsync(string id)
+    public async Task<bool> DeletarAsync(string id, string usuarioEmail)
     {
         if (await repo.GetByIdAsync(id) is null) return false;
         await repo.DeleteAsync(id);
         await repo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "lab.deletar", "Laboratórios",
+            $"Removeu laboratório {id}", RiscoAuditoria.Medium);
         return true;
     }
 
