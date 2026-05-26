@@ -12,11 +12,12 @@ public class MtrsServiceTests
 {
     private readonly IMtrsRepository _repo = Substitute.For<IMtrsRepository>();
     private readonly IResiduosRepository _residuosRepo = Substitute.For<IResiduosRepository>();
+    private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly MtrsService _sut;
 
     public MtrsServiceTests()
     {
-        _sut = new MtrsService(_repo, _residuosRepo);
+        _sut = new MtrsService(_repo, _residuosRepo, _audit);
     }
 
     private static Mtr FakeMtr(int id = 1, MtrStatus status = MtrStatus.Rascunho) => new()
