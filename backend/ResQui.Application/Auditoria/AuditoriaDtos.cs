@@ -16,5 +16,7 @@ public record AuditoriaFiltroDto(
     DateTime? From = null,
     DateTime? To = null,
     string? Risk = null,
-    string? Who = null
+    string? Who = null,
+    string? What = null,
+    string? Where = null
 );
