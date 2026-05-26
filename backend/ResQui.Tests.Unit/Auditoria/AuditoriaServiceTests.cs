@@ -61,4 +61,52 @@ public class AuditoriaServiceTests
         result.Should().HaveCount(1);
         result[0].Who.Should().Be("B");
     }
+
+    [Fact]
+    public async Task ListarAsync_FiltroWhat_RetornaApenasCombinantes()
+    {
+        var entries = new List<AuditoriaEntry>
+        {
+            new() { Who = "a@a.com", What = "lab.criar", Where = "Laboratórios", Detail = "Lab-001", Risk = RiscoAuditoria.Low },
+            new() { Who = "b@b.com", What = "reagente.criar", Where = "Inventário", Detail = "R-001", Risk = RiscoAuditoria.Low },
+        };
+        _repo.GetAllAsync().Returns(entries);
+
+        var result = (await _sut.ListarAsync(new AuditoriaFiltroDto(What: "lab.criar"))).ToList();
+
+        result.Should().HaveCount(1);
+        result[0].Who.Should().Be("a@a.com");
+    }
+
+    [Fact]
+    public async Task ListarAsync_FiltroWhere_RetornaApenasCombinantes()
+    {
+        var entries = new List<AuditoriaEntry>
+        {
+            new() { Who = "a@a.com", What = "lab.criar", Where = "Laboratórios", Detail = "Lab-001", Risk = RiscoAuditoria.Low },
+            new() { Who = "b@b.com", What = "reagente.criar", Where = "Inventário", Detail = "R-001", Risk = RiscoAuditoria.Low },
+        };
+        _repo.GetAllAsync().Returns(entries);
+
+        var result = (await _sut.ListarAsync(new AuditoriaFiltroDto(Where: "Laboratórios"))).ToList();
+
+        result.Should().HaveCount(1);
+        result[0].What.Should().Be("lab.criar");
+    }
+
+    [Fact]
+    public async Task ListarAsync_FiltroWhatEWhere_CombinaDoisFiltros()
+    {
+        var entries = new List<AuditoriaEntry>
+        {
+            new() { Who = "a@a.com", What = "lab.criar", Where = "Laboratórios", Detail = "Lab-001", Risk = RiscoAuditoria.Low },
+            new() { Who = "b@b.com", What = "lab.criar", Where = "Resíduos", Detail = "X", Risk = RiscoAuditoria.Low },
+        };
+        _repo.GetAllAsync().Returns(entries);
+
+        var result = (await _sut.ListarAsync(new AuditoriaFiltroDto(What: "lab.criar", Where: "Laboratórios"))).ToList();
+
+        result.Should().HaveCount(1);
+        result[0].Who.Should().Be("a@a.com");
+    }
 }
