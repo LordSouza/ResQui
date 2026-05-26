@@ -16,7 +16,8 @@ public static class Endpoints
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var profile = await authSvc.RegisterAsync(cmd, email);
             return Results.Created($"/api/usuarios/{profile.Id}", profile);
-        });
+        })
+        .RequireAuthorization("Admin");
 
         group.MapPut("/{id}/papel", async (string id, AlterarPapelCmd cmd, IUsuariosService svc, ClaimsPrincipal user) =>
         {
