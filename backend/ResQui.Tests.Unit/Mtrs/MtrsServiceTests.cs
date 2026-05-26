@@ -63,7 +63,7 @@ public class MtrsServiceTests
         _residuosRepo.SaveChangesAsync().Returns(Task.CompletedTask);
 
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", "EcoQuímica SA", "A099", [10, 11]);
-        var result = await _sut.CriarAsync(cmd, "user1");
+        var result = await _sut.CriarAsync(cmd, "user1", "user1@lab.com");
 
         r1.Status.Should().Be("em-coleta");
         r2.Status.Should().Be("em-coleta");
