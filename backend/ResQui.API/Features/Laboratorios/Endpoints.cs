@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ResQui.Application.Laboratorios;
 
 namespace ResQui.API.Features.Laboratorios;
@@ -15,23 +16,26 @@ public static class Endpoints
             return l is null ? Results.NotFound() : Results.Ok(l);
         });
 
-        group.MapPost("/", async (CriarLaboratorioCmd cmd, ILaboratoriosService svc) =>
+        group.MapPost("/", async (CriarLaboratorioCmd cmd, ILaboratoriosService svc, ClaimsPrincipal user) =>
         {
-            var l = await svc.CriarAsync(cmd);
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var l = await svc.CriarAsync(cmd, email);
             return Results.Created($"/api/laboratorios/{l.Id}", l);
         })
         .RequireAuthorization("Gestor");
 
-        group.MapPut("/{id}", async (string id, AtualizarLaboratorioCmd cmd, ILaboratoriosService svc) =>
+        group.MapPut("/{id}", async (string id, AtualizarLaboratorioCmd cmd, ILaboratoriosService svc, ClaimsPrincipal user) =>
         {
-            var l = await svc.AtualizarAsync(id, cmd);
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var l = await svc.AtualizarAsync(id, cmd, email);
             return l is null ? Results.NotFound() : Results.Ok(l);
         })
         .RequireAuthorization("Gestor");
 
-        group.MapDelete("/{id}", async (string id, ILaboratoriosService svc) =>
+        group.MapDelete("/{id}", async (string id, ILaboratoriosService svc, ClaimsPrincipal user) =>
         {
-            var ok = await svc.DeletarAsync(id);
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var ok = await svc.DeletarAsync(id, email);
             return ok ? Results.NoContent() : Results.NotFound();
         })
         .RequireAuthorization("Admin");
