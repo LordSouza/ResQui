@@ -3,7 +3,7 @@ import { useState, useEffect, useReducer, useRef } from 'react';
 
 import { useAuth } from './auth/AuthContext';
 import { NOTIFICACOES } from './data';
-import { pgrsTs, exportCsv, logAudit } from './utils';
+import { pgrsTs, exportCsv } from './utils';
 import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge, mtrStatusBadge } from './components';
 import { reducer, initialState } from './store/reducer';
 
