@@ -18,9 +18,10 @@ public static class Endpoints
         .WithName("Login")
         .WithSummary("Autenticar usuário e obter JWT");
 
-        group.MapPost("/register", async (RegisterCmd cmd, IAuthService svc) =>
+        group.MapPost("/register", async (RegisterCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
         {
-            var profile = await svc.RegisterAsync(cmd);
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var profile = await svc.RegisterAsync(cmd, email);
             return Results.Created($"/api/auth/me", profile);
         })
         .RequireAuthorization("Admin")
