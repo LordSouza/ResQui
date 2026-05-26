@@ -2,11 +2,13 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using ResQui.Application.Auditoria;
+using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Auth;
 
-public class AuthService(IAuthRepository repo, JwtOptions jwtOptions) : IAuthService
+public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria) : IAuthService
 {
     public async Task<TokenDto?> LoginAsync(LoginCmd cmd)
     {
@@ -19,14 +21,18 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions) : IAuthSer
         var expireAt = DateTime.UtcNow.AddHours(jwtOptions.ExpirationHours);
         var token = GenerateToken(user, expireAt);
         var profile = new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula, user.Papel, user.Roles);
+        await auditoria.RegistrarAsync(cmd.Email, "user.login", "Auth",
+            $"Login de {cmd.Email}", RiscoAuditoria.Low);
         return new TokenDto(token, expireAt, profile);
     }
 
-    public async Task<UserProfileDto> RegisterAsync(RegisterCmd cmd)
+    public async Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, string requesterEmail)
     {
         var id = await repo.CreateAsync(cmd.Email, cmd.Senha, cmd.Matricula, cmd.Papel, cmd.Nome);
         await repo.AddToRoleAsync(id, cmd.Papel);
         var roles = await repo.GetRolesAsync(id);
+        await auditoria.RegistrarAsync(requesterEmail, "user.criar", "Usuários",
+            $"Criou usuário {cmd.Email} com papel {cmd.Papel}", RiscoAuditoria.Medium);
         return new UserProfileDto(id, cmd.Email, cmd.Nome, cmd.Matricula, cmd.Papel, roles);
     }
 
