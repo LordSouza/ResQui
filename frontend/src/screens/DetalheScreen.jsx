@@ -134,7 +134,6 @@ export function DetalheScreen({ state, dispatch }) {
           <div className="card">
             <SectionTitle title="Rótulo GHS" sub="ABNT NBR 14725-3"
               right={<button type="button" className="btn btn-sm" onClick={() => {
-                logAudit('label.regenerate', `Regenerou rótulo GHS de ${r.nome} (${r.id})`);
                 dispatch({type: 'refresh'});
               }}><Icon name="refresh" size={12}/> Regenerar</button>}/>
             <div className="card-body" style={{background: 'var(--surface-2)'}}>
