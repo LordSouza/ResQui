@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NSubstitute;
+using ResQui.Application.Auditoria;
 using ResQui.Application.Mtrs;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
