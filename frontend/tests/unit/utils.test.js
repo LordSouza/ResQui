@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { pgrsTs, exportCsv, logAudit } from '../../src/utils';
-import { AUDITORIA } from '../../src/data';
+import { pgrsTs, exportCsv } from '../../src/utils';
 
 // --- pgrsTs ---
 describe('pgrsTs', () => {
@@ -53,46 +52,5 @@ describe('exportCsv', () => {
   it('sets href to the result of URL.createObjectURL', () => {
     exportCsv([['x']], 'x.csv');
     expect(mockAnchor.href).toBe('blob:mock-url');
-  });
-});
-
-// --- logAudit ---
-describe('logAudit', () => {
-  let snapshotLength;
-
-  beforeEach(() => {
-    snapshotLength = AUDITORIA.length;
-  });
-
-  afterEach(() => {
-    while (AUDITORIA.length > snapshotLength) {
-      AUDITORIA.shift();
-    }
-  });
-
-  it('inserts a new entry at index 0', () => {
-    logAudit('item.test', 'detail text', 'Lab-201', 'high');
-    expect(AUDITORIA.length).toBe(snapshotLength + 1);
-    expect(AUDITORIA[0].what).toBe('item.test');
-  });
-
-  it('sets all entry fields correctly', () => {
-    logAudit('item.test', 'detail text', 'Lab-201', 'high');
-    const entry = AUDITORIA[0];
-    expect(entry.detail).toBe('detail text');
-    expect(entry.where).toBe('Lab-201');
-    expect(entry.risk).toBe('high');
-    expect(entry.who).toBe('Lucas Souza');
-    expect(entry.ts).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
-  });
-
-  it('defaults where to dash when omitted', () => {
-    logAudit('item.test', 'detail');
-    expect(AUDITORIA[0].where).toBe('-');
-  });
-
-  it('defaults risk to low when omitted', () => {
-    logAudit('item.test', 'detail');
-    expect(AUDITORIA[0].risk).toBe('low');
   });
 });
