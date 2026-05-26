@@ -22,6 +22,7 @@ public class UsuariosService(IAuthRepository repo, IAuditoriaService auditoria) 
 
     public async Task AlterarPapelAsync(string id, AlterarPapelCmd cmd, string usuarioEmail)
     {
+        if (await repo.FindByIdAsync(id) is null) return;
         await repo.UpdateRoleAsync(id, cmd.NovoPapel);
         await auditoria.RegistrarAsync(usuarioEmail, "user.papel", "Usuários",
             $"Alterou papel do usuário {id} para {cmd.NovoPapel}", RiscoAuditoria.High);
@@ -29,6 +30,7 @@ public class UsuariosService(IAuthRepository repo, IAuditoriaService auditoria) 
 
     public async Task ArquivarAsync(string id, string usuarioEmail)
     {
+        if (await repo.FindByIdAsync(id) is null) return;
         await repo.SoftDeleteAsync(id);
         await auditoria.RegistrarAsync(usuarioEmail, "user.arquivar", "Usuários",
             $"Arquivou usuário {id}", RiscoAuditoria.High);
