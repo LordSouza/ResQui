@@ -102,7 +102,7 @@ public class ResiduosServiceTests
     {
         _repo.GetByIdAsync(999).Returns((Residuo?)null);
 
-        var result = await _sut.AtualizarAsync(999, new AtualizarResiduoCmd(null, null, null, null, null, null, null, null, null));
+        var result = await _sut.AtualizarAsync(999, new AtualizarResiduoCmd(null, null, null, null, null, null, null, null, null), "test@lab.com");
 
         result.Should().BeNull();
     }
