@@ -1,5 +1,4 @@
 import { Icon, Badge, SectionTitle } from '../components';
-import { logAudit } from '../utils';
 
 export function RelatoriosScreen({ state, dispatch }) {
   return (
