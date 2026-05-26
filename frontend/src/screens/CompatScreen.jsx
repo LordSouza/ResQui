@@ -3,7 +3,7 @@ import { Icon, SectionTitle, Picto } from '../components';
 import { REATIVIDADE_CLASSES, COMPAT_MATRIX, NOTIFICACOES } from '../data';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useReagente } from '../reagentes/useReagente';
-import { exportCsv, logAudit } from '../utils';
+import { exportCsv } from '../utils';
 
 export function CompatScreen({ state, dispatch }) {
   const { data: listData, isPending: listPending, isError: listError, refetch: refetchList } = useReagentes({ pageSize: 200 });
