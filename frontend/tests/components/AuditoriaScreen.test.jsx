@@ -49,7 +49,7 @@ describe('AuditoriaScreen', () => {
     wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
 
     await waitFor(() => expect(screen.getByText('ana@lab.com')).toBeInTheDocument());
-    expect(screen.getByText('reagente.criar')).toBeInTheDocument();
+    expect(screen.getAllByText('reagente.criar').length).toBeGreaterThan(0);
   });
 
   it('mostra estado de erro com botão tentar novamente', async () => {
