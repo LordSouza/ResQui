@@ -94,4 +94,17 @@ public class LaboratoriosServiceTests
             "admin@lab.com", "lab.deletar", "Laboratórios",
             Arg.Any<string>(), RiscoAuditoria.Medium);
     }
+
+    [Fact]
+    public async Task DeletarAsync_LabInexistente_NaoRegistraAuditoria()
+    {
+        _repo.GetByIdAsync("Lab-999").Returns((Laboratorio?)null);
+
+        var ok = await _sut.DeletarAsync("Lab-999", "admin@lab.com");
+
+        ok.Should().BeFalse();
+        await _audit.DidNotReceive().RegistrarAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
 }
