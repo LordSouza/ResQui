@@ -279,7 +279,6 @@ export function ChamadosScreen({ state, dispatch }) {
             const rows = [['ID', 'Título', 'Tipo', 'Severidade', 'Status', 'Reportado por', 'Responsável', 'Criado', 'Resolvido', 'Comentários']];
             list.forEach(c => rows.push([c.id, c.titulo, c.tipo, c.severidade, c.status, c.reportado_por, c.responsavel || '', c.criado, c.resolvido || '', (c.comentarios || []).length]));
             exportCsv(rows, `chamados-${exportDate}.csv`);
-            logAudit('support.export', `Exportou lista de chamados (${list.length} itens)`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar</button>
           <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'reportar' })}>
