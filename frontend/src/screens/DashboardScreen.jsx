@@ -31,7 +31,6 @@ export function DashboardScreen({ state, dispatch }) {
               ['Gerado em', new Date().toLocaleString('pt-BR')],
             ];
             exportCsv(rows, `dashboard-${new Date().toISOString().slice(0,10)}.csv`);
-            logAudit('report.dashboard.export', 'Exportou snapshot do dashboard em CSV');
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar relatório</button>
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'refresh'})}><Icon name="refresh" size={13}/> Atualizar</button>
