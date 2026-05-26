@@ -34,6 +34,10 @@ public class AuditoriaService(IAuditoriaRepository repo) : IAuditoriaService
             entries = entries.Where(e => e.Risk == r);
         if (!string.IsNullOrEmpty(filtro.Who))
             entries = entries.Where(e => e.Who.Contains(filtro.Who, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(filtro.What))
+            entries = entries.Where(e => e.What.Contains(filtro.What, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(filtro.Where))
+            entries = entries.Where(e => e.Where.Contains(filtro.Where, StringComparison.OrdinalIgnoreCase));
 
         return entries.Select(e => new AuditoriaItemDto(
             e.Id, e.Timestamp, e.Who, e.What, e.Where, e.Detail,
