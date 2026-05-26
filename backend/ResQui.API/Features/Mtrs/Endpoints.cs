@@ -19,18 +19,23 @@ public static class Endpoints
         group.MapPost("/", async (CriarMtrCmd cmd, IMtrsService svc, ClaimsPrincipal user) =>
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-            var m = await svc.CriarAsync(cmd, userId);
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var m = await svc.CriarAsync(cmd, userId, email);
             return Results.Created($"/api/mtrs/{m.Id}", m);
         });
 
-        group.MapPut("/{id:int}/enviar-sinir", async (int id, IMtrsService svc) =>
+        group.MapPut("/{id:int}/enviar-sinir", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
         {
-            var result = await svc.EnviarSinirAsync(id);
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var result = await svc.EnviarSinirAsync(id, email);
             return result.Sucesso ? Results.Ok(result) : Results.BadRequest(result);
         });
 
-        group.MapPost("/enviar-batch", async (IMtrsService svc) =>
-            Results.Ok(await svc.EnviarBatchAsync()));
+        group.MapPost("/enviar-batch", async (IMtrsService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            return Results.Ok(await svc.EnviarBatchAsync(email));
+        });
 
         return group;
     }
