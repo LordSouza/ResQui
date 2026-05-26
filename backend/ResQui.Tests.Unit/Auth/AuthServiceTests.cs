@@ -2,7 +2,6 @@ using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
 using ResQui.Application.Auth;
-using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
