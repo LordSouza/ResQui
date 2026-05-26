@@ -33,7 +33,6 @@ export function RelatoriosScreen({ state, dispatch }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 8 }}>
                 <span className="mono small muted">{foot}</span>
                 <button type="button" className="btn btn-sm" onClick={() => {
-                  logAudit('report.generate', `Gerou relatório: ${t}`, 'low');
                   alert(`Relatório "${t}" gerado.\n\nO download começará em instantes.`);
                   dispatch({type: 'refresh'});
                 }}><Icon name="download" size={11} /> Gerar</button>
