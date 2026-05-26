@@ -1,14 +1,14 @@
 import { useState, useMemo, useReducer } from 'react';
 import { Icon, Badge, SectionTitle } from '../components';
 import Modal from '../forms/Modal';
-import { AUDITORIA } from '../data';
-import { exportCsv, logAudit } from '../utils';
+import { exportCsv } from '../utils';
+import { useAuditoria } from '../auditoria/useAuditoria';
 
-function FiltrosAvancadosAuditoria({ adv, setAdv, onClose }) {
+function FiltrosAvancadosAuditoria({ adv, setAdv, onClose, allData }) {
   const [draft, setDraft] = useState(() => adv);
 
-  const usuariosOpts = useMemo(() => [...new Set(AUDITORIA.map(a => a.who))].toSorted(), []);
-  const locaisOpts = useMemo(() => [...new Set(AUDITORIA.map(a => a.where))].filter(w => w && w !== '-').toSorted(), []);
+  const usuariosOpts = useMemo(() => [...new Set(allData.map(a => a.who))].toSorted(), [allData]);
+  const locaisOpts = useMemo(() => [...new Set(allData.map(a => a.where))].filter(w => w && w !== '-').toSorted(), [allData]);
   const categoriasOpts = [
     ['mtr.', 'MTR · SINIR'],
     ['user.', 'Usuários e sessões'],
@@ -162,30 +162,37 @@ export function AuditoriaScreen({ state, dispatch }) {
   const [filters, dispatchFilters] = useReducer(auditReducer, AUDIT_INITIAL);
   const { query, actionFilter, range, advOpen, adv } = filters;
 
+  const apiFiltro = {
+    ...(adv.users[0] ? { who: adv.users[0] } : {}),
+    ...(adv.categories[0] ? { what: adv.categories[0] } : {}),
+    ...(adv.locations[0] ? { where: adv.locations[0] } : {}),
+    ...(adv.risks[0] ? { risk: adv.risks[0] } : {}),
+    ...(adv.dateFrom ? { from: adv.dateFrom } : {}),
+    ...(adv.dateTo ? { to: adv.dateTo } : {}),
+  };
+
+  const { data: rawData = [], isPending, isError, refetch } = useAuditoria(apiFiltro);
+
   // Ações únicas (ordenadas) da base
   const actionOptions = useMemo(() => {
-    const set = new Set(AUDITORIA.map((a) => a.what));
+    const set = new Set(rawData.map((a) => a.what));
     return [...set].toSorted();
-  }, []);
+  }, [rawData]);
 
-  // Âncora de tempo = timestamp mais recente da base (dados são fixos)
+  // Âncora de tempo = timestamp mais recente da base
   const anchor = useMemo(() => {
-    const ts = AUDITORIA.map((a) => {
-      const [d, t] = a.ts.split(' ');
-      return new Date(d + 'T' + (t || '00:00:00') + 'Z').getTime();
-    });
-    return Math.max(...ts);
-  }, []);
+    const ts = rawData.map((a) => new Date(a.ts).getTime());
+    return ts.length ? Math.max(...ts) : Date.now();
+  }, [rawData]);
   const rangeMs = { '24h': 24 * 3600e3, '7d': 7 * 24 * 3600e3, '30d': 30 * 24 * 3600e3, 'todos': Infinity }[range];
 
   const advActiveCount = (adv.dateFrom ? 1 : 0) + (adv.dateTo ? 1 : 0)
     + (adv.users.length ? 1 : 0) + (adv.locations.length ? 1 : 0)
     + (adv.risks.length ? 1 : 0) + (adv.categories.length ? 1 : 0);
 
-  const filtered = AUDITORIA.filter((a) => {
+  const filtered = rawData.filter((a) => {
     if (actionFilter !== 'todas' && a.what !== actionFilter) return false;
-    const [d, t] = a.ts.split(' ');
-    const ms = new Date(d + 'T' + (t || '00:00:00') + 'Z').getTime();
+    const ms = new Date(a.ts).getTime();
     if (anchor - ms > rangeMs) return false;
     if (query.trim()) {
       const q = query.trim().toLowerCase();
@@ -213,6 +220,9 @@ export function AuditoriaScreen({ state, dispatch }) {
 
   const exportDate = useMemo(() => new Date(), []);
 
+  if (isPending) return <div className="page-loading"><Icon name="refresh" size={16}/> Carregando...</div>;
+  if (isError) return <div className="page-error">Erro ao carregar dados. <button onClick={refetch}>Tentar novamente</button></div>;
+
   return (
     <>
       <div className="page-header">
@@ -225,7 +235,6 @@ export function AuditoriaScreen({ state, dispatch }) {
             const rows = [['Timestamp', 'Usuário', 'Ação', 'Local', 'Detalhe', 'Risco']];
             filtered.forEach(a => rows.push([a.ts, a.who, a.what, a.where, a.detail, a.risk]));
             exportCsv(rows, `auditoria-${exportDate.toISOString().slice(0,10)}.csv`);
-            logAudit('audit.export', `Exportou log de auditoria (${filtered.length} eventos)`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13} /> Exportar CSV</button>
           <button type="button" className="btn btn-sm" onClick={() => dispatchFilters({ type: 'openAdv' })}>
@@ -251,7 +260,7 @@ export function AuditoriaScreen({ state, dispatch }) {
             <option value="30d">Últimos 30 dias</option>
             <option value="todos">Todos os períodos</option>
           </select>
-          <span className="filter-pill active">{filtered.length} de {AUDITORIA.length} eventos</span>
+          <span className="filter-pill active">{filtered.length} de {rawData.length} eventos</span>
           {(query || actionFilter !== 'todas' || range !== 'todos' || advActiveCount > 0) &&
           <button type="button" className="btn btn-sm" onClick={() => dispatchFilters({ type: 'reset' })}>
               <Icon name="close" size={12} /> Limpar
@@ -282,7 +291,7 @@ export function AuditoriaScreen({ state, dispatch }) {
         )}
       </div>
 
-      {advOpen && <FiltrosAvancadosAuditoria adv={adv} setAdv={(value) => dispatchFilters({ type: 'setAdv', value })} onClose={() => dispatchFilters({ type: 'closeAdv' })}/>}
+      {advOpen && <FiltrosAvancadosAuditoria adv={adv} setAdv={(value) => dispatchFilters({ type: 'setAdv', value })} onClose={() => dispatchFilters({ type: 'closeAdv' })} allData={rawData}/>}
     </>);
 
 }
