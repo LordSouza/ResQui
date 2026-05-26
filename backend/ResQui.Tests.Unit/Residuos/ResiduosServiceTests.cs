@@ -87,7 +87,7 @@ public class ResiduosServiceTests
         _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        var result = await _sut.CriarAsync(cmd);
+        var result = await _sut.CriarAsync(cmd, "test@lab.com");
 
         result.Tipo.Should().Be("Ácidos inorgânicos");
         result.Volume.Should().Be(2.0m);
