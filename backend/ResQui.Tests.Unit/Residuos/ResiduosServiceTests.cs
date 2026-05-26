@@ -117,7 +117,7 @@ public class ResiduosServiceTests
         var result = await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
             Descricao: null, Tipo: "Metais pesados", Volume: 0.8m,
             Unidade: null, Composicao: null, Risco: "alto",
-            Destino: null, Status: null, MtrId: null));
+            Destino: null, Status: null, MtrId: null), "test@lab.com");
 
         result!.Tipo.Should().Be("Metais pesados");
         result.Volume.Should().Be(0.8m);
