@@ -100,9 +100,6 @@ export function CompatScreen({ state, dispatch }) {
 
             <div className="row" style={{marginTop: 12, gap: 8}}>
               <button type="button" className="btn btn-sm" onClick={() => {
-                logAudit('compat.review',
-                  `Parecer registrado: ${ra?.nome} × ${rb?.nome} - score ${score} (${title})`,
-                  score >= 2 ? 'high' : score === 1 ? 'med' : 'low');
                 alert('Parecer registrado no log de auditoria.');
                 dispatch({type: 'refresh'});
               }}><Icon name="clipboard" size={13}/> Registrar parecer no log</button>
