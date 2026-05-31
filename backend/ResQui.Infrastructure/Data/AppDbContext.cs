@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<AuditoriaEntry> Auditoria => Set<AuditoriaEntry>();
     public DbSet<Notificacao> Notificacoes => Set<Notificacao>();
     public DbSet<Chamado> Chamados => Set<Chamado>();
+    public DbSet<ChamadoComentario> ChamadoComentarios => Set<ChamadoComentario>();
     public DbSet<CompatEntry> CompatEntries => Set<CompatEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)

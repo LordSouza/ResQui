@@ -214,7 +214,13 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<int>("LaboratorioId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Severidade")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Tipo")
                         .HasColumnType("integer");
 
                     b.Property<string>("Titulo")
@@ -224,6 +230,35 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Chamados");
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.ChamadoComentario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AutorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ChamadoId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChamadoId");
+
+                    b.ToTable("ChamadoComentarios");
                 });
 
             modelBuilder.Entity("ResQui.Domain.Entities.CompatEntry", b =>
@@ -668,6 +703,17 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.ChamadoComentario", b =>
+                {
+                    b.HasOne("ResQui.Domain.Entities.Chamado", "Chamado")
+                        .WithMany("Comentarios")
+                        .HasForeignKey("ChamadoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chamado");
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.ReagenteGhs", b =>
                 {
                     b.HasOne("ResQui.Domain.Entities.Reagente", null)
@@ -675,6 +721,11 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasForeignKey("ResQui.Domain.Entities.ReagenteGhs", "ReagenteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.Chamado", b =>
+                {
+                    b.Navigation("Comentarios");
                 });
 
             modelBuilder.Entity("ResQui.Domain.Entities.Reagente", b =>
