@@ -362,6 +362,18 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ReferenciaId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Severidade")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("UsuarioId")
                         .IsRequired()
                         .HasColumnType("text");
