@@ -16,7 +16,13 @@ export function ToastProvider({ children }) {
     const id = `${Date.now()}-${Math.random()}`;
     setToasts(prev => {
       const next = [...prev, { id, message, kind }];
-      return next.length > 5 ? next.slice(next.length - 5) : next;
+      if (next.length > 5) {
+        const evicted = next[0];
+        clearTimeout(timers.current[evicted.id]);
+        delete timers.current[evicted.id];
+        return next.slice(1);
+      }
+      return next;
     });
     timers.current[id] = setTimeout(() => removeToast(id), 5000);
   }, [removeToast]);
