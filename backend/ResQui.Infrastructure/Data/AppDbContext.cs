@@ -18,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Chamado> Chamados => Set<Chamado>();
     public DbSet<ChamadoComentario> ChamadoComentarios => Set<ChamadoComentario>();
     public DbSet<CompatEntry> CompatEntries => Set<CompatEntry>();
+    public DbSet<RelatorioGerado> RelatoriosGerados => Set<RelatorioGerado>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
