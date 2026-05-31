@@ -2076,7 +2076,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   padding: 12px 14px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--surface);
   box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
   animation: toast-in .2s ease;
 }
@@ -2105,7 +2105,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   cursor: pointer;
   font-size: 18px;
   line-height: 1;
-  color: var(--text-muted, #888);
+  color: var(--text-3);
   padding: 0;
   flex-shrink: 0;
   margin-top: -1px;
