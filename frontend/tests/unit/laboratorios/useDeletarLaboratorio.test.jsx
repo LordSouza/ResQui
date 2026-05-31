@@ -32,7 +32,7 @@ describe('useDeletarLaboratorio', () => {
   });
 
   it('seta isError em resposta não-ok (exceto 404)', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => JSON.stringify({ message: 'Erro ao remover laboratório' }) });
     const { result } = renderHook(() => useDeletarLaboratorio(), { wrapper });
     act(() => result.current.mutate('Lab-001'));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -40,7 +40,7 @@ describe('useDeletarLaboratorio', () => {
   });
 
   it('não seta isError em 404', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 404, text: async () => '' });
     const { result } = renderHook(() => useDeletarLaboratorio(), { wrapper });
     act(() => result.current.mutate('Lab-999'));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

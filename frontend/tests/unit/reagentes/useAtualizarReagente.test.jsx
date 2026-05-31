@@ -45,7 +45,7 @@ describe('useAtualizarReagente', () => {
   });
 
   it('sets isError on non-ok response', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 422, text: async () => JSON.stringify({ message: 'Erro ao atualizar reagente' }) });
 
     const { result } = renderHook(() => useAtualizarReagente(), { wrapper });
     act(() => result.current.mutate({ id: 'R-001', Nome: 'X' }));

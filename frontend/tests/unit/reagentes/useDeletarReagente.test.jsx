@@ -37,7 +37,7 @@ describe('useDeletarReagente', () => {
   });
 
   it('treats 404 as success (idempotent delete)', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 404, text: async () => '' });
 
     const { result } = renderHook(() => useDeletarReagente(), { wrapper });
     act(() => result.current.mutate('R-GONE'));
@@ -45,7 +45,7 @@ describe('useDeletarReagente', () => {
   });
 
   it('sets isError on server error', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => JSON.stringify({ message: 'Erro ao deletar reagente' }) });
 
     const { result } = renderHook(() => useDeletarReagente(), { wrapper });
     act(() => result.current.mutate('R-001'));

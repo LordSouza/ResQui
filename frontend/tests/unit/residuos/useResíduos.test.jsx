@@ -49,7 +49,7 @@ describe('useResíduos', () => {
   });
 
   it('isError em resposta não-ok', async () => {
-    fetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    fetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => JSON.stringify({ message: 'Erro ao carregar resíduos' }) });
 
     const { result } = renderHook(() => useResíduos(), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));

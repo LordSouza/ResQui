@@ -48,7 +48,7 @@ describe('useLaboratorios', () => {
   });
 
   it('sets isError em resposta não-ok', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => JSON.stringify({ message: 'Erro ao carregar laboratórios' }) });
     const { result } = renderHook(() => useLaboratorios(), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error.message).toBe('Erro ao carregar laboratórios');

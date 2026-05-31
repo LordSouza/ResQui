@@ -32,7 +32,7 @@ describe('useArquivarUsuario', () => {
   });
 
   it('seta isError em status 500', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => JSON.stringify({ message: 'Erro ao arquivar usuário' }) });
     const { result } = renderHook(() => useArquivarUsuario(), { wrapper });
     act(() => result.current.mutate('u1'));
     await waitFor(() => expect(result.current.isError).toBe(true));

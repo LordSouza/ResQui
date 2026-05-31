@@ -51,7 +51,7 @@ describe('useReagente', () => {
   });
 
   it('returns null on 404 without throwing', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 404, text: async () => '' });
 
     const { result } = renderHook(() => useReagente('R-MISSING'), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -65,7 +65,7 @@ describe('useReagente', () => {
   });
 
   it('sets isError on server error', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => JSON.stringify({ message: 'Erro ao carregar reagente' }) });
 
     const { result } = renderHook(() => useReagente('R-001'), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));

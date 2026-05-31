@@ -43,7 +43,7 @@ describe('useCriarReagente', () => {
   });
 
   it('sets isError on non-ok response', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, text: async () => JSON.stringify({ message: 'Erro ao criar reagente' }) });
 
     const { result } = renderHook(() => useCriarReagente(), { wrapper });
     act(() => result.current.mutate({ Nome: 'X' }));

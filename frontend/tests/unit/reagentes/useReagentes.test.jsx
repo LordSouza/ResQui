@@ -100,7 +100,7 @@ describe('useReagentes', () => {
   });
 
   it('sets isError on non-ok response', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => JSON.stringify({ message: 'Erro ao carregar reagentes' }) });
 
     const { result } = renderHook(() => useReagentes(), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));

@@ -19,10 +19,13 @@ export function useReagente(id) {
   return useQuery({
     queryKey: ['reagentes', id],
     queryFn: async () => {
-      const res = await apiFetch(`/api/reagentes/${id}`);
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error('Erro ao carregar reagente');
-      return normalizeDetail(await res.json());
+      try {
+        const res = await apiFetch(`/api/reagentes/${id}`);
+        return normalizeDetail(await res.json());
+      } catch (err) {
+        if (err.status === 404) return null;
+        throw err;
+      }
     },
     enabled: !!id,
   });

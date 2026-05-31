@@ -5,8 +5,11 @@ export function useDeletarReagente() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id) => {
-      const res = await apiFetch(`/api/reagentes/${id}`, { method: 'DELETE' });
-      if (!res.ok && res.status !== 404) throw new Error('Erro ao deletar reagente');
+      try {
+        await apiFetch(`/api/reagentes/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        if (err.status !== 404) throw err;
+      }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reagentes'] }),
   });

@@ -36,7 +36,7 @@ describe('useCriarResiduo', () => {
   });
 
   it('isError em resposta não-ok', async () => {
-    fetch.mockResolvedValueOnce({ ok: false, status: 400, json: async () => ({}) });
+    fetch.mockResolvedValueOnce({ ok: false, status: 400, text: async () => JSON.stringify({ message: 'Erro ao registrar resíduo' }) });
 
     const { result } = renderHook(() => useCriarResiduo(), { wrapper });
     act(() => result.current.mutate({ Nome: 'X' }));

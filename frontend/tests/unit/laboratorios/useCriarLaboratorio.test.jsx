@@ -38,7 +38,7 @@ describe('useCriarLaboratorio', () => {
   });
 
   it('seta isError em resposta não-ok', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, text: async () => JSON.stringify({ message: 'Erro ao criar laboratório' }) });
     const { result } = renderHook(() => useCriarLaboratorio(), { wrapper });
     act(() => result.current.mutate({}));
     await waitFor(() => expect(result.current.isError).toBe(true));

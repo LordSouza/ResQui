@@ -34,7 +34,7 @@ describe('useCriarUsuario', () => {
   });
 
   it('seta isError em resposta não-ok', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, text: async () => JSON.stringify({ message: 'Erro ao criar usuário' }) });
     const { result } = renderHook(() => useCriarUsuario(), { wrapper });
     act(() => result.current.mutate({}));
     await waitFor(() => expect(result.current.isError).toBe(true));

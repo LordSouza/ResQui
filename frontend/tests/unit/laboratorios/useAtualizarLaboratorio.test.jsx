@@ -41,7 +41,7 @@ describe('useAtualizarLaboratorio', () => {
   });
 
   it('seta isError em resposta não-ok', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 404, text: async () => JSON.stringify({ message: 'Erro ao atualizar laboratório' }) });
     const { result } = renderHook(() => useAtualizarLaboratorio(), { wrapper });
     act(() => result.current.mutate({ id: 'Lab-999', Nome: 'X' }));
     await waitFor(() => expect(result.current.isError).toBe(true));
