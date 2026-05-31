@@ -10,6 +10,7 @@ using ResQui.Application.Laboratorios;
 using ResQui.Application.Mtrs;
 using ResQui.Application.Notificacoes;
 using ResQui.Application.Reagentes;
+using ResQui.Application.Relatorios;
 using ResQui.Application.Residuos;
 using ResQui.Application.Email;
 using ResQui.Application.Usuarios;
@@ -27,6 +28,7 @@ using ResQui.API.Features.Chamados;
 using ResQui.API.Features.Notificacoes;
 using ResQui.API.Features.Usuarios;
 using ResQui.API.Features.Compatibilidade;
+using ResQui.API.Features.Relatorios;
 using ResQui.Infrastructure.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -51,6 +53,7 @@ builder.Services.AddScoped<IChamadosService, ChamadosService>();
 builder.Services.AddScoped<INotificacoesService, NotificacoesService>();
 builder.Services.AddScoped<IUsuariosService, UsuariosService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IRelatoriosService, RelatoriosService>();
 
 // JWT authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -119,6 +122,7 @@ app.MapGroup("/api/usuarios").RequireAuthorization("Admin").MapUsuariosEndpoints
 app.MapGroup("/api/chamados").RequireAuthorization().MapChamadosEndpoints();
 app.MapGroup("/api/compat").RequireAuthorization().MapCompatEndpoints();
 app.MapGroup("/api/notificacoes").RequireAuthorization().MapNotificacoesEndpoints();
+app.MapGroup("/api/relatorios").RequireAuthorization().MapRelatoriosEndpoints();
 
 app.Run();
 
