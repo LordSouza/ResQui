@@ -24,14 +24,19 @@ export async function apiFetch(path, { params, headers: extraHeaders, ...options
   if (!res.ok) {
     let message;
     try {
-      const body = await res.json();
-      if (body.message) message = body.message;
-      else if (body.title) message = body.title;
-      else if (Array.isArray(body.errors) && body.errors.length) message = body.errors.join('; ');
-      else if (body.detail) message = body.detail;
-    } catch {
-      try { message = await res.text(); } catch { /* noop */ }
-    }
+      const text = await res.text();
+      if (text) {
+        try {
+          const body = JSON.parse(text);
+          message = body.message
+            || body.title
+            || (Array.isArray(body.errors) && body.errors.length ? body.errors.join('; ') : undefined)
+            || body.detail;
+        } catch {
+          message = text;
+        }
+      }
+    } catch { /* noop */ }
     const err = new Error(message || `Erro desconhecido (HTTP ${res.status})`);
     err.status = res.status;
     throw err;

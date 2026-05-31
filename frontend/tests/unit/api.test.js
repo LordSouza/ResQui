@@ -24,7 +24,7 @@ describe('apiFetch', () => {
   it('lança com campo message do body quando !ok', async () => {
     fetch.mockResolvedValueOnce({
       ok: false, status: 400,
-      json: async () => ({ message: 'Senha muito curta' }),
+      text: async () => JSON.stringify({ message: 'Senha muito curta' }),
     });
     await expect(apiFetch('/api/test', { method: 'POST' })).rejects.toThrow('Senha muito curta');
   });
@@ -32,7 +32,7 @@ describe('apiFetch', () => {
   it('lança com campo title quando não há message', async () => {
     fetch.mockResolvedValueOnce({
       ok: false, status: 422,
-      json: async () => ({ title: 'Validation Error' }),
+      text: async () => JSON.stringify({ title: 'Validation Error' }),
     });
     await expect(apiFetch('/api/test', { method: 'POST' })).rejects.toThrow('Validation Error');
   });
@@ -40,7 +40,7 @@ describe('apiFetch', () => {
   it('lança com errors[] concatenado quando presente', async () => {
     fetch.mockResolvedValueOnce({
       ok: false, status: 400,
-      json: async () => ({ errors: ['Campo obrigatório', 'Formato inválido'] }),
+      text: async () => JSON.stringify({ errors: ['Campo obrigatório', 'Formato inválido'] }),
     });
     await expect(apiFetch('/api/test', { method: 'POST' })).rejects.toThrow('Campo obrigatório; Formato inválido');
   });
@@ -48,7 +48,7 @@ describe('apiFetch', () => {
   it('lança com fallback quando body não tem campos conhecidos', async () => {
     fetch.mockResolvedValueOnce({
       ok: false, status: 500,
-      json: async () => ({}),
+      text: async () => JSON.stringify({}),
     });
     await expect(apiFetch('/api/test')).rejects.toThrow('Erro desconhecido (HTTP 500)');
   });
@@ -56,10 +56,33 @@ describe('apiFetch', () => {
   it('lança com fallback quando body não é JSON', async () => {
     fetch.mockResolvedValueOnce({
       ok: false, status: 503,
-      json: async () => { throw new SyntaxError('not json'); },
       text: async () => '',
     });
     await expect(apiFetch('/api/test')).rejects.toThrow('Erro desconhecido (HTTP 503)');
+  });
+
+  it('NÃO dispara auth:unauthorized no 401 sem token', async () => {
+    fetch.mockResolvedValueOnce({ ok: false, status: 401 });
+    const listener = vi.fn();
+    window.addEventListener('auth:unauthorized', listener);
+    await expect(apiFetch('/api/test')).rejects.toThrow('Unauthorized');
+    expect(listener).not.toHaveBeenCalled();
+    window.removeEventListener('auth:unauthorized', listener);
+  });
+
+  it('define Content-Type: application/json por padrão', async () => {
+    fetch.mockResolvedValueOnce({ ok: true, status: 200 });
+    await apiFetch('/api/test');
+    expect(fetch.mock.calls[0][1].headers['Content-Type']).toBe('application/json');
+  });
+
+  it('anexa status HTTP ao erro', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false, status: 422,
+      text: async () => JSON.stringify({ message: 'falhou' }),
+    });
+    const err = await apiFetch('/api/test').catch(e => e);
+    expect(err.status).toBe(422);
   });
 
   it('lança Unauthorized e dispara auth:unauthorized no 401 com token', async () => {
