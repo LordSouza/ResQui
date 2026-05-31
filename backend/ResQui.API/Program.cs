@@ -11,6 +11,7 @@ using ResQui.Application.Mtrs;
 using ResQui.Application.Notificacoes;
 using ResQui.Application.Reagentes;
 using ResQui.Application.Residuos;
+using ResQui.Application.Email;
 using ResQui.Application.Usuarios;
 using ResQui.Infrastructure;
 using ResQui.Infrastructure.Data;
@@ -48,6 +49,7 @@ builder.Services.AddScoped<ICompatService, CompatService>();
 builder.Services.AddScoped<IChamadosService, ChamadosService>();
 builder.Services.AddScoped<INotificacoesService, NotificacoesService>();
 builder.Services.AddScoped<IUsuariosService, UsuariosService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // JWT authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
