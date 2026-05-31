@@ -23,6 +23,14 @@ public static class Endpoints
             return c is null ? Results.NotFound() : Results.Ok(c);
         });
 
+        group.MapPost("/{id:int}/comentarios", async (
+            int id, ComentarChamadoCmd cmd, IChamadosService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var c = await svc.ComentarAsync(id, cmd, userId);
+            return c is null ? Results.NotFound() : Results.Ok(c);
+        });
+
         return group;
     }
 }
