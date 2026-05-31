@@ -8,4 +8,6 @@ public interface INotificacoesRepository
     Task MarkAsReadAsync(int id);
     Task AddAsync(Notificacao notificacao);
     Task SaveChangesAsync();
+    Task<bool> ExisteNaoLidaAsync(string usuarioId, string tipo, string referenciaId);
+    Task MarcarTodasLidasAsync(string usuarioId);
 }

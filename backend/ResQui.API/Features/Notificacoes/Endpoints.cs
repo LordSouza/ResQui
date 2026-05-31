@@ -19,6 +19,26 @@ public static class Endpoints
             return Results.NoContent();
         });
 
+        group.MapPost("/marcar-todas-lidas", async (INotificacoesService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            await svc.MarcarTodasLidasAsync(userId);
+            return Results.NoContent();
+        });
+
+        group.MapGet("/prefs", async (INotificacoesService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            return Results.Ok(await svc.GetPrefsAsync(userId));
+        });
+
+        group.MapPut("/prefs", async (NotificacaoPrefsDto prefs, INotificacoesService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            await svc.SavePrefsAsync(userId, prefs);
+            return Results.NoContent();
+        });
+
         return group;
     }
 }
