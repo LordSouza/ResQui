@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon, Badge } from '../components';
 import { AUDITORIA } from '../data';
 import { pgrsTs } from '../utils';
 import Modal from './Modal';
+import { useGetNotificacaoPrefs } from '../notificacoes/useGetNotificacaoPrefs';
+import { useNotificacaoPrefs } from '../notificacoes/useNotificacaoPrefs';
 
 const pgrsHint = { fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 14, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--accent)' };
 const pgrsSub = { fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: 8, marginTop: 4 };
@@ -331,162 +333,63 @@ const notifStat = { padding: 12, background: 'var(--accent-soft)', border: '1px 
 const notifStatNum = { fontSize: 22, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' };
 const notifStatLabel = { fontSize: 12, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2 };
 
-export function FormNotificacoes({ onClose, dispatch }) {
-  const [prefs, setPrefs] = useState(() => ({
-    items: {
-      'expiry': { email: true, app: true },
-      'low-stock': { email: true, app: true },
-      'mtr-pendente': { email: true, app: true },
-      'mtr-aceito': { email: false, app: true },
-      'mtr-rejeitado': { email: true, app: true },
-      'compat-block': { email: true, app: true },
-      'audit-high': { email: true, app: false },
-      'pgrs-aprovacao': { email: true, app: true },
-      'novo-usuario': { email: false, app: true },
-      'digest-diario': { email: false, app: false },
-      'digest-semanal': { email: true, app: false },
-    },
-    antecedencia: 30,
-    digestHora: '08:00',
-    emailAlt: '',
-    silenciado: false,
-    silenciadoAte: '',
-  }));
+export function FormNotificacoes({ onClose }) {
+  const { data: prefs, isPending: isLoading } = useGetNotificacaoPrefs();
+  const mutation = useNotificacaoPrefs();
+  const [local, setLocal] = useState(null);
+
+  useEffect(() => {
+    if (prefs && !local) setLocal(prefs);
+  }, [prefs]);
+
+  const toggle = (tipo) => setLocal(prev => ({ ...prev, [tipo]: !prev[tipo] }));
+
+  const handleSave = () => mutation.mutate(local, { onSuccess: onClose });
 
   const tipos = [
-    { k: 'expiry', cat: 'Estoque', titulo: 'Vencimento de reagentes', desc: 'Alerta quando um item se aproxima da validade' },
-    { k: 'low-stock', cat: 'Estoque', titulo: 'Estoque mínimo', desc: 'Reagente abaixo do mínimo definido' },
-    { k: 'mtr-pendente', cat: 'MTR · SINIR', titulo: 'MTR aguardando envio', desc: 'Manifesto pronto, ainda não submetido' },
-    { k: 'mtr-aceito', cat: 'MTR · SINIR', titulo: 'MTR aceito pelo SINIR', desc: 'Confirmação de aceite (informativo)' },
-    { k: 'mtr-rejeitado', cat: 'MTR · SINIR', titulo: 'MTR rejeitado', desc: 'Erro na validação, exige correção' },
-    { k: 'compat-block', cat: 'Segurança', titulo: 'Bloqueio de compatibilidade', desc: 'Tentativa de armazenamento incompatível' },
-    { k: 'audit-high', cat: 'Segurança', titulo: 'Eventos de alto risco', desc: 'Apenas eventos críticos da auditoria' },
-    { k: 'pgrs-aprovacao', cat: 'Conformidade', titulo: 'PGRS pendente de aprovação', desc: 'Documento aguardando assinatura' },
-    { k: 'novo-usuario', cat: 'Sistema', titulo: 'Novo usuário cadastrado', desc: 'Apenas para administradores' },
-    { k: 'digest-diario', cat: 'Resumos', titulo: 'Resumo diário', desc: 'Compilado de eventos das últimas 24h' },
-    { k: 'digest-semanal', cat: 'Resumos', titulo: 'Resumo semanal', desc: 'Indicadores e KPIs da semana' },
+    { key: 'expiry',    icon: 'warning',   label: 'Vencimento de reagentes' },
+    { key: 'low-stock', icon: 'flask',     label: 'Estoque abaixo do mínimo' },
+    { key: 'sinir',     icon: 'truck',     label: 'MTR pendente no SINIR' },
+    { key: 'compat',    icon: 'shield',    label: 'Tentativa de incompatibilidade' },
+    { key: 'coleta',    icon: 'clipboard', label: 'Resíduos aguardando coleta' },
   ];
 
-  const cats = [...new Set(tipos.map(t => t.cat))];
-
-  const notifTableHeaderStyle = {display: 'grid', gridTemplateColumns: '1fr 70px 70px', gap: 8, padding: '6px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: 2};
-
-  const toggle = (k, canal) => setPrefs(p => ({
-    ...p, items: { ...p.items, [k]: { ...p.items[k], [canal]: !p.items[k][canal] } },
-  }));
-
-  const totalEmail = Object.values(prefs.items).filter(v => v.email).length;
-  const totalApp = Object.values(prefs.items).filter(v => v.app).length;
-
-  const salvar = () => {
-    AUDITORIA.unshift({
-      ts: pgrsTs(), who: 'Lucas Souza', what: 'user.notif.config', where: '-',
-      detail: `Atualizou preferências de notificação (${totalEmail} por e-mail, ${totalApp} no app)`, risk: 'low',
-    });
-    dispatch({ type: 'refresh' });
-    onClose();
-  };
-
-  const enviarTeste = () => {
-    alert(`Enviado e-mail de teste para lucas.souza@instituto.example${prefs.emailAlt ? ' e ' + prefs.emailAlt : ''}`);
-  };
-
   return (
-    <Modal title="Notificações" sub="Configurar alertas por e-mail e dentro do sistema"
-      onClose={onClose} width={720}
-      footer={<>
-        <button type="button" className="btn btn-sm" onClick={enviarTeste}><Icon name="send" size={12}/> Enviar teste</button>
-        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={salvar}><Icon name="check" size={12}/> Salvar preferências</button>
-      </>}>
-      {/* Resumo no topo */}
-      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14}}>
-        <div style={notifStat}>
-          <div style={notifStatNum}>{totalEmail}</div>
-          <div style={notifStatLabel}>tipos · e-mail</div>
-        </div>
-        <div style={notifStat}>
-          <div style={notifStatNum}>{totalApp}</div>
-          <div style={notifStatLabel}>tipos · no app</div>
-        </div>
-      </div>
-
-      {/* Cabeçalho da tabela */}
-      <div style={notifTableHeaderStyle}>
-        <span>Tipo de evento</span>
-        <span style={{textAlign: 'center'}}>E-mail</span>
-        <span style={{textAlign: 'center'}}>No app</span>
-      </div>
-
-      {/* Lista por categoria */}
-      {cats.map(cat => (
-        <div key={cat} style={{marginBottom: 10}}>
-          <div style={{fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', padding: '8px 10px 4px'}}>{cat}</div>
-          {tipos.flatMap(t => t.cat !== cat ? [] : [
-            <div key={t.k} style={{
-              display: 'grid', gridTemplateColumns: '1fr 70px 70px', gap: 8,
-              padding: '8px 10px', borderTop: '1px solid var(--border)', alignItems: 'center',
-            }}>
-              <div>
-                <div style={{fontSize: 12.5, fontWeight: 500}}>{t.titulo}</div>
-                <div style={{fontSize: 12, color: 'var(--text-3)', marginTop: 1}}>{t.desc}</div>
+    <Modal title="Preferências de Notificação" onClose={onClose}>
+      {isLoading && <div style={{padding: 16}}>Carregando...</div>}
+      {local && (
+        <>
+          <div style={{padding: '8px 0'}}>
+            {tipos.map(({ key, icon, label }) => (
+              <div key={key} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
+                <Icon name={icon} size={14}/>
+                <span style={{flex:1,fontSize:13}}>{label}</span>
+                <button
+                  type="button"
+                  onClick={() => toggle(key)}
+                  style={{
+                    background: local[key] ? 'var(--accent)' : 'var(--border)',
+                    color: local[key] ? '#fff' : 'var(--text)',
+                    border: 'none', borderRadius: 12, padding: '3px 12px',
+                    fontSize: 12, cursor: 'pointer',
+                  }}>
+                  {local[key] ? 'Ativo' : 'Inativo'}
+                </button>
               </div>
-              <NotifToggle on={prefs.items[t.k]?.email} onClick={() => toggle(t.k, 'email')}/>
-              <NotifToggle on={prefs.items[t.k]?.app} onClick={() => toggle(t.k, 'app')}/>
-            </div>
-          ])}
-        </div>
-      ))}
-
-      {/* Configurações extras */}
-      <div style={{marginTop: 16, padding: 12, background: 'var(--surface-2)', borderRadius: 'var(--radius)'}}>
-        <div style={pgrsSub}>Configurações extras</div>
-        <div className="form-row">
-          <div className="field">
-            <label htmlFor="notif-antecedencia">Antecedência de vencimento (dias)</label>
-            <select id="notif-antecedencia" value={prefs.antecedencia} onChange={e => setPrefs(p => ({...p, antecedencia: +e.target.value}))}>
-              <option value={7}>7 dias antes</option>
-              <option value={14}>14 dias antes</option>
-              <option value={30}>30 dias antes (recomendado)</option>
-              <option value={60}>60 dias antes</option>
-              <option value={90}>90 dias antes</option>
-            </select>
+            ))}
           </div>
-          <div className="field">
-            <label htmlFor="notif-digest-hora">Horário do digest diário</label>
-            <input id="notif-digest-hora" type="time" aria-label="Horário do digest diário" value={prefs.digestHora} onChange={e => setPrefs(p => ({...p, digestHora: e.target.value}))} style={{fontFamily: 'var(--mono)'}}/>
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end',paddingTop:12}}>
+            <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleSave}
+              disabled={mutation.isPending}>
+              {mutation.isPending ? 'Salvando…' : 'Salvar'}
+            </button>
           </div>
-        </div>
-        <div className="form-row full">
-          <div className="field">
-            <label htmlFor="notif-email-alt">E-mail alternativo (opcional)</label>
-            <input id="notif-email-alt" type="email" aria-label="E-mail alternativo (opcional)" placeholder="lucas.pessoal@gmail.com" value={prefs.emailAlt} onChange={e => setPrefs(p => ({...p, emailAlt: e.target.value}))} style={{fontFamily: 'var(--mono)'}}/>
-            <div style={{fontSize: 12, color: 'var(--text-3)', marginTop: 4}}>
-              Cópia será enviada também para este endereço. Útil para acesso fora da rede UNIFEI.
-            </div>
-          </div>
-        </div>
-
-        <div style={{borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4}}>
-          <label style={{...pgrsCheck, padding: 0}}>
-            <input type="checkbox" aria-label="Silenciar todas as notificações" checked={prefs.silenciado} onChange={() => setPrefs(p => ({...p, silenciado: !p.silenciado}))}/>
-            <span><strong>Silenciar todas as notificações</strong> temporariamente</span>
-          </label>
-          {prefs.silenciado && (
-            <div className="form-row" style={{marginTop: 8}}>
-              <div className="field">
-                <label htmlFor="notif-reativar">Reativar em</label>
-                <input id="notif-reativar" type="date" aria-label="Reativar em" value={prefs.silenciadoAte} onChange={e => setPrefs(p => ({...p, silenciadoAte: e.target.value}))} style={{fontFamily: 'var(--mono)'}}/>
-              </div>
-              <div className="field" style={{display: 'flex', alignItems: 'flex-end'}}>
-                <div style={{fontSize: 12, color: 'var(--amber)', padding: '0 0 8px'}}>
-                  <Icon name="warning" size={12}/> Alertas críticos de segurança continuam sendo enviados.
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+        </>
+      )}
     </Modal>
   );
 }

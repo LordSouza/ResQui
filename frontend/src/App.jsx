@@ -414,7 +414,7 @@ export default function App() {
       {state.modal === 'perfil' && <FormPerfil onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'senha2fa' && <FormSenha2FA onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'sessoes' && <FormSessoes onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
-      {state.modal === 'notificacoes' && <FormNotificacoes onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'notificacoes' && <FormNotificacoes onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'atalhos' && <FormAtalhos onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'docs' && <FormDocs onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'reportar' && <FormReportar onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
