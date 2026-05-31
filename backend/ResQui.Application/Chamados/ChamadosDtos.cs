@@ -1,7 +1,17 @@
-using ResQui.Domain.Enums;
-
 namespace ResQui.Application.Chamados;
 
-public record ChamadoDto(int Id, string Titulo, string Descricao, string Status, int LaboratorioId, string AbertoPorId, DateTime CriadoEm);
-public record CriarChamadoCmd(string Titulo, string Descricao, int LaboratorioId);
+public record ComentarioDto(int Id, string Texto, string AutorId, DateTime CriadoEm);
+
+public record ChamadoDto(
+    int Id, string Titulo, string Descricao,
+    string Status, string Tipo, string Severidade,
+    int LaboratorioId, string AbertoPorId,
+    DateTime CriadoEm, IList<ComentarioDto> Comentarios);
+
+public record CriarChamadoCmd(
+    string Titulo, string Descricao, int LaboratorioId,
+    string Tipo, string Severidade);
+
 public record AtualizarStatusCmd(string Status);
+
+public record ComentarChamadoCmd(string Texto);

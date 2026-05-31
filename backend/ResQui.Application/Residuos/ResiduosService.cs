@@ -5,7 +5,10 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Residuos;
 
-public class ResiduosService(IResiduosRepository repo, IAuditoriaService auditoria) : IResiduosService
+public class ResiduosService(
+    IResiduosRepository repo,
+    IAuditoriaService auditoria,
+    ILaboratoriosRepository labRepo) : IResiduosService
 {
     public async Task<IEnumerable<ResiduoDto>> ListarAsync(int? labId, int? mtrId, string? status)
     {
@@ -55,6 +58,49 @@ public class ResiduosService(IResiduosRepository repo, IAuditoriaService auditor
             $"Editou resíduo {id}", RiscoAuditoria.Low);
         return ToDto(r);
     }
+
+    public async Task<ResiduosAnalyticsDto> AnalyticsAsync(int meses)
+    {
+        var corte = DateTime.UtcNow.AddMonths(-meses);
+        var residuos = (await repo.GetAllAsync())
+            .Where(r => r.DataRegistro >= corte)
+            .ToList();
+
+        var labs = (await labRepo.GetAllAsync()).ToList();
+        var labPorSeq = labs
+            .Select(l => (Nome: l.Nome, Seq: ParseLabSeq(l.Id)))
+            .Where(x => x.Seq >= 0)
+            .ToDictionary(x => x.Seq, x => x.Nome);
+
+        var mensal = residuos
+            .GroupBy(r => r.DataRegistro.ToString("yyyy-MM"))
+            .OrderBy(g => g.Key)
+            .Select(g => new MensalItem(g.Key, g.Sum(r => NormalizarVolume(r.Volume, r.Unidade))))
+            .ToList();
+
+        var porLab = residuos
+            .GroupBy(r => r.LaboratorioId)
+            .Select(g => new LabItem(
+                labPorSeq.TryGetValue(g.Key, out var nome) ? nome : $"Lab-{g.Key:D3}",
+                g.Sum(r => NormalizarVolume(r.Volume, r.Unidade))))
+            .OrderByDescending(x => x.Valor)
+            .ToList();
+
+        return new ResiduosAnalyticsDto(mensal, porLab);
+    }
+
+    private static int ParseLabSeq(string labId)
+    {
+        var parts = labId.Split('-');
+        return parts.Length == 2 && int.TryParse(parts[1], out var n) ? n : -1;
+    }
+
+    private static decimal NormalizarVolume(decimal volume, string unidade) =>
+        unidade.ToLower() switch
+        {
+            "ml" => volume / 1000,
+            _ => volume,
+        };
 
     private static ResiduoDto ToDto(Residuo r) =>
         new(r.Id, r.Descricao, r.LaboratorioId, r.MtrId, r.Status, r.DataRegistro,

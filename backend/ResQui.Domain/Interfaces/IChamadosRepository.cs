@@ -4,9 +4,10 @@ namespace ResQui.Domain.Interfaces;
 
 public interface IChamadosRepository
 {
-    Task<IEnumerable<Chamado>> GetAllAsync();
-    Task<Chamado?> GetByIdAsync(int id);
+    Task<IEnumerable<Chamado>> GetAllWithComentariosAsync();
+    Task<Chamado?> GetByIdWithComentariosAsync(int id);
     Task AddAsync(Chamado chamado);
+    Task AddComentarioAsync(ChamadoComentario comentario);
     Task UpdateAsync(Chamado chamado);
     Task SaveChangesAsync();
 }

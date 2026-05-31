@@ -12,11 +12,12 @@ public class ResiduosServiceTests
 {
     private readonly IResiduosRepository _repo = Substitute.For<IResiduosRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
+    private readonly ILaboratoriosRepository _labRepo = Substitute.For<ILaboratoriosRepository>();
     private readonly ResiduosService _sut;
 
     public ResiduosServiceTests()
     {
-        _sut = new ResiduosService(_repo, _audit);
+        _sut = new ResiduosService(_repo, _audit, _labRepo);
     }
 
     private static Residuo FakeResiduo(int id = 1, int? mtrId = null, string status = "aguardando-coleta") => new()
@@ -152,5 +153,62 @@ public class ResiduosServiceTests
         await _audit.Received(1).RegistrarAsync(
             "ana@lab.com", "residuo.atualizar", "Resíduos",
             Arg.Any<string>(), RiscoAuditoria.Low);
+    }
+
+    private static Laboratorio FakeLab(string id, string nome) => new()
+    {
+        Id = id, Nome = nome, Responsavel = "", Sala = "", Ventilacao = "",
+        Areas = [], Armarios = [], Criado = DateOnly.FromDateTime(DateTime.Today),
+    };
+
+    [Fact]
+    public async Task AnalyticsAsync_AgregaPorMes()
+    {
+        var r1 = FakeResiduo(1); r1.Volume = 10; r1.Unidade = "L"; r1.DataRegistro = new DateTime(2026, 1, 15);
+        var r2 = FakeResiduo(2); r2.Volume = 5; r2.Unidade = "L"; r2.DataRegistro = new DateTime(2026, 1, 20);
+        _repo.GetAllAsync().Returns([r1, r2]);
+        _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab A")]);
+
+        var result = await _sut.AnalyticsAsync(6);
+
+        result.Mensal.Should().Contain(m => m.Mes == "2026-01" && m.Valor == 15);
+    }
+
+    [Fact]
+    public async Task AnalyticsAsync_AgregaPorLab()
+    {
+        var r1 = FakeResiduo(1); r1.Volume = 3; r1.Unidade = "L"; r1.LaboratorioId = 1;
+        var r2 = FakeResiduo(2); r2.Volume = 7; r2.Unidade = "L"; r2.LaboratorioId = 1;
+        _repo.GetAllAsync().Returns([r1, r2]);
+        _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab Química")]);
+
+        var result = await _sut.AnalyticsAsync(6);
+
+        result.PorLab.Should().Contain(l => l.Lab == "Lab Química" && l.Valor == 10);
+    }
+
+    [Fact]
+    public async Task AnalyticsAsync_NormalizaMl()
+    {
+        var r = FakeResiduo(1); r.Volume = 500; r.Unidade = "mL"; r.LaboratorioId = 1;
+        _repo.GetAllAsync().Returns([r]);
+        _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab A")]);
+
+        var result = await _sut.AnalyticsAsync(6);
+
+        result.PorLab.Should().Contain(l => l.Valor == 0.5m);
+    }
+
+    [Fact]
+    public async Task AnalyticsAsync_ExcluiResiduosMaisAntigosDoPeriodo()
+    {
+        var r = FakeResiduo(1); r.Volume = 10; r.Unidade = "L";
+        r.DataRegistro = DateTime.UtcNow.AddMonths(-10);
+        _repo.GetAllAsync().Returns([r]);
+        _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab A")]);
+
+        var result = await _sut.AnalyticsAsync(6);
+
+        result.Mensal.Should().NotContain(m => m.Valor > 0);
     }
 }

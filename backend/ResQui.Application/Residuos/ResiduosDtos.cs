@@ -37,3 +37,7 @@ public record AtualizarResiduoCmd(
     string? Status,
     int? MtrId
 );
+
+public record MensalItem(string Mes, decimal Valor);
+public record LabItem(string Lab, decimal Valor);
+public record ResiduosAnalyticsDto(IList<MensalItem> Mensal, IList<LabItem> PorLab);

@@ -28,6 +28,9 @@ public static class Endpoints
             return r is null ? Results.NotFound() : Results.Ok(r);
         });
 
+        group.MapGet("/analytics", async (IResiduosService svc, int meses = 6) =>
+            Results.Ok(await svc.AnalyticsAsync(meses)));
+
         return group;
     }
 }
