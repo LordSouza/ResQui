@@ -5,6 +5,7 @@ import { pgrsTs } from '../utils';
 import Modal from './Modal';
 import { useGetNotificacaoPrefs } from '../notificacoes/useGetNotificacaoPrefs';
 import { useNotificacaoPrefs } from '../notificacoes/useNotificacaoPrefs';
+import { useCriarChamado } from '../chamados/useCriarChamado';
 
 const pgrsHint = { fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 14, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--accent)' };
 const pgrsSub = { fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: 8, marginTop: 4 };
@@ -557,30 +558,23 @@ export function FormReportar({ onClose, dispatch }) {
     incluirContexto: true,
   });
   const [enviado, setEnviado] = useState(false);
+  const mutation = useCriarChamado();
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
 
   const valid = data.titulo.trim().length >= 5 && data.descricao.trim().length >= 10;
 
   const enviar = () => {
-    const ticket = 'RQ-' + Math.floor(Math.random() * 9000 + 1000);
-    const novo = {
-      id: ticket, tipo: data.tipo, severidade: data.severidade, status: 'aberto',
-      titulo: data.titulo.trim(),
-      descricao: data.descricao.trim() + (data.passos.trim() ? '\n\nPassos para reproduzir:\n' + data.passos.trim() : ''),
-      reportado_por: 'Lucas Souza', reportado_por_id: 'U-001',
-      criado: pgrsTs().slice(0, 16), responsavel: null,
-      comentarios: [],
-      contexto: data.incluirContexto ? { tela: 'desconhecida', browser: navigator.userAgent.split(') ').pop() || 'desconhecido' } : {},
-    };
-    if (!window.CHAMADOS) window.CHAMADOS = [];
-    window.CHAMADOS.unshift(novo);
-    AUDITORIA.unshift({
-      ts: pgrsTs(), who: 'Lucas Souza', what: 'support.ticket', where: '-',
-      detail: `Abriu ticket ${ticket}: ${data.titulo}`,
-      risk: data.severidade === 'critica' ? 'high' : data.severidade === 'alta' ? 'med' : 'low',
-    });
-    dispatch({ type: 'refresh' });
-    setEnviado(ticket);
+    if (!valid) return;
+    mutation.mutate(
+      {
+        Titulo: data.titulo.trim(),
+        Descricao: data.descricao.trim() + (data.passos.trim() ? '\n\nPassos:\n' + data.passos.trim() : ''),
+        LaboratorioId: 0,
+        Tipo: data.tipo.charAt(0).toUpperCase() + data.tipo.slice(1),
+        Severidade: data.severidade.charAt(0).toUpperCase() + data.severidade.slice(1),
+      },
+      { onSuccess: () => setEnviado(true) }
+    );
   };
 
   if (enviado) {
@@ -599,7 +593,7 @@ export function FormReportar({ onClose, dispatch }) {
           })()}
           <div style={{fontSize: 15, fontWeight: 600, marginBottom: 6}}>Recebemos seu relato</div>
           <div style={{fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.5, maxWidth: 360, margin: '0 auto'}}>
-            Seu ticket é <strong style={{fontFamily: 'var(--mono)'}}>{enviado}</strong>. A equipe de suporte responderá em até <strong>1 dia útil</strong> no e-mail <span style={{fontFamily: 'var(--mono)'}}>lucas.souza@instituto.example</span>.
+            Seu relato foi registrado. A equipe de suporte responderá em até <strong>1 dia útil</strong>.
           </div>
         </div>
       </Modal>
@@ -611,8 +605,8 @@ export function FormReportar({ onClose, dispatch }) {
       onClose={onClose} width={620}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" disabled={!valid} onClick={enviar}>
-          <Icon name="send" size={12}/> Enviar relato
+        <button type="button" className="btn btn-primary btn-sm" disabled={!valid || mutation.isPending} onClick={enviar}>
+          <Icon name="send" size={12}/> {mutation.isPending ? 'Enviando…' : 'Enviar relato'}
         </button>
       </>}>
       <div className="form-row">

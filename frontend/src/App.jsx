@@ -28,6 +28,7 @@ import { FormNovoResiduo, FormEditarResiduo, FormNovoMtr, FormPreviewMtrPdf, For
 import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/laboratorios';
 import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario } from './forms/usuarios';
 import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes, FormAtalhos, FormDocs, FormReportar } from './forms/sistema';
+import { FormNovoChamado } from './forms/chamados';
 import { FormEditarReagente } from './forms/FormEditarReagente';
 
 import { LoginScreen } from './Login';
@@ -418,6 +419,7 @@ export default function App() {
       {state.modal === 'atalhos' && <FormAtalhos onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'docs' && <FormDocs onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'reportar' && <FormReportar onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'novoChamado' && <FormNovoChamado onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoResiduo' && <FormNovoResiduo onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'editarResiduo' && state.modalResiduo && <FormEditarResiduo residuo={state.modalResiduo} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoMtr' && <FormNovoMtr onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}

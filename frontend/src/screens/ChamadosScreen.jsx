@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useReducer } from 'react';
 import { Icon, Badge } from '../components';
-import { CHAMADOS, AUDITORIA } from '../data';
-import { pgrsTs, exportCsv } from '../utils';
+import { exportCsv } from '../utils';
+import { useChamados } from '../chamados/useChamados';
+import { useAtualizarStatusChamado } from '../chamados/useAtualizarStatusChamado';
+import { useComentarChamado } from '../chamados/useComentarChamado';
 
 const statusChamado = (s) => {
   const map = {
@@ -40,6 +42,8 @@ const tipoChamado = (t) => {
 function ChamadoDetail({ chamado, onClose, dispatch }) {
   const c = chamado;
   const [comentario, setComentario] = useState('');
+  const atualizarStatus = useAtualizarStatusChamado();
+  const comentarMutation = useComentarChamado();
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -48,43 +52,16 @@ function ChamadoDetail({ chamado, onClose, dispatch }) {
   }, [onClose]);
 
   const updateStatus = (novoStatus) => {
-    c.status = novoStatus;
-    if (novoStatus === 'resolvido' || novoStatus === 'fechado') {
-      c.resolvido = pgrsTs().slice(0, 16);
-    }
-    AUDITORIA.unshift({
-      ts: pgrsTs(), who: 'Lucas Souza', what: 'support.status', where: '-',
-      detail: `${c.id} marcado como ${novoStatus}`,
-      risk: novoStatus === 'resolvido' || novoStatus === 'fechado' ? 'low' : 'med',
+    atualizarStatus.mutate({ id: c.id, status: novoStatus }, {
+      onSuccess: () => dispatch({ type: 'refresh' }),
     });
-    dispatch({ type: 'refresh' });
-  };
-
-  const assumir = () => {
-    c.responsavel = 'Lucas Souza';
-    if (c.status === 'aberto') c.status = 'em-analise';
-    AUDITORIA.unshift({
-      ts: pgrsTs(), who: 'Lucas Souza', what: 'support.assign', where: '-',
-      detail: `Assumiu o chamado ${c.id}`, risk: 'low',
-    });
-    dispatch({ type: 'refresh' });
   };
 
   const enviarComentario = () => {
     if (!comentario.trim()) return;
-    if (!Array.isArray(c.comentarios)) c.comentarios = [];
-    c.comentarios.push({
-      autor: 'Lucas Souza', papel: 'admin',
-      ts: pgrsTs().slice(0, 16),
-      texto: comentario.trim(),
+    comentarMutation.mutate({ id: c.id, texto: comentario.trim() }, {
+      onSuccess: () => setComentario(''),
     });
-    AUDITORIA.unshift({
-      ts: pgrsTs(), who: 'Lucas Souza', what: 'support.comment', where: '-',
-      detail: `Comentou em ${c.id}: "${comentario.slice(0, 60)}${comentario.length > 60 ? '…' : ''}"`,
-      risk: 'low',
-    });
-    setComentario('');
-    dispatch({ type: 'refresh' });
   };
 
   return (
@@ -122,13 +99,8 @@ function ChamadoDetail({ chamado, onClose, dispatch }) {
           <div className="drawer-section">
             <div className="drawer-section-h"><h4>Metadados</h4></div>
             <div className="kv">
-              <div className="k">Reportado por</div><div className="v">{c.reportado_por}</div>
-              <div className="k">Criado em</div><div className="v mono">{c.criado}</div>
-              <div className="k">Responsável</div>
-              <div className="v">{c.responsavel ? c.responsavel : <span className="muted">(não atribuído)</span>}</div>
-              {c.resolvido && (<><div className="k">Resolvido em</div><div className="v mono">{c.resolvido}</div></>)}
-              {c.contexto?.tela && (<><div className="k">Tela</div><div className="v mono">/{c.contexto.tela}</div></>)}
-              {c.contexto?.browser && (<><div className="k">Navegador</div><div className="v" style={{fontFamily: 'var(--mono)', fontSize: 12}}>{c.contexto.browser}</div></>)}
+              <div className="k">Aberto por</div><div className="v">{c.abertoPorId}</div>
+              <div className="k">Criado em</div><div className="v mono">{c.criadoEm?.slice(0, 10)}</div>
             </div>
           </div>
 
@@ -140,17 +112,16 @@ function ChamadoDetail({ chamado, onClose, dispatch }) {
               </div>
               <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
                 {c.comentarios.map((com) => {
-                  const eu = com.autor === 'Lucas Souza';
+                  const eu = false;
                   return (
-                    <div key={`${com.ts}|${com.autor}`} style={{display: 'flex', gap: 10}}>
+                    <div key={com.id} style={{display: 'flex', gap: 10}}>
                       <div className={`comment-avatar ${eu ? 'eu' : 'outro'}`}>
-                        {com.autor.split(' ').map(s => s[0]).slice(0, 2).join('')}
+                        {com.autorId?.slice(0, 2).toUpperCase()}
                       </div>
                       <div style={{flex: 1, minWidth: 0}}>
                         <div style={{display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3, flexWrap: 'wrap'}}>
-                          <span style={{fontSize: 12.5, fontWeight: 600}}>{com.autor}</span>
-                          {com.papel && <span className="badge gray mono" style={{fontSize: 12}}>{com.papel}</span>}
-                          <span style={{fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--text-3)'}}>{com.ts}</span>
+                          <span style={{fontSize: 12.5, fontWeight: 600}}>{com.autorId}</span>
+                          <span style={{fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--text-3)'}}>{com.criadoEm?.slice(0, 16)}</span>
                         </div>
                         <div className={`comment-bubble ${eu ? 'eu' : 'outro'}`}>{com.texto}</div>
                       </div>
@@ -181,9 +152,6 @@ function ChamadoDetail({ chamado, onClose, dispatch }) {
             <button type="button" className="btn btn-sm" onClick={onClose}>Fechar painel</button>
           ) : (
             <>
-              {!c.responsavel && (
-                <button type="button" className="btn btn-sm" onClick={assumir}><Icon name="check" size={12}/> Assumir</button>
-              )}
               {c.status === 'aberto' && (
                 <button type="button" className="btn btn-sm" onClick={() => updateStatus('em-analise')}>
                   <Icon name="refresh" size={12}/> Em análise
@@ -241,7 +209,10 @@ export function ChamadosScreen({ state, dispatch }) {
   // Stable export date (avoids hydration mismatch)
   const exportDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
-  const all = CHAMADOS;
+  const { data: all = [], isPending, isError, refetch } = useChamados();
+
+  if (isPending) return <div className="page-loading"><Icon name="refresh" size={16}/> Carregando chamados…</div>;
+  if (isError) return <div className="page-error">Erro ao carregar chamados. <button onClick={refetch}>Tentar novamente</button></div>;
 
   const list = all.filter(c => {
     if (statusFilter === 'abertos' && (c.status === 'resolvido' || c.status === 'fechado')) return false;
@@ -251,7 +222,7 @@ export function ChamadosScreen({ state, dispatch }) {
     if (sevFilter !== 'todas' && c.severidade !== sevFilter) return false;
     if (query.trim()) {
       const q = query.trim().toLowerCase();
-      const hay = `${c.id} ${c.titulo} ${c.descricao} ${c.reportado_por} ${c.responsavel || ''}`.toLowerCase();
+      const hay = `${c.id} ${c.titulo} ${c.descricao} ${c.abertoPorId}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -276,12 +247,13 @@ export function ChamadosScreen({ state, dispatch }) {
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => {
-            const rows = [['ID', 'Título', 'Tipo', 'Severidade', 'Status', 'Reportado por', 'Responsável', 'Criado', 'Resolvido', 'Comentários']];
-            list.forEach(c => rows.push([c.id, c.titulo, c.tipo, c.severidade, c.status, c.reportado_por, c.responsavel || '', c.criado, c.resolvido || '', (c.comentarios || []).length]));
+            const rows = [['ID', 'Título', 'Tipo', 'Severidade', 'Status', 'Aberto por', 'Criado em', 'Comentários']];
+            list.forEach(c => rows.push([c.id, c.titulo, c.tipo, c.severidade, c.status, c.abertoPorId, c.criadoEm?.slice(0, 10), (c.comentarios || []).length]));
             exportCsv(rows, `chamados-${exportDate}.csv`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar</button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'reportar' })}>
+          <button type="button" className="btn btn-primary btn-sm"
+            onClick={() => dispatch({ type: 'openModal', kind: 'novoChamado' })}>
             <Icon name="plus" size={13}/> Novo chamado
           </button>
         </div>
@@ -355,12 +327,12 @@ export function ChamadosScreen({ state, dispatch }) {
               <tr>
                 <th>ID</th><th>Título</th><th>Tipo</th>
                 <th>Severidade</th><th>Status</th>
-                <th>Reportado por</th><th>Responsável</th><th>Criado</th>
+                <th>Aberto por</th><th>Criado</th>
               </tr>
             </thead>
             <tbody>
               {list.length === 0 ? (
-                <tr><td colSpan={8} style={{padding: '30px 16px', textAlign: 'center', color: 'var(--text-3)'}}>
+                <tr><td colSpan={7} style={{padding: '30px 16px', textAlign: 'center', color: 'var(--text-3)'}}>
                   Nenhum chamado encontrado com os filtros atuais.
                 </td></tr>
               ) : list.map(c => (
@@ -377,9 +349,8 @@ export function ChamadosScreen({ state, dispatch }) {
                   <td className="small">{tipoChamado(c.tipo)}</td>
                   <td>{sevChamado(c.severidade)}</td>
                   <td>{statusChamado(c.status)}</td>
-                  <td className="small">{c.reportado_por}</td>
-                  <td className="small">{c.responsavel ? c.responsavel : <span className="muted">(não atribuído)</span>}</td>
-                  <td className="mono small">{c.criado}</td>
+                  <td className="small">{c.abertoPorId}</td>
+                  <td className="mono small">{c.criadoEm?.slice(0, 10)}</td>
                 </tr>
               ))}
             </tbody>
