@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ResQui.Application\ResQui.Application.csproj" />
     <ProjectReference Include="..\ResQui.Domain\ResQui.Domain.csproj" />
+    <ProjectReference Include="..\ResQui.Infrastructure\ResQui.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

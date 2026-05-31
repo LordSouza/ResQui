@@ -27,6 +27,7 @@ using ResQui.API.Features.Chamados;
 using ResQui.API.Features.Notificacoes;
 using ResQui.API.Features.Usuarios;
 using ResQui.API.Features.Compatibilidade;
+using ResQui.Infrastructure.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -82,6 +83,8 @@ builder.Services.AddCors(opts =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddHostedService<NotificacoesJob>();
 
 var app = builder.Build();
 

@@ -6,6 +6,7 @@ using ResQui.Infrastructure.Auth;
 using ResQui.Infrastructure.Data;
 using ResQui.Infrastructure.Data.Repositories;
 using ResQui.Infrastructure.Identity;
+using ResQui.Infrastructure.Jobs.Checkers;
 
 namespace ResQui.Infrastructure;
 
@@ -35,6 +36,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IChamadosRepository, EfChamadosRepository>();
         services.AddScoped<ICompatibilidadeRepository, EfCompatibilidadeRepository>();
         services.AddScoped<IAuthRepository, EfAuthRepository>();
+
+        services.AddScoped<ExpiryChecker>();
+        services.AddScoped<LowStockChecker>();
+        services.AddScoped<SinirChecker>();
+        services.AddScoped<ColetaChecker>();
 
         return services;
     }
