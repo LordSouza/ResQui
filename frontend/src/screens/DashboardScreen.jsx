@@ -1,16 +1,24 @@
 import { Icon, Tag, SectionTitle, riscoBadge } from '../components';
-import { RESIDUOS, MTRS, NOTIFICACOES, GERACAO_MENSAL, GERACAO_POR_LAB } from '../data';
 import { exportCsv } from '../utils';
 import { useReagentes } from '../reagentes/useReagentes';
+import { useResíduos } from '../residuos/useResíduos';
+import { useMtrs } from '../mtrs/useMtrs';
+import { useNotificacoes } from '../notificacoes/useNotificacoes';
+import { useResiduosAnalytics } from '../residuos/useResiduosAnalytics';
 
 export function DashboardScreen({ state, dispatch }) {
-  const residuos = RESIDUOS;
   const { data: totalData, isError: totalError, refetch: refetchTotal } = useReagentes({ pageSize: 1 });
   const { data: expirData, isError: expirError, refetch: refetchExpir } = useReagentes({ pageSize: 1, vencendo: true });
+  const { data: residuosData = [] } = useResíduos();
+  const { data: mtrsData = [] } = useMtrs();
+  const { data: notifData = [] } = useNotificacoes();
+  const { data: analytics } = useResiduosAnalytics({ meses: 6 });
+  const geracaoMensal = analytics?.mensal ?? [];
+  const geracaoPorLab = analytics?.porLab ?? [];
   const totalReagentes = totalData?.total;
   const expirando = expirData?.total;
-  const aguardando = residuos.filter(r => r.status === 'aguardando-coleta').length;
-  const mtrPendentes = MTRS.filter(m => m.status === 'pendente-sinir').length;
+  const aguardando = residuosData.filter(r => r.status === 'aguardando-coleta').length;
+  const mtrPendentes = mtrsData.filter(m => m.status === 'pendente-sinir').length;
 
   return (
     <>
@@ -24,10 +32,10 @@ export function DashboardScreen({ state, dispatch }) {
             const rows = [
               ['Métrica', 'Valor'],
               ['Reagentes ativos', totalReagentes ?? 0],
-              ['Resíduos aguardando coleta', RESIDUOS.filter(r => r.status === 'aguardando-coleta').length],
-              ['MTRs ativos', MTRS.length],
-              ['Alertas pendentes', NOTIFICACOES.filter(n => !n.lida).length],
-              ['Lab com mais geração', GERACAO_POR_LAB.reduce((a,b) => a.valor > b.valor ? a : b).lab],
+              ['Resíduos aguardando coleta', aguardando],
+              ['MTRs ativos', mtrsData.length],
+              ['Alertas pendentes', notifData.filter(n => !n.lida).length],
+              ['Lab com mais geração', geracaoPorLab.length > 0 ? geracaoPorLab[0].lab : '—'],
               ['Gerado em', new Date().toLocaleString('pt-BR')],
             ];
             exportCsv(rows, `dashboard-${new Date().toISOString().slice(0,10)}.csv`);
@@ -78,12 +86,12 @@ export function DashboardScreen({ state, dispatch }) {
             <SectionTitle title="Geração de resíduos por mês" sub="Litros equivalentes · 2025" right={<Tag>últimos 7 meses</Tag>}/>
             <div className="card-body">
               <div className="spark" style={{height: 80}}>
-                {GERACAO_MENSAL.map((m, i) => {
-                  const max = Math.max(...GERACAO_MENSAL.map(x => x.valor));
+                {geracaoMensal.map((m, i) => {
+                  const max = Math.max(...geracaoMensal.map(x => x.valor), 1);
                   const h = (m.valor / max) * 100;
                   return (
                     <div key={m.mes} style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4}}>
-                      <div className={`b ${i === GERACAO_MENSAL.length - 1 ? 'active' : ''}`}
+                      <div className={`b ${i === geracaoMensal.length - 1 ? 'active' : ''}`}
                         style={{height: `${h}%`, width: '70%'}}/>
                       <div className="mono" style={{fontSize: 12, color: 'var(--text-3)'}}>{m.mes}</div>
                       <div className="mono tnum" style={{fontSize: 12}}>{m.valor}L</div>
@@ -99,18 +107,19 @@ export function DashboardScreen({ state, dispatch }) {
             <SectionTitle title="Geração por laboratório · este mês" sub="L equivalentes"/>
             <div className="card-body">
               <div className="bar-chart">
-                {GERACAO_POR_LAB.map((b, i) => {
-                  const max = Math.max(...GERACAO_POR_LAB.map(x => x.valor));
-                  return (
+                {(() => {
+                  const CORES_LAB = ['accent', 'green', 'amber', 'red'];
+                  const max = Math.max(...geracaoPorLab.map(x => x.valor), 1);
+                  return geracaoPorLab.map((b, i) => (
                     <div className="bar-row" key={b.lab}>
                       <div className="name">{b.lab}</div>
                       <div className="bar-bg">
-                        <div className={`bar-fill ${b.cor}`} style={{width: `${(b.valor / max) * 100}%`}}/>
+                        <div className={`bar-fill ${CORES_LAB[i % CORES_LAB.length]}`} style={{width: `${(b.valor / max) * 100}%`}}/>
                       </div>
                       <div className="val">{b.valor.toFixed(1)} L</div>
                     </div>
-                  );
-                })}
+                  ));
+                })()}
               </div>
             </div>
           </div>
@@ -122,14 +131,14 @@ export function DashboardScreen({ state, dispatch }) {
             <table className="tbl">
               <thead><tr><th>ID</th><th>Tipo</th><th>Gerador</th><th>Volume</th><th>Risco</th><th>Registrado</th></tr></thead>
               <tbody>
-                {RESIDUOS.filter(r => r.status === 'aguardando-coleta').slice(0, 5).map(r => (
+                {residuosData.filter(r => r.status === 'aguardando-coleta').slice(0, 5).map(r => (
                   <tr key={r.id} onClick={() => dispatch({type: 'nav', screen: 'residuos'})}>
                     <td className="num">{r.id}</td>
                     <td>{r.tipo}</td>
-                    <td><Tag>{r.gerador}</Tag></td>
+                    <td><Tag>Lab-{String(r.lab_id).padStart(3, '0')}</Tag></td>
                     <td className="num">{r.volume} {r.unidade}</td>
                     <td>{riscoBadge(r.risco)}</td>
-                    <td className="mono small muted">{r.registrado}</td>
+                    <td className="mono small muted">{r.data_registro?.slice(0, 10)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -140,15 +149,15 @@ export function DashboardScreen({ state, dispatch }) {
         {/* Sidebar de notificações */}
         <div className="col">
           <div className="card">
-            <SectionTitle title="Alertas ativos" sub={`${NOTIFICACOES.length} pendentes`}
+            <SectionTitle title="Alertas ativos" sub={`${notifData.filter(n => !n.lida).length} pendentes`}
               right={<Icon name="bell" size={14}/>}/>
             <div style={{display: 'flex', flexDirection: 'column'}}>
-              {NOTIFICACOES.map((n, i) => (
-                <div key={n.titulo} style={{padding: '10px 14px', borderBottom: i < NOTIFICACOES.length - 1 ? '1px solid var(--border)' : 0, display: 'flex', gap: 10}}>
-                  <div style={{width: 6, height: 6, borderRadius: '50%', background: n.sev === 'red' ? 'var(--red)' : 'var(--amber)', marginTop: 6, flexShrink: 0}}/>
+              {notifData.filter(n => !n.lida).map((n, i, arr) => (
+                <div key={n.id} style={{padding: '10px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 0, display: 'flex', gap: 10}}>
+                  <div style={{width: 6, height: 6, borderRadius: '50%', background: n.severidade === 'red' ? 'var(--red)' : 'var(--amber)', marginTop: 6, flexShrink: 0}}/>
                   <div style={{flex: 1}}>
-                    <div style={{fontSize: 12.5, lineHeight: 1.35}}>{n.titulo}</div>
-                    <div className="mono small muted" style={{marginTop: 2}}>{n.t}</div>
+                    <div style={{fontSize: 12.5, lineHeight: 1.35}}>{n.mensagem}</div>
+                    <div className="mono small muted" style={{marginTop: 2}}>{n.criada_em?.slice(0, 10)}</div>
                   </div>
                 </div>
               ))}
