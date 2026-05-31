@@ -79,4 +79,18 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         var u = await userManager.FindByIdAsync(userId);
         if (u is not null) { u.Arquivado = true; await userManager.UpdateAsync(u); }
     }
+
+    public async Task<string> GetNotificacaoPrefsJsonAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        return u?.NotificacaoPrefsJson ?? "{}";
+    }
+
+    public async Task SaveNotificacaoPrefsJsonAsync(string userId, string json)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return;
+        u.NotificacaoPrefsJson = json;
+        await userManager.UpdateAsync(u);
+    }
 }

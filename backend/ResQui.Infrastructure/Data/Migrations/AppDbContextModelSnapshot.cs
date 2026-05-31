@@ -578,6 +578,10 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<string>("NotificacaoPrefsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Papel")
                         .IsRequired()
                         .HasColumnType("text");
