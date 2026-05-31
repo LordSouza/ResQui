@@ -2,7 +2,9 @@
 import { useState, useEffect, useReducer, useRef } from 'react';
 
 import { useAuth } from './auth/AuthContext';
-import { NOTIFICACOES } from './data';
+import { useNotificacoes } from './notificacoes/useNotificacoes';
+import { useMarcarLida } from './notificacoes/useMarcarLida';
+import { useMarcarTodasLidas } from './notificacoes/useMarcarTodasLidas';
 import { pgrsTs, exportCsv } from './utils';
 import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge, mtrStatusBadge } from './components';
 import { reducer, initialState } from './store/reducer';
@@ -161,14 +163,10 @@ const umBadge = {
 
 function NotifBell({ dispatch }) {
   const [open, setOpen] = useState(false);
-  const [, force] = useReducer(x => x + 1, 0);
   const ref = useRef(null);
-
-  // Init: marca todas como não lidas na primeira render
-  useEffect(() => {
-    NOTIFICACOES.forEach(n => { if (n.lida === undefined) n.lida = false; });
-    force();
-  }, []);
+  const { data: notificacoes = [], isError } = useNotificacoes();
+  const marcarLida = useMarcarLida();
+  const marcarTodas = useMarcarTodasLidas();
 
   useEffect(() => {
     const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -176,7 +174,7 @@ function NotifBell({ dispatch }) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
 
-  const naoLidas = NOTIFICACOES.filter(n => !n.lida).length;
+  const naoLidas = notificacoes.filter(n => !n.lida).length;
 
   const iconePara = (tipo) => ({
     'expiry': 'warning', 'low-stock': 'flask', 'sinir': 'truck',
@@ -192,16 +190,15 @@ function NotifBell({ dispatch }) {
   };
 
   const handleClick = (n) => {
-    n.lida = true;
+    if (!n.lida) marcarLida.mutate(n.id);
     const target = navTarget(n);
     setOpen(false);
     if (target) dispatch({ type: 'nav', ...target });
-    else force();
   };
 
   const marcarTodasLidas = () => {
-    NOTIFICACOES.forEach(n => { n.lida = true; });
-    force();
+    marcarTodas.mutate();
+    setOpen(false);
   };
 
   return (
@@ -215,7 +212,6 @@ function NotifBell({ dispatch }) {
 
       {open && (
         <div className="notif-dropdown">
-          {/* Header */}
           <div style={{padding: '12px 14px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <div>
               <div style={{fontSize: 13, fontWeight: 600}}>Notificações</div>
@@ -231,35 +227,37 @@ function NotifBell({ dispatch }) {
             )}
           </div>
 
-          {/* Lista */}
           <div style={{maxHeight: 380, overflowY: 'auto'}}>
-            {NOTIFICACOES.length === 0 ? (
+            {isError && (
+              <div style={{padding: '8px 14px', fontSize: 12, color: 'var(--red)'}}>
+                Erro ao carregar notificações.
+              </div>
+            )}
+            {!isError && notificacoes.length === 0 && (
               <div style={{padding: 30, textAlign: 'center', color: 'var(--text-3)', fontSize: 13}}>
                 Nenhuma notificação ativa.
               </div>
-            ) : NOTIFICACOES.map((n, i) => (
-              <button type="button" key={n.titulo} onClick={() => handleClick(n)}
+            )}
+            {notificacoes.map((n, i) => (
+              <button type="button" key={n.id} onClick={() => handleClick(n)}
                 className={`notif-item${n.lida ? '' : ' unread'}`}
                 style={{borderTop: i ? '1px solid var(--border)' : 0}}>
                 {!n.lida && <span className="notif-dot"/>}
-                <div className={`notif-icon sev-${n.sev === 'red' ? 'red' : n.sev === 'amber' ? 'amber' : 'other'}`}>
+                <div className={`notif-icon sev-${n.severidade === 'red' ? 'red' : n.severidade === 'amber' ? 'amber' : 'other'}`}>
                   <Icon name={iconePara(n.tipo)} size={14}/>
                 </div>
                 <div style={{flex: 1, minWidth: 0}}>
                   <div style={{fontSize: 12.5, fontWeight: n.lida ? 400 : 500, lineHeight: 1.4, color: 'var(--text)'}}>
-                    {n.titulo}
+                    {n.mensagem}
                   </div>
                   <div style={{fontSize: 12, color: 'var(--text-3)', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center'}}>
                     <span style={{fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.04em'}}>{n.tipo}</span>
-                    <span>·</span>
-                    <span>{n.t}</span>
                   </div>
                 </div>
               </button>
             ))}
           </div>
 
-          {/* Footer */}
           <div style={{padding: 8, borderTop: '1px solid var(--border)', display: 'flex', gap: 4}}>
             <button type="button" onClick={() => { setOpen(false); dispatch({ type: 'openModal', kind: 'notificacoes' }); }}
               style={notifFootBtn}>
