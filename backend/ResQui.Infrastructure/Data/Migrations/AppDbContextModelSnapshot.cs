@@ -277,6 +277,33 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.ToTable("CompatEntries");
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.CompatOverride", b =>
+                {
+                    b.Property<int>("ClasseA")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ClasseB")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Autor")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("DataEdicao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Nivel")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ClasseA", "ClasseB");
+
+                    b.ToTable("compat_overrides", (string)null);
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.Laboratorio", b =>
                 {
                     b.Property<string>("Id")
@@ -517,6 +544,41 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ReagentesGhs");
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.RelatorioGerado", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Formato")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("GeradoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GeradoPorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TotalLinhas")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RelatoriosGerados");
                 });
 
             modelBuilder.Entity("ResQui.Domain.Entities.Residuo", b =>
