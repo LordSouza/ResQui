@@ -15,6 +15,20 @@ public static class Endpoints
         group.MapGet("/matriz", async (ICompatService svc) =>
             Results.Ok(await svc.GetMatrizAsync()));
 
+        group.MapGet("/overrides", async (ICompatService svc) =>
+            Results.Ok(await svc.GetOverridesAsync()));
+
+        group.MapPut("/overrides/{classeA:int}/{classeB:int}",
+            async (int classeA, int classeB, SalvarOverrideCmd cmd, ICompatService svc) =>
+                Results.Ok(await svc.SalvarOverrideAsync(classeA, classeB, cmd)));
+
+        group.MapDelete("/overrides/{classeA:int}/{classeB:int}",
+            async (int classeA, int classeB, ICompatService svc) =>
+            {
+                await svc.RemoverOverrideAsync(classeA, classeB);
+                return Results.NoContent();
+            });
+
         return group;
     }
 }
