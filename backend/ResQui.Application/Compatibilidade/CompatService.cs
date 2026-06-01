@@ -1,13 +1,19 @@
+using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Compatibilidade;
 
-public class CompatService(ICompatibilidadeRepository repo) : ICompatService
+public class CompatService(
+    ICompatibilidadeRepository repo,
+    ICompatOverridesRepository overridesRepo) : ICompatService
 {
     private static readonly string[] Descricoes = ["Compatível", "Cautela", "Perigo", "Proibido"];
 
     public async Task<CompatResultDto?> ConsultarParAsync(int classeA, int classeB)
     {
+        var ov = await overridesRepo.GetAsync(classeA, classeB);
+        if (ov is not null)
+            return new CompatResultDto(classeA, classeB, ov.Nivel, Descricoes[ov.Nivel]);
         var entry = await repo.GetNivelAsync(classeA, classeB);
         if (entry is null) return null;
         return new CompatResultDto(classeA, classeB, entry.Nivel, Descricoes[entry.Nivel]);
@@ -16,6 +22,44 @@ public class CompatService(ICompatibilidadeRepository repo) : ICompatService
     public async Task<CompatMatrizDto> GetMatrizAsync()
     {
         var all = await repo.GetAllAsync();
-        return new CompatMatrizDto(all.Select(e => new CompatEntryDto(e.ClasseA, e.ClasseB, e.Nivel)).ToList());
+        var overrides = (await overridesRepo.GetAllAsync())
+            .ToDictionary(o => (o.ClasseA, o.ClasseB));
+        return new CompatMatrizDto(
+            all.Select(e =>
+            {
+                var nivel = overrides.TryGetValue((e.ClasseA, e.ClasseB), out var ov)
+                    ? ov.Nivel
+                    : e.Nivel;
+                return new CompatEntryDto(e.ClasseA, e.ClasseB, nivel);
+            }).ToList()
+        );
     }
+
+    public async Task<IEnumerable<CompatOverrideDto>> GetOverridesAsync()
+    {
+        var all = await overridesRepo.GetAllAsync();
+        return all.Select(ToDto);
+    }
+
+    public async Task<CompatOverrideDto> SalvarOverrideAsync(int classeA, int classeB, SalvarOverrideCmd cmd)
+    {
+        var entry = new CompatOverride
+        {
+            ClasseA = classeA,
+            ClasseB = classeB,
+            Nivel = cmd.Nivel,
+            Motivo = cmd.Motivo,
+            Autor = cmd.Autor,
+            DataEdicao = DateTime.UtcNow,
+        };
+        await overridesRepo.UpsertAsync(entry);
+        return ToDto(entry);
+    }
+
+    public async Task RemoverOverrideAsync(int classeA, int classeB) =>
+        await overridesRepo.DeleteAsync(classeA, classeB);
+
+    private static CompatOverrideDto ToDto(CompatOverride o) =>
+        new(o.ClasseA, o.ClasseB, o.Nivel, o.Motivo, o.Autor,
+            o.DataEdicao.ToString("yyyy-MM-dd"));
 }
