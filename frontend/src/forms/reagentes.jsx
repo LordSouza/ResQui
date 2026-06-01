@@ -5,6 +5,10 @@ import { useCriarReagente } from '../reagentes/useCriarReagente';
 import { useBaixaReagente } from '../reagentes/useBaixaReagente';
 import { pgrsTs } from '../utils';
 import Modal from './Modal';
+import { useCompatOverrides } from '../compat/useCompatOverrides';
+import { useSalvarCompatOverride } from '../compat/useSalvarCompatOverride';
+import { useRemoverCompatOverride } from '../compat/useRemoverCompatOverride';
+import { useToast } from '../components/ToastContext';
 
 // ---------- Novo Reagente ----------
 export function FormNovoReagente({ onClose, dispatch }) {
@@ -513,16 +517,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
   );
 }
 
-// ---------- Editar regras de compatibilidade (fluxo simulado) ----------
-const COMPAT_RULES_FAKE = [
-  { a: 1, b: 3,  score: 3, motivo: 'Reação ácido-base altamente exotérmica · risco de respingo e geração de vapor.', autor: 'Profa. Ana Lima',  data: '2024-08-12' },
-  { a: 4, b: 5,  score: 3, motivo: 'Oxidante forte + solvente orgânico = risco de ignição espontânea.',              autor: 'Profa. Ana Lima',  data: '2024-09-01' },
-  { a: 4, b: 11, score: 2, motivo: 'Pode gerar peróxido instável sob luz ou calor — manter separados.',              autor: 'Téc. Carlos Mendes', data: '2025-02-14' },
-  { a: 1, b: 8,  score: 3, motivo: 'Libera HCN gasoso — proibido por norma institucional UNIFEI-IMC-2023/04.',       autor: 'Sistema',           data: '2023-04-10' },
-  { a: 5, b: 11, score: 2, motivo: 'Risco de formação de peróxidos em éteres armazenados — revisar a cada 6 meses.', autor: 'Profa. Ana Lima',  data: '2025-05-22' },
-  { a: 12, b: 3, score: 3, motivo: 'Metais alcalinos + base aquosa → reação violenta com liberação de H₂.',           autor: 'Sistema',           data: '2023-04-10' },
-];
-
+// ---------- Editar regras de compatibilidade ----------
 const SCORE_LABELS = ['Compatível', 'Cautela', 'Perigo', 'Proibido'];
 const SCORE_KINDS = ['green', 'amber', 'red', 'red'];
 const SCORE_COLORS = ['var(--green)', 'var(--amber)', 'var(--red)', '#7a1f1f'];
@@ -533,40 +528,53 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
     severidade: `${uid}-severidade`,
     justificativa: `${uid}-justificativa`,
     definidoPor: `${uid}-definido-por`,
-    data: `${uid}-data`,
   };
-  const [rules, setRules] = useState(COMPAT_RULES_FAKE);
-  const [selectedIdx, setSelectedIdx] = useState(0);
+
+  const { data: overrides = [], isPending } = useCompatOverrides();
+  const salvar = useSalvarCompatOverride();
+  const remover = useRemoverCompatOverride();
+  const { addToast } = useToast();
+
+  const [selected, setSelected] = useState(null);
   const [showNew, setShowNew] = useState(false);
-  const sel = rules[selectedIdx];
 
-  const updateSel = (patch) => {
-    setRules(rs => rs.map((r, i) => i === selectedIdx ? { ...r, ...patch } : r));
+  const handleSelect = (o) => {
+    setSelected({ a: o.classeA, b: o.classeB, score: o.nivel, motivo: o.motivo, autor: o.autor, data: o.dataEdicao });
   };
 
-  const addRule = (a, b) => {
-    const novo = { a, b, score: 1, motivo: '', autor: 'Lucas Souza', data: new Date().toISOString().slice(0, 10) };
-    setRules(rs => [novo, ...rs]);
-    setSelectedIdx(0);
+  const updateSel = (patch) => setSelected(s => s ? { ...s, ...patch } : s);
+
+  const handleSave = async () => {
+    if (!selected) return;
+    try {
+      await salvar.mutateAsync({
+        classeA: selected.a,
+        classeB: selected.b,
+        Nivel: selected.score,
+        Motivo: selected.motivo,
+        Autor: selected.autor,
+      });
+      addToast({ kind: 'success', msg: 'Regra salva com sucesso.' });
+      setSelected(null);
+    } catch (e) {
+      addToast({ kind: 'error', msg: e.message });
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!selected) return;
+    try {
+      await remover.mutateAsync({ classeA: selected.a, classeB: selected.b });
+      addToast({ kind: 'success', msg: 'Regra removida.' });
+      setSelected(null);
+    } catch (e) {
+      addToast({ kind: 'error', msg: e.message });
+    }
+  };
+
+  const handleAdd = (a, b) => {
+    setSelected({ a, b, score: 1, motivo: '', autor: '', data: null });
     setShowNew(false);
-  };
-
-  const removeRule = (i) => {
-    setRules(rs => rs.filter((_, idx) => idx !== i));
-    setSelectedIdx(Math.max(0, selectedIdx - (i <= selectedIdx ? 1 : 0)));
-  };
-
-  const save = () => {
-    AUDITORIA.unshift({
-      ts: pgrsTs(),
-      who: 'Lucas Souza',
-      what: 'compat.rules.edit',
-      where: '-',
-      detail: `Atualizou matriz de compatibilidade · ${rules.length} regras ativas`,
-      risk: 'med',
-    });
-    dispatch({type: 'refresh'});
-    onClose();
   };
 
   return (
@@ -574,45 +582,56 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
       sub="Sobreposições institucionais à matriz EPA/NOAA padrão"
       onClose={onClose} width={860}
       footer={<>
-        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={save}>Salvar {rules.length} regras</button>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
+        {selected && (
+          <button type="button" className="btn btn-primary btn-sm"
+            disabled={salvar.isPending}
+            onClick={handleSave}>
+            {salvar.isPending ? 'Salvando…' : 'Salvar regra'}
+          </button>
+        )}
       </>}>
       <div style={{display: 'grid', gridTemplateColumns: '300px 1fr', gap: 14, minHeight: 460}}>
         {/* Lista esquerda */}
         <div style={{display: 'flex', flexDirection: 'column', minWidth: 0}}>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
             <div style={{fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)'}}>
-              {rules.length} regras
+              {isPending ? '…' : `${overrides.length} regras`}
             </div>
             <button type="button" className="btn btn-sm" onClick={() => setShowNew(true)}>
               <Icon name="plus" size={11}/> Nova
             </button>
           </div>
           <div style={{border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'auto', flex: 1, maxHeight: 440}}>
-            {rules.map((r, i) => (
-              <button key={`${r.a}-${r.b}-${r.data}-${i}`}
+            {isPending && (
+              <div style={{padding: 20, textAlign: 'center', color: 'var(--text-3)', fontSize: 12}}>
+                Carregando…
+              </div>
+            )}
+            {!isPending && overrides.map((o) => (
+              <button key={`${o.classeA}-${o.classeB}`}
                 type="button"
-                aria-label={`Selecionar regra: Classe ${r.a} × Classe ${r.b} — ${SCORE_LABELS[r.score]}`}
-                onClick={() => setSelectedIdx(i)}
+                aria-label={`Selecionar regra: Classe ${o.classeA} × Classe ${o.classeB} — ${SCORE_LABELS[o.nivel]}`}
+                onClick={() => handleSelect(o)}
                 className="compat-rule-item"
                 style={{
-                  background: i === selectedIdx ? 'var(--accent-soft)' : 'transparent',
-                  borderBottom: i < rules.length - 1 ? '1px solid var(--border)' : 0,
-                  borderLeft: i === selectedIdx ? '3px solid var(--accent)' : '3px solid transparent',
+                  background: selected?.a === o.classeA && selected?.b === o.classeB ? 'var(--accent-soft)' : 'transparent',
+                  borderBottom: '1px solid var(--border)',
+                  borderLeft: selected?.a === o.classeA && selected?.b === o.classeB ? '3px solid var(--accent)' : '3px solid transparent',
                 }}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4}}>
                   <span className="mono small" style={{color: 'var(--text-2)'}}>
-                    Cl. {r.a} × Cl. {r.b}
+                    Cl. {o.classeA} × Cl. {o.classeB}
                   </span>
-                  <Badge kind={SCORE_KINDS[r.score]} dot>{SCORE_LABELS[r.score]}</Badge>
+                  <Badge kind={SCORE_KINDS[o.nivel]} dot>{SCORE_LABELS[o.nivel]}</Badge>
                 </div>
                 <div style={{fontSize: 12, color: 'var(--text)', lineHeight: 1.35,
                   display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>
-                  {REATIVIDADE_CLASSES[r.a]} × {REATIVIDADE_CLASSES[r.b]}
+                  {REATIVIDADE_CLASSES[o.classeA]} × {REATIVIDADE_CLASSES[o.classeB]}
                 </div>
               </button>
             ))}
-            {rules.length === 0 && (
+            {!isPending && overrides.length === 0 && (
               <div style={{padding: 30, textAlign: 'center', color: 'var(--text-3)', fontSize: 12}}>
                 Nenhuma regra. A matriz cai para os padrões EPA/NOAA.
               </div>
@@ -621,21 +640,23 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
         </div>
 
         {/* Editor direita */}
-        {sel ? (
+        {selected ? (
           <div style={{border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 16, background: 'var(--surface-2)', minWidth: 0}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14}}>
               <div>
                 <div style={{fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: 4}}>
-                  Regra · Cl. {sel.a} × Cl. {sel.b}
+                  Regra · Cl. {selected.a} × Cl. {selected.b}
                 </div>
                 <div style={{fontSize: 14, fontWeight: 600, lineHeight: 1.3}}>
-                  {REATIVIDADE_CLASSES[sel.a]}<br/>
+                  {REATIVIDADE_CLASSES[selected.a]}<br/>
                   <span style={{color: 'var(--text-3)', fontSize: 12, fontFamily: 'var(--mono)'}}>×</span><br/>
-                  {REATIVIDADE_CLASSES[sel.b]}
+                  {REATIVIDADE_CLASSES[selected.b]}
                 </div>
               </div>
-              <button type="button" className="btn btn-sm" onClick={() => removeRule(selectedIdx)}>
-                <Icon name="trash" size={12}/> Excluir
+              <button type="button" className="btn btn-sm"
+                disabled={remover.isPending}
+                onClick={handleRemove}>
+                <Icon name="trash" size={12}/> {remover.isPending ? 'Removendo…' : 'Excluir'}
               </button>
             </div>
 
@@ -647,10 +668,10 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
                     <button type="button" key={lbl} onClick={() => updateSel({score: s})}
                       className="score-btn"
                       style={{
-                        border: '1px solid ' + (sel.score === s ? SCORE_COLORS[s] : 'var(--border)'),
-                        background: sel.score === s ? SCORE_COLORS[s] : 'var(--surface)',
-                        color: sel.score === s ? '#fff' : 'var(--text-2)',
-                        fontWeight: sel.score === s ? 600 : 400,
+                        border: '1px solid ' + (selected.score === s ? SCORE_COLORS[s] : 'var(--border)'),
+                        background: selected.score === s ? SCORE_COLORS[s] : 'var(--surface)',
+                        color: selected.score === s ? '#fff' : 'var(--text-2)',
+                        fontWeight: selected.score === s ? 600 : 400,
                       }}>
                       {s}. {lbl}
                     </button>
@@ -662,8 +683,12 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
             <div className="form-row full">
               <div className="field">
                 <label htmlFor={ids.justificativa}>Justificativa técnica</label>
-                <textarea id={ids.justificativa} aria-label="Justificativa técnica da regra de compatibilidade" value={sel.motivo} onChange={e => updateSel({motivo: e.target.value})}
-                  rows={4} placeholder="Descreva o risco químico, citando norma, FISPQ ou referência institucional."
+                <textarea id={ids.justificativa}
+                  aria-label="Justificativa técnica da regra de compatibilidade"
+                  value={selected.motivo}
+                  onChange={e => updateSel({motivo: e.target.value})}
+                  rows={4}
+                  placeholder="Descreva o risco químico, citando norma, FISPQ ou referência institucional."
                   style={{resize: 'vertical', fontFamily: 'var(--font)', lineHeight: 1.45}}/>
               </div>
             </div>
@@ -671,12 +696,17 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
             <div className="form-row">
               <div className="field">
                 <label htmlFor={ids.definidoPor}>Definido por</label>
-                <input id={ids.definidoPor} aria-label="Nome do responsável pela regra" value={sel.autor} onChange={e => updateSel({autor: e.target.value})}/>
+                <input id={ids.definidoPor}
+                  aria-label="Nome do responsável pela regra"
+                  value={selected.autor}
+                  onChange={e => updateSel({autor: e.target.value})}/>
               </div>
-              <div className="field">
-                <label htmlFor={ids.data}>Data</label>
-                <input id={ids.data} aria-label="Data de definição da regra de compatibilidade" type="date" value={sel.data} onChange={e => updateSel({data: e.target.value})}/>
-              </div>
+              {selected.data && (
+                <div className="field">
+                  <label>Última edição</label>
+                  <input readOnly value={selected.data} style={{color: 'var(--text-3)'}}/>
+                </div>
+              )}
             </div>
 
             <div className="compat-warning-notice">
@@ -691,7 +721,7 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
         )}
       </div>
 
-      {showNew && <NovaRegraInline onCancel={() => setShowNew(false)} onAdd={addRule}/>}
+      {showNew && <NovaRegraInline onCancel={() => setShowNew(false)} onAdd={handleAdd}/>}
     </Modal>
   );
 }
