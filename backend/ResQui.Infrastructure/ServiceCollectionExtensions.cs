@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IChamadosRepository, EfChamadosRepository>();
         services.AddScoped<IRelatoriosRepository, EfRelatoriosRepository>();
         services.AddScoped<ICompatibilidadeRepository, EfCompatibilidadeRepository>();
+        services.AddScoped<ICompatOverridesRepository, EfCompatOverridesRepository>();
         services.AddScoped<IAuthRepository, EfAuthRepository>();
 
         services.AddScoped<ExpiryChecker>();
