@@ -1,0 +1,124 @@
+// backend/ResQui.Tests.Unit/Compatibilidade/CompatServiceTests.cs
+using FluentAssertions;
+using NSubstitute;
+using ResQui.Application.Compatibilidade;
+using ResQui.Domain.Entities;
+using ResQui.Domain.Interfaces;
+
+namespace ResQui.Tests.Unit.Compatibilidade;
+
+public class CompatServiceTests
+{
+    private readonly ICompatibilidadeRepository _repo = Substitute.For<ICompatibilidadeRepository>();
+    private readonly ICompatOverridesRepository _overridesRepo = Substitute.For<ICompatOverridesRepository>();
+    private readonly CompatService _sut;
+
+    public CompatServiceTests() =>
+        _sut = new CompatService(_repo, _overridesRepo);
+
+    // --- ConsultarParAsync ---
+
+    [Fact]
+    public async Task ConsultarParAsync_RetornaOverride_QuandoOverrideExiste()
+    {
+        _overridesRepo.GetAsync(1, 3).Returns(new CompatOverride
+            { ClasseA = 1, ClasseB = 3, Nivel = 3, Motivo = "Regra UNIFEI", Autor = "Sistema", DataEdicao = DateTime.UtcNow });
+
+        var result = await _sut.ConsultarParAsync(1, 3);
+
+        result.Should().NotBeNull();
+        result!.Nivel.Should().Be(3);
+        result.Descricao.Should().Be("Proibido");
+        await _repo.DidNotReceive().GetNivelAsync(Arg.Any<int>(), Arg.Any<int>());
+    }
+
+    [Fact]
+    public async Task ConsultarParAsync_RetornaBase_QuandoOverrideNaoExiste()
+    {
+        _overridesRepo.GetAsync(1, 2).Returns((CompatOverride?)null);
+        _repo.GetNivelAsync(1, 2).Returns(new CompatEntry { ClasseA = 1, ClasseB = 2, Nivel = 1 });
+
+        var result = await _sut.ConsultarParAsync(1, 2);
+
+        result.Should().NotBeNull();
+        result!.Nivel.Should().Be(1);
+        result.Descricao.Should().Be("Cautela");
+    }
+
+    [Fact]
+    public async Task ConsultarParAsync_RetornaNull_QuandoParNaoEncontrado()
+    {
+        _overridesRepo.GetAsync(99, 99).Returns((CompatOverride?)null);
+        _repo.GetNivelAsync(99, 99).Returns((CompatEntry?)null);
+
+        var result = await _sut.ConsultarParAsync(99, 99);
+
+        result.Should().BeNull();
+    }
+
+    // --- GetMatrizAsync ---
+
+    [Fact]
+    public async Task GetMatrizAsync_SubstituiNivelBase_QuandoOverrideExiste()
+    {
+        _repo.GetAllAsync().Returns(new[]
+        {
+            new CompatEntry { ClasseA = 1, ClasseB = 3, Nivel = 3 },
+            new CompatEntry { ClasseA = 1, ClasseB = 2, Nivel = 1 },
+        });
+        _overridesRepo.GetAllAsync().Returns(new[]
+        {
+            new CompatOverride { ClasseA = 1, ClasseB = 3, Nivel = 2, Motivo = "Revisado", Autor = "Ana", DataEdicao = DateTime.UtcNow },
+        });
+
+        var result = await _sut.GetMatrizAsync();
+
+        result.Entries.Should().HaveCount(2);
+        result.Entries.First(e => e.ClasseA == 1 && e.ClasseB == 3).Nivel.Should().Be(2);
+        result.Entries.First(e => e.ClasseA == 1 && e.ClasseB == 2).Nivel.Should().Be(1);
+    }
+
+    // --- GetOverridesAsync ---
+
+    [Fact]
+    public async Task GetOverridesAsync_RetornaListaDtos()
+    {
+        var dt = new DateTime(2024, 8, 12, 0, 0, 0, DateTimeKind.Utc);
+        _overridesRepo.GetAllAsync().Returns(new[]
+        {
+            new CompatOverride { ClasseA = 1, ClasseB = 3, Nivel = 3, Motivo = "Risco alto", Autor = "Ana", DataEdicao = dt },
+        });
+
+        var result = (await _sut.GetOverridesAsync()).ToList();
+
+        result.Should().HaveCount(1);
+        result[0].ClasseA.Should().Be(1);
+        result[0].Motivo.Should().Be("Risco alto");
+        result[0].DataEdicao.Should().Be("2024-08-12");
+    }
+
+    // --- SalvarOverrideAsync ---
+
+    [Fact]
+    public async Task SalvarOverrideAsync_ChamaUpsertERetornaDto()
+    {
+        var cmd = new SalvarOverrideCmd(2, "Nova regra", "Carlos");
+
+        var result = await _sut.SalvarOverrideAsync(1, 3, cmd);
+
+        await _overridesRepo.Received(1).UpsertAsync(Arg.Is<CompatOverride>(e =>
+            e.ClasseA == 1 && e.ClasseB == 3 && e.Nivel == 2 && e.Motivo == "Nova regra"));
+        result.ClasseA.Should().Be(1);
+        result.Nivel.Should().Be(2);
+    }
+
+    // --- RemoverOverrideAsync ---
+
+    [Fact]
+    public async Task RemoverOverrideAsync_ChamaDelete()
+    {
+        await _sut.RemoverOverrideAsync(1, 3);
+
+        await _overridesRepo.Received(1).DeleteAsync(1, 3);
+    }
+}
