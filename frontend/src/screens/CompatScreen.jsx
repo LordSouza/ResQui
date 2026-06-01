@@ -1,6 +1,9 @@
 import { useMemo, Fragment } from 'react';
 import { Icon, SectionTitle, Picto } from '../components';
-import { REATIVIDADE_CLASSES, COMPAT_MATRIX, NOTIFICACOES } from '../data';
+import { REATIVIDADE_CLASSES } from '../data';
+import { useCompatMatriz } from '../compat/useCompatMatriz';
+import { useCompatOverrides } from '../compat/useCompatOverrides';
+import { useToast } from '../components/ToastContext';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useReagente } from '../reagentes/useReagente';
 import { exportCsv } from '../utils';
@@ -15,7 +18,12 @@ export function CompatScreen({ state, dispatch }) {
   const { data: ra } = useReagente(a || null);
   const { data: rb } = useReagente(b || null);
 
-  const score = ra && rb ? (COMPAT_MATRIX[ra.classe]?.[rb.classe - 1] ?? 0) : 0;
+  const { data: matrix, isPending: matrixPending, isError: matrixError, refetch: refetchMatrix } = useCompatMatriz();
+  const { data: overrides = [] } = useCompatOverrides();
+  const { addToast } = useToast();
+  const overrideSet = new Set(overrides.map(o => `${o.classeA}-${o.classeB}`));
+
+  const score = ra && rb && matrix ? (matrix[ra.classe]?.[rb.classe - 1] ?? 0) : 0;
   const kind = score === 3 ? 'danger' : score === 2 ? 'danger' : score === 1 ? 'warn' : 'ok';
   const title = score === 0 ? 'Compatíveis · sem restrição'
               : score === 1 ? 'Cautela: armazenar separados'
@@ -39,7 +47,7 @@ export function CompatScreen({ state, dispatch }) {
             const rows = [header];
             classesPresentes.forEach(ax => {
               rows.push([`${ax}. ${REATIVIDADE_CLASSES[ax]}`,
-                ...classesPresentes.map(bx => COMPAT_MATRIX[ax][bx - 1])]);
+                ...classesPresentes.map(bx => matrix?.[ax]?.[bx - 1] ?? 0)]);
             });
             rows.push([]);
             rows.push(['Legenda', '0 = compatível', '1 = cautela', '2 = perigo', '3 = proibido']);
@@ -56,6 +64,8 @@ export function CompatScreen({ state, dispatch }) {
           <button type="button" onClick={refetchList}>Tentar novamente</button>
         </div>
       )}
+      {matrixPending && <div className="page-loading"><Icon name="refresh" size={16}/> Carregando matriz de compatibilidade...</div>}
+      {matrixError && <div className="page-error">Erro ao carregar matriz. <button type="button" onClick={refetchMatrix}>Tentar novamente</button></div>}
 
       <div className="grid-2" style={{marginBottom: 16}}>
         <div className="card">
@@ -99,19 +109,10 @@ export function CompatScreen({ state, dispatch }) {
             </div>
 
             <div className="row" style={{marginTop: 12, gap: 8}}>
-              <button type="button" className="btn btn-sm" onClick={() => {
-                alert('Parecer registrado no log de auditoria.');
-                dispatch({type: 'refresh'});
-              }}><Icon name="clipboard" size={13}/> Registrar parecer no log</button>
+              <button type="button" className="btn btn-sm" onClick={() => addToast({ kind: 'success', msg: 'Parecer registrado no log de auditoria.' })}><Icon name="clipboard" size={13}/> Registrar parecer no log</button>
               <button type="button" className="btn btn-sm" disabled={score < 2} onClick={() => {
                 const respA = ra?.responsavel; const respB = rb?.responsavel;
-                NOTIFICACOES.unshift({
-                  tipo: 'compat',
-                  titulo: `Risco identificado: ${ra?.nome} + ${rb?.nome} (score ${score})`,
-                  sev: score === 3 ? 'red' : 'amber', t: 'agora', lida: false,
-                });
-                alert(`Notificação enviada para ${respA}${respA !== respB ? ' e ' + respB : ''}.`);
-                dispatch({type: 'refresh'});
+                addToast({ kind: 'success', msg: `Notificação enviada para ${respA}${respA !== respB ? ' e ' + respB : ''}.` });
               }}><Icon name="bell" size={13}/> Notificar responsáveis</button>
             </div>
           </div>
@@ -153,10 +154,17 @@ export function CompatScreen({ state, dispatch }) {
                   <span style={{marginRight: 6}}>{row}.</span>{REATIVIDADE_CLASSES[row]}
                 </div>
                 {classesPresentes.map(col => {
-                  const s = COMPAT_MATRIX[row][col - 1];
+                  const s = matrix?.[row]?.[col - 1] ?? 0;
+                  const hasOverride = overrideSet.has(`${row}-${col}`);
                   const cls = row === col ? 'self' : s === 0 ? 's1' : s === 1 ? 's2' : 's3';
                   const label = row === col ? '—' : s === 0 ? '✓' : s === 1 ? '!' : s === 2 ? '✕' : '⨯';
-                  return <div key={col} className={`compat-cell ${cls}`}>{label}</div>;
+                  return (
+                    <div key={col} className={`compat-cell ${cls}`}
+                      style={hasOverride ? { outline: '2px solid var(--accent)', outlineOffset: '-2px' } : undefined}
+                      title={hasOverride ? 'Regra institucional ativa' : undefined}>
+                      {label}
+                    </div>
+                  );
                 })}
               </Fragment>
             ))}
