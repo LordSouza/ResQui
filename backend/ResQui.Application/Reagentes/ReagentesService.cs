@@ -1,4 +1,5 @@
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
@@ -43,6 +44,10 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
 
     public async Task<ReagenteDetalheDto> CriarAsync(CriarReagenteCmd cmd, string usuarioEmail)
     {
+        if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
+        if (cmd.Estoque < 0) throw new ValidationException("Estoque não pode ser negativo.");
+        if (cmd.EstoqueMin is < 0) throw new ValidationException("Estoque mínimo não pode ser negativo.");
+
         var r = new Reagente
         {
             Nome = cmd.Nome, Cas = cmd.Cas, Formula = cmd.Formula,
@@ -66,6 +71,10 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
 
     public async Task<ReagenteDetalheDto?> AtualizarAsync(string id, AtualizarReagenteCmd cmd, string usuarioEmail)
     {
+        if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
+        if (cmd.Estoque < 0) throw new ValidationException("Estoque não pode ser negativo.");
+        if (cmd.EstoqueMin is < 0) throw new ValidationException("Estoque mínimo não pode ser negativo.");
+
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
         r.Nome = cmd.Nome; r.Estoque = cmd.Estoque; r.EstoqueMin = cmd.EstoqueMin;
@@ -91,9 +100,12 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
 
     public async Task<ReagenteDetalheDto?> BaixaAsync(string id, BaixaCmd cmd, string usuarioEmail)
     {
+        if (cmd.Quantidade <= 0) throw new ValidationException("Quantidade deve ser maior que zero.");
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
-        r.Estoque = Math.Max(0, Math.Round(r.Estoque - cmd.Quantidade, 3));
+        if (cmd.Quantidade > r.Estoque)
+            throw new ValidationException($"Estoque insuficiente: {r.Estoque} {r.Unidade} disponíveis.");
+        r.Estoque = Math.Round(r.Estoque - cmd.Quantidade, 3);
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
         await auditoria.RegistrarAsync(usuarioEmail, "reagente.baixa", "Inventário",
