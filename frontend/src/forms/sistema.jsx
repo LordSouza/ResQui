@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Icon, Badge } from '../components';
-import { AUDITORIA } from '../data';
-import { pgrsTs } from '../utils';
 import Modal from './Modal';
 import { useGetNotificacaoPrefs } from '../notificacoes/useGetNotificacaoPrefs';
 import { useNotificacaoPrefs } from '../notificacoes/useNotificacaoPrefs';
@@ -25,10 +23,6 @@ export function FormPerfil({ onClose, dispatch }) {
   });
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
   const save = () => {
-    AUDITORIA.unshift({
-      ts: pgrsTs(), who: 'Lucas Souza', what: 'user.profile', where: '-',
-      detail: 'Atualizou dados do perfil', risk: 'low',
-    });
     dispatch({ type: 'refresh' });
     onClose();
   };
@@ -110,10 +104,6 @@ export function FormSenha2FA({ onClose, dispatch }) {
   const validPwd = pwd.atual && pwd.nova && pwd.nova === pwd.conf && forca >= 3;
 
   const salvar = () => {
-    AUDITORIA.unshift({
-      ts: pgrsTs(), who: 'Lucas Souza', what: 'user.password.change', where: '-',
-      detail: 'Alterou a senha de acesso', risk: 'med',
-    });
     dispatch({ type: 'refresh' });
     onClose();
   };
@@ -242,19 +232,11 @@ export function FormSessoes({ onClose, dispatch }) {
 
   const encerrar = (id) => {
     setSessoes(s => s.filter(x => x.id !== id));
-    AUDITORIA.unshift({
-      ts: pgrsTs(), who: 'Lucas Souza', what: 'user.session.revoke', where: '-',
-      detail: `Encerrou sessão ID ${id}`, risk: 'med',
-    });
     dispatch({ type: 'refresh' });
   };
 
   const encerrarTodas = () => {
     setSessoes(s => s.filter(x => x.atual));
-    AUDITORIA.unshift({
-      ts: pgrsTs(), who: 'Lucas Souza', what: 'user.session.revoke_all', where: '-',
-      detail: 'Encerrou todas as outras sessões ativas', risk: 'med',
-    });
     dispatch({ type: 'refresh' });
   };
 

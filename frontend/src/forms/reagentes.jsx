@@ -1,9 +1,8 @@
 import { useState, useReducer, useRef, useId } from 'react';
 import { Icon, Badge, Tag, Picto } from '../components';
-import { AUDITORIA, REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
+import { REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
 import { useCriarReagente } from '../reagentes/useCriarReagente';
 import { useBaixaReagente } from '../reagentes/useBaixaReagente';
-import { pgrsTs } from '../utils';
 import Modal from './Modal';
 import { useCompatOverrides } from '../compat/useCompatOverrides';
 import { useSalvarCompatOverride } from '../compat/useSalvarCompatOverride';
@@ -317,14 +316,6 @@ export function FormImportarCSV({ onClose, dispatch }) {
   };
 
   const confirmImport = () => {
-    AUDITORIA.unshift({
-      ts: pgrsTs(),
-      who: 'Lucas Souza',
-      what: 'bulk.import',
-      where: '-',
-      detail: `Importou ${fileName} · 142 reagentes adicionados, 5 avisos`,
-      risk: 'low',
-    });
     csvDispatch({ type: 'setStep', step: 'done' });
   };
 
@@ -986,14 +977,6 @@ export function FormPreviewFispq({ onClose, reagente, dispatch }) {
           <Icon name="clipboard" size={12}/> Imprimir
         </button>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => {
-          AUDITORIA.unshift({
-            ts: pgrsTs(),
-            who: 'Lucas Souza',
-            what: 'fispq.download',
-            where: '-',
-            detail: `Baixou FISPQ de ${r.nome} (${r.id})`,
-            risk: 'low',
-          });
           alert(`Download iniciado: FISPQ-${r.id}-${r.nome.replace(/\s+/g, '_')}.pdf`);
         }}>
           <Icon name="download" size={12}/> Baixar PDF

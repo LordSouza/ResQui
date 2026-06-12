@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { reducer, initialState } from '../../src/store/reducer';
-import { REAGENTES } from '../../src/data';
 
 // --- nav ---
 describe('nav', () => {
@@ -127,42 +126,6 @@ describe('refresh', () => {
     const base = { ...initialState, flashId: 'old' };
     const s = reducer(base, { type: 'refresh' });
     expect(s.flashId).toBeNull();
-  });
-});
-
-// --- consume ---
-describe('consume', () => {
-  let saved;
-
-  beforeEach(() => {
-    saved = [...REAGENTES];
-    REAGENTES.splice(0, Infinity, { id: 'R-TEST', estoque: 5.0, classe: 1 });
-  });
-
-  afterEach(() => {
-    REAGENTES.splice(0, Infinity, ...saved);
-  });
-
-  it('decrements estoque of the matching reagent', () => {
-    reducer(initialState, { type: 'consume', id: 'R-TEST', quantidade: 1.5 });
-    expect(REAGENTES[0].estoque).toBeCloseTo(3.5);
-  });
-
-  it('clamps estoque to 0 when quantidade exceeds stock', () => {
-    reducer(initialState, { type: 'consume', id: 'R-TEST', quantidade: 10 });
-    expect(REAGENTES[0].estoque).toBe(0);
-  });
-
-  it('increments tick and sets flashId', () => {
-    const s = reducer(initialState, { type: 'consume', id: 'R-TEST', quantidade: 1 });
-    expect(s.tick).toBe(initialState.tick + 1);
-    expect(s.flashId).toBe('R-TEST');
-  });
-
-  it('does nothing to other reagents when id is not found', () => {
-    const before = REAGENTES[0].estoque;
-    reducer(initialState, { type: 'consume', id: 'R-NONEXISTENT', quantidade: 1 });
-    expect(REAGENTES[0].estoque).toBe(before);
   });
 });
 

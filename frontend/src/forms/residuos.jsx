@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Icon, Badge, riscoBadge } from '../components';
-import { AUDITORIA, LABORATORIOS } from '../data';
-import { pgrsTs } from '../utils';
 import Modal from './Modal';
 import { useCriarResiduo } from '../residuos/useCriarResiduo';
 import { useAtualizarResiduo } from '../residuos/useAtualizarResiduo';
@@ -313,14 +311,6 @@ export function FormPreviewMtrPdf({ onClose, dispatch }) {
           <Icon name="clipboard" size={12}/> Imprimir
         </button>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => {
-          AUDITORIA.unshift({
-            ts: pgrsTs(),
-            who: 'Lucas Souza',
-            what: 'mtr.preview.download',
-            where: '-',
-            detail: 'Baixou pré-visualização MTR-2025-1143.pdf',
-            risk: 'low',
-          });
           alert('Download iniciado: MTR-2025-1143.pdf');
         }}>
           <Icon name="download" size={12}/> Baixar PDF
@@ -502,17 +492,12 @@ export function FormConfigurarPgrs({ onClose, dispatch }) {
   const toggleLab = (lab) => setCfg(c => ({ ...c, labs: c.labs.includes(lab) ? c.labs.filter(l => l !== lab) : [...c.labs, lab] }));
 
   const save = () => {
-    AUDITORIA.unshift({
-      ts: pgrsTs(),
-      who: 'Lucas Souza', what: 'pgrs.config', where: '-',
-      detail: `Atualizou configuração do PGRS (${cfg.labs.length} laboratórios, vigência ${cfg.vigencia}, meta redução ${cfg.meta_reducao_pct}%)`,
-      risk: 'low',
-    });
     dispatch({ type: 'refresh' });
     onClose();
   };
 
-  const labsTodos = ['Lab-201', 'Lab-203', 'Lab-205', 'Lab-209', 'Lab-211'];
+  const { data: labsApi = [] } = useLaboratorios();
+  const labsTodos = labsApi.map(l => l.id);
 
   return (
     <Modal title="Configurar PGRS" sub="Plano de Gerenciamento de Resíduos Sólidos · Lei 12.305/10 art. 21 · parâmetros institucionais"
@@ -574,7 +559,7 @@ export function FormConfigurarPgrs({ onClose, dispatch }) {
           <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14}}>
             {labsTodos.map(lab => {
               const ativo = cfg.labs.includes(lab);
-              const labInfo = LABORATORIOS?.find(l => l.id === lab);
+              const labInfo = labsApi.find(l => l.id === lab);
               return (
                 <button type="button" key={lab} onClick={() => toggleLab(lab)}
                   className="pgrs-lab-btn"
