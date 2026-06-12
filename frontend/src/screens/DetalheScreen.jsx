@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Icon, Badge, SectionTitle, Picto, Empty, validadeBadge } from '../components';
-import { REATIVIDADE_CLASSES, COMPAT_MATRIX } from '../data';
+import { REATIVIDADE_CLASSES } from '../data';
+import { useCompatMatriz } from '../compat/useCompatMatriz';
 import { useReagente } from '../reagentes/useReagente';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useDeletarReagente } from '../reagentes/useDeletarReagente';
@@ -11,6 +12,7 @@ export function DetalheScreen({ state, dispatch }) {
   const { data: listData } = useReagentes({ pageSize: 200 });
   const deletarMutation = useDeletarReagente();
   const { user } = useAuth();
+  const { data: compatMatrix = {} } = useCompatMatriz();
 
   // Redirect to inventario when reagent not found (404)
   useEffect(() => {
@@ -195,7 +197,7 @@ export function DetalheScreen({ state, dispatch }) {
             <SectionTitle title="Compatibilidade rápida" sub="vs. itens no mesmo armário"/>
             <div className="card-body" style={{padding: 0}}>
               {mesmoArmario.map(x => {
-                const score = (COMPAT_MATRIX[r.classe] || [])[x.classe - 1] ?? 0;
+                const score = (compatMatrix[r.classe] || [])[x.classe - 1] ?? 0;
                 const kind = score === 0 ? 'green' : score === 1 ? 'amber' : 'red';
                 const label = score === 0 ? 'Compatível' : score === 1 ? 'Cautela' : score === 2 ? 'Perigo' : 'Proibido';
                 return (
