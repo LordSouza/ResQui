@@ -2,9 +2,11 @@
 // Usa window.claude.complete para interpretar comandos e disparar ações no app.
 
 import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon, Badge, Picto } from '../components';
-import { REAGENTES, RESIDUOS, COMPAT_MATRIX, AUDITORIA } from '../data';
-import { pgrsTs } from '../utils';
+import { apiFetch } from '../lib/api';
+import { useReagentes } from '../reagentes/useReagentes';
+import { useResíduos } from '../residuos/useResíduos';
 
 export function ChatMCP({ state, dispatch }) {
   const open = state.chatOpen;
@@ -17,6 +19,11 @@ export function ChatMCP({ state, dispatch }) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef(null);
+
+  const queryClient = useQueryClient();
+  const { data: reagsData } = useReagentes({ pageSize: 200 });
+  const reagentes = reagsData?.items ?? [];
+  const { data: residuos = [] } = useResíduos();
 
   // derive pending prompt from state instead of mirroring into local state
   const effectiveInput = state.pendingPrompt ?? input;
@@ -42,8 +49,8 @@ export function ChatMCP({ state, dispatch }) {
     setBusy(true);
 
     // catálogo simplificado para o LLM
-    const reagsCat = REAGENTES.map(r => `${r.id} ${r.nome} (CAS ${r.cas}) classe ${r.classe}`).join('\n');
-    const residCat = RESIDUOS.flatMap(r => r.status === 'aguardando-coleta' ? [`${r.id} ${r.tipo} ${r.volume}${r.unidade} ${r.gerador}`] : []).join('\n');
+    const reagsCat = reagentes.map(r => `${r.id} ${r.nome} (CAS ${r.cas}) classe ${r.classe}`).join('\n');
+    const residCat = residuos.flatMap(r => r.status === 'aguardando-coleta' ? [`W-${r.id} ${r.tipo} ${r.volume}${r.unidade} Lab-${String(r.lab_id).padStart(3, '0')}`] : []).join('\n');
 
     const sys = `Você é o assistente MCP (Model Context Protocol) do ResQui, sistema de gestão de resíduos químicos da UNIFEI.
 Responda em português brasileiro, conciso e técnico, sem usar markdown.
@@ -93,7 +100,7 @@ Se não souber qual reagente, peça esclarecimento usando action="explain".`;
       setMessages(m => [...m, {role: 'bot', content: parsed.say || 'Pronto.'}]);
 
       // executar ação
-      await executeAction(parsed.action, parsed.params || {}, setMessages, dispatch);
+      await executeAction(parsed.action, parsed.params || {}, { reagentes, residuos, addCard: (card) => setMessages(m => [...m, {role: 'card', card}]), dispatch, queryClient });
 
     } catch (err) {
       setMessages(m => [...m, {role: 'bot', content: 'Não consegui processar agora. Tente reformular ou use um dos atalhos abaixo.'}]);
@@ -229,8 +236,8 @@ function ChatCard({ card, dispatch }) {
       <div className="chat-card">
         <div className="cc-h"><span className="ttl">Pré-MTR gerado</span><span className="tag">rascunho</span></div>
         <div className="cc-body">
-          <div style={{fontSize: 12, fontWeight: 600}}>MTR-2025-1143</div>
-          <div className="small muted" style={{marginTop: 4}}>{card.count} resíduos consolidados · {card.massa} kg · EcoQuímica SA</div>
+          <div style={{fontSize: 12, fontWeight: 600}}>Pré-MTR (rascunho)</div>
+          <div className="small muted" style={{marginTop: 4}}>{card.count} resíduos consolidados · {card.massa} kg</div>
         </div>
         <div className="cc-actions">
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'nav', screen: 'mtr'})}>Abrir Pré-MTR</button>
@@ -269,8 +276,8 @@ function ChatCard({ card, dispatch }) {
   return null;
 }
 
-async function executeAction(action, params, setMessages, dispatch) {
-  const addCard = (card) => setMessages(m => [...m, {role: 'card', card}]);
+export async function executeAction(action, params, { reagentes, residuos, addCard, dispatch, queryClient }) {
+  const erro = (msg) => addCard({kind: 'list', title: 'Erro', items: [{nome: msg, meta: ''}]});
 
   if (action === 'nav' && params.screen) {
     dispatch({type: 'nav', screen: params.screen, id: params.id});
@@ -278,85 +285,84 @@ async function executeAction(action, params, setMessages, dispatch) {
   }
 
   if (action === 'compat') {
-    const a = REAGENTES.find(r => r.id === params.a);
-    const b = REAGENTES.find(r => r.id === params.b);
-    if (a && b) {
-      const score = COMPAT_MATRIX[a.classe][b.classe - 1];
-      addCard({kind: 'compat', a, b, score});
+    const a = reagentes.find(r => r.id === params.a);
+    const b = reagentes.find(r => r.id === params.b);
+    if (!a || !b) { erro('Reagente não encontrado no inventário.'); return; }
+    try {
+      const res = await apiFetch('/api/compat', { params: { classeA: a.classe, classeB: b.classe } });
+      const { nivel } = await res.json();
+      addCard({kind: 'compat', a, b, score: nivel});
       setTimeout(() => dispatch({type: 'openCompat', a: a.id, b: b.id}), 600);
-    }
+    } catch (err) { erro(err.message); }
     return;
   }
 
-  if (action === 'detail' && params.id) {
-    const r = REAGENTES.find(x => x.id === params.id);
-    if (r) {
-      addCard({kind: 'label', r});
-      setTimeout(() => dispatch({type: 'detail', id: r.id}), 400);
-    }
-    return;
-  }
-
-  if (action === 'generateLabel' && params.id) {
-    const r = REAGENTES.find(x => x.id === params.id);
-    if (r) {
-      addCard({kind: 'label', r});
-      setTimeout(() => dispatch({type: 'detail', id: r.id}), 600);
-    }
+  if ((action === 'detail' || action === 'generateLabel') && params.id) {
+    const r = reagentes.find(x => x.id === params.id);
+    if (!r) { erro('Reagente não encontrado.'); return; }
+    addCard({kind: 'label', r});
+    setTimeout(() => dispatch({type: 'detail', id: r.id}), 500);
     return;
   }
 
   if (action === 'consume' && params.id) {
-    const r = REAGENTES.find(x => x.id === params.id);
-    if (r) {
-      const q = Number(params.quantidade) || 0;
-      if (q <= 0) { addCard({kind: 'list', title: 'Erro', items: [{nome: 'Quantidade deve ser maior que zero.', meta: ''}]}); return; }
-      if (q > r.estoque) { addCard({kind: 'list', title: 'Erro', items: [{nome: `Estoque insuficiente: ${r.estoque} ${r.unidade} disponíveis.`, meta: ''}]}); return; }
-      const novo = (r.estoque - q).toFixed(2);
-      r.estoque = Number(novo);
-      AUDITORIA.unshift({
-        ts: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        who: 'Lucas Souza', what: 'item.consume', where: r.local.split('·')[0].trim(),
-        detail: `Baixa de ${q} ${params.unidade || r.unidade} em ${r.id} (${r.nome}) — via MCP`, risk: 'low',
+    const r = reagentes.find(x => x.id === params.id);
+    if (!r) { erro('Reagente não encontrado.'); return; }
+    const q = Number(params.quantidade) || 0;
+    try {
+      const res = await apiFetch(`/api/reagentes/${r.id}/baixa`, {
+        method: 'POST', body: JSON.stringify({ Quantidade: q }),
       });
-      addCard({kind: 'consume', r, q, u: params.unidade || r.unidade, novo});
+      const atualizado = await res.json();
+      addCard({kind: 'consume', r, q, u: params.unidade || r.unidade, novo: atualizado.estoque});
+      queryClient.invalidateQueries({ queryKey: ['reagentes'] });
       dispatch({type: 'refresh', flashId: r.id});
-    }
+    } catch (err) { erro(err.message); }
     return;
   }
 
   if (action === 'registerWaste') {
-    const lastId = RESIDUOS.map(r => parseInt(r.id.replace('W-', ''))).reduce((a, b) => Math.max(a, b), 0);
-    const id = 'W-' + String(lastId + 1).padStart(4, '0');
-    const novo = {
-      id, tipo: params.tipo || 'Resíduo químico',
-      volume: Number(params.volume) || 1, unidade: params.unidade || 'L',
-      gerador: params.gerador || 'Lab-201',
-      composicao: params.composicao || '—',
-      risco: params.risco || 'medio',
-      status: 'aguardando-coleta',
-      registrado: new Date().toISOString().slice(0, 10),
-      mtr: null,
-    };
-    RESIDUOS.unshift(novo);
-    addCard({kind: 'waste', r: novo});
-    dispatch({type: 'refresh', flashId: id});
+    const labId = Number(String(params.gerador ?? '').replace(/\D/g, '')) || residuos[0]?.lab_id || 1;
+    try {
+      const res = await apiFetch('/api/residuos', {
+        method: 'POST',
+        body: JSON.stringify({
+          Descricao: (params.composicao || params.tipo || 'Resíduo químico').slice(0, 80),
+          LaboratorioId: labId,
+          Tipo: params.tipo || 'Resíduo químico',
+          Volume: Number(params.volume) || 1,
+          Unidade: params.unidade || 'L',
+          Composicao: params.composicao || '—',
+          Risco: params.risco || 'medio',
+          Destino: null,
+        }),
+      });
+      const novo = await res.json();
+      addCard({kind: 'waste', r: {id: novo.id, tipo: novo.tipo, volume: novo.volume, unidade: novo.unidade, gerador: `Lab-${String(novo.laboratorioId).padStart(3, '0')}`}});
+      queryClient.invalidateQueries({ queryKey: ['residuos'] });
+      dispatch({type: 'refresh', flashId: novo.id});
+    } catch (err) { erro(err.message); }
     return;
   }
 
   if (action === 'createMtr') {
-    const aguardando = RESIDUOS.filter(r => r.status === 'aguardando-coleta');
-    const massa = aguardando.reduce((s, r) => s + r.volume * (r.unidade === 'kg' ? 1 : 1.1), 0).toFixed(1);
+    const aguardando = residuos.filter(r => r.status === 'aguardando-coleta');
+    const toKg = { kg: 1, g: 0.001, L: 1.0, mL: 0.001, 'm³': 1000 };
+    const massa = aguardando.reduce((s, r) => s + r.volume * (toKg[r.unidade] ?? 1), 0).toFixed(1);
     addCard({kind: 'mtr', count: aguardando.length, massa});
     setTimeout(() => dispatch({type: 'nav', screen: 'mtr'}), 600);
     return;
   }
 
   if (action === 'listExpiring') {
-    const items = REAGENTES.flatMap(r => r.validade_status === 'expira-breve' ? [{
-      nome: r.nome, id: r.id, meta: `${r.id} · vence ${r.validade} · ${r.estoque} ${r.unidade}`
-    }] : []);
-    addCard({kind: 'list', title: 'Vencendo em ≤ 90 dias', items});
+    try {
+      const res = await apiFetch('/api/reagentes', { params: { vencendo: true, pageSize: 200 } });
+      const data = await res.json();
+      const items = data.items.map(r => ({
+        nome: r.nome, id: r.id, meta: `${r.id} · ${r.validadeStatus} · ${r.estoque} ${r.unidade}`,
+      }));
+      addCard({kind: 'list', title: 'Vencendo em ≤ 90 dias', items});
+    } catch (err) { erro(err.message); }
     return;
   }
 }
