@@ -2,7 +2,8 @@ namespace ResQui.Domain.Entities;
 
 public class Laboratorio
 {
-    public string Id { get; set; } = "";
+    // null! para o EF detectar valor não-setado e usar o default do BD (sequência)
+    public string Id { get; set; } = null!;
     public string Nome { get; set; } = "";
     public string Responsavel { get; set; } = "";
     public string? Email { get; set; }
