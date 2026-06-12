@@ -1,4 +1,5 @@
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
@@ -15,6 +16,10 @@ public class LaboratoriosService(ILaboratoriosRepository repo, IAuditoriaService
 
     public async Task<LaboratorioDto> CriarAsync(CriarLaboratorioCmd cmd, string usuarioEmail)
     {
+        if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
+        if (cmd.Capacidade < 0) throw new ValidationException("Capacidade não pode ser negativa.");
+        if (cmd.AreaM2 < 0) throw new ValidationException("Área não pode ser negativa.");
+
         var l = new Laboratorio
         {
             Nome = cmd.Nome, Responsavel = cmd.Responsavel, Email = cmd.Email,
@@ -32,6 +37,10 @@ public class LaboratoriosService(ILaboratoriosRepository repo, IAuditoriaService
 
     public async Task<LaboratorioDto?> AtualizarAsync(string id, AtualizarLaboratorioCmd cmd, string usuarioEmail)
     {
+        if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
+        if (cmd.Capacidade < 0) throw new ValidationException("Capacidade não pode ser negativa.");
+        if (cmd.AreaM2 < 0) throw new ValidationException("Área não pode ser negativa.");
+
         var l = await repo.GetByIdAsync(id);
         if (l is null) return null;
         l.Nome = cmd.Nome; l.Responsavel = cmd.Responsavel; l.Email = cmd.Email;

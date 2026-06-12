@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Application.Laboratorios;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
@@ -106,5 +107,32 @@ public class LaboratoriosServiceTests
         await _audit.DidNotReceive().RegistrarAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    private static CriarLaboratorioCmd FakeLabCmd(string nome = "Lab Teste", int capacidade = 10, decimal areaM2 = 40m) =>
+        new(nome, "Ana", null, [], "Sala 1", [], capacidade, areaM2, "capela", "#1465c0");
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task CriarAsync_NomeVazio_LancaValidationException(string? nome)
+    {
+        var act = () => _sut.CriarAsync(FakeLabCmd(nome: nome!), "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Nome*");
+    }
+
+    [Fact]
+    public async Task CriarAsync_CapacidadeNegativa_LancaValidationException()
+    {
+        var act = () => _sut.CriarAsync(FakeLabCmd(capacidade: -1), "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Capacidade*");
+    }
+
+    [Fact]
+    public async Task CriarAsync_AreaNegativa_LancaValidationException()
+    {
+        var act = () => _sut.CriarAsync(FakeLabCmd(areaM2: -5m), "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Área*");
     }
 }
