@@ -1,4 +1,5 @@
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
@@ -24,6 +25,19 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
 
     public async Task<MtrDto> CriarAsync(CriarMtrCmd cmd, string usuarioId, string usuarioEmail)
     {
+        if (string.IsNullOrWhiteSpace(cmd.Gerador)) throw new ValidationException("Gerador é obrigatório.");
+        if (string.IsNullOrWhiteSpace(cmd.Transportadora)) throw new ValidationException("Transportadora é obrigatória.");
+        if (cmd.ResiduoIds is null || cmd.ResiduoIds.Count == 0)
+            throw new ValidationException("Selecione ao menos um resíduo.");
+
+        var residuos = new List<Residuo>();
+        foreach (var rid in cmd.ResiduoIds)
+        {
+            var r = await residuosRepo.GetByIdAsync(rid)
+                ?? throw new ValidationException($"Resíduo {rid} não encontrado.");
+            residuos.Add(r);
+        }
+
         var numero = $"MTR-{DateTime.UtcNow.Year}-{Random.Shared.Next(1000, 9999)}";
         var m = new Mtr
         {
@@ -37,15 +51,11 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         await repo.AddAsync(m);
         await repo.SaveChangesAsync();
 
-        var residuos = new List<Residuo>();
-        foreach (var rid in cmd.ResiduoIds)
+        foreach (var r in residuos)
         {
-            var r = await residuosRepo.GetByIdAsync(rid);
-            if (r is null) continue;
             r.MtrId = m.Id;
             r.Status = "em-coleta";
             await residuosRepo.UpdateAsync(r);
-            residuos.Add(r);
         }
         m.Massa = CalcularMassa(residuos);
         await repo.UpdateAsync(m);

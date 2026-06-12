@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Application.Mtrs;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
@@ -113,13 +114,16 @@ public class MtrsServiceTests
     [Fact]
     public async Task CriarAsync_RegistraAuditoria()
     {
+        var r = FakeResiduo(10);
         _repo.AddAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
         _repo.UpdateAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
-        _residuosRepo.GetAllAsync().Returns(new List<Residuo>().AsEnumerable());
+        _residuosRepo.GetByIdAsync(10).Returns(r);
+        _residuosRepo.GetAllAsync().Returns(new List<Residuo> { r }.AsEnumerable());
+        _residuosRepo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _residuosRepo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        var cmd = new CriarMtrCmd("Unifei", "EcoLog", "EcoQuím", "A099", new List<int>());
+        var cmd = new CriarMtrCmd("Unifei", "EcoLog", "EcoQuím", "A099", [10]);
         await _sut.CriarAsync(cmd, "user-1", "ana@lab.com");
 
         await _audit.Received(1).RegistrarAsync(
@@ -140,5 +144,33 @@ public class MtrsServiceTests
         await _audit.Received(1).RegistrarAsync(
             "ana@lab.com", "mtr.enviar-sinir", "MTR",
             Arg.Any<string>(), RiscoAuditoria.High);
+    }
+
+    [Theory]
+    [InlineData("", "Transp")]
+    [InlineData("Gerador", "")]
+    public async Task CriarAsync_GeradorOuTransportadoraVazios_LancaValidationException(string gerador, string transp)
+    {
+        var cmd = new CriarMtrCmd(gerador, transp, null, null, [1]);
+        var act = () => _sut.CriarAsync(cmd, "u1", "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task CriarAsync_ResiduoIdsVazio_LancaValidationException()
+    {
+        var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, []);
+        var act = () => _sut.CriarAsync(cmd, "u1", "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*resíduo*");
+    }
+
+    [Fact]
+    public async Task CriarAsync_ResiduoInexistente_LancaValidationException()
+    {
+        _residuosRepo.GetByIdAsync(7).Returns((Residuo?)null);
+        var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [7]);
+        var act = () => _sut.CriarAsync(cmd, "u1", "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*7*");
+        await _repo.DidNotReceive().AddAsync(Arg.Any<Mtr>());
     }
 }
