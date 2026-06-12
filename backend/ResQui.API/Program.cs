@@ -99,6 +99,11 @@ using (var scope = app.Services.CreateScope())
     var roles    = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var adminPwd = builder.Configuration["Seed:AdminPassword"] ?? "Admin@123";
     await DbSeeder.SeedAsync(db, users, roles, adminPwd);
+    if (builder.Configuration.GetValue<bool>("Seed:DemoData"))
+    {
+        var admin = await users.FindByEmailAsync("admin@resqui.local");
+        await DemoDataSeeder.SeedAsync(db, admin!.Id);
+    }
 }
 
 if (app.Environment.IsDevelopment())

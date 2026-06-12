@@ -33,6 +33,7 @@ services:
       Jwt__Issuer: resqui
       Jwt__Audience: resqui-frontend
       Seed__AdminPassword: ${ADMIN_PASSWORD:-Admin@123}
+      Seed__DemoData: "true"
 
   frontend:
     build:
