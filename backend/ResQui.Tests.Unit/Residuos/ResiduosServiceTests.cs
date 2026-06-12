@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Application.Residuos;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
@@ -75,6 +76,7 @@ public class ResiduosServiceTests
     [Fact]
     public async Task CriarAsync_PersisteTodosOsCampos()
     {
+        LabExiste(2);
         var cmd = new CriarResiduoCmd(
             Descricao: "Ácido clorídrico usado",
             LaboratorioId: 2,
@@ -129,6 +131,7 @@ public class ResiduosServiceTests
     [Fact]
     public async Task CriarAsync_RegistraAuditoria()
     {
+        LabExiste();
         var cmd = new CriarResiduoCmd("Solventes", 1, "Solventes orgânicos", 4.2m, "L", "Acetona", "medio", null);
         _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
@@ -153,6 +156,45 @@ public class ResiduosServiceTests
         await _audit.Received(1).RegistrarAsync(
             "ana@lab.com", "residuo.atualizar", "Resíduos",
             Arg.Any<string>(), RiscoAuditoria.Low);
+    }
+
+    private static CriarResiduoCmd FakeResiduoCmd(decimal volume = 1m, string risco = "medio", string unidade = "L", int labId = 1, string descricao = "Solvente usado") =>
+        new(descricao, labId, "Solventes orgânicos não-halogenados", volume, unidade, "acetona 80%", risco, null);
+
+    private void LabExiste(int seq = 1) =>
+        _labRepo.GetAllAsync().Returns([new Laboratorio { Id = $"Lab-{seq:D3}", Nome = "Lab" }]);
+
+    [Fact]
+    public async Task CriarAsync_VolumeZero_LancaValidationException() { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(volume: 0m), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*"); }
+
+    [Fact]
+    public async Task CriarAsync_VolumeNegativo_LancaValidationException() { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(volume: -2m), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*"); }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task CriarAsync_DescricaoVazia_LancaValidationException(string? descricao)
+    { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(descricao: descricao!), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Descrição*"); }
+
+    [Fact]
+    public async Task CriarAsync_RiscoInvalido_LancaValidationException()
+    { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(risco: "altíssimo"), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Risco*"); }
+
+    [Fact]
+    public async Task CriarAsync_UnidadeInvalida_LancaValidationException()
+    { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(unidade: "galões"), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Unidade*"); }
+
+    [Fact]
+    public async Task CriarAsync_LaboratorioInexistente_LancaValidationException()
+    { _labRepo.GetAllAsync().Returns([]); var act = () => _sut.CriarAsync(FakeResiduoCmd(labId: 99), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Laboratório*"); }
+
+    [Fact]
+    public async Task AtualizarAsync_VolumeNaoPositivo_LancaValidationException()
+    {
+        _repo.GetByIdAsync(1).Returns(new Residuo { Id = 1 });
+        var cmd = new AtualizarResiduoCmd(null, null, -1m, null, null, null, null, null, null);
+        var act = () => _sut.AtualizarAsync(1, cmd, "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*");
     }
 
     private static Laboratorio FakeLab(string id, string nome) => new()

@@ -1,4 +1,5 @@
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
@@ -10,6 +11,8 @@ public class ResiduosService(
     IAuditoriaService auditoria,
     ILaboratoriosRepository labRepo) : IResiduosService
 {
+    private static readonly string[] RiscosValidos = ["baixo", "medio", "alto"];
+    private static readonly string[] UnidadesValidas = ["L", "mL", "kg", "g", "m³"];
     public async Task<IEnumerable<ResiduoDto>> ListarAsync(int? labId, int? mtrId, string? status)
     {
         var all = await repo.GetAllAsync();
@@ -21,6 +24,12 @@ public class ResiduosService(
 
     public async Task<ResiduoDto> CriarAsync(CriarResiduoCmd cmd, string usuarioEmail)
     {
+        if (string.IsNullOrWhiteSpace(cmd.Descricao)) throw new ValidationException("Descrição é obrigatória.");
+        if (cmd.Volume <= 0) throw new ValidationException("Volume deve ser maior que zero.");
+        if (!RiscosValidos.Contains(cmd.Risco)) throw new ValidationException("Risco inválido — use baixo, medio ou alto.");
+        if (!UnidadesValidas.Contains(cmd.Unidade)) throw new ValidationException("Unidade inválida — use L, mL, kg, g ou m³.");
+        var labExiste = (await labRepo.GetAllAsync()).Any(l => ParseLabSeq(l.Id) == cmd.LaboratorioId);
+        if (!labExiste) throw new ValidationException($"Laboratório {cmd.LaboratorioId} não encontrado.");
         var r = new Residuo
         {
             Descricao = cmd.Descricao,
@@ -43,6 +52,9 @@ public class ResiduosService(
     {
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
+        if (cmd.Volume is <= 0) throw new ValidationException("Volume deve ser maior que zero.");
+        if (cmd.Risco is not null && !RiscosValidos.Contains(cmd.Risco)) throw new ValidationException("Risco inválido — use baixo, medio ou alto.");
+        if (cmd.Unidade is not null && !UnidadesValidas.Contains(cmd.Unidade)) throw new ValidationException("Unidade inválida — use L, mL, kg, g ou m³.");
         if (cmd.Descricao is not null) r.Descricao = cmd.Descricao;
         if (cmd.Tipo is not null) r.Tipo = cmd.Tipo;
         if (cmd.Volume is not null) r.Volume = cmd.Volume.Value;
