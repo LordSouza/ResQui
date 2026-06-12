@@ -1,16 +1,25 @@
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Chamados;
 
-public class ChamadosService(IChamadosRepository repo) : IChamadosService
+public class ChamadosService(IChamadosRepository repo, ILaboratoriosRepository labRepo) : IChamadosService
 {
     public async Task<IEnumerable<ChamadoDto>> ListarAsync() =>
         (await repo.GetAllWithComentariosAsync()).Select(ToDto);
 
     public async Task<ChamadoDto> CriarAsync(CriarChamadoCmd cmd, string usuarioId)
     {
+        if (string.IsNullOrWhiteSpace(cmd.Titulo)) throw new ValidationException("Título é obrigatório.");
+        if (string.IsNullOrWhiteSpace(cmd.Descricao)) throw new ValidationException("Descrição é obrigatória.");
+        if (cmd.LaboratorioId != 0)
+        {
+            var existe = (await labRepo.GetAllAsync()).Any(l => ParseLabSeq(l.Id) == cmd.LaboratorioId);
+            if (!existe) throw new ValidationException($"Laboratório {cmd.LaboratorioId} não encontrado.");
+        }
+
         var c = new Chamado
         {
             Titulo = cmd.Titulo,
@@ -18,7 +27,7 @@ public class ChamadosService(IChamadosRepository repo) : IChamadosService
             LaboratorioId = cmd.LaboratorioId,
             AbertoPorId = usuarioId,
             Tipo = Enum.TryParse<ChamadoTipo>(cmd.Tipo, ignoreCase: true, out var t) ? t : ChamadoTipo.Outro,
-            Severidade = Enum.TryParse<ChamadoSeveridade>(cmd.Severidade, ignoreCase: true, out var s) ? s : ChamadoSeveridade.Media,
+            Severidade = Enum.TryParse<ChamadoSeveridade>(cmd.Severidade, ignoreCase: true, out var sv) ? sv : ChamadoSeveridade.Media,
         };
         await repo.AddAsync(c);
         await repo.SaveChangesAsync();
@@ -29,7 +38,10 @@ public class ChamadosService(IChamadosRepository repo) : IChamadosService
     {
         var c = await repo.GetByIdWithComentariosAsync(id);
         if (c is null) return null;
-        if (Enum.TryParse<ChamadoStatus>(cmd.Status, ignoreCase: true, out var s)) c.Status = s;
+        var normalized = cmd.Status.Replace("-", "");
+        if (!Enum.TryParse<ChamadoStatus>(normalized, ignoreCase: true, out var s))
+            throw new ValidationException($"Status inválido: {cmd.Status}");
+        c.Status = s;
         await repo.UpdateAsync(c);
         await repo.SaveChangesAsync();
         return ToDto(c);
@@ -39,6 +51,7 @@ public class ChamadosService(IChamadosRepository repo) : IChamadosService
     {
         var c = await repo.GetByIdWithComentariosAsync(id);
         if (c is null) return null;
+        if (string.IsNullOrWhiteSpace(cmd.Texto)) throw new ValidationException("Texto do comentário é obrigatório.");
         var comentario = new ChamadoComentario { ChamadoId = id, Texto = cmd.Texto, AutorId = autorId };
         await repo.AddComentarioAsync(comentario);
         await repo.SaveChangesAsync();
@@ -53,4 +66,10 @@ public class ChamadosService(IChamadosRepository repo) : IChamadosService
         c.Severidade.ToString().ToLower(),
         c.LaboratorioId, c.AbertoPorId, c.CriadoEm,
         c.Comentarios.Select(x => new ComentarioDto(x.Id, x.Texto, x.AutorId, x.CriadoEm)).ToList());
+
+    private static int ParseLabSeq(string labId)
+    {
+        var parts = labId.Split('-');
+        return parts.Length == 2 && int.TryParse(parts[1], out var n) ? n : -1;
+    }
 }
