@@ -1,28 +1,39 @@
 import { test, expect } from '@playwright/test';
+import { apiAuth, ensureReagente } from './seed';
 
 async function loginAndNavigate(page, navLabel) {
   await page.goto('/');
+  await page.getByLabel('Senha', { exact: true }).fill('Admin@123');
   await page.getByRole('button', { name: /Entrar/ }).click();
   await page.getByRole('button', { name: 'Dashboard' }).waitFor({ timeout: 2000 });
   await page.getByRole('button', { name: navLabel }).click();
 }
 
-test('shows the inventory screen with reagent list', async ({ page }) => {
+async function seedReagentes(request) {
+  const auth = await apiAuth(request);
+  await ensureReagente(request, auth, { nome: 'Ácido Clorídrico', cas: '7647-01-0', classe: 1 });
+  await ensureReagente(request, auth, { nome: 'Ácido Sulfúrico', cas: '7664-93-9', classe: 1 });
+}
+
+test('shows the inventory screen with reagent list', async ({ page, request }) => {
+  await seedReagentes(request);
   await loginAndNavigate(page, 'Inventário');
   await expect(page.getByRole('heading', { name: 'Inventário de reagentes' })).toBeVisible();
-  await expect(page.getByText('Ácido Clorídrico')).toBeVisible();
+  await expect(page.getByText('Ácido Clorídrico').first()).toBeVisible();
 });
 
-test('filter reduces the reagent list', async ({ page }) => {
+test('filter reduces the reagent list', async ({ page, request }) => {
+  await seedReagentes(request);
   await loginAndNavigate(page, 'Inventário');
   await page.getByPlaceholder(/Buscar por nome/i).fill('Sulfúrico');
-  await expect(page.getByText('Ácido Sulfúrico')).toBeVisible();
+  await expect(page.getByText('Ácido Sulfúrico').first()).toBeVisible();
   await expect(page.getByText('Ácido Clorídrico')).not.toBeVisible();
 });
 
-test('clicking a reagent opens the detail screen', async ({ page }) => {
+test('clicking a reagent opens the detail screen', async ({ page, request }) => {
+  await seedReagentes(request);
   await loginAndNavigate(page, 'Inventário');
-  await page.getByText('Ácido Clorídrico').click();
+  await page.getByText('Ácido Clorídrico').first().click();
   await expect(page.getByRole('button', { name: /Baixar consumo/i })).toBeVisible();
 });
 

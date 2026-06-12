@@ -1,0 +1,52 @@
+// Helpers de seed via API para deixar os specs E2E independentes do estado do banco.
+export const ADMIN = { email: 'admin@resqui.local', senha: 'Admin@123' };
+
+export async function apiAuth(request) {
+  const res = await request.post('/api/auth/login', { data: ADMIN });
+  const { token } = await res.json();
+  return { Authorization: `Bearer ${token}` };
+}
+
+export async function ensureLab(request, auth) {
+  const labs = await (await request.get('/api/laboratorios', { headers: auth })).json();
+  if (labs.length > 0) return labs[0];
+  const res = await request.post('/api/laboratorios', {
+    headers: auth,
+    data: {
+      Nome: 'Lab E2E', Responsavel: 'Playwright', Sala: 'S-01',
+      Armarios: [], Areas: [], Capacidade: 10, AreaM2: 20, Ventilacao: 'natural',
+      Cor: '#3b82f6',
+    },
+  });
+  return res.json();
+}
+
+export async function ensureReagente(request, auth, { nome, cas, classe }) {
+  const res = await request.get(`/api/reagentes?q=${encodeURIComponent(nome)}&page=1&pageSize=5`, { headers: auth });
+  const data = await res.json();
+  const items = data.items ?? data;
+  const existing = items.find?.((r) => r.nome === nome);
+  if (existing) return existing;
+  const created = await request.post('/api/reagentes', {
+    headers: auth,
+    data: {
+      Nome: nome, Cas: cas, Formula: '-', ClasseReatividade: classe,
+      Estoque: 10, EstoqueMin: 1, Unidade: 'L',
+      Local: 'Armário A1', Responsavel: 'Playwright', Controlado: false,
+    },
+  });
+  return created.json();
+}
+
+export async function criarResiduoAguardandoColeta(request, auth) {
+  await ensureLab(request, auth);
+  const res = await request.post('/api/residuos', {
+    headers: auth,
+    data: {
+      Descricao: 'Resíduo E2E', LaboratorioId: 1,
+      Tipo: 'Solventes orgânicos não-halogenados', Volume: 2, Unidade: 'L',
+      Composicao: 'Acetona 70%', Risco: 'medio', Destino: null,
+    },
+  });
+  return res.json();
+}

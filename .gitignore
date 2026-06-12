@@ -54,3 +54,4 @@ frontend/test-results/
 # Project assets
 uploads/
 .thumbnail
+frontend/test-results-e2e/
