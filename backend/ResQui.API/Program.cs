@@ -30,6 +30,7 @@ using ResQui.API.Features.Usuarios;
 using ResQui.API.Features.Compatibilidade;
 using ResQui.API.Features.Relatorios;
 using ResQui.Infrastructure.Jobs;
+using ResQui.Application.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -90,6 +91,16 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<NotificacoesJob>();
 
 var app = builder.Build();
+
+app.Use(async (ctx, next) =>
+{
+    try { await next(); }
+    catch (ValidationException ex)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
+    }
+});
 
 // Seed on startup (idempotent in all environments)
 using (var scope = app.Services.CreateScope())
