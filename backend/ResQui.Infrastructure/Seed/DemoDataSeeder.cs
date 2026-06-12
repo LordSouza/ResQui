@@ -25,6 +25,7 @@ public static class DemoDataSeeder
         var lab1 = labSeqs.ElementAtOrDefault(0); // primeiro lab (ex.: Lab-001 → 1)
         var lab2 = labSeqs.ElementAtOrDefault(1);
         var lab3 = labSeqs.ElementAtOrDefault(2);
+        if (labSeqs.Count < 3) return; // labs insuficientes — não criar dados dependentes com referência inválida
 
         if (!await db.Reagentes.AnyAsync())
         {

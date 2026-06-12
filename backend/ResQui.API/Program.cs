@@ -101,8 +101,9 @@ using (var scope = app.Services.CreateScope())
     await DbSeeder.SeedAsync(db, users, roles, adminPwd);
     if (builder.Configuration.GetValue<bool>("Seed:DemoData"))
     {
-        var admin = await users.FindByEmailAsync("admin@resqui.local");
-        await DemoDataSeeder.SeedAsync(db, admin!.Id);
+        var admin = await users.FindByEmailAsync("admin@resqui.local")
+            ?? throw new InvalidOperationException("Admin user não encontrado após o seed — verifique Seed:AdminPassword.");
+        await DemoDataSeeder.SeedAsync(db, admin.Id);
     }
 }
 
