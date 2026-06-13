@@ -150,6 +150,14 @@ public class ChamadosServiceTests
     }
 
     [Fact]
+    public async Task AtualizarStatusAsync_StatusComHifenInvalido_LancaValidationException()
+    {
+        _repo.GetByIdWithComentariosAsync(1).Returns(FakeChamado());
+        var act = () => _sut.AtualizarStatusAsync(1, new AtualizarStatusCmd("fe-chado"));
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Status*");
+    }
+
+    [Fact]
     public async Task ComentarAsync_TextoVazio_LancaValidationException()
     {
         _repo.GetByIdWithComentariosAsync(1).Returns(FakeChamado());

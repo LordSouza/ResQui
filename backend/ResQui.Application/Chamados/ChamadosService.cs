@@ -38,7 +38,7 @@ public class ChamadosService(IChamadosRepository repo, ILaboratoriosRepository l
     {
         var c = await repo.GetByIdWithComentariosAsync(id);
         if (c is null) return null;
-        var normalized = cmd.Status.Replace("-", "");
+        var normalized = cmd.Status.Replace("em-analise", "EmAnalise", StringComparison.OrdinalIgnoreCase);
         if (!Enum.TryParse<ChamadoStatus>(normalized, ignoreCase: true, out var s))
             throw new ValidationException($"Status inválido: {cmd.Status}");
         c.Status = s;
