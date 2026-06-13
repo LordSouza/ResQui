@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
+using ResQui.Application.Pdf;
 using ResQui.Application.Reagentes;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
@@ -12,11 +13,13 @@ public class ReagentesServiceTests
 {
     private readonly IReagentesRepository _repo = Substitute.For<IReagentesRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
+    private readonly IPdfService _pdf = Substitute.For<IPdfService>();
+    private readonly IReagenteLotesRepository _lotes = Substitute.For<IReagenteLotesRepository>();
     private readonly ReagentesService _sut;
 
     public ReagentesServiceTests()
     {
-        _sut = new ReagentesService(_repo, _audit);
+        _sut = new ReagentesService(_repo, _audit, _pdf, _lotes);
     }
 
     private static Reagente FakeReagente(string id = "R-001") => new()

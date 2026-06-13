@@ -57,6 +57,33 @@ public static class Endpoints
             return r is null ? Results.NotFound() : Results.Ok(r);
         });
 
+        group.MapGet("/{id}/lotes", async (string id, IReagentesService svc) =>
+        {
+            var result = await svc.ListarLotesAsync(id);
+            return result is null ? Results.NotFound() : Results.Ok(result);
+        });
+
+        group.MapPost("/{id}/lotes", async (string id, CriarLoteCmd cmd, IReagentesService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var lote = await svc.CriarLoteAsync(id, cmd, email);
+            return lote is null ? Results.NotFound() : Results.Created($"/api/reagentes/{id}/lotes/{lote.Id}", lote);
+        });
+
+        group.MapPost("/{id}/lotes/{loteId:int}/baixa", async (string id, int loteId, BaixaCmd cmd, IReagentesService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var lote = await svc.BaixaLoteAsync(id, loteId, cmd, email);
+            return lote is null ? Results.NotFound() : Results.Ok(lote);
+        });
+
+        group.MapGet("/{id}/rotulo", async (string id, IReagentesService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var pdf = await svc.GerarRotuloAsync(id, email);
+            return pdf is null ? Results.NotFound() : Results.File(pdf, "application/pdf", $"rotulo-{id.ToLower()}.pdf");
+        });
+
         return group;
     }
 }

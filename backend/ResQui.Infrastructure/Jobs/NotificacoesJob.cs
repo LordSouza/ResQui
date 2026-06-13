@@ -33,5 +33,6 @@ public class NotificacoesJob(
         await sp.GetRequiredService<LowStockChecker>().RunAsync(ct);
         await sp.GetRequiredService<SinirChecker>().RunAsync(ct);
         await sp.GetRequiredService<ColetaChecker>().RunAsync(ct);
+        await sp.GetRequiredService<CompatChecker>().RunAsync(ct);
     }
 }

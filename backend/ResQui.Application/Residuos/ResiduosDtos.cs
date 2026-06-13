@@ -12,7 +12,8 @@ public record ResiduoDto(
     string Unidade,
     string Composicao,
     string Risco,
-    string? Destino
+    string? Destino,
+    IList<int> ClassesReatividade
 );
 
 public record CriarResiduoCmd(
@@ -23,7 +24,8 @@ public record CriarResiduoCmd(
     string Unidade,
     string Composicao,
     string Risco,
-    string? Destino
+    string? Destino,
+    IList<int>? ClassesReatividade = null
 );
 
 public record AtualizarResiduoCmd(
@@ -35,7 +37,8 @@ public record AtualizarResiduoCmd(
     string? Risco,
     string? Destino,
     string? Status,
-    int? MtrId
+    int? MtrId,
+    IList<int>? ClassesReatividade = null
 );
 
 public record MensalItem(string Mes, decimal Valor);

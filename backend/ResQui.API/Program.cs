@@ -55,6 +55,8 @@ builder.Services.AddScoped<INotificacoesService, NotificacoesService>();
 builder.Services.AddScoped<IUsuariosService, UsuariosService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRelatoriosService, RelatoriosService>();
+builder.Services.AddSingleton<ResQui.Application.Pdf.IPdfService, ResQui.Application.Pdf.PdfService>();
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 // JWT authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
+using ResQui.Application.Compatibilidade;
 using ResQui.Application.Residuos;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
@@ -14,11 +15,12 @@ public class ResiduosServiceTests
     private readonly IResiduosRepository _repo = Substitute.For<IResiduosRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly ILaboratoriosRepository _labRepo = Substitute.For<ILaboratoriosRepository>();
+    private readonly ICompatService _compat = Substitute.For<ICompatService>();
     private readonly ResiduosService _sut;
 
     public ResiduosServiceTests()
     {
-        _sut = new ResiduosService(_repo, _audit, _labRepo);
+        _sut = new ResiduosService(_repo, _audit, _labRepo, _compat);
     }
 
     private static Residuo FakeResiduo(int id = 1, int? mtrId = null, string status = "aguardando-coleta") => new()

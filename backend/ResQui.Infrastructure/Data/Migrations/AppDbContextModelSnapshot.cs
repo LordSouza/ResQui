@@ -546,6 +546,36 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.ToTable("ReagentesGhs");
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.ReagenteLote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly?>("Abertura")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Estoque")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ReagenteId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("Validade")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ReagenteLotes");
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.RelatorioGerado", b =>
                 {
                     b.Property<int>("Id")
@@ -588,6 +618,10 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.PrimitiveCollection<List<int>>("ClassesReatividade")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
 
                     b.Property<string>("Composicao")
                         .IsRequired()

@@ -19,6 +19,20 @@ public class CompatService(
         return new CompatResultDto(classeA, classeB, entry.Nivel, Descricoes[entry.Nivel]);
     }
 
+    public async Task<CompatResultDto?> AvaliarMisturaAsync(IReadOnlyCollection<int> classes)
+    {
+        CompatResultDto? pior = null;
+        var distintas = classes.Distinct().ToList();
+        for (var i = 0; i < distintas.Count; i++)
+        for (var j = i + 1; j < distintas.Count; j++)
+        {
+            var result = await ConsultarParAsync(distintas[i], distintas[j]);
+            if (result is not null && (pior is null || result.Nivel > pior.Nivel))
+                pior = result;
+        }
+        return pior;
+    }
+
     public async Task<CompatMatrizDto> GetMatrizAsync()
     {
         var all = await repo.GetAllAsync();

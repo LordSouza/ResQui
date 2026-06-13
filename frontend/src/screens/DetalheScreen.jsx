@@ -1,11 +1,72 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon, Badge, SectionTitle, Picto, Empty, validadeBadge } from '../components';
 import { REATIVIDADE_CLASSES } from '../data';
 import { useCompatMatriz } from '../compat/useCompatMatriz';
 import { useReagente } from '../reagentes/useReagente';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useDeletarReagente } from '../reagentes/useDeletarReagente';
+import { useLotes } from '../reagentes/useLotes';
+import { useCriarLote } from '../reagentes/useCriarLote';
+import { useBaixaLote } from '../reagentes/useBaixaLote';
+import { downloadRotulo } from '../reagentes/downloadRotulo';
 import { useAuth } from '../auth/AuthContext';
+
+function LotesCard({ reagente }) {
+  const { data: lotes = [], isPending } = useLotes(reagente.id);
+  const criarLote = useCriarLote(reagente.id);
+  const baixaLote = useBaixaLote(reagente.id);
+  const [novo, setNovo] = useState(null); // null = fechado; {codigo, estoque, validade}
+
+  const salvar = () => {
+    if (!novo.codigo || !novo.estoque || !novo.validade) { alert('Código, estoque e validade são obrigatórios.'); return; }
+    criarLote.mutate(
+      { Codigo: novo.codigo, Estoque: Number(novo.estoque), Validade: novo.validade, Abertura: null },
+      { onSuccess: () => setNovo(null) }
+    );
+  };
+
+  const baixar = (lote) => {
+    const q = window.prompt(`Baixa no lote ${lote.codigo} (disponível: ${lote.estoque} ${reagente.unidade}):`);
+    if (!q) return;
+    baixaLote.mutate({ loteId: lote.id, quantidade: Number(q) });
+  };
+
+  return (
+    <div className="card">
+      <SectionTitle title="Lotes / frascos" sub={`${lotes.length} registrado(s)`}
+        right={<button type="button" className="btn btn-sm" onClick={() => setNovo({ codigo: '', estoque: '', validade: '' })}>
+          <Icon name="plus" size={12}/> Novo lote
+        </button>}/>
+      <div className="card-body" style={{ padding: 0 }}>
+        {isPending && <div style={{ padding: '8px 14px', fontSize: 12 }}>Carregando…</div>}
+        {!isPending && lotes.length === 0 && <div className="muted" style={{ padding: '8px 14px', fontSize: 12 }}>Nenhum lote registrado.</div>}
+        {lotes.map(l => (
+          <div key={l.id} style={{ padding: '8px 14px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+            <div>
+              <span className="mono">{l.codigo}</span>{' '}{validadeBadge(l.validadeStatus)}
+              <div className="mono small muted">val. {l.validade}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="mono tnum">{Number(l.estoque).toFixed(2)} {reagente.unidade}</span>
+              <button type="button" className="btn btn-sm" disabled={baixaLote.isPending || l.estoque <= 0} onClick={() => baixar(l)}>Baixa</button>
+            </div>
+          </div>
+        ))}
+        {novo && (
+          <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input placeholder="Código" aria-label="Código do lote" style={{ width: 90 }} value={novo.codigo} onChange={e => setNovo(s => ({ ...s, codigo: e.target.value }))}/>
+            <input placeholder="Qtd." aria-label="Estoque do lote" type="number" style={{ width: 70 }} value={novo.estoque} onChange={e => setNovo(s => ({ ...s, estoque: e.target.value }))}/>
+            <input aria-label="Validade do lote" type="date" value={novo.validade} onChange={e => setNovo(s => ({ ...s, validade: e.target.value }))}/>
+            <button type="button" className="btn btn-primary btn-sm" disabled={criarLote.isPending} onClick={salvar}>
+              {criarLote.isPending ? 'Salvando…' : 'Salvar'}
+            </button>
+            <button type="button" className="btn btn-sm" onClick={() => setNovo(null)}>×</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function DetalheScreen({ state, dispatch }) {
   const { data: r, isPending, isError, refetch } = useReagente(state.detailId);
@@ -68,6 +129,9 @@ export function DetalheScreen({ state, dispatch }) {
               <Icon name="trash" size={13}/> Excluir
             </button>
           )}
+          <button type="button" className="btn btn-sm" onClick={() => downloadRotulo(r.id)}>
+            <Icon name="download" size={13}/> Rótulo PDF
+          </button>
           <button type="button" className="btn btn-primary btn-sm" onClick={() => {
             const original = document.querySelector('.ghs-label');
             if (!original) { window.print(); return; }
@@ -130,6 +194,8 @@ export function DetalheScreen({ state, dispatch }) {
               </div>
             </div>
           </div>
+
+          <LotesCard reagente={r} />
         </div>
 
         <div className="col">

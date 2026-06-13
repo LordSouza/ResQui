@@ -28,6 +28,7 @@ public static class ServiceCollectionExtensions
         .AddEntityFrameworkStores<AppDbContext>();
 
         services.AddScoped<IReagentesRepository, EfReagentesRepository>();
+        services.AddScoped<IReagenteLotesRepository, EfReagenteLotesRepository>();
         services.AddScoped<ILaboratoriosRepository, EfLaboratoriosRepository>();
         services.AddScoped<IResiduosRepository, EfResiduosRepository>();
         services.AddScoped<IMtrsRepository, EfMtrsRepository>();
@@ -43,6 +44,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<LowStockChecker>();
         services.AddScoped<SinirChecker>();
         services.AddScoped<ColetaChecker>();
+        services.AddScoped<CompatChecker>();
 
         return services;
     }

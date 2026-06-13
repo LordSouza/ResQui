@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 {
     public DbSet<Reagente> Reagentes => Set<Reagente>();
     public DbSet<ReagenteGhs> ReagentesGhs => Set<ReagenteGhs>();
+    public DbSet<ReagenteLote> ReagenteLotes => Set<ReagenteLote>();
     public DbSet<Laboratorio> Laboratorios => Set<Laboratorio>();
     public DbSet<Residuo> Residuos => Set<Residuo>();
     public DbSet<Mtr> Mtrs => Set<Mtr>();

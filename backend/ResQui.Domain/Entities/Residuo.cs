@@ -15,4 +15,5 @@ public class Residuo
     public string Composicao { get; set; } = "";
     public string Risco { get; set; } = "medio";
     public string? Destino { get; set; }
+    public List<int> ClassesReatividade { get; set; } = [];
 }

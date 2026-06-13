@@ -1,12 +1,13 @@
 using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
+using ResQui.Application.Compatibilidade;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Mtrs;
 
-public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo, IAuditoriaService auditoria) : IMtrsService
+public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo, IAuditoriaService auditoria, ICompatService compat, Pdf.IPdfService pdf) : IMtrsService
 {
     public async Task<IEnumerable<MtrDto>> ListarAsync()
     {
@@ -36,6 +37,18 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
             var r = await residuosRepo.GetByIdAsync(rid)
                 ?? throw new ValidationException($"Resíduo {rid} não encontrado.");
             residuos.Add(r);
+        }
+
+        // No transporte conjunto, pares de classes em nível Proibido (3) bloqueiam o MTR.
+        var classes = residuos.SelectMany(r => r.ClassesReatividade).Distinct().ToList();
+        var pior = await compat.AvaliarMisturaAsync(classes);
+        if (pior is not null && pior.Nivel >= 3)
+        {
+            await auditoria.RegistrarAsync(usuarioEmail, "mtr.agrupamento-bloqueado", "MTR",
+                $"Agrupamento bloqueado — classes {pior.ClasseA} e {pior.ClasseB} (Proibido)", RiscoAuditoria.High);
+            throw new ValidationException(
+                $"Agrupamento incompatível: classes {pior.ClasseA} e {pior.ClasseB} têm nível \"Proibido\". " +
+                "Emita MTRs separados para esses resíduos.");
         }
 
         var numero = $"MTR-{DateTime.UtcNow.Year}-{Random.Shared.Next(1000, 9999)}";
@@ -92,6 +105,47 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
             $"Enviou batch de {rascunhos.Count} MTR(s) ao SINIR", RiscoAuditoria.High);
         return results;
     }
+
+    public async Task<(string Csv, string Filename)?> ExportarSinirAsync(int id, string usuarioEmail)
+    {
+        var m = await repo.GetByIdAsync(id);
+        if (m is null) return null;
+        var residuos = (await residuosRepo.GetAllAsync()).Where(r => r.MtrId == m.Id).ToList();
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("manifesto;data_emissao;gerador;transportadora;destinador;codigo_ibama;massa_kg;status");
+        sb.AppendLine(string.Join(';',
+            Campo(m.Numero), m.DataEmissao.ToString("yyyy-MM-dd"), Campo(m.Gerador), Campo(m.Transportadora),
+            Campo(m.Destinador ?? ""), Campo(m.CodigoIbama ?? ""),
+            m.Massa.ToString("F3", System.Globalization.CultureInfo.InvariantCulture), m.Status.ToString()));
+        sb.AppendLine();
+        sb.AppendLine("residuo_id;descricao;tipo;quantidade;unidade;risco;classes_reatividade;acondicionamento");
+        foreach (var r in residuos)
+            sb.AppendLine(string.Join(';',
+                r.Id, Campo(r.Descricao), Campo(r.Tipo),
+                r.Volume.ToString("F3", System.Globalization.CultureInfo.InvariantCulture), r.Unidade,
+                r.Risco, string.Join(',', r.ClassesReatividade), Campo(r.Destino ?? "")));
+
+        await auditoria.RegistrarAsync(usuarioEmail, "mtr.export-sinir", "MTR",
+            $"Exportou pré-MTR {m.Numero} (layout SINIR)", RiscoAuditoria.Medium);
+        return (sb.ToString(), $"pre-mtr-{m.Numero.ToLower()}.csv");
+    }
+
+    public async Task<(byte[] Pdf, string Filename)?> GerarPdfAsync(int id, string usuarioEmail)
+    {
+        var m = await repo.GetByIdAsync(id);
+        if (m is null) return null;
+        var residuos = (await residuosRepo.GetAllAsync()).Where(r => r.MtrId == m.Id).ToList();
+        var bytes = pdf.ManifestoMtr(m, residuos);
+        await auditoria.RegistrarAsync(usuarioEmail, "mtr.pdf", "MTR",
+            $"Gerou PDF do MTR {m.Numero}", RiscoAuditoria.Low);
+        return (bytes, $"{m.Numero.ToLower()}.pdf");
+    }
+
+    private static string Campo(string valor) =>
+        valor.Contains(';') || valor.Contains('"')
+            ? $"\"{valor.Replace("\"", "\"\"")}\""
+            : valor;
 
     private static decimal CalcularMassa(IEnumerable<Residuo> residuos)
     {

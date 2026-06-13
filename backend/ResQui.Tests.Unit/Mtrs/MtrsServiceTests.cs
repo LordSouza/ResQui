@@ -2,7 +2,9 @@ using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
+using ResQui.Application.Compatibilidade;
 using ResQui.Application.Mtrs;
+using ResQui.Application.Pdf;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
@@ -14,11 +16,13 @@ public class MtrsServiceTests
     private readonly IMtrsRepository _repo = Substitute.For<IMtrsRepository>();
     private readonly IResiduosRepository _residuosRepo = Substitute.For<IResiduosRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
+    private readonly ICompatService _compat = Substitute.For<ICompatService>();
+    private readonly IPdfService _pdf = Substitute.For<IPdfService>();
     private readonly MtrsService _sut;
 
     public MtrsServiceTests()
     {
-        _sut = new MtrsService(_repo, _residuosRepo, _audit);
+        _sut = new MtrsService(_repo, _residuosRepo, _audit, _compat, _pdf);
     }
 
     private static Mtr FakeMtr(int id = 1, MtrStatus status = MtrStatus.Rascunho) => new()

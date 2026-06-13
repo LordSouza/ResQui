@@ -63,6 +63,22 @@ public record AtualizarReagenteCmd(
 
 public record BaixaCmd(decimal Quantidade);
 
+public record LoteDto(
+    int Id,
+    string Codigo,
+    decimal Estoque,
+    string Validade,
+    string? Abertura,
+    string ValidadeStatus
+);
+
+public record CriarLoteCmd(
+    string Codigo,
+    decimal Estoque,
+    string Validade,
+    string? Abertura
+);
+
 public record ReagentesFiltroDto(
     int Page = 1,
     int PageSize = 20,

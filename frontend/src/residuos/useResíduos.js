@@ -7,6 +7,7 @@ function normalize(r) {
     lab_id: r.laboratorioId,
     mtr_id: r.mtrId,
     data_registro: r.dataRegistro,
+    classes: r.classesReatividade ?? [],
   };
 }
 

@@ -1,11 +1,35 @@
 import { useState } from 'react';
 import { Icon, Badge, riscoBadge } from '../components';
+import { REATIVIDADE_CLASSES } from '../data';
 import Modal from './Modal';
 import { useCriarResiduo } from '../residuos/useCriarResiduo';
 import { useAtualizarResiduo } from '../residuos/useAtualizarResiduo';
 import { useLaboratorios } from '../laboratorios/useLaboratorios';
 import { useCriarMtr } from '../mtrs/useCriarMtr';
 import { useResíduos } from '../residuos/useResíduos';
+
+// Seletor de classes de reatividade da mistura — o backend bloqueia pares Perigo/Proibido na matriz
+function ClassesSelector({ idPrefix, value, onChange }) {
+  const toggle = (n) =>
+    onChange(value.includes(n) ? value.filter(c => c !== n) : [...value, n]);
+  return (
+    <div className="form-row full">
+      <div className="field">
+        <label>Classes de reatividade da mistura</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {Object.entries(REATIVIDADE_CLASSES).map(([n, label]) => (
+            <label key={n} htmlFor={`${idPrefix}-classe-${n}`} className="btn btn-sm"
+              style={{ cursor: 'pointer', opacity: value.includes(Number(n)) ? 1 : 0.55 }}>
+              <input id={`${idPrefix}-classe-${n}`} type="checkbox" style={{ marginRight: 4 }}
+                checked={value.includes(Number(n))} onChange={() => toggle(Number(n))} />
+              {n}. {label}
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ---------- Novo Resíduo ----------
 export function FormNovoResiduo({ onClose, dispatch }) {
@@ -15,6 +39,7 @@ export function FormNovoResiduo({ onClose, dispatch }) {
     tipo: 'Solventes orgânicos não-halogenados',
     volume: '', unidade: 'L',
     laboratorioId: '', composicao: '', risco: 'medio',
+    classes: [],
   });
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
@@ -34,6 +59,7 @@ export function FormNovoResiduo({ onClose, dispatch }) {
         Composicao: f.composicao,
         Risco: f.risco,
         Destino: null,
+        ClassesReatividade: f.classes,
       },
       {
         onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); },
@@ -95,6 +121,7 @@ export function FormNovoResiduo({ onClose, dispatch }) {
             placeholder="Ex: 60% acetona + 30% etanol + traços de HCl, pH 6" />
         </div>
       </div>
+      <ClassesSelector idPrefix="residuo" value={f.classes} onChange={v => upd('classes', v)} />
       <div className="residuo-warning-banner">
         <Icon name="warning" size={14} />
         <span>Após cadastrar, o sistema rotula automaticamente o recipiente e move para "aguardando coleta".</span>
@@ -112,13 +139,14 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
     unidade: residuo.unidade ?? 'L',
     composicao: residuo.composicao ?? '',
     risco: residuo.risco ?? 'medio',
+    classes: residuo.classes ?? [],
   });
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
     if (!f.volume || !f.composicao) { alert('Volume e composição são obrigatórios.'); return; }
     atualizarResiduo.mutate(
-      { id: residuo.id, Tipo: f.tipo, Volume: Number(f.volume), Unidade: f.unidade, Composicao: f.composicao, Risco: f.risco },
+      { id: residuo.id, Tipo: f.tipo, Volume: Number(f.volume), Unidade: f.unidade, Composicao: f.composicao, Risco: f.risco, ClassesReatividade: f.classes },
       { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
     );
   };
@@ -170,6 +198,7 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
           <textarea id="edit-composicao" rows={3} value={f.composicao} onChange={e => upd('composicao', e.target.value)} />
         </div>
       </div>
+      <ClassesSelector idPrefix="edit" value={f.classes} onChange={v => upd('classes', v)} />
     </Modal>
   );
 }

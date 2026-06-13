@@ -56,12 +56,25 @@ public static class DemoDataSeeder
             var mtrIds = await db.Mtrs.AsNoTracking().OrderBy(m => m.Id).Select(m => m.Id).ToListAsync();
             var mtr1 = mtrIds.ElementAtOrDefault(0);
             db.Residuos.AddRange(
-                new Residuo { Descricao = "Solvente halogenado usado", LaboratorioId = lab2, Tipo = "Solventes halogenados", Volume = 5m, Unidade = "L", Composicao = "60% diclorometano + 40% clorofórmio", Risco = "alto", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-10) },
-                new Residuo { Descricao = "Mistura ácida de limpeza", LaboratorioId = lab1, Tipo = "Ácidos inorgânicos", Volume = 2m, Unidade = "L", Composicao = "HCl diluído + traços de metais", Risco = "medio", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-3) },
-                new Residuo { Descricao = "Acetona de lavagem", LaboratorioId = lab2, Tipo = "Solventes orgânicos não-halogenados", Volume = 8m, Unidade = "L", Composicao = "85% acetona + resíduos orgânicos", Risco = "medio", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-1) },
-                new Residuo { Descricao = "Sais de prata", LaboratorioId = lab3, Tipo = "Metais pesados", Volume = 300m, Unidade = "g", Composicao = "AgCl precipitado", Risco = "alto", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-2) },
-                new Residuo { Descricao = "Solvente em coleta", LaboratorioId = lab2, Tipo = "Solventes orgânicos não-halogenados", Volume = 4m, Unidade = "L", Composicao = "etanol + acetato de etila", Risco = "baixo", Status = "em-coleta", MtrId = mtr1 == 0 ? null : mtr1, DataRegistro = DateTime.UtcNow.AddDays(-12) },
-                new Residuo { Descricao = "Vidraria contaminada", LaboratorioId = lab1, Tipo = "Vidraria contaminada", Volume = 2.5m, Unidade = "kg", Composicao = "vidro + resíduos de ácidos", Risco = "medio", Status = "em-coleta", MtrId = mtr1 == 0 ? null : mtr1, DataRegistro = DateTime.UtcNow.AddDays(-15) });
+                new Residuo { Descricao = "Solvente halogenado usado", LaboratorioId = lab2, Tipo = "Solventes halogenados", Volume = 5m, Unidade = "L", Composicao = "60% diclorometano + 40% clorofórmio", Risco = "alto", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-10), ClassesReatividade = [6] },
+                new Residuo { Descricao = "Mistura ácida de limpeza", LaboratorioId = lab1, Tipo = "Ácidos inorgânicos", Volume = 2m, Unidade = "L", Composicao = "HCl diluído + traços de metais", Risco = "medio", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-3), ClassesReatividade = [1, 7] },
+                new Residuo { Descricao = "Acetona de lavagem", LaboratorioId = lab2, Tipo = "Solventes orgânicos não-halogenados", Volume = 8m, Unidade = "L", Composicao = "85% acetona + resíduos orgânicos", Risco = "medio", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-1), ClassesReatividade = [5] },
+                new Residuo { Descricao = "Sais de prata", LaboratorioId = lab3, Tipo = "Metais pesados", Volume = 300m, Unidade = "g", Composicao = "AgCl precipitado", Risco = "alto", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-2), ClassesReatividade = [7] },
+                new Residuo { Descricao = "Solvente em coleta", LaboratorioId = lab2, Tipo = "Solventes orgânicos não-halogenados", Volume = 4m, Unidade = "L", Composicao = "etanol + acetato de etila", Risco = "baixo", Status = "em-coleta", MtrId = mtr1 == 0 ? null : mtr1, DataRegistro = DateTime.UtcNow.AddDays(-12), ClassesReatividade = [5] },
+                new Residuo { Descricao = "Vidraria contaminada", LaboratorioId = lab1, Tipo = "Vidraria contaminada", Volume = 2.5m, Unidade = "kg", Composicao = "vidro + resíduos de ácidos", Risco = "medio", Status = "em-coleta", MtrId = mtr1 == 0 ? null : mtr1, DataRegistro = DateTime.UtcNow.AddDays(-15), ClassesReatividade = [1] });
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.ReagenteLotes.AnyAsync())
+        {
+            var reagentes = await db.Reagentes.AsNoTracking().OrderBy(r => r.Id).Take(3).ToListAsync();
+            foreach (var r in reagentes)
+            {
+                var metade = Math.Round(r.Estoque / 2, 2);
+                db.ReagenteLotes.AddRange(
+                    new ReagenteLote { ReagenteId = r.Id, Codigo = $"L-{r.Id}-A", Estoque = metade, Validade = r.Validade, Abertura = hoje.AddMonths(-1) },
+                    new ReagenteLote { ReagenteId = r.Id, Codigo = $"L-{r.Id}-B", Estoque = r.Estoque - metade, Validade = r.Validade.AddMonths(6) });
+            }
             await db.SaveChangesAsync();
         }
 

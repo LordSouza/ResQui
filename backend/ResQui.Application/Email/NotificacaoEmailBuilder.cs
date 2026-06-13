@@ -45,6 +45,15 @@ public static class NotificacaoEmailBuilder
             $"<p>Acesse a tela de Resíduos para verificar.</p>")
     );
 
+    public static (string Subject, string Html) BuildCompatLocal(string local, string nomeA, string nomeB, string nivel) =>
+    (
+        $"[ResQui] Armazenamento incompatível em {local}",
+        Layout("Armazenamento incompatível",
+            $"<p>Os reagentes <strong>{nomeA}</strong> e <strong>{nomeB}</strong> estão armazenados em <strong>{local}</strong> " +
+            $"com nível de compatibilidade <strong>{nivel}</strong>.</p>" +
+            $"<p>Verifique a segregação física desses itens.</p>")
+    );
+
     public static (string Subject, string Html) BuildCompat(string nomeA, string nomeB) =>
     (
         $"[ResQui] Tentativa de compatibilidade bloqueada",

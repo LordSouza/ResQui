@@ -6,8 +6,77 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Reagentes;
 
-public class ReagentesService(IReagentesRepository repo, IAuditoriaService auditoria) : IReagentesService
+public class ReagentesService(IReagentesRepository repo, IAuditoriaService auditoria, Pdf.IPdfService pdf, IReagenteLotesRepository lotes) : IReagentesService
 {
+    public async Task<IEnumerable<LoteDto>?> ListarLotesAsync(string reagenteId)
+    {
+        if (await repo.GetByIdAsync(reagenteId) is null) return null;
+        return (await lotes.GetByReagenteAsync(reagenteId)).Select(ToLoteDto);
+    }
+
+    public async Task<LoteDto?> CriarLoteAsync(string reagenteId, CriarLoteCmd cmd, string usuarioEmail)
+    {
+        var r = await repo.GetByIdAsync(reagenteId);
+        if (r is null) return null;
+        if (string.IsNullOrWhiteSpace(cmd.Codigo)) throw new ValidationException("Código do lote é obrigatório.");
+        if (cmd.Estoque <= 0) throw new ValidationException("Estoque do lote deve ser maior que zero.");
+        if (!DateOnly.TryParse(cmd.Validade, out var validade)) throw new ValidationException("Validade do lote inválida.");
+        DateOnly? abertura = DateOnly.TryParse(cmd.Abertura, out var a) ? a : null;
+
+        var lote = new ReagenteLote
+        {
+            ReagenteId = reagenteId,
+            Codigo = cmd.Codigo,
+            Estoque = cmd.Estoque,
+            Validade = validade,
+            Abertura = abertura,
+        };
+        await lotes.AddAsync(lote);
+        r.Estoque += cmd.Estoque;
+        await repo.UpdateAsync(r);
+        await lotes.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "reagente.lote.criar", "Inventário",
+            $"Registrou lote {lote.Codigo} ({cmd.Estoque} {r.Unidade}) do reagente {r.Id}", RiscoAuditoria.Low);
+        return ToLoteDto(lote);
+    }
+
+    public async Task<LoteDto?> BaixaLoteAsync(string reagenteId, int loteId, BaixaCmd cmd, string usuarioEmail)
+    {
+        var r = await repo.GetByIdAsync(reagenteId);
+        var lote = await lotes.GetByIdAsync(loteId);
+        if (r is null || lote is null || lote.ReagenteId != reagenteId) return null;
+        if (cmd.Quantidade <= 0) throw new ValidationException("Quantidade deve ser maior que zero.");
+        if (cmd.Quantidade > lote.Estoque)
+            throw new ValidationException($"Estoque insuficiente no lote {lote.Codigo}: disponível {lote.Estoque}, solicitado {cmd.Quantidade}.");
+
+        lote.Estoque -= cmd.Quantidade;
+        r.Estoque = Math.Max(0, r.Estoque - cmd.Quantidade);
+        await lotes.UpdateAsync(lote);
+        await repo.UpdateAsync(r);
+        await lotes.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "reagente.lote.baixa", "Inventário",
+            $"Baixa de {cmd.Quantidade} {r.Unidade} no lote {lote.Codigo} do reagente {r.Id}", RiscoAuditoria.Medium);
+        return ToLoteDto(lote);
+    }
+
+    private static LoteDto ToLoteDto(ReagenteLote l)
+    {
+        var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+        var status = l.Validade < hoje ? "vencido" : l.Validade <= hoje.AddDays(90) ? "vencendo" : "ok";
+        return new LoteDto(l.Id, l.Codigo, l.Estoque,
+            l.Validade.ToString("yyyy-MM-dd"), l.Abertura?.ToString("yyyy-MM-dd"), status);
+    }
+
+    public async Task<byte[]?> GerarRotuloAsync(string id, string usuarioEmail)
+    {
+        var r = await repo.GetByIdAsync(id);
+        if (r is null) return null;
+        var bytes = pdf.RotuloReagente(r);
+        await auditoria.RegistrarAsync(usuarioEmail, "reagente.rotulo", "Inventário",
+            $"Gerou rótulo GHS do reagente {r.Id} — {r.Nome}", RiscoAuditoria.Low);
+        return bytes;
+    }
+
     public async Task<(IEnumerable<ReagenteListItemDto> Items, int Total)> ListarAsync(ReagentesFiltroDto filtro)
     {
         var all = (await repo.GetAllAsync()).AsEnumerable();

@@ -3,6 +3,7 @@ import { Icon, Tag, SectionTitle, mtrStatusBadge } from '../components';
 import { useMtrs } from '../mtrs/useMtrs';
 import { useEnviarSinir } from '../mtrs/useEnviarSinir';
 import { useEnviarBatch } from '../mtrs/useEnviarBatch';
+import { downloadSinirCsv, downloadMtrPdf } from '../mtrs/downloadMtr';
 
 export function MtrScreen({ state, dispatch }) {
   const [selectedId, setSelectedId] = useState(null);
@@ -73,7 +74,15 @@ export function MtrScreen({ state, dispatch }) {
                 <td>{m.transportadora}</td>
                 <td>{m.destinador ?? '-'}</td>
                 <td>{mtrStatusBadge(m.status)}</td>
-                <td>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  <button type="button" className="btn btn-sm" title="Exportar pré-MTR (layout SINIR)"
+                    onClick={(e) => { e.stopPropagation(); downloadSinirCsv(m.id, m.numero); }}>
+                    CSV
+                  </button>{' '}
+                  <button type="button" className="btn btn-sm" title="Gerar manifesto em PDF"
+                    onClick={(e) => { e.stopPropagation(); downloadMtrPdf(m.id, m.numero); }}>
+                    PDF
+                  </button>{' '}
                   {m.status === 'rascunho' && (
                     <button
                       type="button"
