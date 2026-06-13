@@ -1,9 +1,62 @@
 import { useState } from 'react';
-import { Icon, Tag, SectionTitle, mtrStatusBadge } from '../components';
+import { Icon, Tag, SectionTitle, mtrStatusBadge, riscoBadge } from '../components';
 import { useMtrs } from '../mtrs/useMtrs';
 import { useEnviarSinir } from '../mtrs/useEnviarSinir';
 import { useEnviarBatch } from '../mtrs/useEnviarBatch';
+import { useResíduos } from '../residuos/useResíduos';
 import { downloadSinirCsv, downloadMtrPdf } from '../mtrs/downloadMtr';
+
+function MtrDetalhe({ mtr, dispatch, enviarSinir }) {
+  const { data: residuos = [], isPending } = useResíduos({ mtrId: mtr.id });
+  return (
+    <div className="card card-tight">
+      <SectionTitle title={`Detalhes · ${mtr.numero}`} sub={mtr.destinador ?? 'sem destinador'}
+        right={<div style={{ display: 'flex', gap: 6 }}>
+          <button type="button" className="btn btn-sm" onClick={() => downloadSinirCsv(mtr.id, mtr.numero)}>
+            <Icon name="download" size={12} /> CSV SINIR
+          </button>
+          <button type="button" className="btn btn-sm" onClick={() => downloadMtrPdf(mtr.id, mtr.numero)}>
+            <Icon name="download" size={12} /> PDF
+          </button>
+          {mtr.status === 'rascunho' && (
+            <button type="button" className="btn btn-primary btn-sm" disabled={enviarSinir.isPending}
+              onClick={() => enviarSinir.mutate(mtr.id, { onSuccess: (r) => { alert(r.mensagem); dispatch({ type: 'refresh' }); } })}>
+              <Icon name="upload" size={12} /> Enviar ao SINIR
+            </button>
+          )}
+        </div>} />
+      <div className="card-body">
+        <div className="kv">
+          <div className="k">Número</div><div className="v mono">{mtr.numero}</div>
+          <div className="k">Status</div><div className="v">{mtrStatusBadge(mtr.status)}</div>
+          <div className="k">Emissão</div><div className="v mono">{mtr.data_emissao?.slice(0, 10)}</div>
+          <div className="k">Gerador</div><div className="v">{mtr.gerador}</div>
+          <div className="k">Transportadora</div><div className="v">{mtr.transportadora}</div>
+          <div className="k">Destinador</div><div className="v">{mtr.destinador ?? '-'}</div>
+          <div className="k">Cód. IBAMA</div><div className="v mono">{mtr.codigo_ibama ?? '-'}</div>
+          <div className="k">Massa total</div><div className="v mono">{Number(mtr.massa ?? 0).toFixed(2)} kg</div>
+        </div>
+      </div>
+      <SectionTitle title="Resíduos vinculados" sub={`${(mtr.residuo_ids ?? []).length} item(ns)`} />
+      <table className="tbl">
+        <thead><tr><th>#</th><th>Descrição</th><th>Tipo</th><th className="right">Volume</th><th>Risco</th></tr></thead>
+        <tbody>
+          {isPending && <tr><td colSpan={5}>Carregando…</td></tr>}
+          {!isPending && residuos.length === 0 && <tr><td colSpan={5} className="muted">Nenhum resíduo vinculado.</td></tr>}
+          {residuos.map((r) => (
+            <tr key={r.id}>
+              <td className="num">#{r.id}</td>
+              <td>{r.descricao}</td>
+              <td className="small">{r.tipo}</td>
+              <td className="num right">{Number(r.volume ?? 0)} {r.unidade}</td>
+              <td>{riscoBadge(r.risco)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export function MtrScreen({ state, dispatch }) {
   const [selectedId, setSelectedId] = useState(null);
@@ -107,6 +160,8 @@ export function MtrScreen({ state, dispatch }) {
           </tbody>
         </table>
       </div>
+
+      {sel && <MtrDetalhe mtr={sel} dispatch={dispatch} enviarSinir={enviarSinir} />}
     </>
   );
 }
