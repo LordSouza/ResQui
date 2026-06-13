@@ -82,6 +82,6 @@ describe('useLogin', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body).toEqual({ Email: 'a@b.com', Senha: 'Senha@123' });
+    expect(body).toEqual({ Email: 'a@b.com', Senha: 'Senha@123', Codigo2fa: null });
   });
 });

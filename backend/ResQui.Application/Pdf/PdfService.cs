@@ -20,6 +20,46 @@ public class PdfService : IPdfService
         ["envir"] = ("GHS09", "Perigoso ao ambiente"),
     };
 
+    private static byte[] QrPng(string conteudo)
+    {
+        using var gen = new QRCoder.QRCodeGenerator();
+        using var data = gen.CreateQrCode(conteudo, QRCoder.QRCodeGenerator.ECCLevel.Q);
+        return new QRCoder.PngByteQRCode(data).GetGraphic(8);
+    }
+
+    public byte[] RotuloLote(Reagente r, ReagenteLote lote)
+    {
+        return Document.Create(doc => doc.Page(page =>
+        {
+            page.Size(PageSizes.A7.Landscape());
+            page.Margin(10);
+            page.DefaultTextStyle(t => t.FontSize(8));
+
+            page.Content().Row(row =>
+            {
+                row.RelativeItem().Column(col =>
+                {
+                    col.Item().Text(r.Nome).Bold().FontSize(11);
+                    col.Item().Text($"CAS {r.Cas} · {r.Formula}").FontColor(Colors.Grey.Darken1);
+                    col.Item().PaddingTop(4).Text($"Lote: {lote.Codigo}").Bold();
+                    col.Item().Text($"Conteúdo: {lote.Estoque:0.##} {r.Unidade}");
+                    col.Item().Text($"Validade: {lote.Validade:dd/MM/yyyy}");
+                    if (lote.Abertura is not null)
+                        col.Item().Text($"Aberto em: {lote.Abertura:dd/MM/yyyy}");
+                    col.Item().Text($"Local: {r.Local}");
+                    col.Item().Text($"Resp.: {r.Responsavel}");
+                });
+                row.ConstantItem(80).AlignMiddle().Column(c =>
+                {
+                    c.Item().Image(QrPng($"{r.Id}|{lote.Codigo}"));
+                    c.Item().AlignCenter().Text($"{r.Id}|{lote.Codigo}").FontSize(6);
+                });
+            });
+
+            page.Footer().Text("ResQui · etiqueta de frasco").FontSize(5).FontColor(Colors.Grey.Darken1);
+        })).GeneratePdf();
+    }
+
     public byte[] RotuloReagente(Reagente r)
     {
         var ghs = r.Ghs;
@@ -87,8 +127,12 @@ public class PdfService : IPdfService
                 }
             });
 
-            page.Footer().Text($"ResQui · rótulo gerado em {DateTime.UtcNow:dd/MM/yyyy HH:mm} UTC")
-                .FontSize(6).FontColor(Colors.Grey.Darken1);
+            page.Footer().Row(row =>
+            {
+                row.RelativeItem().AlignBottom().Text($"ResQui · rótulo gerado em {DateTime.UtcNow:dd/MM/yyyy HH:mm} UTC")
+                    .FontSize(6).FontColor(Colors.Grey.Darken1);
+                row.ConstantItem(42).Image(QrPng(r.Id));
+            });
         })).GeneratePdf();
     }
 

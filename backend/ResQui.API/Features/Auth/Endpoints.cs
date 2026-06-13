@@ -7,16 +7,79 @@ public static class Endpoints
 {
     public static RouteGroupBuilder MapAuthEndpoints(this RouteGroupBuilder group)
     {
-        group.MapPost("/login", async (LoginCmd cmd, IAuthService svc) =>
+        group.MapPost("/login", async (LoginCmd cmd, IAuthService svc, HttpContext ctx) =>
         {
-            var result = await svc.LoginAsync(cmd);
-            return result is null
-                ? Results.Unauthorized()
-                : Results.Ok(result);
+            var result = await svc.LoginAsync(cmd, ctx.Request.Headers.UserAgent.ToString());
+            if (result is null) return Results.Unauthorized();
+            // 2FA habilitado e sem código: o cliente deve reenviar com Codigo2fa
+            if (result.Requires2fa) return Results.Ok(new { requires2fa = true });
+            return Results.Ok(result.Token);
         })
         .AllowAnonymous()
         .WithName("Login")
         .WithSummary("Autenticar usuário e obter JWT");
+
+        group.MapPost("/alterar-senha", async (AlterarSenhaCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            await svc.AlterarSenhaAsync(userId, cmd, email);
+            return Results.NoContent();
+        })
+        .RequireAuthorization();
+
+        group.MapPost("/2fa/setup", async (IAuthService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var setup = await svc.Setup2faAsync(userId);
+            return setup is null ? Results.NotFound() : Results.Ok(setup);
+        })
+        .RequireAuthorization();
+
+        group.MapPost("/2fa/ativar", async (Codigo2faCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            await svc.Ativar2faAsync(userId, cmd.Codigo, email);
+            return Results.NoContent();
+        })
+        .RequireAuthorization();
+
+        group.MapPost("/2fa/desativar", async (Codigo2faCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            await svc.Desativar2faAsync(userId, cmd.Codigo, email);
+            return Results.NoContent();
+        })
+        .RequireAuthorization();
+
+        group.MapGet("/sessoes", async (IAuthService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var jti = user.FindFirstValue("jti");
+            return Results.Ok(await svc.ListarSessoesAsync(userId, jti));
+        })
+        .RequireAuthorization();
+
+        group.MapDelete("/sessoes/{jti}", async (string jti, IAuthService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var ok = await svc.RevogarSessaoAsync(userId, jti, email);
+            return ok ? Results.NoContent() : Results.NotFound();
+        })
+        .RequireAuthorization();
+
+        group.MapPost("/sessoes/revogar-outras", async (IAuthService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var jti = user.FindFirstValue("jti");
+            var n = await svc.RevogarOutrasSessoesAsync(userId, jti, email);
+            return Results.Ok(new { revogadas = n });
+        })
+        .RequireAuthorization();
 
         group.MapPost("/register", async (RegisterCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
         {

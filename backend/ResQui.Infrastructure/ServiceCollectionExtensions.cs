@@ -25,7 +25,8 @@ public static class ServiceCollectionExtensions
             opts.Password.RequiredLength = 6;
         })
         .AddRoles<IdentityRole>()
-        .AddEntityFrameworkStores<AppDbContext>();
+        .AddEntityFrameworkStores<AppDbContext>()
+        .AddDefaultTokenProviders(); // necessário para o AuthenticatorTokenProvider (TOTP)
 
         services.AddScoped<IReagentesRepository, EfReagentesRepository>();
         services.AddScoped<IReagenteLotesRepository, EfReagenteLotesRepository>();
@@ -39,6 +40,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICompatibilidadeRepository, EfCompatibilidadeRepository>();
         services.AddScoped<ICompatOverridesRepository, EfCompatOverridesRepository>();
         services.AddScoped<IAuthRepository, EfAuthRepository>();
+        services.AddScoped<ISessoesRepository, EfSessoesRepository>();
 
         services.AddScoped<ExpiryChecker>();
         services.AddScoped<LowStockChecker>();

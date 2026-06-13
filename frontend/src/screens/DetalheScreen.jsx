@@ -8,8 +8,32 @@ import { useDeletarReagente } from '../reagentes/useDeletarReagente';
 import { useLotes } from '../reagentes/useLotes';
 import { useCriarLote } from '../reagentes/useCriarLote';
 import { useBaixaLote } from '../reagentes/useBaixaLote';
-import { downloadRotulo } from '../reagentes/downloadRotulo';
+import { useMovimentacoes } from '../reagentes/useMovimentacoes';
+import { downloadRotulo, downloadRotuloLote } from '../reagentes/downloadRotulo';
 import { useAuth } from '../auth/AuthContext';
+
+function MovimentacoesCard({ reagenteId }) {
+  const { data: movs = [], isPending } = useMovimentacoes(reagenteId);
+  return (
+    <div className="card">
+      <SectionTitle title="Movimentações recentes" sub="trilha de auditoria deste reagente"/>
+      <div style={{ padding: '4px 0' }}>
+        {isPending && <div style={{ padding: '8px 14px', fontSize: 12 }}>Carregando…</div>}
+        {!isPending && movs.length === 0 && <div className="muted" style={{ padding: '8px 14px', fontSize: 12 }}>Nenhuma movimentação registrada.</div>}
+        {movs.map((m, i) => (
+          <div key={m.id} style={{ padding: '8px 14px', borderTop: i ? '1px solid var(--border)' : 0, fontSize: 12 }}>
+            <div className="mono muted" style={{ fontSize: 12 }}>{m.timestamp?.replace('T', ' ').slice(0, 16)}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2, gap: 8 }}>
+              <span>{m.who} · {m.what.replace('reagente.', '')}</span>
+              <Badge kind={m.risk === 'high' ? 'red' : m.risk === 'medium' ? 'amber' : 'green'}>{m.risk}</Badge>
+            </div>
+            <div className="muted" style={{ marginTop: 2 }}>{m.detail}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function LotesCard({ reagente }) {
   const { data: lotes = [], isPending } = useLotes(reagente.id);
@@ -48,6 +72,7 @@ function LotesCard({ reagente }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="mono tnum">{Number(l.estoque).toFixed(2)} {reagente.unidade}</span>
+              <button type="button" className="btn btn-sm" title="Etiqueta com QR" onClick={() => downloadRotuloLote(reagente.id, l.id)}>QR</button>
               <button type="button" className="btn btn-sm" disabled={baixaLote.isPending || l.estoque <= 0} onClick={() => baixar(l)}>Baixa</button>
             </div>
           </div>
@@ -238,26 +263,7 @@ export function DetalheScreen({ state, dispatch }) {
         </div>
 
         <div className="col">
-          <div className="card">
-            <SectionTitle title="Movimentações recentes"/>
-            <div style={{padding: '4px 0'}}>
-              {[
-                ['2025-11-22 08:42', 'Renan Costa', 'Consumo', '-0.20 L'],
-                ['2025-11-15 10:01', 'Renan Costa', 'Consumo', '-0.50 L'],
-                ['2025-11-08 14:30', 'Téc. Carlos', 'Transferência', 'Lab-201 → Lab-203'],
-                ['2025-10-22 09:11', 'sistema', 'Compat. OK', 'verificação'],
-                ['2025-10-04 16:45', 'Renan Costa', 'Abertura', '+ frasco 4 L'],
-              ].map((m, i) => (
-                <div key={m[0]} style={{padding: '8px 14px', borderTop: i ? '1px solid var(--border)' : 0, fontSize: 12}}>
-                  <div className="mono muted" style={{fontSize: 12}}>{m[0]}</div>
-                  <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 2}}>
-                    <span>{m[1]} · {m[2]}</span>
-                    <span className="mono">{m[3]}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <MovimentacoesCard reagenteId={r.id} />
 
           <div className="card">
             <SectionTitle title="Compatibilidade rápida" sub="vs. itens no mesmo armário"/>

@@ -7,7 +7,8 @@ public record UsuarioInfo(
     string? Matricula,
     string Papel,
     IList<string> Roles,
-    bool Arquivado
+    bool Arquivado,
+    bool TwoFactorEnabled = false
 );
 
 public interface IAuthRepository
@@ -23,4 +24,8 @@ public interface IAuthRepository
     Task SoftDeleteAsync(string userId);
     Task<string> GetNotificacaoPrefsJsonAsync(string userId);
     Task SaveNotificacaoPrefsJsonAsync(string userId, string json);
+    Task<bool> ChangePasswordAsync(string userId, string senhaAtual, string novaSenha);
+    Task<string?> GetOrCreateAuthenticatorKeyAsync(string userId);
+    Task<bool> VerifyTwoFactorCodeAsync(string userId, string codigo);
+    Task SetTwoFactorEnabledAsync(string userId, bool enabled);
 }

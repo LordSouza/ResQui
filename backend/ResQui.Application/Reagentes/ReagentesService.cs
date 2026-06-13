@@ -8,6 +8,28 @@ namespace ResQui.Application.Reagentes;
 
 public class ReagentesService(IReagentesRepository repo, IAuditoriaService auditoria, Pdf.IPdfService pdf, IReagenteLotesRepository lotes) : IReagentesService
 {
+    // Movimentações = entradas de auditoria reagente.* cujo detail menciona o id (ids "R-00001" são únicos)
+    public async Task<IEnumerable<Auditoria.AuditoriaItemDto>?> ListarMovimentacoesAsync(string id, int limite = 20)
+    {
+        if (await repo.GetByIdAsync(id) is null) return null;
+        var entries = await auditoria.ListarAsync(new Auditoria.AuditoriaFiltroDto(What: "reagente."));
+        return entries
+            .Where(e => e.Detail.Contains(id, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(e => e.Timestamp)
+            .Take(limite);
+    }
+
+    public async Task<byte[]?> GerarRotuloLoteAsync(string reagenteId, int loteId, string usuarioEmail)
+    {
+        var r = await repo.GetByIdAsync(reagenteId);
+        var lote = await lotes.GetByIdAsync(loteId);
+        if (r is null || lote is null || lote.ReagenteId != reagenteId) return null;
+        var bytes = pdf.RotuloLote(r, lote);
+        await auditoria.RegistrarAsync(usuarioEmail, "reagente.lote.rotulo", "Inventário",
+            $"Gerou etiqueta do lote {lote.Codigo} do reagente {r.Id}", RiscoAuditoria.Low);
+        return bytes;
+    }
+
     public async Task<IEnumerable<LoteDto>?> ListarLotesAsync(string reagenteId)
     {
         if (await repo.GetByIdAsync(reagenteId) is null) return null;
@@ -84,8 +106,11 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         if (!string.IsNullOrEmpty(filtro.Q))
         {
             var q = NormalizeSearch(filtro.Q);
+            // "R-00001|L-x" é o conteúdo do QR da etiqueta de lote — busca pelo trecho antes do pipe
+            var idBusca = filtro.Q.Split('|')[0].Trim();
             all = all.Where(r => NormalizeSearch(r.Nome).Contains(q, StringComparison.OrdinalIgnoreCase)
                               || r.Cas.Contains(filtro.Q)
+                              || r.Id.Contains(idBusca, StringComparison.OrdinalIgnoreCase)
                               || (r.Sinonimo is not null && NormalizeSearch(r.Sinonimo).Contains(q, StringComparison.OrdinalIgnoreCase)));
         }
 
@@ -178,7 +203,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
         await auditoria.RegistrarAsync(usuarioEmail, "reagente.baixa", "Inventário",
-            $"Baixa de {cmd.Quantidade} {r.Unidade} de {r.Nome}", RiscoAuditoria.Medium);
+            $"Baixa de {cmd.Quantidade} {r.Unidade} de {r.Nome} (reagente {r.Id})", RiscoAuditoria.Medium);
         return ToDetalhe(r);
     }
 

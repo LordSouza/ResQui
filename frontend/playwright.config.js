@@ -8,8 +8,9 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     headless: true,
-    // Playwright não tem builds de Chromium para Ubuntu 26.04; usa o Chrome do sistema
-    channel: 'chrome',
+    // Localmente não há build de Chromium para Ubuntu 26.04 → usa o Chrome do sistema.
+    // No CI, definir PLAYWRIGHT_CHANNEL=chromium para usar o browser instalado pelo Playwright.
+    channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chrome',
   },
   webServer: {
     command: 'npm run dev',

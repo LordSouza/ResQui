@@ -4,6 +4,11 @@ import Modal from './Modal';
 import { useGetNotificacaoPrefs } from '../notificacoes/useGetNotificacaoPrefs';
 import { useNotificacaoPrefs } from '../notificacoes/useNotificacaoPrefs';
 import { useCriarChamado } from '../chamados/useCriarChamado';
+import { useAuth } from '../auth/AuthContext';
+import {
+  useAlterarSenha, useSetup2fa, useAtivar2fa, useDesativar2fa,
+  useSessoes, useRevogarSessao, useRevogarOutrasSessoes,
+} from '../auth/useSeguranca';
 
 const pgrsHint = { fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 14, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--accent)' };
 const pgrsSub = { fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: 8, marginTop: 4 };
@@ -84,9 +89,19 @@ export function FormPerfil({ onClose, dispatch }) {
 
 // ---------- Senha e 2FA ----------
 export function FormSenha2FA({ onClose, dispatch }) {
+  const { user } = useAuth();
   const [aba, setAba] = useState('senha');
   const [pwd, setPwd] = useState({ atual: '', nova: '', conf: '' });
-  const [mfaEnabled, setMfaEnabled] = useState(true);
+  // o user reidratado do JWT não traz twoFactorEnabled; mantemos estado local
+  const [mfaEnabled, setMfaEnabled] = useState(!!user?.twoFactorEnabled);
+
+  const alterarSenha = useAlterarSenha();
+  const setup2fa = useSetup2fa();
+  const ativar2fa = useAtivar2fa();
+  const desativar2fa = useDesativar2fa();
+
+  const [setup, setSetup] = useState(null); // { secret, otpauthUri }
+  const [codigo, setCodigo] = useState('');
 
   const forcaSenha = (s) => {
     let score = 0;
@@ -103,9 +118,20 @@ export function FormSenha2FA({ onClose, dispatch }) {
 
   const validPwd = pwd.atual && pwd.nova && pwd.nova === pwd.conf && forca >= 3;
 
-  const salvar = () => {
-    dispatch({ type: 'refresh' });
-    onClose();
+  const salvarSenha = () => {
+    alterarSenha.mutate(
+      { senhaAtual: pwd.atual, novaSenha: pwd.nova },
+      { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
+    );
+  };
+
+  const iniciarSetup = () => setup2fa.mutate(undefined, { onSuccess: setSetup });
+  const confirmarAtivacao = () => ativar2fa.mutate(codigo, {
+    onSuccess: () => { setSetup(null); setCodigo(''); setMfaEnabled(true); dispatch({ type: 'refresh' }); },
+  });
+  const desativar = () => {
+    const c = window.prompt('Digite o código do app autenticador para desativar o 2FA:');
+    if (c) desativar2fa.mutate(c, { onSuccess: () => { setMfaEnabled(false); dispatch({ type: 'refresh' }); } });
   };
 
   return (
@@ -113,8 +139,8 @@ export function FormSenha2FA({ onClose, dispatch }) {
       onClose={onClose} width={620}
       footer={aba === 'senha' ? <>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" disabled={!validPwd} onClick={salvar}>
-          <Icon name="check" size={12}/> Alterar senha
+        <button type="button" className="btn btn-primary btn-sm" disabled={!validPwd || alterarSenha.isPending} onClick={salvarSenha}>
+          <Icon name="check" size={12}/> {alterarSenha.isPending ? 'Salvando…' : 'Alterar senha'}
         </button>
       </> : <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>}>
       <div className="tabs">
@@ -124,7 +150,6 @@ export function FormSenha2FA({ onClose, dispatch }) {
 
       {aba === 'senha' && (
         <div>
-          <div style={pgrsHint}>Última alteração há <strong>47 dias</strong>. Política institucional exige troca a cada 90 dias.</div>
           <div className="form-row full">
             <div className="field"><label htmlFor="senha-atual">Senha atual</label>
               <input id="senha-atual" type="password" aria-label="Senha atual" value={pwd.atual} onChange={e => setPwd(p => ({...p, atual: e.target.value}))}/></div>
@@ -153,10 +178,9 @@ export function FormSenha2FA({ onClose, dispatch }) {
           <div style={{padding: 10, background: 'var(--surface-2)', borderRadius: 'var(--radius)', fontSize: 12, lineHeight: 1.6, marginTop: 8}}>
             <strong>Requisitos:</strong>
             <ul style={{margin: '4px 0 0 18px', padding: 0}}>
-              <li>Mínimo 8 caracteres (recomendado 12+)</li>
+              <li>Mínimo 6 caracteres (recomendado 12+)</li>
               <li>Combinar letras maiúsculas, minúsculas e números</li>
               <li>Pelo menos 1 caractere especial</li>
-              <li>Não pode coincidir com as 5 últimas senhas</li>
             </ul>
           </div>
         </div>
@@ -164,48 +188,40 @@ export function FormSenha2FA({ onClose, dispatch }) {
 
       {aba === 'mfa' && (
         <div>
-          {(() => {
-            const mfaStatusStyle = {display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: 12, background: mfaEnabled ? 'var(--green-soft)' : 'var(--amber-soft)', border: `1px solid ${mfaEnabled ? '#b8dec7' : '#efd9a4'}`, borderRadius: 'var(--radius)', marginBottom: 14};
-            return (
-              <div style={mfaStatusStyle}>
-                <div>
-                  <div style={{fontSize: 13, fontWeight: 600, color: mfaEnabled ? 'var(--green)' : 'var(--amber)'}}>
-                    <Icon name="shield" size={13}/> 2FA {mfaEnabled ? 'ativo' : 'desativado'}
-                  </div>
-                  <div style={{fontSize: 12, color: 'var(--text-2)', marginTop: 4}}>
-                    {mfaEnabled
-                      ? 'Sua conta exige um segundo fator a cada login. Método ativo: Aplicativo autenticador.'
-                      : 'Recomendado para administradores. Sem 2FA, a conta fica vulnerável a vazamento de senha.'}
-                  </div>
-                </div>
-                <button type="button" className="btn btn-sm" onClick={() => setMfaEnabled(m => !m)}>
-                  {mfaEnabled ? 'Desativar' : 'Ativar 2FA'}
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: 12, background: mfaEnabled ? 'var(--green-soft)' : 'var(--amber-soft)', border: `1px solid ${mfaEnabled ? '#b8dec7' : '#efd9a4'}`, borderRadius: 'var(--radius)', marginBottom: 14}}>
+            <div>
+              <div style={{fontSize: 13, fontWeight: 600, color: mfaEnabled ? 'var(--green)' : 'var(--amber)'}}>
+                <Icon name="shield" size={13}/> 2FA {mfaEnabled ? 'ativo' : 'desativado'}
+              </div>
+              <div style={{fontSize: 12, color: 'var(--text-2)', marginTop: 4}}>
+                {mfaEnabled
+                  ? 'Sua conta exige um segundo fator a cada login. Método ativo: aplicativo autenticador (TOTP).'
+                  : 'Recomendado para administradores. Sem 2FA, a conta fica vulnerável a vazamento de senha.'}
+              </div>
+            </div>
+            {mfaEnabled
+              ? <button type="button" className="btn btn-sm" disabled={desativar2fa.isPending} onClick={desativar}>Desativar</button>
+              : <button type="button" className="btn btn-sm" disabled={setup2fa.isPending} onClick={iniciarSetup}>{setup2fa.isPending ? '…' : 'Ativar 2FA'}</button>}
+          </div>
+
+          {!mfaEnabled && setup && (
+            <div style={{padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--radius)'}}>
+              <div style={pgrsSub}>1. Adicione esta chave ao seu app autenticador</div>
+              <div className="mono" style={{fontSize: 13, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', wordBreak: 'break-all', marginBottom: 10}}>
+                {setup.secret}
+              </div>
+              <div style={{fontSize: 12, color: 'var(--text-3)', marginBottom: 10, wordBreak: 'break-all'}}>
+                Ou use a URI otpauth: <span className="mono">{setup.otpauthUri}</span>
+              </div>
+              <div style={pgrsSub}>2. Informe o código gerado para confirmar</div>
+              <div style={{display: 'flex', gap: 8}}>
+                <input inputMode="numeric" aria-label="Código de verificação" placeholder="000000"
+                  value={codigo} onChange={e => setCodigo(e.target.value)} style={{flex: 1}}/>
+                <button type="button" className="btn btn-primary btn-sm" disabled={!codigo || ativar2fa.isPending} onClick={confirmarAtivacao}>
+                  {ativar2fa.isPending ? 'Verificando…' : 'Confirmar'}
                 </button>
               </div>
-            );
-          })()}
-
-          {mfaEnabled && (
-            <>
-              <div style={pgrsSub}>Métodos configurados</div>
-              <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
-                {[
-                  { ic: 'shield', nome: 'Google Authenticator', detalhe: 'iPhone 14 · cadastrado em 03/jul/2025', ativo: true },
-                  { ic: 'bell', nome: 'SMS · (35) ••••-5432', detalhe: 'Backup · usar se app indisponível', ativo: true },
-                  { ic: 'clipboard', nome: 'Códigos de recuperação', detalhe: '8 de 10 códigos restantes', ativo: true },
-                ].map((m) => (
-                  <div key={m.nome} style={{display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius)'}}>
-                    <Icon name={m.ic} size={16}/>
-                    <div style={{flex: 1}}>
-                      <div style={{fontSize: 12.5, fontWeight: 500}}>{m.nome}</div>
-                      <div style={{fontSize: 12, color: 'var(--text-3)'}}>{m.detalhe}</div>
-                    </div>
-                    <Badge kind="green" dot>Ativo</Badge>
-                  </div>
-                ))}
-              </div>
-              <button type="button" className="btn btn-sm" style={{marginTop: 12}}><Icon name="plus" size={12}/> Adicionar método</button>
-            </>
+            </div>
           )}
         </div>
       )}
@@ -214,33 +230,13 @@ export function FormSenha2FA({ onClose, dispatch }) {
 }
 
 // ---------- Sessões ativas ----------
-export function FormSessoes({ onClose, dispatch }) {
-  const [sessoes, setSessoes] = useState([
-    {
-      id: 1, atual: true, dispositivo: 'MacBook Pro · Chrome 132',
-      so: 'macOS Sequoia 15.2', ip: '177.106.84.21',
-      local: 'Itajubá/MG · Brasil (UNIFEI · VPN institucional)',
-      iniciado: '2025-11-21 07:42', ultima: 'agora',
-    },
-    {
-      id: 2, atual: false, dispositivo: 'iPhone 14 · Safari Mobile',
-      so: 'iOS 18.1', ip: '189.34.221.7',
-      local: 'Itajubá/MG · Brasil',
-      iniciado: '2025-11-19 18:15', ultima: '4h atrás',
-    },
-  ]);
-
-  const encerrar = (id) => {
-    setSessoes(s => s.filter(x => x.id !== id));
-    dispatch({ type: 'refresh' });
-  };
-
-  const encerrarTodas = () => {
-    setSessoes(s => s.filter(x => x.atual));
-    dispatch({ type: 'refresh' });
-  };
+export function FormSessoes({ onClose }) {
+  const { data: sessoes = [], isPending } = useSessoes();
+  const revogar = useRevogarSessao();
+  const revogarOutras = useRevogarOutrasSessoes();
 
   const outras = sessoes.filter(s => !s.atual).length;
+  const fmt = (iso) => iso ? iso.replace('T', ' ').slice(0, 16) : '—';
 
   return (
     <Modal title="Sessões ativas" sub="Dispositivos atualmente conectados à sua conta"
@@ -248,7 +244,8 @@ export function FormSessoes({ onClose, dispatch }) {
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
         {outras > 0 && (
-          <button type="button" className="btn btn-sm" onClick={encerrarTodas} style={{color: 'var(--red)', borderColor: 'var(--red)'}}>
+          <button type="button" className="btn btn-sm" disabled={revogarOutras.isPending}
+            onClick={() => revogarOutras.mutate()} style={{color: 'var(--red)', borderColor: 'var(--red)'}}>
             <Icon name="close" size={12}/> Encerrar {outras} outra{outras > 1 ? 's' : ''}
           </button>
         )}
@@ -256,9 +253,11 @@ export function FormSessoes({ onClose, dispatch }) {
       <div style={pgrsHint}>
         Se você não reconhece alguma sessão, encerre-a imediatamente e <strong>altere sua senha</strong>.
       </div>
+      {isPending && <div style={{padding: 8, fontSize: 12}}>Carregando…</div>}
+      {!isPending && sessoes.length === 0 && <div className="muted" style={{padding: 8, fontSize: 12}}>Nenhuma sessão ativa.</div>}
       <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
         {sessoes.map(s => (
-          <div key={s.id} style={{
+          <div key={s.jti} style={{
             padding: 12, border: `1px solid ${s.atual ? 'var(--accent-soft-2)' : 'var(--border)'}`,
             background: s.atual ? 'var(--accent-soft)' : '#fff',
             borderRadius: 'var(--radius)',
@@ -266,19 +265,18 @@ export function FormSessoes({ onClose, dispatch }) {
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12}}>
               <div style={{flex: 1}}>
                 <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
-                  <span style={{fontSize: 13, fontWeight: 600}}>{s.dispositivo}</span>
+                  <span style={{fontSize: 13, fontWeight: 600}}>{s.userAgent || 'Dispositivo desconhecido'}</span>
                   {s.atual && <Badge kind="blue" dot>Sessão atual</Badge>}
                 </div>
                 <div style={{display: 'grid', gridTemplateColumns: '90px 1fr', gap: '3px 10px', fontSize: 12}}>
-                  <span style={{color: 'var(--text-3)'}}>Sistema</span><span>{s.so}</span>
-                  <span style={{color: 'var(--text-3)'}}>IP</span><span style={{fontFamily: 'var(--mono)'}}>{s.ip}</span>
-                  <span style={{color: 'var(--text-3)'}}>Local</span><span>{s.local}</span>
-                  <span style={{color: 'var(--text-3)'}}>Iniciada</span><span style={{fontFamily: 'var(--mono)'}}>{s.iniciado}</span>
-                  <span style={{color: 'var(--text-3)'}}>Última atividade</span><span>{s.ultima}</span>
+                  <span style={{color: 'var(--text-3)'}}>Sessão</span><span style={{fontFamily: 'var(--mono)'}}>{s.jti.slice(0, 12)}…</span>
+                  <span style={{color: 'var(--text-3)'}}>Iniciada</span><span style={{fontFamily: 'var(--mono)'}}>{fmt(s.criadaEm)}</span>
+                  <span style={{color: 'var(--text-3)'}}>Expira</span><span style={{fontFamily: 'var(--mono)'}}>{fmt(s.expiraEm)}</span>
                 </div>
               </div>
               {!s.atual && (
-                <button type="button" className="btn btn-sm" onClick={() => encerrar(s.id)}
+                <button type="button" className="btn btn-sm" disabled={revogar.isPending}
+                  onClick={() => revogar.mutate(s.jti)}
                   style={{color: 'var(--red)', borderColor: 'var(--red)'}}>
                   Encerrar
                 </button>

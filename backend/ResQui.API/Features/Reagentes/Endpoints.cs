@@ -55,6 +55,13 @@ public static class Endpoints
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var r = await svc.BaixaAsync(id, cmd, email);
             return r is null ? Results.NotFound() : Results.Ok(r);
+        })
+        .RequireAuthorization("Tecnico");
+
+        group.MapGet("/{id}/movimentacoes", async (string id, IReagentesService svc, int limite = 20) =>
+        {
+            var result = await svc.ListarMovimentacoesAsync(id, limite);
+            return result is null ? Results.NotFound() : Results.Ok(result);
         });
 
         group.MapGet("/{id}/lotes", async (string id, IReagentesService svc) =>
@@ -68,20 +75,29 @@ public static class Endpoints
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var lote = await svc.CriarLoteAsync(id, cmd, email);
             return lote is null ? Results.NotFound() : Results.Created($"/api/reagentes/{id}/lotes/{lote.Id}", lote);
-        });
+        })
+        .RequireAuthorization("Tecnico");
 
         group.MapPost("/{id}/lotes/{loteId:int}/baixa", async (string id, int loteId, BaixaCmd cmd, IReagentesService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var lote = await svc.BaixaLoteAsync(id, loteId, cmd, email);
             return lote is null ? Results.NotFound() : Results.Ok(lote);
-        });
+        })
+        .RequireAuthorization("Tecnico");
 
         group.MapGet("/{id}/rotulo", async (string id, IReagentesService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var pdf = await svc.GerarRotuloAsync(id, email);
             return pdf is null ? Results.NotFound() : Results.File(pdf, "application/pdf", $"rotulo-{id.ToLower()}.pdf");
+        });
+
+        group.MapGet("/{id}/lotes/{loteId:int}/rotulo", async (string id, int loteId, IReagentesService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var pdf = await svc.GerarRotuloLoteAsync(id, loteId, email);
+            return pdf is null ? Results.NotFound() : Results.File(pdf, "application/pdf", $"etiqueta-{id.ToLower()}-lote-{loteId}.pdf");
         });
 
         return group;

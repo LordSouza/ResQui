@@ -38,6 +38,19 @@ export async function ensureReagente(request, auth, { nome, cas, classe }) {
   return created.json();
 }
 
+export async function criarResiduoComClasses(request, auth, classes, extra = {}) {
+  await ensureLab(request, auth);
+  return request.post('/api/residuos', {
+    headers: auth,
+    data: {
+      Descricao: 'Resíduo E2E classes', LaboratorioId: 1,
+      Tipo: 'Solventes orgânicos não-halogenados', Volume: 1, Unidade: 'L',
+      Composicao: 'mistura E2E', Risco: 'alto', Destino: null,
+      ClassesReatividade: classes, ...extra,
+    },
+  });
+}
+
 export async function criarResiduoAguardandoColeta(request, auth) {
   await ensureLab(request, auth);
   const res = await request.post('/api/residuos', {

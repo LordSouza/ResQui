@@ -19,14 +19,16 @@ public static class Endpoints
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var r = await svc.CriarAsync(cmd, email);
             return Results.Created($"/api/residuos/{r.Id}", r);
-        });
+        })
+        .RequireAuthorization("Tecnico");
 
         group.MapPut("/{id:int}", async (int id, AtualizarResiduoCmd cmd, IResiduosService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var r = await svc.AtualizarAsync(id, cmd, email);
             return r is null ? Results.NotFound() : Results.Ok(r);
-        });
+        })
+        .RequireAuthorization("Tecnico");
 
         group.MapGet("/analytics", async (IResiduosService svc, int meses = 6) =>
             Results.Ok(await svc.AnalyticsAsync(meses)));

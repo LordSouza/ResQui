@@ -72,12 +72,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtOpts.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOpts.Key))
         };
+        opts.Events = new JwtBearerEvents
+        {
+            // Sessões revogadas (logout remoto) derrubam o token mesmo dentro da validade.
+            // Tokens antigos sem jti continuam aceitos até expirarem.
+            OnTokenValidated = async ctx =>
+            {
+                var jti = ctx.Principal?.FindFirst("jti")?.Value;
+                if (string.IsNullOrEmpty(jti)) return;
+                var sessoes = ctx.HttpContext.RequestServices.GetRequiredService<ResQui.Domain.Interfaces.ISessoesRepository>();
+                var sessao = await sessoes.GetByJtiAsync(jti);
+                if (sessao is { Revogada: true })
+                    ctx.Fail("Sessão revogada.");
+            }
+        };
     });
 
 builder.Services.AddAuthorization(opts =>
 {
-    opts.AddPolicy("Gestor", p => p.RequireRole("Admin", "Gestor"));
-    opts.AddPolicy("Admin",  p => p.RequireRole("Admin"));
+    opts.AddPolicy("Gestor",  p => p.RequireRole("Admin", "Gestor"));
+    opts.AddPolicy("Admin",   p => p.RequireRole("Admin"));
+    opts.AddPolicy("Tecnico", p => p.RequireRole("Admin", "Gestor", "Tecnico")); // mutações operacionais — exclui Visualizador
 });
 
 // CORS — allow frontend Vite origin
@@ -101,6 +116,11 @@ app.Use(async (ctx, next) =>
     {
         ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
         await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
+    }
+    catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status409Conflict;
+        await ctx.Response.WriteAsJsonAsync(new { message = "O registro foi alterado por outro usuário. Recarregue e tente novamente." });
     }
 });
 

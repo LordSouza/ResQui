@@ -11,7 +11,7 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         var u = await userManager.FindByEmailAsync(email);
         if (u is null || u.Arquivado) return null;
         var roles = await userManager.GetRolesAsync(u);
-        return new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado);
+        return new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado, u.TwoFactorEnabled);
     }
 
     public async Task<UsuarioInfo?> FindByIdAsync(string id)
@@ -19,7 +19,7 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         var u = await userManager.FindByIdAsync(id);
         if (u is null || u.Arquivado) return null;
         var roles = await userManager.GetRolesAsync(u);
-        return new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado);
+        return new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado, u.TwoFactorEnabled);
     }
 
     public async Task<bool> CheckPasswordAsync(string userId, string password)
@@ -58,7 +58,7 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         foreach (var u in users)
         {
             var roles = await userManager.GetRolesAsync(u);
-            result.Add(new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado));
+            result.Add(new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado, u.TwoFactorEnabled));
         }
         return result;
     }
@@ -92,5 +92,39 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         if (u is null) return;
         u.NotificacaoPrefsJson = json;
         await userManager.UpdateAsync(u);
+    }
+    public async Task<bool> ChangePasswordAsync(string userId, string senhaAtual, string novaSenha)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return false;
+        var result = await userManager.ChangePasswordAsync(u, senhaAtual, novaSenha);
+        return result.Succeeded;
+    }
+
+    public async Task<string?> GetOrCreateAuthenticatorKeyAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return null;
+        var key = await userManager.GetAuthenticatorKeyAsync(u);
+        if (string.IsNullOrEmpty(key))
+        {
+            await userManager.ResetAuthenticatorKeyAsync(u);
+            key = await userManager.GetAuthenticatorKeyAsync(u);
+        }
+        return key;
+    }
+
+    public async Task<bool> VerifyTwoFactorCodeAsync(string userId, string codigo)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return false;
+        return await userManager.VerifyTwoFactorTokenAsync(
+            u, userManager.Options.Tokens.AuthenticatorTokenProvider, codigo);
+    }
+
+    public async Task SetTwoFactorEnabledAsync(string userId, bool enabled)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is not null) await userManager.SetTwoFactorEnabledAsync(u, enabled);
     }
 }

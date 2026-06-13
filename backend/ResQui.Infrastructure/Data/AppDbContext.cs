@@ -21,10 +21,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<CompatEntry> CompatEntries => Set<CompatEntry>();
     public DbSet<CompatOverride> CompatOverrides => Set<CompatOverride>();
     public DbSet<RelatorioGerado> RelatoriosGerados => Set<RelatorioGerado>();
+    public DbSet<SessaoToken> SessoesTokens => Set<SessaoToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // Concorrência otimista no estoque (coluna de sistema xmin do PostgreSQL) —
+        // duas baixas simultâneas não podem perder atualização
+        builder.Entity<Reagente>().Property<uint>("xmin").IsRowVersion();
+        builder.Entity<ReagenteLote>().Property<uint>("xmin").IsRowVersion();
     }
 }

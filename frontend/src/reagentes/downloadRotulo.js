@@ -1,13 +1,21 @@
 import { apiFetch } from '../lib/api';
 
-export async function downloadRotulo(id) {
-  const res = await apiFetch(`/api/reagentes/${id}/rotulo`);
+async function baixarPdf(path, filename) {
+  const res = await apiFetch(path);
   if (!res.ok) throw new Error('Erro ao gerar rótulo');
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `rotulo-${id.toLowerCase()}.pdf`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export function downloadRotulo(id) {
+  return baixarPdf(`/api/reagentes/${id}/rotulo`, `rotulo-${id.toLowerCase()}.pdf`);
+}
+
+export function downloadRotuloLote(id, loteId) {
+  return baixarPdf(`/api/reagentes/${id}/lotes/${loteId}/rotulo`, `etiqueta-${id.toLowerCase()}-lote-${loteId}.pdf`);
 }

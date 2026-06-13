@@ -22,20 +22,23 @@ public static class Endpoints
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var m = await svc.CriarAsync(cmd, userId, email);
             return Results.Created($"/api/mtrs/{m.Id}", m);
-        });
+        })
+        .RequireAuthorization("Tecnico");
 
         group.MapPut("/{id:int}/enviar-sinir", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var result = await svc.EnviarSinirAsync(id, email);
             return result.Sucesso ? Results.Ok(result) : Results.BadRequest(result);
-        });
+        })
+        .RequireAuthorization("Tecnico");
 
         group.MapPost("/enviar-batch", async (IMtrsService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             return Results.Ok(await svc.EnviarBatchAsync(email));
-        });
+        })
+        .RequireAuthorization("Tecnico");
 
         group.MapGet("/{id:int}/pdf", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
         {

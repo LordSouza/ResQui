@@ -32,6 +32,29 @@ public class ReagentesServiceTests
     };
 
     [Fact]
+    public async Task ListarMovimentacoes_FiltraPorIdNoDetail()
+    {
+        _repo.GetByIdAsync("R-001").Returns(FakeReagente("R-001"));
+        _audit.ListarAsync(Arg.Any<ResQui.Application.Auditoria.AuditoriaFiltroDto>()).Returns(new[]
+        {
+            new ResQui.Application.Auditoria.AuditoriaItemDto(Guid.NewGuid(), DateTime.UtcNow, "ana", "reagente.baixa", "Inventário", "Baixa de 1 L (reagente R-001)", "medium"),
+            new ResQui.Application.Auditoria.AuditoriaItemDto(Guid.NewGuid(), DateTime.UtcNow, "ana", "reagente.baixa", "Inventário", "Baixa de 2 L (reagente R-999)", "medium"),
+        });
+
+        var movs = await _sut.ListarMovimentacoesAsync("R-001");
+
+        movs.Should().NotBeNull();
+        movs!.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task ListarMovimentacoes_ReagenteInexistente_RetornaNull()
+    {
+        _repo.GetByIdAsync("R-404").Returns((Reagente?)null);
+        (await _sut.ListarMovimentacoesAsync("R-404")).Should().BeNull();
+    }
+
+    [Fact]
     public async Task ListarAsync_SemFiltro_RetornaTodos()
     {
         _repo.GetAllAsync().Returns([FakeReagente("R-001"), FakeReagente("R-002")]);

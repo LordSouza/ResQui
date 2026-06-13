@@ -6,12 +6,12 @@ export function useLogin() {
   const { login } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ email, senha }) => {
+    mutationFn: async ({ email, senha, codigo2fa }) => {
       let res;
       try {
         res = await apiFetch('/api/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ Email: email, Senha: senha }),
+          body: JSON.stringify({ Email: email, Senha: senha, Codigo2fa: codigo2fa || null }),
         });
       } catch (e) {
         // apiFetch throws on 401 (wrong password) and on network errors
@@ -22,6 +22,8 @@ export function useLogin() {
       return res.json();
     },
     onSuccess: (data) => {
+      // 2FA habilitado: o backend responde { requires2fa: true } e o token só vem na 2ª etapa
+      if (data?.requires2fa) return;
       login(data.token, data.user);
     },
   });

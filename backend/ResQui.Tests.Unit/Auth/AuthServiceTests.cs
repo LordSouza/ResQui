@@ -12,6 +12,7 @@ public class AuthServiceTests
 {
     private readonly IAuthRepository _repo = Substitute.For<IAuthRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
+    private readonly ISessoesRepository _sessoes = Substitute.For<ISessoesRepository>();
     private readonly JwtOptions _jwt = new()
     {
         Key = "secret-key-32-chars-long-enough!!",
@@ -23,7 +24,7 @@ public class AuthServiceTests
 
     public AuthServiceTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit);
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes);
     }
 
     private static UsuarioInfo FakeUser() => new(
@@ -96,9 +97,10 @@ public class AuthServiceTests
         var result = await _sut.LoginAsync(new LoginCmd("admin@resqui.local", "Admin@123"));
 
         result.Should().NotBeNull();
-        result!.Token.Should().NotBeNullOrEmpty();
-        result.User.Email.Should().Be("admin@resqui.local");
-        result.ExpireAt.Should().BeAfter(DateTime.UtcNow);
+        result!.Requires2fa.Should().BeFalse();
+        result.Token!.Token.Should().NotBeNullOrEmpty();
+        result.Token.User.Email.Should().Be("admin@resqui.local");
+        result.Token.ExpireAt.Should().BeAfter(DateTime.UtcNow);
     }
 
     [Fact]

@@ -1,6 +1,12 @@
 namespace ResQui.Application.Auth;
 
-public record LoginCmd(string Email, string Senha);
+public record LoginCmd(string Email, string Senha, string? Codigo2fa = null);
 public record RegisterCmd(string Email, string Senha, string? Matricula, string Papel, string? Nome);
 public record TokenDto(string Token, DateTime ExpireAt, UserProfileDto User);
-public record UserProfileDto(string Id, string Email, string? Nome, string? Matricula, string Papel, IList<string> Roles);
+public record UserProfileDto(string Id, string Email, string? Nome, string? Matricula, string Papel, IList<string> Roles, bool TwoFactorEnabled = false);
+
+public record LoginResultDto(bool Requires2fa, TokenDto? Token);
+public record AlterarSenhaCmd(string SenhaAtual, string NovaSenha);
+public record Codigo2faCmd(string Codigo);
+public record Setup2faDto(string Secret, string OtpauthUri);
+public record SessaoDto(string Jti, DateTime CriadaEm, DateTime ExpiraEm, string? UserAgent, bool Atual);

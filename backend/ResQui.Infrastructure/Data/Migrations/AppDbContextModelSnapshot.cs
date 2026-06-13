@@ -505,6 +505,12 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<DateOnly>("Validade")
                         .HasColumnType("date");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.ToTable("Reagentes");
@@ -570,6 +576,12 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.Property<DateOnly>("Validade")
                         .HasColumnType("date");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -665,6 +677,39 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Residuos");
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.SessaoToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CriadaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiraEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Jti")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Revogada")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UsuarioId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SessoesTokens");
                 });
 
             modelBuilder.Entity("ResQui.Infrastructure.Identity.Usuario", b =>

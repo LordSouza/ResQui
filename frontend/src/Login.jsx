@@ -6,13 +6,18 @@ import { useLogin } from './auth/useLogin';
 export function LoginScreen() {
   const [email, setEmail] = useState('admin@resqui.local');
   const [senha, setSenha] = useState('');
+  const [codigo2fa, setCodigo2fa] = useState('');
+  const [precisa2fa, setPrecisa2fa] = useState(false);
   const loginMutation = useLogin();
 
   const submit = (e) => {
     e?.preventDefault();
     if (!email || !senha) return;
     if (!email.includes('@')) return;
-    loginMutation.mutate({ email, senha });
+    if (precisa2fa && !codigo2fa) return;
+    loginMutation.mutate({ email, senha, codigo2fa }, {
+      onSuccess: (data) => { if (data?.requires2fa) setPrecisa2fa(true); },
+    });
   };
 
   const loading = loginMutation.isPending;
@@ -86,8 +91,16 @@ export function LoginScreen() {
                 <span>Senha</span>
                 <button type="button" className="login-forgot-btn">Esqueci minha senha</button>
               </label>
-              <input id="login-senha" type="password" aria-label="Senha" value={senha} onChange={e => setSenha(e.target.value)} placeholder="••••••••"/>
+              <input id="login-senha" type="password" aria-label="Senha" value={senha} onChange={e => setSenha(e.target.value)} placeholder="••••••••" disabled={precisa2fa}/>
             </div>
+
+            {precisa2fa && (
+              <div className="field" style={{marginBottom: 8}}>
+                <label htmlFor="login-2fa">Código de verificação (2FA)</label>
+                <input id="login-2fa" inputMode="numeric" autoComplete="one-time-code" aria-label="Código de verificação"
+                  value={codigo2fa} onChange={e => setCodigo2fa(e.target.value)} placeholder="000000" autoFocus/>
+              </div>
+            )}
 
             <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-2)', marginBottom: 18, cursor: 'pointer'}}>
               <input type="checkbox" aria-label="Manter conectado neste dispositivo" defaultChecked/>
@@ -102,7 +115,7 @@ export function LoginScreen() {
 
             <button type="submit" className="btn btn-primary login-submit-btn"
               disabled={loading}>
-              {loading ? 'Autenticando…' : 'Entrar'} {!loading && <Icon name="chevron_right" size={14}/>}
+              {loading ? 'Autenticando…' : precisa2fa ? 'Verificar código' : 'Entrar'} {!loading && <Icon name="chevron_right" size={14}/>}
             </button>
           </form>
 
