@@ -30,7 +30,7 @@ function MtrDetalhe({ mtr, dispatch, enviarSinir }) {
         </table>
       </div>
 
-      <div className="card card-tight">
+      <div className="card">
         <SectionTitle title={mtr.numero} sub="Dados do manifesto" right={mtrStatusBadge(mtr.status)} />
         <div className="card-body">
           <div className="kv">
