@@ -7,9 +7,25 @@ namespace ResQui.Infrastructure.Seed;
 
 public static class DemoDataSeeder
 {
+    // Chaves de pictograma legadas (PT) → canônicas (usadas por Picto, PICTOS_GHS e PdfService)
+    private static readonly Dictionary<string, string> PictoLegado = new()
+    {
+        ["inflamavel"] = "flame",
+        ["corrosivo"] = "corrosion",
+        ["exclamacao"] = "exclam",
+        ["oxidante"] = "flame_circle",
+        ["toxico"] = "skull",
+        ["saude"] = "health",
+        ["ambiente"] = "envir",
+        ["explosivo"] = "explosion",
+        ["gas"] = "bottle",
+    };
+
     public static async Task SeedAsync(AppDbContext db, string adminId)
     {
         var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        await NormalizarPictogramasAsync(db);
 
         if (!await db.Laboratorios.AnyAsync())
         {
@@ -30,15 +46,15 @@ public static class DemoDataSeeder
         if (!await db.Reagentes.AnyAsync())
         {
             db.Reagentes.AddRange(
-                Reag("Ácido clorídrico 37%", "7647-01-0", "HCl", 1, 2.5m, 1m, "L", hoje.AddMonths(14), "Lab-201 · Armário A · Pra. 1", "Ana Lima", true, ["corrosivo"], "Perigo", ["H314", "H335"], ["P280", "P303+P361+P353"]),
-                Reag("Hidróxido de sódio P.A.", "1310-73-2", "NaOH", 2, 800m, 200m, "g", hoje.AddMonths(20), "Lab-201 · Armário B · Pra. 2", "Ana Lima", false, ["corrosivo"], "Perigo", ["H314"], ["P280"]),
-                Reag("Etanol absoluto", "64-17-5", "C2H6O", 3, 8m, 2m, "L", hoje.AddMonths(10), "Lab-203 · Armário C · Pra. 1", "Renan Costa", false, ["inflamavel"], "Perigo", ["H225"], ["P210"]),
-                Reag("Acetona P.A.", "67-64-1", "C3H6O", 3, 4m, 1m, "L", hoje.AddMonths(9), "Lab-203 · Armário C · Pra. 2", "Renan Costa", false, ["inflamavel", "exclamacao"], "Perigo", ["H225", "H319"], ["P210", "P305+P351+P338"]),
-                Reag("Peróxido de hidrogênio 30%", "7722-84-1", "H2O2", 4, 1.5m, 0.5m, "L", hoje.AddDays(20), "Lab-201 · Armário A · Pra. 3", "Ana Lima", false, ["oxidante", "corrosivo"], "Perigo", ["H271", "H314"], ["P280", "P210"]),
-                Reag("Metanol P.A.", "67-56-1", "CH4O", 3, 5m, 1m, "L", hoje.AddDays(25), "Lab-205 · Armário A · Pra. 1", "Júlia Mendes", true, ["inflamavel", "toxico"], "Perigo", ["H225", "H301"], ["P210", "P280"]),
-                Reag("Ácido sulfúrico 98%", "7664-93-9", "H2SO4", 1, 0.4m, 1m, "L", hoje.AddMonths(16), "Lab-201 · Armário A · Pra. 2", "Ana Lima", true, ["corrosivo"], "Perigo", ["H314"], ["P280"]),
-                Reag("Nitrato de prata", "7761-88-8", "AgNO3", 4, 20m, 50m, "g", hoje.AddMonths(22), "Lab-205 · Armário A · Pra. 2", "Júlia Mendes", true, ["oxidante", "corrosivo"], "Perigo", ["H272", "H314"], ["P210", "P280"]),
-                Reag("Tolueno P.A.", "108-88-3", "C7H8", 3, 2m, 0.5m, "L", hoje.AddMonths(7), "Lab-203 · Armário C · Pra. 3", "Renan Costa", false, ["inflamavel", "saude"], "Perigo", ["H225", "H361d"], ["P210", "P280"]),
+                Reag("Ácido clorídrico 37%", "7647-01-0", "HCl", 1, 2.5m, 1m, "L", hoje.AddMonths(14), "Lab-201 · Armário A · Pra. 1", "Ana Lima", true, ["corrosion"], "Perigo", ["H314", "H335"], ["P280", "P303+P361+P353"]),
+                Reag("Hidróxido de sódio P.A.", "1310-73-2", "NaOH", 2, 800m, 200m, "g", hoje.AddMonths(20), "Lab-201 · Armário B · Pra. 2", "Ana Lima", false, ["corrosion"], "Perigo", ["H314"], ["P280"]),
+                Reag("Etanol absoluto", "64-17-5", "C2H6O", 3, 8m, 2m, "L", hoje.AddMonths(10), "Lab-203 · Armário C · Pra. 1", "Renan Costa", false, ["flame"], "Perigo", ["H225"], ["P210"]),
+                Reag("Acetona P.A.", "67-64-1", "C3H6O", 3, 4m, 1m, "L", hoje.AddMonths(9), "Lab-203 · Armário C · Pra. 2", "Renan Costa", false, ["flame", "exclam"], "Perigo", ["H225", "H319"], ["P210", "P305+P351+P338"]),
+                Reag("Peróxido de hidrogênio 30%", "7722-84-1", "H2O2", 4, 1.5m, 0.5m, "L", hoje.AddDays(20), "Lab-201 · Armário A · Pra. 3", "Ana Lima", false, ["flame_circle", "corrosion"], "Perigo", ["H271", "H314"], ["P280", "P210"]),
+                Reag("Metanol P.A.", "67-56-1", "CH4O", 3, 5m, 1m, "L", hoje.AddDays(25), "Lab-205 · Armário A · Pra. 1", "Júlia Mendes", true, ["flame", "skull"], "Perigo", ["H225", "H301"], ["P210", "P280"]),
+                Reag("Ácido sulfúrico 98%", "7664-93-9", "H2SO4", 1, 0.4m, 1m, "L", hoje.AddMonths(16), "Lab-201 · Armário A · Pra. 2", "Ana Lima", true, ["corrosion"], "Perigo", ["H314"], ["P280"]),
+                Reag("Nitrato de prata", "7761-88-8", "AgNO3", 4, 20m, 50m, "g", hoje.AddMonths(22), "Lab-205 · Armário A · Pra. 2", "Júlia Mendes", true, ["flame_circle", "corrosion"], "Perigo", ["H272", "H314"], ["P210", "P280"]),
+                Reag("Tolueno P.A.", "108-88-3", "C7H8", 3, 2m, 0.5m, "L", hoje.AddMonths(7), "Lab-203 · Armário C · Pra. 3", "Renan Costa", false, ["flame", "health"], "Perigo", ["H225", "H361d"], ["P210", "P280"]),
                 Reag("Cloreto de potássio", "7447-40-7", "KCl", 12, 500m, 100m, "g", hoje.AddMonths(30), "Lab-209 · Armário B · Pra. 3", "Júlia Mendes", false, [], "Atenção", [], []));
             await db.SaveChangesAsync();
         }
@@ -95,6 +111,23 @@ public static class DemoDataSeeder
         Local = local, Responsavel = responsavel, Controlado = controlado,
         Ghs = new ReagenteGhs { Pictos = pictos, Signal = signal, FrasesH = frasesH, FrasesP = frasesP },
     };
+
+    // Corrige reagentes já gravados com chaves de pictograma em português (idempotente)
+    private static async Task NormalizarPictogramasAsync(AppDbContext db)
+    {
+        if (!await db.ReagentesGhs.AnyAsync()) return;
+        var ghsList = await db.ReagentesGhs.ToListAsync();
+        var alterou = false;
+        foreach (var ghs in ghsList)
+        {
+            if (ghs.Pictos.Any(p => PictoLegado.ContainsKey(p)))
+            {
+                ghs.Pictos = ghs.Pictos.Select(p => PictoLegado.GetValueOrDefault(p, p)).ToList();
+                alterou = true;
+            }
+        }
+        if (alterou) await db.SaveChangesAsync();
+    }
 
     private static int ParseSeq(string labId)
     {
