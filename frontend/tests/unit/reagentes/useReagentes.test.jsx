@@ -107,4 +107,22 @@ describe('useReagentes', () => {
 
     expect(result.current.error.message).toBe('Erro ao carregar reagentes');
   });
+
+  it('returns empty items when body is null', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => null });
+    const { result } = renderHook(() => useReagentes(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data.items).toEqual([]);
+  });
+
+  it('normalizes item without ghs to empty pictos/signal', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true, status: 200,
+      json: async () => ({ items: [{ id: 'R-001', nome: 'X', classeReatividade: 1 }], total: 1 }),
+    });
+    const { result } = renderHook(() => useReagentes(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data.items[0].pictos).toEqual([]);
+    expect(result.current.data.items[0].signal).toBe('');
+  });
 });

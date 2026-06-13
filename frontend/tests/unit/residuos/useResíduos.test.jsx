@@ -54,4 +54,11 @@ describe('useResíduos', () => {
     const { result } = renderHook(() => useResíduos(), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
+
+  it('returns empty array when body is null', async () => {
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => null });
+    const { result } = renderHook(() => useResíduos(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([]);
+  });
 });

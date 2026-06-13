@@ -25,7 +25,8 @@ export function useReagentes(filtro = {}) {
       const res = await apiFetch('/api/reagentes', { params });
       if (!res.ok) throw new Error('Erro ao carregar reagentes');
       const data = await res.json();
-      return { ...data, items: data.items.map(normalizeItem) };
+      const items = Array.isArray(data?.items) ? data.items : [];
+      return { total: 0, page, pageSize, ...data, items: items.map(normalizeItem) };
     },
   });
 }

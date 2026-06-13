@@ -22,7 +22,7 @@ export function useResíduos(filtro = {}) {
       const res = await apiFetch('/api/residuos', { params });
       if (!res.ok) throw new Error('Erro ao carregar resíduos');
       const data = await res.json();
-      return data.map(normalize);
+      return (Array.isArray(data) ? data : []).map(normalize);
     },
   });
 }

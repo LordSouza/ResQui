@@ -10,7 +10,7 @@ export function useCompatMatriz() {
     },
     select: (data) => {
       const matrix = {};
-      for (const { classeA, classeB, nivel } of data.entries) {
+      for (const { classeA, classeB, nivel } of data?.entries ?? []) {
         if (!matrix[classeA]) matrix[classeA] = [];
         matrix[classeA][classeB - 1] = nivel;
       }

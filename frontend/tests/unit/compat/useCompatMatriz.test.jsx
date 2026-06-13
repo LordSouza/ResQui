@@ -57,4 +57,11 @@ describe('useCompatMatriz', () => {
     const { result } = renderHook(() => useCompatMatriz(), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
+
+  it('returns empty matrix when entries are missing', async () => {
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
+    const { result } = renderHook(() => useCompatMatriz(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual({});
+  });
 });
