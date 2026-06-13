@@ -47,5 +47,6 @@ describe('FormNovoLab — entradas inválidas', () => {
     await userEvent.type(screen.getByLabelText(/Nº da sala/i), '12');
     await userEvent.click(screen.getByRole('button', { name: /Cadastrar laboratório/i }));
     expect(await screen.findByText('Capacidade não pode ser negativa.')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

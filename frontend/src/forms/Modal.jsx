@@ -10,7 +10,7 @@ export default function Modal({ title, sub, onClose, children, width = 560, foot
   }, [onClose]);
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}>
+    <div className="modal-backdrop" role="presentation" onClick={onClose} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) onClose(); }}>
       <div className="modal" style={{width}} onClick={e => e.stopPropagation()}>
         <div className="modal-h">
           <div>
