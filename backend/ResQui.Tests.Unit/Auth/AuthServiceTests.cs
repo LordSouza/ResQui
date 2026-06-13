@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
 using ResQui.Application.Auth;
+using ResQui.Application.Common;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
@@ -133,6 +134,33 @@ public class AuthServiceTests
         result.Should().NotBeNull();
         result!.Matricula.Should().Be("MAT-001");
         result.Nome.Should().Be("Admin Resqui");
+    }
+
+    [Theory]
+    [InlineData("sem-arroba")]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task RegisterAsync_EmailInvalido_LancaValidationException(string email)
+    {
+        var cmd = new RegisterCmd(email, "Senha@123", null, "Tecnico", "Ana");
+        var act = () => _sut.RegisterAsync(cmd, "admin@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*E-mail*");
+    }
+
+    [Fact]
+    public async Task RegisterAsync_SenhaVazia_LancaValidationException()
+    {
+        var cmd = new RegisterCmd("ana@x.com", "", null, "Tecnico", "Ana");
+        var act = () => _sut.RegisterAsync(cmd, "admin@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Senha*");
+    }
+
+    [Fact]
+    public async Task RegisterAsync_PapelInvalido_LancaValidationException()
+    {
+        var cmd = new RegisterCmd("ana@x.com", "Senha@123", null, "SuperAdmin", "Ana");
+        var act = () => _sut.RegisterAsync(cmd, "admin@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Papel*");
     }
 
     [Fact]

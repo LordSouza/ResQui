@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
@@ -28,6 +29,14 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
 
     public async Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, string requesterEmail)
     {
+        if (string.IsNullOrWhiteSpace(cmd.Email) || !cmd.Email.Contains('@'))
+            throw new ValidationException("E-mail inválido.");
+        if (string.IsNullOrWhiteSpace(cmd.Senha))
+            throw new ValidationException("Senha é obrigatória.");
+        string[] papeisValidos = ["Admin", "Gestor", "Tecnico", "Visualizador"];
+        if (!papeisValidos.Contains(cmd.Papel))
+            throw new ValidationException($"Papel inválido: {cmd.Papel}.");
+
         var id = await repo.CreateAsync(cmd.Email, cmd.Senha, cmd.Matricula, cmd.Papel, cmd.Nome);
         await repo.AddToRoleAsync(id, cmd.Papel);
         var roles = await repo.GetRolesAsync(id);
