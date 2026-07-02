@@ -7,11 +7,14 @@
   "shutdownAction": "stopCompose",
   "remoteUser": "vscode",
 
+  // Sem docker-outside-of-docker: essa feature montaria o socket do Docker
+  // do host dentro do container, dando ao container controle total do
+  // Docker do host — quebra o isolamento. Sem acesso a Docker de dentro
+  // do dev container por design.
   "features": {
     "ghcr.io/devcontainers/features/dotnet:2": { "version": "10.0" },
     "ghcr.io/devcontainers/features/node:1": { "version": "20" },
-    "ghcr.io/devcontainers/features/go:1": { "version": "latest" },
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    "ghcr.io/devcontainers/features/go:1": { "version": "latest" }
   },
 
   "forwardPorts": [5173, 5000, 5001, 5432],
@@ -22,7 +25,13 @@
     "5432": { "label": "PostgreSQL" }
   },
 
-  "postCreateCommand": "cd frontend && npm install && cd ../backend && dotnet restore",
+  // O instalador do Claude Code coloca o binário em ~/.local/bin, que nem
+  // sempre está no PATH de shells não-login — garantimos explicitamente.
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+  },
+
+  "postCreateCommand": "cd frontend && npm install && cd ../backend && dotnet restore && curl -fsSL https://claude.ai/install.sh | bash",
 
   "customizations": {
     "vscode": {
@@ -31,8 +40,7 @@
         "golang.go",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "ms-playwright.playwright",
-        "ms-azuretools.vscode-docker"
+        "ms-playwright.playwright"
       ],
       "settings": {
         "editor.formatOnSave": true
