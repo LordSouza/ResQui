@@ -1,0 +1,42 @@
+{
+  "name": "ResQui Dev",
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+  "service": "dev",
+  "runServices": ["postgres", "dev"],
+  "workspaceFolder": "/workspaces/resqui",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "vscode",
+
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": { "version": "10.0" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+    "ghcr.io/devcontainers/features/go:1": { "version": "latest" },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+
+  "forwardPorts": [5173, 5000, 5001, 5432],
+  "portsAttributes": {
+    "5173": { "label": "Frontend (Vite dev server)" },
+    "5000": { "label": "Backend .NET" },
+    "5001": { "label": "Backend Go (migração)" },
+    "5432": { "label": "PostgreSQL" }
+  },
+
+  "postCreateCommand": "cd frontend && npm install && cd ../backend && dotnet restore",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "golang.go",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-playwright.playwright",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "editor.formatOnSave": true
+      }
+    }
+  }
+}
