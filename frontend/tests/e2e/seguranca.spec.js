@@ -128,3 +128,48 @@ test('Professor aprova descarte solicitado', async ({ request }) => {
   const atualizado = await aprovar.json();
   expect(atualizado.status).toBe('aguardando-coleta');
 });
+
+// Pesquisador não está na policy Aprovador (Admin/Gestor/Professor) — aprovar deve ser 403.
+test('Pesquisador é bloqueado ao aprovar descarte', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `pesq2_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Pesq@123', Papel: 'Pesquisador', Nome: 'Pesq2 E2E' },
+  });
+  const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Pesq@123' } });
+  const { token } = await login.json();
+  const pesqAuth = { Authorization: `Bearer ${token}` };
+
+  // admin cria o resíduo (nasce "solicitado")
+  const criar = await request.post('/api/residuos', {
+    headers: auth,
+    data: {
+      Descricao: 'descarte p/ bloqueio pesquisador', LaboratorioId: 1, Tipo: 'x',
+      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
+    },
+  });
+  const residuo = await criar.json();
+
+  const aprovar = await request.put(`/api/residuos/${residuo.id}/aprovar`, { headers: pesqAuth });
+  expect(aprovar.status()).toBe(403);
+});
+
+// Professor não está na policy Tecnico (Admin/Gestor/Tecnico) — criar MTR deve ser 403.
+test('Professor é bloqueado ao criar MTR', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `prof2_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof2 E2E' },
+  });
+  const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Prof@123' } });
+  const { token } = await login.json();
+  const profAuth = { Authorization: `Bearer ${token}` };
+
+  const mtr = await request.post('/api/mtrs', {
+    headers: profAuth,
+    data: { Gerador: 'g', Transportadora: 't', ResiduoIds: [1] },
+  });
+  expect(mtr.status()).toBe(403);
+});
