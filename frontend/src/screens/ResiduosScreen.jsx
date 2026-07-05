@@ -21,7 +21,7 @@ export function ResiduosScreen({ state, dispatch }) {
   const [q, setQ] = useState('');
   const { data: residuos = [], isPending, isError, refetch } = useResíduos();
   const { user } = useAuth();
-  const podeAprovar = user?.papel === 'Admin' || user?.papel === 'Gestor';
+  const podeAprovar = user?.papel === 'Admin' || user?.papel === 'Gestor' || user?.papel === 'Professor';
   const aprovar = useAprovarResiduo();
   const rejeitar = useRejeitarResiduo();
 
