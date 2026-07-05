@@ -210,16 +210,17 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
     public async Task<ReagenteDetalheDto?> TransferirAsync(string id, TransferirReagenteCmd cmd, string usuarioEmail)
     {
         if (string.IsNullOrWhiteSpace(cmd.Destino)) throw new ValidationException("Destino é obrigatório.");
+        var destino = cmd.Destino.Trim();
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
-        if (cmd.Destino == r.Local) throw new ValidationException($"Reagente já está em {cmd.Destino}.");
+        if (destino == r.Local) throw new ValidationException($"Reagente já está em {destino}.");
 
         var origem = r.Local;
-        r.Local = cmd.Destino;
+        r.Local = destino;
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
         await auditoria.RegistrarAsync(usuarioEmail, "reagente.transferencia", "Inventário",
-            $"Transferiu {r.Nome} ({r.Id}) de {origem} para {cmd.Destino}", RiscoAuditoria.Low);
+            $"Transferiu {r.Nome} ({r.Id}) de {origem} para {destino}", RiscoAuditoria.Low);
         return ToDetalhe(r);
     }
 
