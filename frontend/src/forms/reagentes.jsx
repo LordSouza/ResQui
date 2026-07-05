@@ -3,6 +3,7 @@ import { Icon, Badge, Tag, Picto } from '../components';
 import { REATIVIDADE_CLASSES, PICTOS_GHS, LOCAIS } from '../data';
 import { useCriarReagente } from '../reagentes/useCriarReagente';
 import { useBaixaReagente } from '../reagentes/useBaixaReagente';
+import { useTransferirReagente } from '../reagentes/useTransferirReagente';
 import Modal from './Modal';
 import { useCompatOverrides } from '../compat/useCompatOverrides';
 import { useSalvarCompatOverride } from '../compat/useSalvarCompatOverride';
@@ -217,6 +218,52 @@ export function FormBaixa({ reagente, onClose, dispatch }) {
             <option>Manutenção / limpeza</option>
             <option>Transferência para outro lab</option>
             <option>Descarte (vencido / danificado)</option>
+          </select>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------- Transferência de local ----------
+export function FormTransferirReagente({ reagente, onClose, dispatch }) {
+  const uid = useId();
+  const ids = { origem: `${uid}-origem`, destino: `${uid}-destino` };
+  const transferir = useTransferirReagente(reagente.id);
+  const [destino, setDestino] = useState(LOCAIS[0]);
+  const submit = () => {
+    if (!destino || destino === reagente.local) {
+      alert('Escolha um destino diferente do local atual.');
+      return;
+    }
+    transferir.mutate({ destino }, {
+      onSuccess: () => {
+        dispatch({ type: 'refresh', flashId: reagente.id });
+        onClose();
+      },
+    });
+  };
+  return (
+    <Modal title="Transferir reagente" sub={`${reagente.nome} · ${reagente.id}`}
+      onClose={onClose} width={460}
+      footer={<>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={transferir.isPending}>
+          {transferir.isPending ? 'Transferindo…' : 'Confirmar transferência'}
+        </button>
+      </>}>
+      {transferir.isError && (
+        <div className="login-err" style={{marginBottom: 12}}>{transferir.error?.message ?? 'Erro ao transferir reagente.'}</div>
+      )}
+      <div className="form-row full">
+        <div className="field"><label htmlFor={ids.origem}>Local atual</label>
+          <input id={ids.origem} value={reagente.local} readOnly/>
+        </div>
+      </div>
+      <div className="form-row full">
+        <div className="field"><label htmlFor={ids.destino}>Destino *</label>
+          <select id={ids.destino} value={destino} onChange={e => setDestino(e.target.value)}>
+            {LOCAIS.map(l => <option key={l}>{l}</option>)}
           </select>
         </div>
       </div>

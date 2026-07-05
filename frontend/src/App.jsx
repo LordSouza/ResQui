@@ -23,7 +23,7 @@ import { ChamadosScreen } from './screens/ChamadosScreen';
 
 import { ChatMCP } from './chat/ChatMCP';
 
-import { FormNovoReagente, FormImportarCSV, FormEditarRegrasCompat, FormPreviewFispq, FormBaixa } from './forms/reagentes';
+import { FormNovoReagente, FormImportarCSV, FormEditarRegrasCompat, FormPreviewFispq, FormBaixa, FormTransferirReagente } from './forms/reagentes';
 import { FormNovoResiduo, FormEditarResiduo, FormNovoMtr, FormPreviewMtrPdf, FormConfigurarPgrs } from './forms/residuos';
 import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/laboratorios';
 import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario } from './forms/usuarios';
@@ -424,6 +424,7 @@ export default function App() {
       {state.modal === 'editarResiduo' && state.modalResiduo && <FormEditarResiduo residuo={state.modalResiduo} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoMtr' && <FormNovoMtr onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'baixa' && state.modalReagente && <FormBaixa reagente={state.modalReagente} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'transferirReagente' && state.modalReagente && <FormTransferirReagente reagente={state.modalReagente} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'editarReagente' && state.modalReagente && (
         <FormEditarReagente
           reagente={state.modalReagente}

@@ -148,6 +148,7 @@ export function DetalheScreen({ state, dispatch }) {
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'previewFispq', reagente: r})}><Icon name="download" size={13}/> FISPQ</button>
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'baixa', reagente: r})}><Icon name="trash" size={13}/> Baixar consumo</button>
+          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'transferirReagente', reagente: r})}><Icon name="settings" size={13}/> Transferir</button>
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'editarReagente', reagente: r})}><Icon name="settings" size={13}/> Editar</button>
           {user?.papel === 'Admin' && (
             <button type="button" className="btn btn-sm" style={{color: 'var(--red)'}} onClick={handleDeletar} disabled={deletarMutation.isPending}>
