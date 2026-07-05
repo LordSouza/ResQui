@@ -72,3 +72,59 @@ test('sessões lista a sessão atual e revogar-outras não derruba ela', async (
   const ok = await request.get('/api/auth/me', { headers: auth });
   expect(ok.ok()).toBeTruthy();
 });
+
+// RF06 / atores do artigo: Pesquisador solicita descarte + baixa, mas não cria MTR.
+test('Pesquisador cria resíduo mas é bloqueado em MTR', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `pesq_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Pesq@123', Papel: 'Pesquisador', Nome: 'Pesq E2E' },
+  });
+  const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Pesq@123' } });
+  const { token } = await login.json();
+  const pesqAuth = { Authorization: `Bearer ${token}` };
+
+  const criar = await request.post('/api/residuos', {
+    headers: pesqAuth,
+    data: {
+      Descricao: 'descarte pesquisador', LaboratorioId: 1, Tipo: 'x',
+      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
+    },
+  });
+  expect(criar.ok()).toBeTruthy();
+
+  const mtr = await request.post('/api/mtrs', {
+    headers: pesqAuth,
+    data: { Gerador: 'g', Transportadora: 't', ResiduoIds: [1] },
+  });
+  expect(mtr.status()).toBe(403);
+});
+
+// Professor aprova solicitação de descarte (RF06).
+test('Professor aprova descarte solicitado', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `prof_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof E2E' },
+  });
+  const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Prof@123' } });
+  const { token } = await login.json();
+  const profAuth = { Authorization: `Bearer ${token}` };
+
+  // admin cria o resíduo (nasce "solicitado")
+  const criar = await request.post('/api/residuos', {
+    headers: auth,
+    data: {
+      Descricao: 'descarte p/ professor', LaboratorioId: 1, Tipo: 'x',
+      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
+    },
+  });
+  const residuo = await criar.json();
+
+  const aprovar = await request.put(`/api/residuos/${residuo.id}/aprovar`, { headers: profAuth });
+  expect(aprovar.ok()).toBeTruthy();
+  const atualizado = await aprovar.json();
+  expect(atualizado.status).toBe('aguardando-coleta');
+});
