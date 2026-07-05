@@ -16,10 +16,8 @@ services:
       # Aponta o backend .NET rodado via `dotnet run` dentro do container
       # para o Postgres do serviço vizinho `postgres` (mesma rede do compose).
       ConnectionStrings__Default: "Host=postgres;Database=resqui;Username=resqui;Password=${POSTGRES_PASSWORD:-resqui_dev}"
-      Jwt__Key: ${JWT_KEY:-resqui_jwt_dev_key_32chars_min!!}
       Jwt__Issuer: resqui
       Jwt__Audience: resqui-frontend
-      Seed__AdminPassword: ${ADMIN_PASSWORD:-Admin@123}
       Seed__DemoData: "true"
       # Playwright usa o Chromium baixado pelo próprio Playwright dentro
       # do devcontainer (sem Chrome do sistema, ao contrário do host).
