@@ -8,6 +8,7 @@ public interface IReagentesService
     Task<ReagenteDetalheDto?> AtualizarAsync(string id, AtualizarReagenteCmd cmd, string usuarioEmail);
     Task<bool> DeletarAsync(string id, string usuarioEmail);
     Task<ReagenteDetalheDto?> BaixaAsync(string id, BaixaCmd cmd, string usuarioEmail);
+    Task<ReagenteDetalheDto?> TransferirAsync(string id, TransferirReagenteCmd cmd, string usuarioEmail);
     Task<byte[]?> GerarRotuloAsync(string id, string usuarioEmail);
     Task<byte[]?> GerarRotuloLoteAsync(string reagenteId, int loteId, string usuarioEmail);
     Task<IEnumerable<Auditoria.AuditoriaItemDto>?> ListarMovimentacoesAsync(string id, int limite = 20);

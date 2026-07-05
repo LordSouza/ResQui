@@ -154,4 +154,55 @@ public class ReagentesServiceTests
         var act = () => _sut.BaixaAsync("R-001", new BaixaCmd(1.0m), "ana@lab.com");
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*insuficiente*");
     }
+
+    [Fact]
+    public async Task TransferirAsync_MudaLocalMantemEstoqueERegistraAuditoria()
+    {
+        var r = FakeReagente("R-001");
+        r.Local = "Lab-201 · Armário A · Pra. 1";
+        r.Estoque = 2.4m;
+        _repo.GetByIdAsync("R-001").Returns(r);
+
+        var result = await _sut.TransferirAsync("R-001",
+            new TransferirReagenteCmd("Lab-203 · Armário Inflamáveis · Pra. 1"), "ana@lab.com");
+
+        result.Should().NotBeNull();
+        result!.Local.Should().Be("Lab-203 · Armário Inflamáveis · Pra. 1");
+        result.Estoque.Should().Be(2.4m);
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "reagente.transferencia",
+            "Inventário",
+            Arg.Is<string>(d => d.Contains("Lab-201") && d.Contains("Lab-203")),
+            ResQui.Domain.Enums.RiscoAuditoria.Low);
+        await _repo.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task TransferirAsync_DestinoVazio_LancaValidationException()
+    {
+        var act = () => _sut.TransferirAsync("R-001",
+            new TransferirReagenteCmd("   "), "ana@lab.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Destino*");
+    }
+
+    [Fact]
+    public async Task TransferirAsync_DestinoIgualAoAtual_LancaValidationException()
+    {
+        var r = FakeReagente("R-001");
+        r.Local = "Lab-201 · Armário A · Pra. 1";
+        _repo.GetByIdAsync("R-001").Returns(r);
+
+        var act = () => _sut.TransferirAsync("R-001",
+            new TransferirReagenteCmd("Lab-201 · Armário A · Pra. 1"), "ana@lab.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*já está*");
+    }
+
+    [Fact]
+    public async Task TransferirAsync_ReagenteInexistente_RetornaNull()
+    {
+        _repo.GetByIdAsync("X-999").Returns((Reagente?)null);
+
+        var result = await _sut.TransferirAsync("X-999",
+            new TransferirReagenteCmd("Lab-203 · Armário Inflamáveis · Pra. 1"), "ana");
+        result.Should().BeNull();
+    }
 }

@@ -207,6 +207,22 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         return ToDetalhe(r);
     }
 
+    public async Task<ReagenteDetalheDto?> TransferirAsync(string id, TransferirReagenteCmd cmd, string usuarioEmail)
+    {
+        if (string.IsNullOrWhiteSpace(cmd.Destino)) throw new ValidationException("Destino é obrigatório.");
+        var r = await repo.GetByIdAsync(id);
+        if (r is null) return null;
+        if (cmd.Destino == r.Local) throw new ValidationException($"Reagente já está em {cmd.Destino}.");
+
+        var origem = r.Local;
+        r.Local = cmd.Destino;
+        await repo.UpdateAsync(r);
+        await repo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "reagente.transferencia", "Inventário",
+            $"Transferiu {r.Nome} ({r.Id}) de {origem} para {cmd.Destino}", RiscoAuditoria.Low);
+        return ToDetalhe(r);
+    }
+
     private static string NormalizeSearch(string s)
     {
         var normalized = s.Normalize(System.Text.NormalizationForm.FormD);

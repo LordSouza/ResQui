@@ -63,6 +63,8 @@ public record AtualizarReagenteCmd(
 
 public record BaixaCmd(decimal Quantidade);
 
+public record TransferirReagenteCmd(string Destino);
+
 public record LoteDto(
     int Id,
     string Codigo,

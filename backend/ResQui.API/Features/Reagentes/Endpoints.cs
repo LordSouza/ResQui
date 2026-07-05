@@ -58,6 +58,14 @@ public static class Endpoints
         })
         .RequireAuthorization("Operacional");
 
+        group.MapPost("/{id}/transferencia", async (string id, TransferirReagenteCmd cmd, IReagentesService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var r = await svc.TransferirAsync(id, cmd, email);
+            return r is null ? Results.NotFound() : Results.Ok(r);
+        })
+        .RequireAuthorization("Operacional");
+
         group.MapGet("/{id}/movimentacoes", async (string id, IReagentesService svc, int limite = 20) =>
         {
             var result = await svc.ListarMovimentacoesAsync(id, limite);
