@@ -38,8 +38,11 @@ var builder = WebApplication.CreateBuilder(args);
 var connStr = builder.Configuration.GetConnectionString("Default")!;
 builder.Services.AddInfrastructure(connStr);
 
-// JWT options
+// JWT options — fail-closed: chave vazia ou < 32 bytes derruba o startup em qualquer ambiente.
 var jwtOpts = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
+var jwtValidation = new JwtOptionsValidator().Validate(null, jwtOpts);
+if (jwtValidation.Failed)
+    throw new InvalidOperationException($"Configuração JWT inválida: {jwtValidation.FailureMessage}");
 builder.Services.AddSingleton(jwtOpts);
 
 // Application services
@@ -133,7 +136,9 @@ using (var scope = app.Services.CreateScope())
     var db       = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var users    = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
     var roles    = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var adminPwd = builder.Configuration["Seed:AdminPassword"] ?? "Admin@123";
+    var adminPwd = builder.Configuration["Seed:AdminPassword"];
+    if (string.IsNullOrWhiteSpace(adminPwd))
+        throw new InvalidOperationException("Seed:AdminPassword não configurado — defina ADMIN_PASSWORD (ou o appsettings de dev).");
     await DbSeeder.SeedAsync(db, users, roles, adminPwd);
     if (builder.Configuration.GetValue<bool>("Seed:DemoData"))
     {
