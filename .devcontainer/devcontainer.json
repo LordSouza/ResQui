@@ -13,15 +13,13 @@
   // do dev container por design.
   "features": {
     "ghcr.io/devcontainers/features/dotnet:2": { "version": "10.0" },
-    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
-    "ghcr.io/devcontainers/features/go:1": { "version": "latest" }
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" }
   },
 
-  "forwardPorts": [5173, 5000, 5001, 5432],
+  "forwardPorts": [5173, 5000, 5432],
   "portsAttributes": {
     "5173": { "label": "Frontend (Vite dev server)" },
     "5000": { "label": "Backend .NET" },
-    "5001": { "label": "Backend Go (migração)" },
     "5432": { "label": "PostgreSQL" }
   },
 
@@ -37,7 +35,6 @@
     "vscode": {
       "extensions": [
         "ms-dotnettools.csdevkit",
-        "golang.go",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "ms-playwright.playwright"
