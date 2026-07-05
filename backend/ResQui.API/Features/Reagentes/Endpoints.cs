@@ -56,7 +56,7 @@ public static class Endpoints
             var r = await svc.BaixaAsync(id, cmd, email);
             return r is null ? Results.NotFound() : Results.Ok(r);
         })
-        .RequireAuthorization("Tecnico");
+        .RequireAuthorization("Operacional");
 
         group.MapGet("/{id}/movimentacoes", async (string id, IReagentesService svc, int limite = 20) =>
         {

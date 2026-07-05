@@ -93,6 +93,9 @@ builder.Services.AddAuthorization(opts =>
     opts.AddPolicy("Gestor",  p => p.RequireRole("Admin", "Gestor"));
     opts.AddPolicy("Admin",   p => p.RequireRole("Admin"));
     opts.AddPolicy("Tecnico", p => p.RequireRole("Admin", "Gestor", "Tecnico")); // mutações operacionais — exclui Visualizador
+    opts.AddPolicy("Operacional", p => p.RequireRole("Admin", "Gestor", "Tecnico", "Pesquisador", "Professor")); // solicitar descarte + baixa (inclui aluno/professor)
+    opts.AddPolicy("Aprovador",   p => p.RequireRole("Admin", "Gestor", "Professor")); // aprovar/rejeitar descarte (RF06)
+    opts.AddPolicy("Supervisao",  p => p.RequireRole("Admin", "Gestor", "Professor")); // leitura supervisora (auditoria)
 });
 
 // CORS — allow frontend Vite origin
@@ -156,7 +159,7 @@ app.MapGroup("/api/reagentes").RequireAuthorization().MapReagentesEndpoints();
 app.MapGroup("/api/laboratorios").RequireAuthorization().MapLaboratoriosEndpoints();
 app.MapGroup("/api/residuos").RequireAuthorization().MapResiduosEndpoints();
 app.MapGroup("/api/mtrs").RequireAuthorization().MapMtrsEndpoints();
-app.MapGroup("/api/auditoria").RequireAuthorization("Gestor").MapAuditoriaEndpoints();
+app.MapGroup("/api/auditoria").RequireAuthorization("Supervisao").MapAuditoriaEndpoints();
 app.MapGroup("/api/usuarios").RequireAuthorization("Admin").MapUsuariosEndpoints();
 app.MapGroup("/api/chamados").RequireAuthorization().MapChamadosEndpoints();
 app.MapGroup("/api/compat").RequireAuthorization().MapCompatEndpoints();
