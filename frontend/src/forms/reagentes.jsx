@@ -1,6 +1,6 @@
 import { useState, useReducer, useRef, useId } from 'react';
 import { Icon, Badge, Tag, Picto } from '../components';
-import { REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
+import { REATIVIDADE_CLASSES, PICTOS_GHS, LOCAIS } from '../data';
 import { useCriarReagente } from '../reagentes/useCriarReagente';
 import { useBaixaReagente } from '../reagentes/useBaixaReagente';
 import Modal from './Modal';
@@ -106,14 +106,7 @@ export function FormNovoReagente({ onClose, dispatch }) {
       <div className="form-row">
         <div className="field"><label htmlFor={ids.local}>Localização</label>
           <select id={ids.local} value={f.local} onChange={e => upd('local', e.target.value)}>
-            <option>Lab-201 · Armário A · Pra. 1</option>
-            <option>Lab-201 · Armário B · Pra. 2</option>
-            <option>Lab-201 · Armário D · Pra. 4</option>
-            <option>Lab-203 · Armário Inflamáveis · Pra. 1</option>
-            <option>Lab-203 · Armário Inflamáveis · Pra. 2</option>
-            <option>Lab-205 · Armário C · Pra. 1</option>
-            <option>Lab-205 · Armário Oxidantes · Pra. 1</option>
-            <option>Lab-209 · Armário Oxidantes · Pra. 2</option>
+            {LOCAIS.map(l => <option key={l}>{l}</option>)}
           </select>
         </div>
         <div className="field"><label htmlFor={ids.responsavel}>Responsável</label>
