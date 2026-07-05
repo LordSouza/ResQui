@@ -116,6 +116,18 @@ public class MtrsServiceTests
     }
 
     [Fact]
+    public async Task CriarAsync_ResiduoNaoAprovado_LancaValidationException()
+    {
+        var r = FakeResiduo(10);
+        r.Status = "solicitado"; // descarte ainda não aprovado (RF06 gate)
+        _residuosRepo.GetByIdAsync(10).Returns(r);
+        var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [10]);
+        var act = () => _sut.CriarAsync(cmd, "u1", "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*não está aprovado para coleta*");
+        await _repo.DidNotReceive().AddAsync(Arg.Any<Mtr>());
+    }
+
+    [Fact]
     public async Task CriarAsync_RegistraAuditoria()
     {
         var r = FakeResiduo(10);

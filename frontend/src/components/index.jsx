@@ -63,10 +63,12 @@ export const riscoBadge = (r) => {
 
 export const residuoStatusBadge = (s) => {
   const map = {
+    'solicitado': ['purple', 'Solicitado'],
     'aguardando-coleta': ['amber', 'Aguardando coleta'],
     'em-coleta': ['blue', 'Em coleta'],
     'rotulagem': ['gray', 'Rotulagem'],
     'destinado': ['green', 'Destinado'],
+    'rejeitado': ['red', 'Rejeitado'],
   };
   const [k, l] = map[s] || ['gray', s];
   return <Badge kind={k}>{l}</Badge>;

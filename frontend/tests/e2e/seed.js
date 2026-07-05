@@ -51,6 +51,11 @@ export async function criarResiduoComClasses(request, auth, classes, extra = {})
   });
 }
 
+// Aprova a solicitação de descarte (RF06): solicitado → aguardando-coleta. Requer Gestor+ (auth admin).
+export async function aprovarResiduo(request, auth, id) {
+  return request.put(`/api/residuos/${id}/aprovar`, { headers: auth });
+}
+
 export async function criarResiduoAguardandoColeta(request, auth) {
   await ensureLab(request, auth);
   const res = await request.post('/api/residuos', {
@@ -61,5 +66,7 @@ export async function criarResiduoAguardandoColeta(request, auth) {
       Composicao: 'Acetona 70%', Risco: 'medio', Destino: null,
     },
   });
-  return res.json();
+  const r = await res.json();
+  // Resíduo nasce "solicitado" (RF06); aprova para ficar disponível à coleta/MTR.
+  return (await aprovarResiduo(request, auth, r.id)).json();
 }

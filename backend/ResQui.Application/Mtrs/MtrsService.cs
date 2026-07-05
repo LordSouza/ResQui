@@ -36,6 +36,11 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         {
             var r = await residuosRepo.GetByIdAsync(rid)
                 ?? throw new ValidationException($"Resíduo {rid} não encontrado.");
+            // RF06 gate: só resíduos com descarte aprovado ("aguardando-coleta") podem ser coletados.
+            if (r.Status != "aguardando-coleta")
+                throw new ValidationException(
+                    $"Resíduo {rid} não está aprovado para coleta (status atual: \"{r.Status}\"). " +
+                    "Aprove a solicitação de descarte antes de emitir o MTR.");
             residuos.Add(r);
         }
 

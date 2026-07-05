@@ -96,8 +96,8 @@ public class MisturasAltoRiscoTests
     [Fact]
     public async Task CriarMtr_BloqueiaAgrupamento_ComParProibidoEntreResiduos()
     {
-        var r1 = new Residuo { Id = 1, Descricao = "Ácidos", ClassesReatividade = [1] };
-        var r2 = new Residuo { Id = 2, Descricao = "Cianetos", ClassesReatividade = [8] };
+        var r1 = new Residuo { Id = 1, Descricao = "Ácidos", Status = "aguardando-coleta", ClassesReatividade = [1] };
+        var r2 = new Residuo { Id = 2, Descricao = "Cianetos", Status = "aguardando-coleta", ClassesReatividade = [8] };
         _residuosRepo.GetByIdAsync(1).Returns(r1);
         _residuosRepo.GetByIdAsync(2).Returns(r2);
 
@@ -112,8 +112,8 @@ public class MisturasAltoRiscoTests
     public async Task CriarMtr_PermiteAgrupamento_ComParPerigo()
     {
         // Perigo (2) bloqueia mistura, mas não transporte conjunto — ex.: classes 1 e 4.
-        var r1 = new Residuo { Id = 1, Descricao = "Ácidos", ClassesReatividade = [1] };
-        var r2 = new Residuo { Id = 2, Descricao = "Oxidantes", ClassesReatividade = [4] };
+        var r1 = new Residuo { Id = 1, Descricao = "Ácidos", Status = "aguardando-coleta", ClassesReatividade = [1] };
+        var r2 = new Residuo { Id = 2, Descricao = "Oxidantes", Status = "aguardando-coleta", ClassesReatividade = [4] };
         _residuosRepo.GetByIdAsync(1).Returns(r1);
         _residuosRepo.GetByIdAsync(2).Returns(r2);
 

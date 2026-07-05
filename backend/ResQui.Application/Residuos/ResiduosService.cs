@@ -92,6 +92,37 @@ public class ResiduosService(
         return ToDto(r);
     }
 
+    // RF06 — aprovação/rejeição de solicitação de descarte. Gate: só resíduos em "solicitado".
+    // Aprovar move para o fluxo de coleta ("aguardando-coleta"); rejeitar encerra em "rejeitado".
+    public async Task<ResiduoDto?> AprovarAsync(int id, string usuarioEmail)
+    {
+        var r = await repo.GetByIdAsync(id);
+        if (r is null) return null;
+        if (r.Status != "solicitado")
+            throw new ValidationException($"Só é possível aprovar resíduos com solicitação pendente (status atual: \"{r.Status}\").");
+        r.Status = "aguardando-coleta";
+        await repo.UpdateAsync(r);
+        await repo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "residuo.aprovar", "Resíduos",
+            $"Aprovou descarte do resíduo {id} — {r.Descricao}", RiscoAuditoria.Medium);
+        return ToDto(r);
+    }
+
+    public async Task<ResiduoDto?> RejeitarAsync(int id, string? motivo, string usuarioEmail)
+    {
+        var r = await repo.GetByIdAsync(id);
+        if (r is null) return null;
+        if (r.Status != "solicitado")
+            throw new ValidationException($"Só é possível rejeitar resíduos com solicitação pendente (status atual: \"{r.Status}\").");
+        r.Status = "rejeitado";
+        await repo.UpdateAsync(r);
+        await repo.SaveChangesAsync();
+        var sufixo = string.IsNullOrWhiteSpace(motivo) ? "" : $" — motivo: {motivo}";
+        await auditoria.RegistrarAsync(usuarioEmail, "residuo.rejeitar", "Resíduos",
+            $"Rejeitou descarte do resíduo {id}{sufixo}", RiscoAuditoria.Medium);
+        return ToDto(r);
+    }
+
     public async Task<ResiduosAnalyticsDto> AnalyticsAsync(int meses)
     {
         var corte = DateTime.UtcNow.AddMonths(-meses);

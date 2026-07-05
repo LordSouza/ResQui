@@ -30,6 +30,24 @@ public static class Endpoints
         })
         .RequireAuthorization("Tecnico");
 
+        // RF06 — aprovar/rejeitar solicitação de descarte. Aprovador: Gestor+ por ora
+        // (o artigo prevê o papel "Professor"; ver backlog / investigação de perfis).
+        group.MapPut("/{id:int}/aprovar", async (int id, IResiduosService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var r = await svc.AprovarAsync(id, email);
+            return r is null ? Results.NotFound() : Results.Ok(r);
+        })
+        .RequireAuthorization("Gestor");
+
+        group.MapPut("/{id:int}/rejeitar", async (int id, RejeitarResiduoCmd cmd, IResiduosService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var r = await svc.RejeitarAsync(id, cmd.Motivo, email);
+            return r is null ? Results.NotFound() : Results.Ok(r);
+        })
+        .RequireAuthorization("Gestor");
+
         group.MapGet("/analytics", async (IResiduosService svc, int meses = 6) =>
             Results.Ok(await svc.AnalyticsAsync(meses)));
 

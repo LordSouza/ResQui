@@ -41,6 +41,8 @@ public record AtualizarResiduoCmd(
     IList<int>? ClassesReatividade = null
 );
 
+public record RejeitarResiduoCmd(string? Motivo = null);
+
 public record MensalItem(string Mes, decimal Valor);
 public record LabItem(string Lab, decimal Valor);
 public record ResiduosAnalyticsDto(IList<MensalItem> Mensal, IList<LabItem> PorLab);

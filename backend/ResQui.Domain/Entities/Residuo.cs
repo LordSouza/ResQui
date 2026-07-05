@@ -6,7 +6,7 @@ public class Residuo
     public string Descricao { get; set; } = "";
     public int LaboratorioId { get; set; }
     public int? MtrId { get; set; }
-    public string Status { get; set; } = "aguardando-coleta";
+    public string Status { get; set; } = "solicitado";
     public DateTime DataRegistro { get; set; } = DateTime.UtcNow;
 
     public string Tipo { get; set; } = "";

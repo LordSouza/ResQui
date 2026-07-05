@@ -2,19 +2,28 @@ import { useState } from 'react';
 import { Icon, Tag, SectionTitle, Badge, riscoBadge, residuoStatusBadge } from '../components';
 import { exportCsv } from '../utils';
 import { useResíduos } from '../residuos/useResíduos';
+import { useAprovarResiduo } from '../residuos/useAprovarResiduo';
+import { useRejeitarResiduo } from '../residuos/useRejeitarResiduo';
+import { useAuth } from '../auth/AuthContext';
 
 const STATUS_TABS = [
   ['todos', 'Todos'],
+  ['solicitado', 'Solicitados'],
   ['aguardando-coleta', 'Aguardando coleta'],
   ['em-coleta', 'Em coleta'],
   ['rotulagem', 'Rotulagem'],
   ['destinado', 'Destinados'],
+  ['rejeitado', 'Rejeitados'],
 ];
 
 export function ResiduosScreen({ state, dispatch }) {
   const [filter, setFilter] = useState('todos');
   const [q, setQ] = useState('');
   const { data: residuos = [], isPending, isError, refetch } = useResíduos();
+  const { user } = useAuth();
+  const podeAprovar = user?.papel === 'Admin' || user?.papel === 'Gestor';
+  const aprovar = useAprovarResiduo();
+  const rejeitar = useRejeitarResiduo();
 
   const list = residuos
     .filter((r) => filter === 'todos' || r.status === filter)
@@ -86,6 +95,32 @@ export function ResiduosScreen({ state, dispatch }) {
                 <td className="mono small muted">{r.data_registro?.slice(0, 10)}</td>
                 <td className="mono small">{r.mtr_id || <span className="muted">-</span>}</td>
                 <td>
+                  {podeAprovar && r.status === 'solicitado' && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        disabled={aprovar.isPending}
+                        onClick={() => aprovar.mutate(r.id)}
+                      >
+                        Aprovar
+                      </button>
+                      {' '}
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        disabled={rejeitar.isPending}
+                        onClick={() => {
+                          const motivo = window.prompt('Motivo da rejeição (opcional):', '');
+                          if (motivo === null) return;
+                          rejeitar.mutate({ id: r.id, motivo: motivo || null });
+                        }}
+                      >
+                        Rejeitar
+                      </button>
+                      {' '}
+                    </>
+                  )}
                   <button
                     type="button"
                     className="btn btn-sm"

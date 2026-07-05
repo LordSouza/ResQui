@@ -97,7 +97,7 @@ public class ResiduosServiceTests
         result.Tipo.Should().Be("Ácidos inorgânicos");
         result.Volume.Should().Be(2.0m);
         result.Risco.Should().Be("alto");
-        result.Status.Should().Be("aguardando-coleta");
+        result.Status.Should().Be("solicitado"); // RF06: nasce como solicitação pendente
         await _repo.Received(1).AddAsync(Arg.Any<Residuo>());
         await _repo.Received(1).SaveChangesAsync();
     }
@@ -158,6 +158,55 @@ public class ResiduosServiceTests
         await _audit.Received(1).RegistrarAsync(
             "ana@lab.com", "residuo.atualizar", "Resíduos",
             Arg.Any<string>(), RiscoAuditoria.Low);
+    }
+
+    [Fact]
+    public async Task AprovarAsync_Solicitado_MoveParaAguardandoColeta()
+    {
+        var r = FakeResiduo(1, status: "solicitado");
+        _repo.GetByIdAsync(1).Returns(r);
+
+        var result = await _sut.AprovarAsync(1, "prof@lab.com");
+
+        result!.Status.Should().Be("aguardando-coleta");
+        await _audit.Received(1).RegistrarAsync(
+            "prof@lab.com", "residuo.aprovar", "Resíduos", Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task AprovarAsync_IdInexistente_RetornaNull()
+    {
+        _repo.GetByIdAsync(999).Returns((Residuo?)null);
+        (await _sut.AprovarAsync(999, "u@x.com")).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AprovarAsync_StatusNaoSolicitado_LancaValidationException()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "aguardando-coleta"));
+        var act = () => _sut.AprovarAsync(1, "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*solicitação pendente*");
+    }
+
+    [Fact]
+    public async Task RejeitarAsync_Solicitado_MoveParaRejeitado()
+    {
+        var r = FakeResiduo(1, status: "solicitado");
+        _repo.GetByIdAsync(1).Returns(r);
+
+        var result = await _sut.RejeitarAsync(1, "fora de conformidade", "prof@lab.com");
+
+        result!.Status.Should().Be("rejeitado");
+        await _audit.Received(1).RegistrarAsync(
+            "prof@lab.com", "residuo.rejeitar", "Resíduos", Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task RejeitarAsync_StatusNaoSolicitado_LancaValidationException()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "em-coleta"));
+        var act = () => _sut.RejeitarAsync(1, null, "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*solicitação pendente*");
     }
 
     private static CriarResiduoCmd FakeResiduoCmd(decimal volume = 1m, string risco = "medio", string unidade = "L", int labId = 1, string descricao = "Solvente usado") =>

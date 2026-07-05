@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { apiAuth, ensureReagente, criarResiduoComClasses } from './seed';
+import { apiAuth, ensureReagente, criarResiduoComClasses, aprovarResiduo } from './seed';
 
 test('mistura de classes proibidas é bloqueada com 400', async ({ request }) => {
   const auth = await apiAuth(request);
@@ -21,6 +21,8 @@ test('MTR bloqueia agrupamento de resíduos com par proibido', async ({ request 
   const auth = await apiAuth(request);
   const r1 = await (await criarResiduoComClasses(request, auth, [1])).json();   // ácido
   const r2 = await (await criarResiduoComClasses(request, auth, [8])).json();   // cianeto
+  await aprovarResiduo(request, auth, r1.id); // RF06: aprova para chegar ao MTR
+  await aprovarResiduo(request, auth, r2.id);
   const res = await request.post('/api/mtrs', {
     headers: auth,
     data: { Gerador: 'Unifei', Transportadora: 'EcoLog', ResiduoIds: [r1.id, r2.id] },
@@ -68,6 +70,7 @@ test('downloads de rótulo PDF, MTR PDF e CSV SINIR retornam arquivos', async ({
 
   // cria um MTR para exercitar os downloads
   const r = await (await criarResiduoComClasses(request, auth, [5], { Risco: 'baixo' })).json();
+  await aprovarResiduo(request, auth, r.id); // RF06: aprova para vincular ao MTR
   const mtr = await (await request.post('/api/mtrs', {
     headers: auth, data: { Gerador: 'Unifei', Transportadora: 'EcoLog', ResiduoIds: [r.id] },
   })).json();
