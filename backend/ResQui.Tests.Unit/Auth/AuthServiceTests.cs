@@ -182,4 +182,21 @@ public class AuthServiceTests
         result.Roles.Should().Contain("Tecnico");
         await _repo.Received(1).AddToRoleAsync("u2", "Tecnico");
     }
+
+    [Theory]
+    [InlineData("Professor")]
+    [InlineData("Pesquisador")]
+    public async Task RegisterAsync_PapelNovo_Aceito(string papel)
+    {
+        _repo.CreateAsync("novo@resqui.local", "Pass@123", null, papel, "Novo")
+             .Returns("u9");
+        _repo.GetRolesAsync("u9").Returns((IList<string>)[papel]);
+
+        var result = await _sut.RegisterAsync(
+            new RegisterCmd("novo@resqui.local", "Pass@123", null, papel, "Novo"),
+            "admin@resqui.local");
+
+        result.Papel.Should().Be(papel);
+        await _repo.Received(1).AddToRoleAsync("u9", papel);
+    }
 }
