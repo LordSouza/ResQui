@@ -6,7 +6,6 @@ export function useCriarUsuario() {
   return useMutation({
     mutationFn: async (cmd) => {
       const res = await apiFetch('/api/usuarios', { method: 'POST', body: JSON.stringify(cmd) });
-      if (!res.ok) throw new Error('Erro ao criar usuário');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['usuarios'] }),

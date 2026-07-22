@@ -1,8 +1,7 @@
 import { apiFetch } from '../lib/api';
 
-async function baixar(path, filename, erro) {
+async function baixar(path, filename) {
   const res = await apiFetch(path);
-  if (!res.ok) throw new Error(erro);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -13,9 +12,9 @@ async function baixar(path, filename, erro) {
 }
 
 export function downloadSinirCsv(id, numero) {
-  return baixar(`/api/mtrs/${id}/export-sinir`, `pre-mtr-${(numero || id).toString().toLowerCase()}.csv`, 'Erro ao exportar pré-MTR');
+  return baixar(`/api/mtrs/${id}/export-sinir`, `pre-mtr-${(numero || id).toString().toLowerCase()}.csv`);
 }
 
 export function downloadMtrPdf(id, numero) {
-  return baixar(`/api/mtrs/${id}/pdf`, `${(numero || `mtr-${id}`).toString().toLowerCase()}.pdf`, 'Erro ao gerar PDF do MTR');
+  return baixar(`/api/mtrs/${id}/pdf`, `${(numero || `mtr-${id}`).toString().toLowerCase()}.pdf`);
 }

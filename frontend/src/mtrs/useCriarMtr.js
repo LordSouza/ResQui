@@ -6,7 +6,6 @@ export function useCriarMtr() {
   return useMutation({
     mutationFn: async (cmd) => {
       const res = await apiFetch('/api/mtrs', { method: 'POST', body: JSON.stringify(cmd) });
-      if (!res.ok) throw new Error('Erro ao criar MTR');
       return res.json();
     },
     onSuccess: () => {

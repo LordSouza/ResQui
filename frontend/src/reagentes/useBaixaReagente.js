@@ -9,7 +9,6 @@ export function useBaixaReagente(id) {
         method: 'POST',
         body: JSON.stringify({ Quantidade: quantidade }),
       });
-      if (!res.ok) throw new Error('Erro ao registrar baixa');
       return res.json();
     },
     onSuccess: () => {

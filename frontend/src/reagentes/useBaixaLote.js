@@ -9,7 +9,6 @@ export function useBaixaLote(reagenteId) {
         method: 'POST',
         body: JSON.stringify({ Quantidade: quantidade }),
       });
-      if (!res.ok) throw new Error('Erro ao registrar baixa do lote');
       return res.json();
     },
     onSuccess: () => {

@@ -6,7 +6,6 @@ export function useCriarLote(reagenteId) {
   return useMutation({
     mutationFn: async (cmd) => {
       const res = await apiFetch(`/api/reagentes/${reagenteId}/lotes`, { method: 'POST', body: JSON.stringify(cmd) });
-      if (!res.ok) throw new Error('Erro ao registrar lote');
       return res.json();
     },
     onSuccess: () => {

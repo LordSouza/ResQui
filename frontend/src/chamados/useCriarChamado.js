@@ -6,7 +6,6 @@ export function useCriarChamado() {
   return useMutation({
     mutationFn: async (cmd) => {
       const res = await apiFetch('/api/chamados', { method: 'POST', body: JSON.stringify(cmd) });
-      if (!res.ok) throw new Error('Erro ao criar chamado');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chamados'] }),

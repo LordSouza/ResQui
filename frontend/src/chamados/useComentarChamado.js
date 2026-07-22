@@ -9,7 +9,6 @@ export function useComentarChamado() {
         method: 'POST',
         body: JSON.stringify({ Texto: texto }),
       });
-      if (!res.ok) throw new Error('Erro ao comentar');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chamados'] }),

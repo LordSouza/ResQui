@@ -21,7 +21,6 @@ export function useResíduos(filtro = {}) {
       if (mtrId) params.mtrId = mtrId;
       if (status) params.status = status;
       const res = await apiFetch('/api/residuos', { params });
-      if (!res.ok) throw new Error('Erro ao carregar resíduos');
       const data = await res.json();
       return (Array.isArray(data) ? data : []).map(normalize);
     },

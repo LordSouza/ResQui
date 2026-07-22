@@ -10,7 +10,6 @@ export function useLaboratorios() {
     queryKey: ['laboratorios'],
     queryFn: async () => {
       const res = await apiFetch('/api/laboratorios');
-      if (!res.ok) throw new Error('Erro ao carregar laboratórios');
       const data = await res.json();
       return data.map(normalizeItem);
     },

@@ -7,7 +7,6 @@ export function useAprovarResiduo() {
   return useMutation({
     mutationFn: async (id) => {
       const res = await apiFetch(`/api/residuos/${id}/aprovar`, { method: 'PUT' });
-      if (!res.ok) throw new Error('Erro ao aprovar descarte');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['residuos'] }),

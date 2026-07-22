@@ -6,7 +6,6 @@ export function useChamados() {
     queryKey: ['chamados'],
     queryFn: async () => {
       const res = await apiFetch('/api/chamados');
-      if (!res.ok) throw new Error('Erro ao carregar chamados');
       return res.json();
     },
   });

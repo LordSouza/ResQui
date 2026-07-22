@@ -9,7 +9,6 @@ export function useAtualizarStatusChamado() {
         method: 'PUT',
         body: JSON.stringify({ Status: status }),
       });
-      if (!res.ok) throw new Error('Erro ao atualizar status');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chamados'] }),

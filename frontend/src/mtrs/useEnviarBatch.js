@@ -6,7 +6,6 @@ export function useEnviarBatch() {
   return useMutation({
     mutationFn: async () => {
       const res = await apiFetch('/api/mtrs/enviar-batch', { method: 'POST' });
-      if (!res.ok) throw new Error('Erro ao enviar lote ao SINIR');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mtrs'] }),

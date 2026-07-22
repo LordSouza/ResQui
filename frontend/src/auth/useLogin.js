@@ -18,7 +18,6 @@ export function useLogin() {
         const isUnauthorized = e.message === 'Unauthorized';
         throw new Error(isUnauthorized ? 'Credenciais inválidas' : 'Falha de conexão. Tente novamente.');
       }
-      if (!res.ok) throw new Error('Credenciais inválidas');
       return res.json();
     },
     onSuccess: (data) => {

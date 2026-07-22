@@ -5,8 +5,7 @@ export function useArquivarUsuario() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id) => {
-      const res = await apiFetch(`/api/usuarios/${id}`, { method: 'DELETE' });
-      if (!res.ok && res.status !== 404) throw new Error('Erro ao arquivar usuário');
+      await apiFetch(`/api/usuarios/${id}`, { method: 'DELETE' });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['usuarios'] }),
   });

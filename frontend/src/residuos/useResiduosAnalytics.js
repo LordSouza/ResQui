@@ -6,7 +6,6 @@ export function useResiduosAnalytics({ meses = 6 } = {}) {
     queryKey: ['residuos-analytics', { meses }],
     queryFn: async () => {
       const res = await apiFetch('/api/residuos/analytics', { params: { meses } });
-      if (!res.ok) throw new Error('Erro ao carregar analytics');
       return res.json();
     },
   });

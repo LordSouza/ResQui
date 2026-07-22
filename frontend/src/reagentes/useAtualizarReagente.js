@@ -6,7 +6,6 @@ export function useAtualizarReagente() {
   return useMutation({
     mutationFn: async ({ id, ...cmd }) => {
       const res = await apiFetch(`/api/reagentes/${id}`, { method: 'PUT', body: JSON.stringify(cmd) });
-      if (!res.ok) throw new Error('Erro ao atualizar reagente');
       return res.json();
     },
     onSuccess: (_, { id }) => {

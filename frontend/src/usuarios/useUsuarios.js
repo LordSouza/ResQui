@@ -24,7 +24,6 @@ export function useUsuarios() {
     queryKey: ['usuarios'],
     queryFn: async () => {
       const res = await apiFetch('/api/usuarios');
-      if (!res.ok) throw new Error('Erro ao carregar usuários');
       const data = await res.json();
       return data.map(normalizeItem);
     },

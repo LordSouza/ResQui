@@ -9,7 +9,6 @@ export function useGerarRelatorio() {
         method: 'POST',
         body: JSON.stringify(cmd),
       });
-      if (!res.ok) throw new Error('Erro ao gerar relatório');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['relatorios'] }),

@@ -18,7 +18,6 @@ export function useMtrs() {
     queryKey: ['mtrs'],
     queryFn: async () => {
       const res = await apiFetch('/api/mtrs');
-      if (!res.ok) throw new Error('Erro ao carregar MTRs');
       const data = await res.json();
       return data.map(normalize);
     },

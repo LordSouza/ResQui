@@ -10,7 +10,6 @@ export function useRejeitarResiduo() {
         method: 'PUT',
         body: JSON.stringify({ Motivo: motivo }),
       });
-      if (!res.ok) throw new Error('Erro ao rejeitar descarte');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['residuos'] }),

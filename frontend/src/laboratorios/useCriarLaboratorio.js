@@ -6,7 +6,6 @@ export function useCriarLaboratorio() {
   return useMutation({
     mutationFn: async (cmd) => {
       const res = await apiFetch('/api/laboratorios', { method: 'POST', body: JSON.stringify(cmd) });
-      if (!res.ok) throw new Error('Erro ao criar laboratório');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['laboratorios'] }),

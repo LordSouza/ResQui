@@ -2,7 +2,6 @@ import { apiFetch } from '../lib/api';
 
 async function baixarPdf(path, filename) {
   const res = await apiFetch(path);
-  if (!res.ok) throw new Error('Erro ao gerar rótulo');
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

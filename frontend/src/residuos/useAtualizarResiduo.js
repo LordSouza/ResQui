@@ -6,7 +6,6 @@ export function useAtualizarResiduo() {
   return useMutation({
     mutationFn: async ({ id, ...cmd }) => {
       const res = await apiFetch(`/api/residuos/${id}`, { method: 'PUT', body: JSON.stringify(cmd) });
-      if (!res.ok) throw new Error('Erro ao atualizar resíduo');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['residuos'] }),

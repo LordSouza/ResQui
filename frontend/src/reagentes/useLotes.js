@@ -7,7 +7,6 @@ export function useLotes(reagenteId) {
     enabled: !!reagenteId,
     queryFn: async () => {
       const res = await apiFetch(`/api/reagentes/${reagenteId}/lotes`);
-      if (!res.ok) throw new Error('Erro ao carregar lotes');
       const data = await res.json();
       return Array.isArray(data) ? data : [];
     },

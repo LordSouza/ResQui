@@ -6,7 +6,6 @@ export function useEnviarSinir() {
   return useMutation({
     mutationFn: async (id) => {
       const res = await apiFetch(`/api/mtrs/${id}/enviar-sinir`, { method: 'PUT' });
-      if (!res.ok) throw new Error('Erro ao enviar ao SINIR');
       return res.json();
     },
     onSuccess: (_, id) => queryClient.invalidateQueries({ queryKey: ['mtrs', id] }),

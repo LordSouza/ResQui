@@ -6,7 +6,6 @@ export function useCriarResiduo() {
   return useMutation({
     mutationFn: async (cmd) => {
       const res = await apiFetch('/api/residuos', { method: 'POST', body: JSON.stringify(cmd) });
-      if (!res.ok) throw new Error('Erro ao registrar resíduo');
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['residuos'] }),

@@ -9,7 +9,6 @@ export function useTransferirReagente(id) {
         method: 'POST',
         body: JSON.stringify({ Destino: destino }),
       });
-      if (!res.ok) throw new Error('Erro ao transferir reagente');
       return res.json();
     },
     onSuccess: () => {
