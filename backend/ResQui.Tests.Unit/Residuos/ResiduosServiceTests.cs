@@ -257,14 +257,17 @@ public class ResiduosServiceTests
     [Fact]
     public async Task AnalyticsAsync_AgregaPorMes()
     {
-        var r1 = FakeResiduo(1); r1.Volume = 10; r1.Unidade = "L"; r1.DataRegistro = new DateTime(2026, 1, 15);
-        var r2 = FakeResiduo(2); r2.Volume = 5; r2.Unidade = "L"; r2.DataRegistro = new DateTime(2026, 1, 20);
+        // data relativa: dentro da janela de 6 meses e longe das bordas (evita flakiness por DateTime.UtcNow)
+        var referencia = DateTime.UtcNow.AddMonths(-1);
+        var mesEsperado = referencia.ToString("yyyy-MM");
+        var r1 = FakeResiduo(1); r1.Volume = 10; r1.Unidade = "L"; r1.DataRegistro = referencia;
+        var r2 = FakeResiduo(2); r2.Volume = 5; r2.Unidade = "L"; r2.DataRegistro = referencia;
         _repo.GetAllAsync().Returns([r1, r2]);
         _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab A")]);
 
         var result = await _sut.AnalyticsAsync(6);
 
-        result.Mensal.Should().Contain(m => m.Mes == "2026-01" && m.Valor == 15);
+        result.Mensal.Should().Contain(m => m.Mes == mesEsperado && m.Valor == 15);
     }
 
     [Fact]
