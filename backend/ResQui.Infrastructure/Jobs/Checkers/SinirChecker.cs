@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
@@ -9,7 +10,8 @@ public class SinirChecker(
     IMtrsRepository mtrs,
     INotificacoesRepository notifs,
     IAuthRepository auth,
-    IEmailService email)
+    IEmailService email,
+    ILogger<SinirChecker> logger)
 {
     private static readonly string[] PapeisElegiveis = ["Admin", "Gestor"];
 
@@ -48,7 +50,7 @@ public class SinirChecker(
                 if (!string.IsNullOrEmpty(u.Email))
                 {
                     var prefsJson = await auth.GetNotificacaoPrefsJsonAsync(u.Id);
-                    if (PrefsHabilitadas(prefsJson, "sinir"))
+                    if (NotificacaoPrefs.Habilitada(prefsJson, "sinir", logger, u.Id))
                     {
                         var (subject, html) = NotificacaoEmailBuilder.BuildSinir(m.Numero, m.Id);
                         await email.SendAsync(u.Email, subject, html);
@@ -58,11 +60,5 @@ public class SinirChecker(
         }
 
         if (houveMudanca) await notifs.SaveChangesAsync();
-    }
-
-    private static bool PrefsHabilitadas(string json, string tipo)
-    {
-        try { var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(json); return dict?.GetValueOrDefault(tipo) ?? false; }
-        catch { return false; }
     }
 }

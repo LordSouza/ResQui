@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
@@ -8,7 +9,8 @@ public class LowStockChecker(
     IReagentesRepository reagentes,
     INotificacoesRepository notifs,
     IAuthRepository auth,
-    IEmailService email)
+    IEmailService email,
+    ILogger<LowStockChecker> logger)
 {
     private static readonly string[] PapeisElegiveis = ["Admin", "Gestor", "Tecnico"];
 
@@ -45,7 +47,7 @@ public class LowStockChecker(
                 if (!string.IsNullOrEmpty(u.Email))
                 {
                     var prefsJson = await auth.GetNotificacaoPrefsJsonAsync(u.Id);
-                    if (PrefsHabilitadas(prefsJson, "low-stock"))
+                    if (NotificacaoPrefs.Habilitada(prefsJson, "low-stock", logger, u.Id))
                     {
                         var (subject, html) = NotificacaoEmailBuilder.BuildLowStock(r.Nome, r.Id, r.Estoque, r.EstoqueMin!.Value, r.Unidade);
                         await email.SendAsync(u.Email, subject, html);
@@ -55,11 +57,5 @@ public class LowStockChecker(
         }
 
         if (houveMudanca) await notifs.SaveChangesAsync();
-    }
-
-    private static bool PrefsHabilitadas(string json, string tipo)
-    {
-        try { var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(json); return dict?.GetValueOrDefault(tipo) ?? false; }
-        catch { return false; }
     }
 }

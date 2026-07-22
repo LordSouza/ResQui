@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
@@ -16,7 +17,7 @@ public class LowStockCheckerTests
 
     private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Admin", null, "Admin", ["Admin"], false);
 
-    public LowStockCheckerTests() => _sut = new LowStockChecker(_reagentes, _notifs, _auth, _email);
+    public LowStockCheckerTests() => _sut = new LowStockChecker(_reagentes, _notifs, _auth, _email, NullLogger<LowStockChecker>.Instance);
 
     [Fact]
     public async Task RunAsync_EstoqueAbaixoMinimo_InsereNotificacao()

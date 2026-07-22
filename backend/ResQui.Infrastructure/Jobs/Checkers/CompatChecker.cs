@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ResQui.Application.Compatibilidade;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
@@ -10,7 +11,8 @@ public class CompatChecker(
     ICompatService compat,
     INotificacoesRepository notifs,
     IAuthRepository auth,
-    IEmailService email)
+    IEmailService email,
+    ILogger<CompatChecker> logger)
 {
     private static readonly string[] PapeisElegiveis = ["Admin", "Gestor"];
     private static readonly string[] Descricoes = ["Compatível", "Cautela", "Perigo", "Proibido"];
@@ -61,7 +63,7 @@ public class CompatChecker(
                     if (!string.IsNullOrEmpty(u.Email))
                     {
                         var prefsJson = await auth.GetNotificacaoPrefsJsonAsync(u.Id);
-                        if (PrefsHabilitadas(prefsJson, "compat"))
+                        if (NotificacaoPrefs.Habilitada(prefsJson, "compat", logger, u.Id))
                         {
                             var (subject, html) = NotificacaoEmailBuilder.BuildCompatLocal(grupo.Key, a.Nome, b.Nome, nivel);
                             await email.SendAsync(u.Email, subject, html);
@@ -72,11 +74,5 @@ public class CompatChecker(
         }
 
         if (houveMudanca) await notifs.SaveChangesAsync();
-    }
-
-    private static bool PrefsHabilitadas(string json, string tipo)
-    {
-        try { var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(json); return dict?.GetValueOrDefault(tipo) ?? false; }
-        catch { return false; }
     }
 }

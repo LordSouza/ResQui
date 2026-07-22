@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
@@ -16,7 +17,7 @@ public class ColetaCheckerTests
 
     private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Admin", null, "Admin", ["Admin"], false);
 
-    public ColetaCheckerTests() => _sut = new ColetaChecker(_residuos, _notifs, _auth, _email);
+    public ColetaCheckerTests() => _sut = new ColetaChecker(_residuos, _notifs, _auth, _email, NullLogger<ColetaChecker>.Instance);
 
     [Fact]
     public async Task RunAsync_ResiduoAtrasadoSemNotif_InsereParaAdminGestor()

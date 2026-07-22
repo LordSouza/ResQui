@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
@@ -18,7 +19,7 @@ public class SinirCheckerTests
     private static readonly UsuarioInfo Gestor = new("u-ges", "ges@x.com", "Gestor", null, "Gestor", ["Gestor"], false);
     private static readonly UsuarioInfo Tecnico = new("u-tec", "tec@x.com", "Tec", null, "Tecnico", ["Tecnico"], false);
 
-    public SinirCheckerTests() => _sut = new SinirChecker(_mtrs, _notifs, _auth, _email);
+    public SinirCheckerTests() => _sut = new SinirChecker(_mtrs, _notifs, _auth, _email, NullLogger<SinirChecker>.Instance);
 
     [Fact]
     public async Task RunAsync_MtrRascunhoAntigoSemNotif_InsereParaGestores()

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
@@ -8,7 +9,8 @@ public class ExpiryChecker(
     IReagentesRepository reagentes,
     INotificacoesRepository notifs,
     IAuthRepository auth,
-    IEmailService email)
+    IEmailService email,
+    ILogger<ExpiryChecker> logger)
 {
     private static readonly string[] PapeisElegiveis = ["Admin", "Gestor", "Tecnico"];
 
@@ -49,7 +51,7 @@ public class ExpiryChecker(
                 if (!string.IsNullOrEmpty(u.Email))
                 {
                     var prefsJson = await auth.GetNotificacaoPrefsJsonAsync(u.Id);
-                    if (PrefsHabilitadas(prefsJson, "expiry"))
+                    if (NotificacaoPrefs.Habilitada(prefsJson, "expiry", logger, u.Id))
                     {
                         var (subject, html) = NotificacaoEmailBuilder.BuildExpiry(r.Nome, r.Id, diasRestantes);
                         await email.SendAsync(u.Email, subject, html);
@@ -59,11 +61,5 @@ public class ExpiryChecker(
         }
 
         if (houveMudanca) await notifs.SaveChangesAsync();
-    }
-
-    private static bool PrefsHabilitadas(string json, string tipo)
-    {
-        try { var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(json); return dict?.GetValueOrDefault(tipo) ?? false; }
-        catch { return false; }
     }
 }

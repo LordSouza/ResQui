@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
@@ -8,7 +9,8 @@ public class ColetaChecker(
     IResiduosRepository residuos,
     INotificacoesRepository notifs,
     IAuthRepository auth,
-    IEmailService email)
+    IEmailService email,
+    ILogger<ColetaChecker> logger)
 {
     private static readonly string[] PapeisElegiveis = ["Admin", "Gestor"];
 
@@ -47,7 +49,7 @@ public class ColetaChecker(
                 if (!string.IsNullOrEmpty(u.Email))
                 {
                     var prefsJson = await auth.GetNotificacaoPrefsJsonAsync(u.Id);
-                    if (PrefsHabilitadas(prefsJson, "coleta"))
+                    if (NotificacaoPrefs.Habilitada(prefsJson, "coleta", logger, u.Id))
                     {
                         var (subject, html) = NotificacaoEmailBuilder.BuildColeta(1);
                         await email.SendAsync(u.Email, subject, html);
@@ -57,11 +59,5 @@ public class ColetaChecker(
         }
 
         if (houveMudanca) await notifs.SaveChangesAsync();
-    }
-
-    private static bool PrefsHabilitadas(string json, string tipo)
-    {
-        try { var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(json); return dict?.GetValueOrDefault(tipo) ?? false; }
-        catch { return false; }
     }
 }

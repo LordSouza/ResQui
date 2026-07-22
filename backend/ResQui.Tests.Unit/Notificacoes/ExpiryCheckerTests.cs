@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
@@ -18,7 +19,7 @@ public class ExpiryCheckerTests
     private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Admin", null, "Admin", ["Admin"], false);
     private static readonly UsuarioInfo Viewer = new("u-view", "view@x.com", "View", null, "Visualizador", ["Visualizador"], false);
 
-    public ExpiryCheckerTests() => _sut = new ExpiryChecker(_reagentes, _notifs, _auth, _email);
+    public ExpiryCheckerTests() => _sut = new ExpiryChecker(_reagentes, _notifs, _auth, _email, NullLogger<ExpiryChecker>.Instance);
 
     [Fact]
     public async Task RunAsync_ReagenteVencendoSemNotifPrevia_InsereNotificacao()
