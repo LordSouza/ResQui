@@ -55,3 +55,6 @@ frontend/test-results/
 uploads/
 .thumbnail
 frontend/test-results-e2e/
+
+# Claude Code agent worktrees (não versionar)
+.claude/worktrees/
