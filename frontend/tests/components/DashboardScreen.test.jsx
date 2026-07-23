@@ -75,5 +75,11 @@ describe('DashboardScreen', () => {
     expect(screen.queryByText(/Rotulagem GHS/i)).toBeNull();
     // volume real dos aguardando: 10 L + 5000 mL = 15 L
     expect(await screen.findByText(/\/ 15 L/)).toBeInTheDocument();
+    // deltas fake e semana fixa removidos
+    expect(screen.queryByText(/nos últimos 7d/)).toBeNull();
+    expect(screen.queryByText(/dias parados/)).toBeNull();
+    expect(screen.queryByText(/p\.p\. vs trimestre/)).toBeNull();
+    expect(screen.queryByText(/semana de 17/)).toBeNull();
+    expect(screen.queryByText(/\/ 56 L/)).toBeNull();
   });
 });
