@@ -4,6 +4,7 @@ import { ROLES } from '../data';
 import Modal from './Modal';
 import ConfirmArquivarUsuario from './ConfirmArquivarUsuario';
 import { useCriarUsuario } from '../usuarios/useCriarUsuario';
+import { useExcluirUsuario } from '../usuarios/useExcluirUsuario';
 
 const papelBadge = (p) => {
   const r = ROLES[p];
@@ -85,22 +86,25 @@ export { ConfirmArquivarUsuario };
 
 export function ConfirmExcluirUsuario({ usuario, onClose, dispatch }) {
   const [conf, setConf] = useState('');
+  const mutation = useExcluirUsuario();
   const podeExcluir = conf.trim().toUpperCase() === 'EXCLUIR';
   const submit = () => {
     if (!podeExcluir) return;
-    dispatch({type: 'refresh'});
-    onClose();
+    mutation.mutate(usuario.id, {
+      onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); },
+    });
   };
   return (
     <Modal title="Excluir definitivamente" onClose={onClose} width={480}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-sm" disabled={!podeExcluir}
+        <button type="button" className="btn btn-sm" disabled={!podeExcluir || mutation.isPending}
           style={{background: podeExcluir ? 'var(--red)' : 'var(--surface-2)', color: podeExcluir ? '#fff' : 'var(--text-3)', borderColor: podeExcluir ? 'var(--red)' : 'var(--border)'}}
           onClick={submit}>
-          <Icon name="trash" size={12}/> Excluir usuário
+          <Icon name="trash" size={12}/> {mutation.isPending ? 'Excluindo…' : 'Excluir usuário'}
         </button>
       </>}>
+      {mutation.isError && <div className="login-err" style={{ marginBottom: 12 }}>{mutation.error.message}</div>}
       <div className="row" style={{gap: 12, marginBottom: 14, alignItems: 'flex-start'}}>
         <span className="avatar avatar-lg" style={{background: usuario.cor}}>{usuario.iniciais}</span>
         <div>
