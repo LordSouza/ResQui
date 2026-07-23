@@ -49,13 +49,15 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback((profile) => setUser(profile), []);
+
   useEffect(() => {
     window.addEventListener('auth:unauthorized', logout);
     return () => window.removeEventListener('auth:unauthorized', logout);
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
