@@ -144,6 +144,32 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         return new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula, user.Papel, user.Roles, user.TwoFactorEnabled);
     }
 
+    public async Task<UserProfileDto> AtualizarPerfilAsync(string userId, AtualizarPerfilCmd cmd, string requesterEmail)
+    {
+        if (string.IsNullOrWhiteSpace(cmd.Nome))
+            throw new ValidationException("Nome é obrigatório.");
+        if (string.IsNullOrWhiteSpace(cmd.Email) || !cmd.Email.Contains('@'))
+            throw new ValidationException("E-mail inválido.");
+
+        var atual = await repo.FindByIdAsync(userId)
+            ?? throw new ValidationException("Usuário não encontrado.");
+
+        var nome = cmd.Nome.Trim();
+        var email = cmd.Email.Trim();
+
+        if (!string.Equals(atual.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            var existente = await repo.FindByEmailAsync(email);
+            if (existente is not null && existente.Id != userId)
+                throw new ValidationException("E-mail já em uso.");
+        }
+
+        await repo.UpdateProfileAsync(userId, nome, email);
+        await auditoria.RegistrarAsync(requesterEmail, "user.perfil-atualizar", "Conta",
+            "Atualizou perfil (nome/e-mail)", RiscoAuditoria.Low);
+        return (await GetMeAsync(userId))!;
+    }
+
     private string GenerateToken(UsuarioInfo user, DateTime expireAt, string jti)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key));

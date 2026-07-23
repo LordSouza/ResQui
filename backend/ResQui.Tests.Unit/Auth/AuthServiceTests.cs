@@ -199,4 +199,43 @@ public class AuthServiceTests
         result.Papel.Should().Be(papel);
         await _repo.Received(1).AddToRoleAsync("u9", papel);
     }
+
+    [Fact]
+    public async Task AtualizarPerfilAsync_NomeVazio_LancaValidation()
+    {
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("  ", "novo@x.com"), "req@x.com"));
+        await _repo.DidNotReceive().UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task AtualizarPerfilAsync_EmailSemArroba_LancaValidation()
+    {
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana", "invalido"), "req@x.com"));
+        await _repo.DidNotReceive().UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task AtualizarPerfilAsync_EmailEmUsoPorOutro_LancaValidation()
+    {
+        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana", null, "Tecnico", new List<string>(), false));
+        _repo.FindByEmailAsync("outro@x.com").Returns(new UsuarioInfo("u2", "outro@x.com", "Bea", null, "Tecnico", new List<string>(), false));
+
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana", "outro@x.com"), "req@x.com"));
+        await _repo.DidNotReceive().UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task AtualizarPerfilAsync_Valido_PersisteEAudita()
+    {
+        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana", null, "Tecnico", new List<string> { "Tecnico" }, false));
+
+        await _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana Souza", "ana@x.com"), "req@x.com");
+
+        await _repo.Received(1).UpdateProfileAsync("u1", "Ana Souza", "ana@x.com");
+        await _audit.Received(1).RegistrarAsync("req@x.com", "user.perfil-atualizar",
+            Arg.Any<string>(), Arg.Any<string>(), RiscoAuditoria.Low);
+    }
 }
