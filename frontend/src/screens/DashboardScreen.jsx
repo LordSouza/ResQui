@@ -1,5 +1,5 @@
 import { Icon, Tag, SectionTitle, riscoBadge } from '../components';
-import { exportCsv } from '../utils';
+import { exportCsv, litrosEquivalentes } from '../utils';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useResíduos } from '../residuos/useResíduos';
 import { useMtrs } from '../mtrs/useMtrs';
@@ -19,13 +19,17 @@ export function DashboardScreen({ state, dispatch }) {
   const expirando = expirData?.total;
   const aguardando = residuosData.filter(r => r.status === 'aguardando-coleta').length;
   const mtrPendentes = mtrsData.filter(m => m.status === 'pendente-sinir').length;
+  const volumeAguardando = Math.round(
+    residuosData.filter(r => r.status === 'aguardando-coleta')
+      .reduce((s, r) => s + litrosEquivalentes(r.volume, r.unidade), 0)
+  );
 
   return (
     <>
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-sub">Visão consolidada · UNIFEI · IMC · Laboratórios de Química · semana de 17–23/nov/2025</p>
+          <p className="page-sub">Visão consolidada · UNIFEI · IMC · Laboratórios de Química</p>
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => {
@@ -57,7 +61,6 @@ export function DashboardScreen({ state, dispatch }) {
           <div className="kpi-stripe"/>
           <div className="label">Itens em inventário</div>
           <div className="value tnum">{totalReagentes ?? '…'}<span className="unit">itens</span></div>
-          <div className="delta up">▲ 12 nos últimos 7d</div>
         </div>
         <div className={`kpi ${expirando > 0 ? 'warn' : ''}`}>
           <div className="kpi-stripe"/>
@@ -68,14 +71,12 @@ export function DashboardScreen({ state, dispatch }) {
         <div className={`kpi ${aguardando > 4 ? 'warn' : ''}`}>
           <div className="kpi-stripe"/>
           <div className="label">Resíduos aguardando coleta</div>
-          <div className="value tnum">{aguardando}<span className="unit">/ 56 L</span></div>
-          <div className="delta down">há até 8 dias parados</div>
+          <div className="value tnum">{aguardando}<span className="unit">/ {volumeAguardando} L</span></div>
         </div>
-        <div className="kpi ok">
+        <div className={`kpi ${mtrPendentes > 0 ? 'warn' : ''}`}>
           <div className="kpi-stripe"/>
-          <div className="label">Conformidade SINIR (90d)</div>
-          <div className="value tnum">98<span className="unit">%</span></div>
-          <div className="delta up">▲ 4 p.p. vs trimestre ant.</div>
+          <div className="label">MTRs pendentes SINIR</div>
+          <div className="value tnum">{mtrPendentes}<span className="unit">MTRs</span></div>
         </div>
       </div>
 
@@ -158,29 +159,6 @@ export function DashboardScreen({ state, dispatch }) {
                   <div style={{flex: 1}}>
                     <div style={{fontSize: 12.5, lineHeight: 1.35}}>{n.mensagem}</div>
                     <div className="mono small muted" style={{marginTop: 2}}>{n.criada_em?.slice(0, 10)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card">
-            <SectionTitle title="Conformidade" sub="Plano de Gerenciamento de Resíduos"/>
-            <div className="card-body">
-              {[
-                ['Rotulagem GHS (ABNT NBR 14725)', 96, 'green'],
-                ['Segregação na fonte', 88, 'green'],
-                ['Documentação MTR/SINIR', 92, 'green'],
-                ['Treinamento de pessoal', 71, 'amber'],
-                ['Inventário atualizado', 99, 'green'],
-              ].map(([label, val, cor]) => (
-                <div key={label} style={{marginBottom: 10}}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3}}>
-                    <span>{label}</span>
-                    <span className="mono tnum">{val}%</span>
-                  </div>
-                  <div className="bar-bg" style={{height: 6, background: 'var(--surface-2)', borderRadius: 3}}>
-                    <div style={{width: `${val}%`, height: '100%', background: `var(--${cor})`, borderRadius: 3}}/>
                   </div>
                 </div>
               ))}
