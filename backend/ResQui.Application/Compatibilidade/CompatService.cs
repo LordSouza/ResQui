@@ -1,3 +1,4 @@
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
 
@@ -57,6 +58,11 @@ public class CompatService(
 
     public async Task<CompatOverrideDto> SalvarOverrideAsync(int classeA, int classeB, SalvarOverrideCmd cmd)
     {
+        if (classeA is < 1 or > 12 || classeB is < 1 or > 12)
+            throw new ValidationException("Classes de reatividade devem estar entre 1 e 12.");
+        if (cmd.Nivel is < 0 or > 3)
+            throw new ValidationException("Nível de compatibilidade deve estar entre 0 (Compatível) e 3 (Proibido).");
+
         var entry = new CompatOverride
         {
             ClasseA = classeA,

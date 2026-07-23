@@ -1,6 +1,7 @@
 // backend/ResQui.Tests.Unit/Compatibilidade/CompatServiceTests.cs
 using FluentAssertions;
 using NSubstitute;
+using ResQui.Application.Common;
 using ResQui.Application.Compatibilidade;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
@@ -110,6 +111,34 @@ public class CompatServiceTests
             e.ClasseA == 1 && e.ClasseB == 3 && e.Nivel == 2 && e.Motivo == "Nova regra"));
         result.ClasseA.Should().Be(1);
         result.Nivel.Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(4)]
+    public async Task SalvarOverrideAsync_NivelForaDaFaixa_LancaValidationException(int nivel)
+    {
+        var cmd = new SalvarOverrideCmd(nivel, "x", "Carlos");
+
+        var act = () => _sut.SalvarOverrideAsync(1, 3, cmd);
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*ível*");
+        await _overridesRepo.DidNotReceive().UpsertAsync(Arg.Any<CompatOverride>());
+    }
+
+    [Theory]
+    [InlineData(0, 3)]
+    [InlineData(13, 3)]
+    [InlineData(1, 0)]
+    [InlineData(1, 13)]
+    public async Task SalvarOverrideAsync_ClasseForaDaFaixa_LancaValidationException(int classeA, int classeB)
+    {
+        var cmd = new SalvarOverrideCmd(2, "x", "Carlos");
+
+        var act = () => _sut.SalvarOverrideAsync(classeA, classeB, cmd);
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*lasse*");
+        await _overridesRepo.DidNotReceive().UpsertAsync(Arg.Any<CompatOverride>());
     }
 
     // --- RemoverOverrideAsync ---
