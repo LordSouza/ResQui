@@ -1,4 +1,6 @@
+using System.Linq;
 using Microsoft.AspNetCore.Identity;
+using ResQui.Application.Common;
 using ResQui.Domain.Interfaces;
 using ResQui.Infrastructure.Identity;
 
@@ -78,6 +80,21 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
     {
         var u = await userManager.FindByIdAsync(userId);
         if (u is not null) { u.Arquivado = true; await userManager.UpdateAsync(u); }
+    }
+
+    public async Task UpdateProfileAsync(string userId, string nome, string email)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return;
+        u.Nome = nome;
+        if (!string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            u.Email = email;
+            u.UserName = email;
+        }
+        var result = await userManager.UpdateAsync(u);
+        if (!result.Succeeded)
+            throw new ValidationException(string.Join("; ", result.Errors.Select(e => e.Description)));
     }
 
     public async Task<string> GetNotificacaoPrefsJsonAsync(string userId)

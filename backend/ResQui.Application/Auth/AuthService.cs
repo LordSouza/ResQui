@@ -144,6 +144,18 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         return new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula, user.Papel, user.Roles, user.TwoFactorEnabled);
     }
 
+    public async Task<UserProfileDto> AtualizarPerfilAsync(string userId, AtualizarPerfilCmd cmd, string requesterEmail)
+    {
+        await repo.UpdateProfileAsync(userId, cmd.Nome, cmd.Email);
+        var user = await repo.FindByIdAsync(userId);
+        if (user is null)
+            throw new ValidationException("Usuário não encontrado após atualização.");
+        var roles = await repo.GetRolesAsync(userId);
+        await auditoria.RegistrarAsync(requesterEmail, "user.atualizar-perfil", "Auth",
+            $"Atualizou o perfil", RiscoAuditoria.Low);
+        return new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula, user.Papel, roles, user.TwoFactorEnabled);
+    }
+
     private string GenerateToken(UsuarioInfo user, DateTime expireAt, string jti)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key));
