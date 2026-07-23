@@ -32,6 +32,7 @@ describe('FormNovoReagente', () => {
       }
       if (String(url).startsWith('/api/usuarios')) {
         return Promise.resolve({ ok: true, status: 200, json: async () => [
+          { nome: 'Zara Nunes', email: 'zara@x.com', papel: 'Tecnico', arquivado: false },
           { nome: 'Ana Lima', email: 'ana@x.com', papel: 'Gestor', arquivado: false },
           { nome: 'Zé Arquivado', email: 'ze@x.com', papel: 'Tecnico', arquivado: true },
         ] });
@@ -91,5 +92,16 @@ describe('FormNovoReagente', () => {
     expect(await screen.findByRole('option', { name: 'Ana Lima' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Profa. Ana Lima' })).toBeNull();
     expect(screen.queryByRole('option', { name: 'Zé Arquivado' })).toBeNull();
+  });
+
+  it('ordena os responsáveis por nome (não pela ordem de chegada da API)', async () => {
+    render(<FormNovoReagente onClose={onClose} dispatch={dispatch} />, { wrapper });
+    const select = await screen.findByLabelText('Responsável');
+    await waitFor(() => expect(select.options.length).toBeGreaterThan(1));
+    const nomes = Array.from(select.options).map(o => o.textContent);
+    // fixture chega como Zara, Ana (+ Zé Arquivado, filtrado); ordenado deve ser Ana antes de Zara
+    expect(nomes.indexOf('Ana Lima')).toBeGreaterThan(-1);
+    expect(nomes.indexOf('Zara Nunes')).toBeGreaterThan(-1);
+    expect(nomes.indexOf('Ana Lima')).toBeLessThan(nomes.indexOf('Zara Nunes'));
   });
 });
