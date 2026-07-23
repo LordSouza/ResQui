@@ -4,6 +4,8 @@ import { useState, useEffect, useReducer, useRef } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { useSessoes } from './auth/useSeguranca';
 import { useNotificacoes } from './notificacoes/useNotificacoes';
+import { useResíduos } from './residuos/useResíduos';
+import { useMtrs } from './mtrs/useMtrs';
 import { useMarcarLida } from './notificacoes/useMarcarLida';
 import { useMarcarTodasLidas } from './notificacoes/useMarcarTodasLidas';
 import { pgrsTs, exportCsv, iniciaisUsuario } from './utils';
@@ -39,8 +41,8 @@ const NAV = [
   { key: 'laboratorios', label: 'Laboratórios', icon: 'location' },
   { key: 'inventario', label: 'Inventário', icon: 'flask' },
   { key: 'compat', label: 'Compatibilidade', icon: 'shield' },
-  { key: 'residuos', label: 'Resíduos', icon: 'trash', badge: 6 },
-  { key: 'mtr', label: 'Pré-MTR / SINIR', icon: 'truck', badge: 1 },
+  { key: 'residuos', label: 'Resíduos', icon: 'trash' },
+  { key: 'mtr', label: 'Pré-MTR / SINIR', icon: 'truck' },
   { key: 'auditoria', label: 'Auditoria', icon: 'audit' },
   { key: 'relatorios', label: 'Relatórios · PGRS', icon: 'file_chart' },
   { key: 'usuarios', label: 'Usuários', icon: 'clipboard', section: 'sistema' },
@@ -286,6 +288,12 @@ const notifFootBtn = {
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { user, logout } = useAuth();
+  const { data: residuosNav = [] } = useResíduos();
+  const { data: mtrsNav = [] } = useMtrs();
+  const navBadges = {
+    residuos: residuosNav.filter(r => r.status === 'aguardando-coleta').length,
+    mtr: mtrsNav.filter(m => m.status === 'pendente-sinir').length,
+  };
 
   // limpar flash após animação
   useEffect(() => {
@@ -336,7 +344,7 @@ export default function App() {
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
               {n.label}
-              {n.badge && <span className="badge-count">{n.badge}</span>}
+              {navBadges[n.key] > 0 && <span className="badge-count">{navBadges[n.key]}</span>}
             </button>
           ))}
         </nav>
@@ -348,7 +356,7 @@ export default function App() {
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
               {n.label}
-              {n.badge && <span className="badge-count">{n.badge}</span>}
+              {navBadges[n.key] > 0 && <span className="badge-count">{navBadges[n.key]}</span>}
             </button>
           ))}
         </nav>
