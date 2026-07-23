@@ -77,8 +77,7 @@ public class UsuariosServiceTests
     [Fact]
     public async Task ExcluirAsync_UsuarioExistente_HardDeletaERegistraAuditoria()
     {
-        _repo.FindByIdAsync("user-1").Returns(FakeUser());
-        _repo.HardDeleteAsync(Arg.Any<string>()).Returns(Task.CompletedTask);
+        _repo.HardDeleteAsync("user-1").Returns(true);
 
         await _sut.ExcluirAsync("user-1", "admin-id", "admin@lab.com");
 
@@ -89,13 +88,13 @@ public class UsuariosServiceTests
     }
 
     [Fact]
-    public async Task ExcluirAsync_UsuarioInexistente_NaoHardDeleta()
+    public async Task ExcluirAsync_UsuarioInexistente_NaoAuditaSeHardDeleteRetornaFalse()
     {
-        _repo.FindByIdAsync("user-999").Returns((UsuarioInfo?)null);
+        _repo.HardDeleteAsync("user-999").Returns(false);
 
         await _sut.ExcluirAsync("user-999", "admin-id", "admin@lab.com");
 
-        await _repo.DidNotReceive().HardDeleteAsync(Arg.Any<string>());
+        await _repo.Received(1).HardDeleteAsync("user-999");
         await _audit.DidNotReceive().RegistrarAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
@@ -104,12 +103,26 @@ public class UsuariosServiceTests
     [Fact]
     public async Task ExcluirAsync_Autoexclusao_LancaValidationException()
     {
-        _repo.FindByIdAsync("user-1").Returns(FakeUser());
-
         var act = async () => await _sut.ExcluirAsync("user-1", "user-1", "ana@lab.com");
 
         await act.Should().ThrowAsync<ValidationException>()
             .WithMessage("*própria conta*");
         await _repo.DidNotReceive().HardDeleteAsync(Arg.Any<string>());
+        await _audit.DidNotReceive().RegistrarAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task ExcluirAsync_UsuarioArquivado_HardDeletaERegistraAuditoria()
+    {
+        _repo.HardDeleteAsync("user-arq").Returns(true);
+
+        await _sut.ExcluirAsync("user-arq", "admin-id", "admin@lab.com");
+
+        await _repo.Received(1).HardDeleteAsync("user-arq");
+        await _audit.Received(1).RegistrarAsync(
+            "admin@lab.com", "user.excluir", "Usuários",
+            Arg.Any<string>(), RiscoAuditoria.High);
     }
 }

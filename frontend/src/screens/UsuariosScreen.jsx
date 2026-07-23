@@ -77,7 +77,7 @@ export function PermissoesDrawer({ usuario, onClose, dispatch }) {
             <div className="drawer-section-h">
               <div>
                 <h4>Papel</h4>
-                <div className="small muted">Define o conjunto padrão de permissões. Você pode customizar abaixo.</div>
+                <div className="small muted">Define o conjunto de permissões concedidas pelo papel.</div>
               </div>
             </div>
             <div className="role-grid">

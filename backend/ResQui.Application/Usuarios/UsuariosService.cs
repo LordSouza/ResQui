@@ -40,10 +40,9 @@ public class UsuariosService(IAuthRepository repo, IAuditoriaService auditoria) 
 
     public async Task ExcluirAsync(string id, string requesterId, string usuarioEmail)
     {
-        if (await repo.FindByIdAsync(id) is null) return;
         if (id == requesterId)
             throw new ValidationException("Você não pode excluir a própria conta.");
-        await repo.HardDeleteAsync(id);
+        if (!await repo.HardDeleteAsync(id)) return;
         await auditoria.RegistrarAsync(usuarioEmail, "user.excluir", "Usuários",
             $"Excluiu definitivamente o usuário {id}", RiscoAuditoria.High);
     }
