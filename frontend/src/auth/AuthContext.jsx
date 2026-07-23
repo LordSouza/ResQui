@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { apiFetch } from '../lib/api';
 
 const TOKEN_KEY = 'resqui_token';
 
@@ -26,6 +27,14 @@ export function AuthProvider({ children }) {
     }
     setToken(stored);
     setUser({ id: payload.sub, email: payload.email, papel: payload.papel });
+
+    // hidrata o perfil completo (nome, matrícula, roles, 2FA) — o JWT só traz id/email/papel
+    let cancelled = false;
+    apiFetch('/api/auth/me')
+      .then(res => res.json())
+      .then(profile => { if (!cancelled) setUser(profile); })
+      .catch(() => { /* offline/erro não-401: mantém o básico do JWT */ });
+    return () => { cancelled = true; };
   }, []);
 
   const login = useCallback((tokenStr, userDto) => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { AuthProvider, useAuth } from '../../src/auth/AuthContext';
 
 // Gera um JWT fake com payload arbitrário
@@ -10,6 +10,7 @@ function makeToken(payload) {
 const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
 
 describe('AuthContext', () => {
+  let mockFetch;
   beforeEach(() => {
     vi.stubGlobal('localStorage', {
       data: {},
@@ -18,6 +19,8 @@ describe('AuthContext', () => {
       removeItem(key) { delete this.data[key]; },
       clear() { this.data = {}; },
     });
+    mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
+    vi.stubGlobal('fetch', mockFetch);
   });
 
   afterEach(() => {
@@ -30,14 +33,28 @@ describe('AuthContext', () => {
     expect(result.current.token).toBeNull();
   });
 
-  it('restores session from valid (non-expired) token in localStorage on mount', () => {
+  it('hidrata o user completo via /api/auth/me no mount com token válido', async () => {
     const exp = Math.floor(Date.now() / 1000) + 3600;
     const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Admin', exp });
     localStorage.setItem('resqui_token', token);
+    const profile = { id: 'u1', email: 'admin@test.com', nome: 'Admin Real', matricula: '123', papel: 'Admin', roles: ['Admin'], twoFactorEnabled: true };
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => profile });
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
-    expect(result.current.user).toEqual({ id: 'u1', email: 'admin@test.com', papel: 'Admin' });
+    await waitFor(() => expect(result.current.user).toEqual(profile));
+    expect(result.current.token).toBe(token);
+  });
+
+  it('mantém o user básico do JWT quando /api/auth/me falha (offline)', async () => {
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Admin', exp });
+    localStorage.setItem('resqui_token', token);
+    mockFetch.mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.user).toEqual({ id: 'u1', email: 'admin@test.com', papel: 'Admin' }));
     expect(result.current.token).toBe(token);
   });
 
