@@ -256,4 +256,18 @@ public class AuthServiceTests
         result.Nome.Should().Be("Ana Souza");
         result.Email.Should().Be("ana@x.com");
     }
+
+    [Fact]
+    public async Task AtualizarPerfilAsync_EmailMudouEDisponivel_PersisteComNovoEmail()
+    {
+        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana", null, "Tecnico", new List<string> { "Tecnico" }, false));
+        _repo.FindByEmailAsync("nova@x.com").Returns((UsuarioInfo?)null);
+
+        await _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana", "nova@x.com"), "req@x.com");
+
+        await _repo.Received(1).UpdateProfileAsync("u1", "Ana", "nova@x.com");
+        await _repo.Received().FindByEmailAsync("nova@x.com");
+        await _audit.Received(1).RegistrarAsync("req@x.com", "user.perfil-atualizar",
+            "Conta", Arg.Any<string>(), RiscoAuditoria.Low);
+    }
 }
