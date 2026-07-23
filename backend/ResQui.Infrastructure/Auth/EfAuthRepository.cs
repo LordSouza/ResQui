@@ -82,6 +82,15 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         if (u is not null) { u.Arquivado = true; await userManager.UpdateAsync(u); }
     }
 
+    public async Task HardDeleteAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return;
+        var result = await userManager.DeleteAsync(u);
+        if (!result.Succeeded)
+            throw new ValidationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+    }
+
     public async Task UpdateProfileAsync(string userId, string nome, string email)
     {
         var u = await userManager.FindByIdAsync(userId);

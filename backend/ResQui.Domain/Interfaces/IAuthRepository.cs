@@ -22,6 +22,7 @@ public interface IAuthRepository
     Task<IEnumerable<UsuarioInfo>> GetAllAsync();
     Task UpdateRoleAsync(string userId, string newRole);
     Task SoftDeleteAsync(string userId);
+    Task HardDeleteAsync(string userId);
     Task UpdateProfileAsync(string userId, string nome, string email);
     Task<string> GetNotificacaoPrefsJsonAsync(string userId);
     Task SaveNotificacaoPrefsJsonAsync(string userId, string json);
