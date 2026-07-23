@@ -41,7 +41,7 @@ export function FormPerfil({ onClose }) {
     <Modal title="Perfil" sub="Dados da conta" onClose={onClose} width={600}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={salvar} disabled={mutation.isPending}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={salvar} disabled={mutation.isPending || !podeSalvar}>
           <Icon name="check" size={12}/> {mutation.isPending ? 'Salvando…' : 'Salvar'}
         </button>
       </>}>
