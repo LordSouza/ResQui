@@ -33,6 +33,15 @@ public static class Endpoints
             return Results.NoContent();
         });
 
+        group.MapDelete("/{id}/definitivo", async (string id, IUsuariosService svc, ClaimsPrincipal user) =>
+        {
+            var requesterId = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                           ?? user.FindFirstValue("sub") ?? "";
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            await svc.ExcluirAsync(id, requesterId, email);
+            return Results.NoContent();
+        });
+
         return group;
     }
 }
