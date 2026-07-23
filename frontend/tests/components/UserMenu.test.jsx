@@ -33,6 +33,7 @@ describe('UserMenu — identidade real', () => {
     expect(screen.getAllByText('Ana Lima').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Gestor').length).toBeGreaterThan(0);
     expect(screen.getByText('2FA ativo')).toBeInTheDocument();
+    expect(await screen.findByText('2 dispositivos')).toBeInTheDocument();
     expect(screen.queryByText('IMC')).toBeNull();
   });
 
