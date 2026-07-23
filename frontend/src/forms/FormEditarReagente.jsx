@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import Modal from './Modal';
 import { useAtualizarReagente } from '../reagentes/useAtualizarReagente';
+import { useLocais } from '../laboratorios/useLocais';
+import { useUsuarios } from '../usuarios/useUsuarios';
 
 export function FormEditarReagente({ reagente, onClose, dispatch }) {
   const [f, setF] = useState({
@@ -12,6 +14,13 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
     Validade: reagente.validade ?? '',
   });
   const mutation = useAtualizarReagente();
+  const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
+  const { data: usuarios = [] } = useUsuarios();
+  const responsaveis = usuarios.filter(u => u.status === 'ativo').sort((a, b) => a.nome.localeCompare(b.nome));
+  const respNomes = responsaveis.map(u => u.nome);
+  // preserva valor legado (fora da lista derivada) como opção selecionável
+  const localOptions = f.Local && !locais.includes(f.Local) ? [f.Local, ...locais] : locais;
+  const respOptions = f.Responsavel && !respNomes.includes(f.Responsavel) ? [f.Responsavel, ...respNomes] : respNomes;
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
@@ -72,11 +81,17 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
       <div className="form-row">
         <div className="field">
           <label htmlFor="edit-local">Localização</label>
-          <input id="edit-local" aria-label="Localização do reagente" value={f.Local} onChange={e => upd('Local', e.target.value)}/>
+          <select id="edit-local" aria-label="Localização do reagente" value={f.Local} onChange={e => upd('Local', e.target.value)} disabled={locaisPending}>
+            <option value="">{locaisPending ? 'Carregando…' : locaisError ? 'Erro ao carregar' : 'Selecione…'}</option>
+            {localOptions.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
         </div>
         <div className="field">
           <label htmlFor="edit-responsavel">Responsável</label>
-          <input id="edit-responsavel" aria-label="Responsável pelo reagente" value={f.Responsavel} onChange={e => upd('Responsavel', e.target.value)}/>
+          <select id="edit-responsavel" aria-label="Responsável pelo reagente" value={f.Responsavel} onChange={e => upd('Responsavel', e.target.value)}>
+            <option value="">Selecione…</option>
+            {respOptions.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
         </div>
       </div>
       <div className="form-row">
