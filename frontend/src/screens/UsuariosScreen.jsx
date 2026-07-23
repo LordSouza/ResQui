@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useReducer } from 'react';
 import { Icon, Badge, Tag } from '../components';
-import { PERMISSION_GROUPS, ALL_PERMS, ROLES } from '../data';
+import { PERMISSION_GROUPS, ROLES } from '../data';
 import { exportCsv } from '../utils';
 import { useUsuarios } from '../usuarios/useUsuarios';
 import { useAlterarPapel } from '../usuarios/useAlterarPapel';
@@ -20,60 +20,26 @@ const statusUsuarioBadge = (s) => {
   return <Badge kind="gray">{s}</Badge>;
 };
 
-const effectivePerms = (u) => u.perms || (ROLES[u.papel]?.perms ?? []);
-
 // ============== Drawer de permissões ==============
 
 function drawerReducer(state, action) {
   switch (action.type) {
-    case 'setPapel': {
-      const newPerms = !state.custom ? new Set(ROLES[action.papel]?.perms ?? []) : state.perms;
-      return { ...state, papel: action.papel, perms: newPerms, dirty: true };
-    }
-    case 'togglePerm': {
-      const n = new Set(state.perms);
-      if (n.has(action.key)) n.delete(action.key); else n.add(action.key);
-      return { ...state, perms: n, custom: true, dirty: true };
-    }
-    case 'toggleGroup': {
-      const n = new Set(state.perms);
-      action.group.items.forEach(([k]) => action.on ? n.add(k) : n.delete(k));
-      return { ...state, perms: n, custom: true, dirty: true };
-    }
-    case 'resetParaPapel':
-      return { ...state, perms: new Set(ROLES[state.papel]?.perms ?? []), custom: false, dirty: true };
-    case 'toggleLab': {
-      const { labs } = state;
-      const newLabs = labs.includes('*') ? [action.id]
-        : labs.includes(action.id) ? labs.filter(x => x !== action.id)
-        : [...labs, action.id];
-      return { ...state, labs: newLabs, dirty: true };
-    }
-    case 'setAllLabs':
-      return { ...state, labs: action.all ? ['*'] : [], dirty: true };
+    case 'setPapel':
+      return { ...state, papel: action.papel, dirty: true };
     default:
       return state;
   }
 }
 
-function PermissoesDrawer({ usuario, onClose, dispatch }) {
+export function PermissoesDrawer({ usuario, onClose, dispatch }) {
   const alterarPapel = useAlterarPapel();
   const [drawerState, drawerDispatch] = useReducer(drawerReducer, null, () => ({
     papel: usuario.papel,
-    labs: usuario.labs ?? [],
-    perms: new Set(effectivePerms(usuario)),
-    custom: !!usuario.perms,
     dirty: false,
   }));
-  const { papel, labs, perms, custom, dirty } = drawerState;
+  const { papel, dirty } = drawerState;
 
-  // Quando papel muda, recarrega permissões do papel (a menos que esteja em modo custom)
   const onPapelChange = (p) => drawerDispatch({ type: 'setPapel', papel: p });
-  const toggle = (k) => drawerDispatch({ type: 'togglePerm', key: k });
-  const toggleGroup = (group, on) => drawerDispatch({ type: 'toggleGroup', group, on });
-  const resetParaPapel = () => drawerDispatch({ type: 'resetParaPapel' });
-  const toggleLab = (id) => drawerDispatch({ type: 'toggleLab', id });
-  const setAllLabs = (all) => drawerDispatch({ type: 'setAllLabs', all });
 
   const salvar = () => {
     alterarPapel.mutate(
@@ -86,13 +52,6 @@ function PermissoesDrawer({ usuario, onClose, dispatch }) {
       }
     );
   };
-
-  const totalPerms = perms.size;
-  const papelPerms = new Set(ROLES[papel]?.perms ?? []);
-  const divergente = custom && (
-    Array.from(perms).some(p => !papelPerms.has(p)) ||
-    Array.from(papelPerms).some(p => !perms.has(p))
-  );
 
   return (
     <button type="button" className="drawer-backdrop" onClick={onClose} aria-label="Fechar painel de permissões">
@@ -136,68 +95,40 @@ function PermissoesDrawer({ usuario, onClose, dispatch }) {
             </div>
           </div>
 
-          {/* Laboratórios */}
+          {/* Permissões do papel (read-only) */}
           <div className="drawer-section">
             <div className="drawer-section-h">
               <div>
-                <h4>Escopo de laboratórios</h4>
-                <div className="small muted">O que este usuário consegue ver na navegação e nos relatórios.</div>
-              </div>
-              <div className="row" style={{gap: 6}}>
-                <button type="button" className="btn btn-sm btn-ghost" onClick={() => setAllLabs(true)}>Todos</button>
-                <button type="button" className="btn btn-sm btn-ghost" onClick={() => setAllLabs(false)}>Nenhum</button>
-              </div>
-            </div>
-            <div className="small muted" style={{ padding: '8px 0' }}>Escopo por laboratório disponível em breve.</div>
-          </div>
-
-          {/* Permissões */}
-          <div className="drawer-section">
-            <div className="drawer-section-h">
-              <div>
-                <h4>Permissões efetivas</h4>
+                <h4>Permissões do papel</h4>
                 <div className="small muted">
-                  {custom
-                    ? <>Permissões customizadas · <button type="button" className="link" onClick={resetParaPapel}>restaurar padrão do papel</button></>
-                    : <>Usando padrão do papel <b>{ROLES[papel]?.label ?? papel}</b></>}
+                  Concedidas automaticamente pelo papel <b>{ROLES[papel]?.label ?? papel}</b>. A autorização do sistema é por papel.
                 </div>
               </div>
-              <span className="badge gray mono">{totalPerms} / {ALL_PERMS.length}</span>
+              <span className="badge gray mono">{(ROLES[papel]?.perms ?? []).length} permissões</span>
             </div>
 
             <div className="perm-list">
               {PERMISSION_GROUPS.map(g => {
-                const total = g.items.length;
-                const sel = g.items.filter(([k]) => perms.has(k)).length;
-                const allOn = sel === total;
+                const rolePerms = new Set(ROLES[papel]?.perms ?? []);
+                const granted = g.items.filter(([k]) => rolePerms.has(k));
+                if (granted.length === 0) return null;
                 return (
                   <div key={g.id} className="perm-group">
                     <div className="perm-group-h">
                       <div className="row" style={{gap: 8, alignItems: 'center'}}>
                         <span className="perm-icon"><Icon name={g.icon} size={14}/></span>
                         <span className="perm-group-name">{g.label}</span>
-                        <span className="badge gray mono small">{sel}/{total}</span>
+                        <span className="badge gray mono small">{granted.length}/{g.items.length}</span>
                       </div>
-                      <label className="bulk-toggle">
-                        <input type="checkbox" aria-label={`Ativar todas as permissões de ${g.label}`} checked={allOn} onChange={e => toggleGroup(g, e.target.checked)}/>
-                        <span>tudo</span>
-                      </label>
                     </div>
                     <div className="perm-items">
-                      {g.items.map(([k, label]) => {
-                        const on = perms.has(k);
-                        const fromRole = (ROLES[papel]?.perms ?? []).includes(k);
-                        return (
-                          <label key={k} className={`perm-item ${on ? 'on' : ''}`}>
-                            <input type="checkbox" aria-label={label} checked={on} onChange={() => toggle(k)}/>
-                            <span className="check-box"><Icon name="check" size={11}/></span>
-                            <span className="perm-label">{label}</span>
-                            <span className="perm-key mono">{k}</span>
-                            {on && !fromRole && <span className="badge amber mono small" title="Permissão concedida além do papel">extra</span>}
-                            {!on && fromRole && <span className="badge gray mono small" title="Removida em relação ao papel">−</span>}
-                          </label>
-                        );
-                      })}
+                      {granted.map(([k, label]) => (
+                        <div key={k} className="perm-item on">
+                          <span className="check-box"><Icon name="check" size={11}/></span>
+                          <span className="perm-label">{label}</span>
+                          <span className="perm-key mono">{k}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
@@ -208,14 +139,12 @@ function PermissoesDrawer({ usuario, onClose, dispatch }) {
 
         <div className="drawer-foot">
           <div className="small muted">
-            {divergente
-              ? <span><Icon name="warning" size={11}/> Permissões divergem do papel {ROLES[papel]?.label ?? papel}</span>
-              : 'Sem alterações pendentes do papel.'}
+            {dirty ? 'Papel alterado — salve para aplicar.' : 'Sem alterações pendentes.'}
           </div>
           <div className="row" style={{gap: 8}}>
             <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
             <button type="button" className="btn btn-primary btn-sm" disabled={!dirty || alterarPapel.isPending} onClick={salvar}>
-              <Icon name="check" size={12}/> Salvar alterações
+              <Icon name="check" size={12}/> {alterarPapel.isPending ? 'Salvando…' : 'Salvar alterações'}
             </button>
           </div>
         </div>
