@@ -103,6 +103,17 @@ public static class Endpoints
         .WithName("GetMe")
         .WithSummary("Perfil do usuário autenticado");
 
+        group.MapPut("/me", async (AtualizarPerfilCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var profile = await svc.AtualizarPerfilAsync(userId, cmd, email);
+            return Results.Ok(profile);
+        })
+        .RequireAuthorization()
+        .WithName("AtualizarPerfil")
+        .WithSummary("Atualizar nome/e-mail do usuário autenticado");
+
         return group;
     }
 }
