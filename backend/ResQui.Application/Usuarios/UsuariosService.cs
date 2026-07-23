@@ -1,4 +1,5 @@
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
@@ -12,6 +13,7 @@ public interface IUsuariosService
     Task<IEnumerable<UsuarioDto>> ListarAsync();
     Task AlterarPapelAsync(string id, AlterarPapelCmd cmd, string usuarioEmail);
     Task ArquivarAsync(string id, string usuarioEmail);
+    Task ExcluirAsync(string id, string requesterId, string usuarioEmail);
 }
 
 public class UsuariosService(IAuthRepository repo, IAuditoriaService auditoria) : IUsuariosService
@@ -34,5 +36,15 @@ public class UsuariosService(IAuthRepository repo, IAuditoriaService auditoria) 
         await repo.SoftDeleteAsync(id);
         await auditoria.RegistrarAsync(usuarioEmail, "user.arquivar", "Usuários",
             $"Arquivou usuário {id}", RiscoAuditoria.High);
+    }
+
+    public async Task ExcluirAsync(string id, string requesterId, string usuarioEmail)
+    {
+        if (await repo.FindByIdAsync(id) is null) return;
+        if (id == requesterId)
+            throw new ValidationException("Você não pode excluir a própria conta.");
+        await repo.HardDeleteAsync(id);
+        await auditoria.RegistrarAsync(usuarioEmail, "user.excluir", "Usuários",
+            $"Excluiu definitivamente o usuário {id}", RiscoAuditoria.High);
     }
 }

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
+using ResQui.Application.Common;
 using ResQui.Application.Usuarios;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
@@ -71,5 +72,44 @@ public class UsuariosServiceTests
         await _audit.DidNotReceive().RegistrarAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task ExcluirAsync_UsuarioExistente_HardDeletaERegistraAuditoria()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+        _repo.HardDeleteAsync(Arg.Any<string>()).Returns(Task.CompletedTask);
+
+        await _sut.ExcluirAsync("user-1", "admin-id", "admin@lab.com");
+
+        await _repo.Received(1).HardDeleteAsync("user-1");
+        await _audit.Received(1).RegistrarAsync(
+            "admin@lab.com", "user.excluir", "Usuários",
+            Arg.Any<string>(), RiscoAuditoria.High);
+    }
+
+    [Fact]
+    public async Task ExcluirAsync_UsuarioInexistente_NaoHardDeleta()
+    {
+        _repo.FindByIdAsync("user-999").Returns((UsuarioInfo?)null);
+
+        await _sut.ExcluirAsync("user-999", "admin-id", "admin@lab.com");
+
+        await _repo.DidNotReceive().HardDeleteAsync(Arg.Any<string>());
+        await _audit.DidNotReceive().RegistrarAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task ExcluirAsync_Autoexclusao_LancaValidationException()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+
+        var act = async () => await _sut.ExcluirAsync("user-1", "user-1", "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>()
+            .WithMessage("*própria conta*");
+        await _repo.DidNotReceive().HardDeleteAsync(Arg.Any<string>());
     }
 }
