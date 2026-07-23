@@ -48,16 +48,3 @@ export const ROLES = {
   Pesquisador: { label: 'Aluno / Pesquisador',    desc: 'Solicita descarte e registra consumo',           cor: '#8c5b1f', perms: ['inv.view','inv.consume','res.view','res.register','res.classify','mtr.view','compat.view','lab.view'] },
   Visualizador:{ label: 'Visualizador',           desc: 'Apenas leitura · auditoria externa',             cor: '#7b8493', perms: ['inv.view','res.view','mtr.view','compat.view','lab.view','audit.view','rel.view'] },
 };
-
-// Locais de armazenamento (Laboratório · Armário · Prateleira).
-// Lista fixa — desconectada dos laboratórios reais (débito pré-existente, fora do escopo do RF02).
-export const LOCAIS = [
-  'Lab-201 · Armário A · Pra. 1',
-  'Lab-201 · Armário B · Pra. 2',
-  'Lab-201 · Armário D · Pra. 4',
-  'Lab-203 · Armário Inflamáveis · Pra. 1',
-  'Lab-203 · Armário Inflamáveis · Pra. 2',
-  'Lab-205 · Armário C · Pra. 1',
-  'Lab-205 · Armário Oxidantes · Pra. 1',
-  'Lab-209 · Armário Oxidantes · Pra. 2',
-];

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FormNovoReagente } from '../../src/forms/reagentes';
 
 function wrapper({ children }) {
-  const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
@@ -24,13 +24,20 @@ describe('FormNovoReagente', () => {
       removeItem(k) { delete this.data[k]; },
       clear() { this.data = {}; },
     });
-    vi.stubGlobal('fetch', vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        status: 201,
-        json: async () => ({ id: 'R-999' }),
-      })
-    ));
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      if (String(url).startsWith('/api/laboratorios')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => [
+          { nome: 'Química Orgânica', armarios: ['Inflamáveis'] },
+        ] });
+      }
+      if (String(url).startsWith('/api/usuarios')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => [
+          { nome: 'Ana Lima', email: 'ana@x.com', papel: 'Gestor', arquivado: false },
+          { nome: 'Zé Arquivado', email: 'ze@x.com', papel: 'Tecnico', arquivado: true },
+        ] });
+      }
+      return Promise.resolve({ ok: true, status: 201, json: async () => ({ id: 'R-999' }) });
+    }));
   });
 
   afterEach(() => {
@@ -76,5 +83,13 @@ describe('FormNovoReagente', () => {
     render(<FormNovoReagente onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Cancelar/i }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('popula Localização e Responsável a partir da API (sem literais hardcoded)', async () => {
+    render(<FormNovoReagente onClose={onClose} dispatch={dispatch} />, { wrapper });
+    expect(await screen.findByRole('option', { name: 'Química Orgânica · Inflamáveis' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'Ana Lima' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Profa. Ana Lima' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Zé Arquivado' })).toBeNull();
   });
 });

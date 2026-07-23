@@ -1,9 +1,11 @@
 import { useState, useReducer, useRef, useId } from 'react';
 import { Icon, Badge, Tag, Picto } from '../components';
-import { REATIVIDADE_CLASSES, PICTOS_GHS, LOCAIS } from '../data';
+import { REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
 import { useCriarReagente } from '../reagentes/useCriarReagente';
 import { useBaixaReagente } from '../reagentes/useBaixaReagente';
 import { useTransferirReagente } from '../reagentes/useTransferirReagente';
+import { useLocais } from '../laboratorios/useLocais';
+import { useUsuarios } from '../usuarios/useUsuarios';
 import Modal from './Modal';
 import { useCompatOverrides } from '../compat/useCompatOverrides';
 import { useSalvarCompatOverride } from '../compat/useSalvarCompatOverride';
@@ -24,10 +26,13 @@ export function FormNovoReagente({ onClose, dispatch }) {
     h: `${uid}-h`, p: `${uid}-p`,
   };
   const criarMutation = useCriarReagente();
+  const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
+  const { data: usuarios = [] } = useUsuarios();
+  const responsaveis = usuarios.filter(u => u.status === 'ativo').sort((a, b) => a.nome.localeCompare(b.nome));
   const [f, setF] = useState({
     nome: '', sinonimo: '', cas: '', formula: '', classe: 1,
-    estoque: '', unidade: 'L', validade: '', local: 'Lab-201 · Armário A · Pra. 1',
-    responsavel: 'Profa. Ana Lima', controlado: false, lote: '',
+    estoque: '', unidade: 'L', validade: '', local: '',
+    responsavel: '', controlado: false, lote: '',
     pictos: [], signal: 'Atenção',
     h: '', p: '',
   });
@@ -106,16 +111,15 @@ export function FormNovoReagente({ onClose, dispatch }) {
       </div>
       <div className="form-row">
         <div className="field"><label htmlFor={ids.local}>Localização</label>
-          <select id={ids.local} value={f.local} onChange={e => upd('local', e.target.value)}>
-            {LOCAIS.map(l => <option key={l}>{l}</option>)}
+          <select id={ids.local} value={f.local} onChange={e => upd('local', e.target.value)} disabled={locaisPending}>
+            <option value="">{locaisPending ? 'Carregando…' : locaisError ? 'Erro ao carregar' : 'Selecione…'}</option>
+            {locais.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
         <div className="field"><label htmlFor={ids.responsavel}>Responsável</label>
           <select id={ids.responsavel} value={f.responsavel} onChange={e => upd('responsavel', e.target.value)}>
-            <option>Profa. Ana Lima</option>
-            <option>Prof. Renan Costa</option>
-            <option>Profa. Júlia Reis</option>
-            <option>Téc. Carlos Mendes</option>
+            <option value="">Selecione…</option>
+            {responsaveis.map(u => <option key={u.id ?? u.email ?? u.nome} value={u.nome}>{u.nome}</option>)}
           </select>
         </div>
       </div>
@@ -230,7 +234,8 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
   const uid = useId();
   const ids = { origem: `${uid}-origem`, destino: `${uid}-destino` };
   const transferir = useTransferirReagente(reagente.id);
-  const [destino, setDestino] = useState(LOCAIS[0]);
+  const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
+  const [destino, setDestino] = useState('');
   const submit = () => {
     if (!destino || destino === reagente.local) {
       alert('Escolha um destino diferente do local atual.');
@@ -262,8 +267,9 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
       </div>
       <div className="form-row full">
         <div className="field"><label htmlFor={ids.destino}>Destino *</label>
-          <select id={ids.destino} value={destino} onChange={e => setDestino(e.target.value)}>
-            {LOCAIS.map(l => <option key={l}>{l}</option>)}
+          <select id={ids.destino} value={destino} onChange={e => setDestino(e.target.value)} disabled={locaisPending}>
+            <option value="">{locaisPending ? 'Carregando…' : locaisError ? 'Erro ao carregar' : 'Selecione…'}</option>
+            {locais.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
       </div>
