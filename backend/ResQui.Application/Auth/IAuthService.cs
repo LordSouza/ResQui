@@ -12,4 +12,5 @@ public interface IAuthService
     Task<int> RevogarOutrasSessoesAsync(string userId, string? jtiAtual, string usuarioEmail);
     Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, string requesterEmail);
     Task<UserProfileDto?> GetMeAsync(string userId);
+    Task<UserProfileDto> AtualizarPerfilAsync(string userId, AtualizarPerfilCmd cmd, string requesterEmail);
 }
