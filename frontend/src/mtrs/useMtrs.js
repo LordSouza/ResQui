@@ -13,7 +13,7 @@ function normalize(m) {
   };
 }
 
-export function useMtrs() {
+export function useMtrs(options = {}) {
   return useQuery({
     queryKey: ['mtrs'],
     queryFn: async () => {
@@ -21,5 +21,6 @@ export function useMtrs() {
       const data = await res.json();
       return data.map(normalize);
     },
+    enabled: options.enabled ?? true,
   });
 }

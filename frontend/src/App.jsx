@@ -287,9 +287,9 @@ const notifFootBtn = {
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { user, logout } = useAuth();
-  const { data: residuosNav = [] } = useResíduos();
-  const { data: mtrsNav = [] } = useMtrs();
+  const { user, token, logout } = useAuth();
+  const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
+  const { data: mtrsNav = [] } = useMtrs({ enabled: !!token });
   const navBadges = {
     residuos: residuosNav.filter(r => r.status === 'aguardando-coleta').length,
     mtr: mtrsNav.filter(m => m.status === 'pendente-sinir').length,

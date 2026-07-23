@@ -11,7 +11,7 @@ function normalize(r) {
   };
 }
 
-export function useResíduos(filtro = {}) {
+export function useResíduos(filtro = {}, options = {}) {
   const { labId, mtrId, status } = filtro;
   return useQuery({
     queryKey: ['residuos', filtro],
@@ -24,5 +24,6 @@ export function useResíduos(filtro = {}) {
       const data = await res.json();
       return (Array.isArray(data) ? data : []).map(normalize);
     },
+    enabled: options.enabled ?? true,
   });
 }
