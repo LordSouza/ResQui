@@ -2,10 +2,11 @@
 import { useState, useEffect, useReducer, useRef } from 'react';
 
 import { useAuth } from './auth/AuthContext';
+import { useSessoes } from './auth/useSeguranca';
 import { useNotificacoes } from './notificacoes/useNotificacoes';
 import { useMarcarLida } from './notificacoes/useMarcarLida';
 import { useMarcarTodasLidas } from './notificacoes/useMarcarTodasLidas';
-import { pgrsTs, exportCsv } from './utils';
+import { pgrsTs, exportCsv, iniciaisUsuario } from './utils';
 import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge, mtrStatusBadge } from './components';
 import { reducer, initialState } from './store/reducer';
 
@@ -46,9 +47,12 @@ const NAV = [
   { key: 'chamados', label: 'Chamados', icon: 'warning', section: 'sistema' },
 ];
 
-function UserMenu({ user, onLogout, dispatch }) {
+export function UserMenu({ user, onLogout, dispatch }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const { data: sessoes = [] } = useSessoes();
+  const numSessoes = sessoes.length;
+  const nome = user?.nome ?? user?.email ?? '';
 
   useEffect(() => {
     const onDoc = (e) => {
@@ -67,10 +71,10 @@ function UserMenu({ user, onLogout, dispatch }) {
     <div ref={ref} className="user-menu-wrap">
       <button type="button" onClick={() => setOpen(o => !o)} className={`user-menu-btn${open ? ' open' : ''}`}
         aria-label="Conta e preferências">
-        <div className="avatar">LS</div>
+        <div className="avatar">{iniciaisUsuario(user)}</div>
         <div className="user-menu-btn-meta">
-          <div className="who">Lucas Souza</div>
-          <div className="user-menu-btn-role mono">admin · IMC</div>
+          <div className="who">{nome}</div>
+          <div className="user-menu-btn-role mono">{user?.papel}</div>
         </div>
         <span className="user-menu-settings-icon" title="Conta e preferências">
           <Icon name="settings" size={14}/>
@@ -81,20 +85,19 @@ function UserMenu({ user, onLogout, dispatch }) {
         <div className="user-menu-dropdown">
           {/* Header */}
           <div style={{padding: '10px 12px 8px', borderBottom: '1px solid var(--border)', marginBottom: 4}}>
-            <div style={{fontSize: 13, fontWeight: 600, color: 'var(--text)'}}>Lucas Souza</div>
-            <div style={{fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--mono)', marginTop: 2}}>lucas.souza@instituto.example</div>
+            <div style={{fontSize: 13, fontWeight: 600, color: 'var(--text)'}}>{nome}</div>
+            <div style={{fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--mono)', marginTop: 2}}>{user?.email}</div>
             <div style={{marginTop: 6, display: 'flex', gap: 4, flexWrap: 'wrap'}}>
-              <span style={umBadge}>admin</span>
-              <span style={umBadge}>IMC</span>
-              <span style={umBadge}>2FA ativo</span>
+              <span style={umBadge}>{user?.papel}</span>
+              {user?.twoFactorEnabled && <span style={umBadge}>2FA ativo</span>}
             </div>
           </div>
 
           {/* Conta */}
           <UmGroup label="Conta">
             <UmItem icon="clipboard" label="Perfil" hint="Editar nome e foto" onClick={() => openModal('perfil')}/>
-            <UmItem icon="shield" label="Senha e 2FA" hint="Última troca há 47 dias" onClick={() => openModal('senha2fa')}/>
-            <UmItem icon="audit" label="Sessões ativas" hint="2 dispositivos" badge="2" onClick={() => openModal('sessoes')}/>
+            <UmItem icon="shield" label="Senha e 2FA" onClick={() => openModal('senha2fa')}/>
+            <UmItem icon="audit" label="Sessões ativas" hint={`${numSessoes} ${numSessoes === 1 ? 'dispositivo' : 'dispositivos'}`} badge={String(numSessoes)} onClick={() => openModal('sessoes')}/>
           </UmGroup>
 
           {/* Preferências */}
@@ -108,7 +111,7 @@ function UserMenu({ user, onLogout, dispatch }) {
             <UmItem icon="book" label="Documentação" onClick={() => openModal('docs')}/>
             <UmItem icon="warning" label="Reportar problema" onClick={() => openModal('reportar')}/>
             <div style={{padding: '6px 12px', fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--mono)'}}>
-              ResQui v1.4.2 · build 20251121-a4f2
+              ResQui v{__APP_VERSION__}
             </div>
           </UmGroup>
 
