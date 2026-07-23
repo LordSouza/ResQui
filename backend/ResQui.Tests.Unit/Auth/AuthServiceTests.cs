@@ -203,16 +203,18 @@ public class AuthServiceTests
     [Fact]
     public async Task AtualizarPerfilAsync_NomeVazio_LancaValidation()
     {
-        await Assert.ThrowsAsync<ValidationException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("  ", "novo@x.com"), "req@x.com"));
+        ex.Message.Should().Be("Nome é obrigatório.");
         await _repo.DidNotReceive().UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Fact]
     public async Task AtualizarPerfilAsync_EmailSemArroba_LancaValidation()
     {
-        await Assert.ThrowsAsync<ValidationException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana", "invalido"), "req@x.com"));
+        ex.Message.Should().Be("E-mail inválido.");
         await _repo.DidNotReceive().UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
 
@@ -222,20 +224,36 @@ public class AuthServiceTests
         _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana", null, "Tecnico", new List<string>(), false));
         _repo.FindByEmailAsync("outro@x.com").Returns(new UsuarioInfo("u2", "outro@x.com", "Bea", null, "Tecnico", new List<string>(), false));
 
-        await Assert.ThrowsAsync<ValidationException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana", "outro@x.com"), "req@x.com"));
+        ex.Message.Should().Be("E-mail já em uso.");
+        await _repo.DidNotReceive().UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task AtualizarPerfilAsync_UsuarioNaoExiste_LancaValidation()
+    {
+        // _repo.FindByIdAsync("u1") não é configurado → Substitute retorna null (padrão)
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana", "ana@x.com"), "req@x.com"));
         await _repo.DidNotReceive().UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Fact]
     public async Task AtualizarPerfilAsync_Valido_PersisteEAudita()
     {
-        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana", null, "Tecnico", new List<string> { "Tecnico" }, false));
+        // FindByIdAsync é chamado tanto na checagem inicial quanto no GetMeAsync final;
+        // já retorna o estado pós-atualização (nome/e-mail novos) para refletir o que
+        // aconteceria após UpdateProfileAsync persistir no repositório real.
+        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana Souza", null, "Tecnico", new List<string> { "Tecnico" }, false));
 
-        await _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana Souza", "ana@x.com"), "req@x.com");
+        var result = await _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana Souza", "ana@x.com"), "req@x.com");
 
         await _repo.Received(1).UpdateProfileAsync("u1", "Ana Souza", "ana@x.com");
         await _audit.Received(1).RegistrarAsync("req@x.com", "user.perfil-atualizar",
-            Arg.Any<string>(), Arg.Any<string>(), RiscoAuditoria.Low);
+            "Conta", Arg.Any<string>(), RiscoAuditoria.Low);
+
+        result.Nome.Should().Be("Ana Souza");
+        result.Email.Should().Be("ana@x.com");
     }
 }
