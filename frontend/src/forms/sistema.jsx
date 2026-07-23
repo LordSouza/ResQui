@@ -5,6 +5,7 @@ import { useGetNotificacaoPrefs } from '../notificacoes/useGetNotificacaoPrefs';
 import { useNotificacaoPrefs } from '../notificacoes/useNotificacaoPrefs';
 import { useCriarChamado } from '../chamados/useCriarChamado';
 import { useAuth } from '../auth/AuthContext';
+import { iniciaisUsuario } from '../utils';
 import {
   useAlterarSenha, useSetup2fa, useAtivar2fa, useDesativar2fa,
   useSessoes, useRevogarSessao, useRevogarOutrasSessoes,
@@ -15,73 +16,34 @@ const pgrsSub = { fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'upper
 const pgrsCheck = { display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, padding: '4px 0', cursor: 'pointer' };
 
 // ---------- Conta: Perfil ----------
-export function FormPerfil({ onClose, dispatch }) {
-  const [data, setData] = useState({
-    nome: 'Lucas Souza',
-    email: 'lucas.souza@instituto.example',
-    siape: '1834521',
-    crq: 'CRQ 00-00001',
-    departamento: 'Instituto de Matemática e Computação · IMC',
-    cargo: 'Administrador do sistema',
-    telefone: '(00) 90000-0000',
-    bio: 'Responsável técnico pela operação do ResQui no IMC. Apoio a auditorias FEAM e relatórios PGRS.',
-  });
-  const set = (k, v) => setData(d => ({ ...d, [k]: v }));
-  const save = () => {
-    dispatch({ type: 'refresh' });
-    onClose();
-  };
+export function FormPerfil({ onClose }) {
+  const { user } = useAuth();
   const avatarStyle = {
     width: 80, height: 80, borderRadius: '50%', background: 'var(--accent)',
     color: '#fff', display: 'grid', placeItems: 'center', fontSize: 28, fontWeight: 600,
     flexShrink: 0,
   };
   return (
-    <Modal title="Perfil" sub="Dados pessoais e vínculo institucional" onClose={onClose} width={600}
-      footer={<>
-        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={save}><Icon name="check" size={12}/> Salvar alterações</button>
-      </>}>
-      <div style={{display: 'flex', gap: 18, alignItems: 'flex-start', marginBottom: 18}}>
-        <div style={avatarStyle}>LS</div>
-        <div style={{flex: 1}}>
-          <div style={{fontSize: 12, fontWeight: 600, marginBottom: 4}}>Foto de perfil</div>
-          <div style={{fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 8}}>
-            Recomendado: PNG ou JPG, mínimo 200×200px, fundo claro. Tamanho máximo 2 MB.
-          </div>
-          <div style={{display: 'flex', gap: 6}}>
-            <button type="button" className="btn btn-sm"><Icon name="upload" size={12}/> Enviar foto</button>
-            <button type="button" className="btn btn-sm">Remover</button>
-          </div>
+    <Modal title="Perfil" sub="Dados da conta" onClose={onClose} width={600}
+      footer={<button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>}>
+      <div style={{display: 'flex', gap: 18, alignItems: 'center', marginBottom: 18}}>
+        <div style={avatarStyle}>{iniciaisUsuario(user)}</div>
+        <div style={{fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5}}>
+          Edição de perfil em breve. Os dados abaixo vêm da sua conta autenticada.
         </div>
       </div>
 
       <div className="form-row">
-        <div className="field"><label htmlFor="perfil-nome">Nome completo</label>
-          <input id="perfil-nome" aria-label="Nome completo" value={data.nome} onChange={e => set('nome', e.target.value)}/></div>
-        <div className="field"><label htmlFor="perfil-siape">SIAPE</label>
-          <input id="perfil-siape" aria-label="SIAPE" value={data.siape} onChange={e => set('siape', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+        <div className="field"><label htmlFor="perfil-nome">Nome</label>
+          <input id="perfil-nome" aria-label="Nome" value={user?.nome ?? '—'} readOnly/></div>
+        <div className="field"><label htmlFor="perfil-matricula">Matrícula / SIAPE</label>
+          <input id="perfil-matricula" aria-label="Matrícula / SIAPE" value={user?.matricula ?? '—'} readOnly style={{fontFamily: 'var(--mono)'}}/></div>
       </div>
       <div className="form-row">
-        <div className="field"><label htmlFor="perfil-email">E-mail institucional</label>
-          <input id="perfil-email" aria-label="E-mail institucional" value={data.email} onChange={e => set('email', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
-        <div className="field"><label htmlFor="perfil-telefone">Telefone</label>
-          <input id="perfil-telefone" aria-label="Telefone" value={data.telefone} onChange={e => set('telefone', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
-      </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor="perfil-departamento">Departamento / Unidade</label>
-          <input id="perfil-departamento" aria-label="Departamento / Unidade" value={data.departamento} onChange={e => set('departamento', e.target.value)}/></div>
-        <div className="field"><label htmlFor="perfil-crq">Registro CRQ</label>
-          <input id="perfil-crq" aria-label="Registro CRQ" value={data.crq} onChange={e => set('crq', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
-      </div>
-      <div className="form-row full">
-        <div className="field"><label htmlFor="perfil-cargo">Cargo</label>
-          <input id="perfil-cargo" aria-label="Cargo" value={data.cargo} onChange={e => set('cargo', e.target.value)}/></div>
-      </div>
-      <div className="form-row full">
-        <div className="field"><label htmlFor="perfil-bio">Bio / Observações</label>
-          <textarea id="perfil-bio" aria-label="Bio / Observações" value={data.bio} onChange={e => set('bio', e.target.value)} rows={3}
-            style={{resize: 'vertical', fontFamily: 'var(--font)', lineHeight: 1.45}}/></div>
+        <div className="field"><label htmlFor="perfil-email">E-mail</label>
+          <input id="perfil-email" aria-label="E-mail" value={user?.email ?? '—'} readOnly style={{fontFamily: 'var(--mono)'}}/></div>
+        <div className="field"><label htmlFor="perfil-papel">Papel</label>
+          <input id="perfil-papel" aria-label="Papel" value={user?.papel ?? '—'} readOnly/></div>
       </div>
     </Modal>
   );
@@ -92,7 +54,6 @@ export function FormSenha2FA({ onClose, dispatch }) {
   const { user } = useAuth();
   const [aba, setAba] = useState('senha');
   const [pwd, setPwd] = useState({ atual: '', nova: '', conf: '' });
-  // o user reidratado do JWT não traz twoFactorEnabled; mantemos estado local
   const [mfaEnabled, setMfaEnabled] = useState(!!user?.twoFactorEnabled);
 
   const alterarSenha = useAlterarSenha();
