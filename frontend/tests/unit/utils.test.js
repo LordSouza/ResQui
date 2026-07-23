@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { pgrsTs, exportCsv } from '../../src/utils';
+import { pgrsTs, exportCsv, litrosEquivalentes } from '../../src/utils';
 
 // --- pgrsTs ---
 describe('pgrsTs', () => {
@@ -52,5 +52,21 @@ describe('exportCsv', () => {
   it('sets href to the result of URL.createObjectURL', () => {
     exportCsv([['x']], 'x.csv');
     expect(mockAnchor.href).toBe('blob:mock-url');
+  });
+});
+
+// --- litrosEquivalentes ---
+describe('litrosEquivalentes', () => {
+  it('normaliza cada unidade para litros equivalentes', () => {
+    expect(litrosEquivalentes(2, 'L')).toBe(2);
+    expect(litrosEquivalentes(500, 'mL')).toBe(0.5);
+    expect(litrosEquivalentes(3, 'kg')).toBe(3);
+    expect(litrosEquivalentes(250, 'g')).toBe(0.25);
+    expect(litrosEquivalentes(1, 'm³')).toBe(1000);
+  });
+  it('unidade desconhecida usa o valor como está; entrada inválida vira 0', () => {
+    expect(litrosEquivalentes(5, 'xyz')).toBe(5);
+    expect(litrosEquivalentes(undefined, 'L')).toBe(0);
+    expect(litrosEquivalentes(null, 'mL')).toBe(0);
   });
 });

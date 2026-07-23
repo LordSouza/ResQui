@@ -19,3 +19,16 @@ export function iniciaisUsuario(user) {
   const duas = partes.length >= 2 ? partes[0][0] + partes[partes.length - 1][0] : base.slice(0, 2);
   return duas.toUpperCase();
 }
+
+// Normaliza um volume para "litros equivalentes" (mesma aproximação do backend):
+// L=1, mL÷1000, kg≈1, g÷1000, m³×1000; unidade desconhecida usa o valor como está.
+export function litrosEquivalentes(volume, unidade) {
+  const v = Number(volume) || 0;
+  switch ((unidade || '').toLowerCase()) {
+    case 'ml': return v / 1000;
+    case 'g': return v / 1000;
+    case 'm³':
+    case 'm3': return v * 1000;
+    default: return v;
+  }
+}
