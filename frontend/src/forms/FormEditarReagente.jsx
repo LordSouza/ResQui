@@ -15,7 +15,7 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
   });
   const mutation = useAtualizarReagente();
   const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
-  const { data: usuarios = [] } = useUsuarios();
+  const { data: usuarios = [], isPending: usuariosPending, isError: usuariosError } = useUsuarios();
   const responsaveis = usuarios.filter(u => u.status === 'ativo').sort((a, b) => a.nome.localeCompare(b.nome));
   const respNomes = responsaveis.map(u => u.nome);
   // preserva valor legado (fora da lista derivada) como opção selecionável
@@ -88,8 +88,8 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
         </div>
         <div className="field">
           <label htmlFor="edit-responsavel">Responsável</label>
-          <select id="edit-responsavel" aria-label="Responsável pelo reagente" value={f.Responsavel} onChange={e => upd('Responsavel', e.target.value)}>
-            <option value="">Selecione…</option>
+          <select id="edit-responsavel" aria-label="Responsável pelo reagente" value={f.Responsavel} onChange={e => upd('Responsavel', e.target.value)} disabled={usuariosPending}>
+            <option value="">{usuariosPending ? 'Carregando…' : usuariosError ? 'Erro ao carregar' : 'Selecione…'}</option>
             {respOptions.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>

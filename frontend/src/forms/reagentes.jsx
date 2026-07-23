@@ -27,7 +27,7 @@ export function FormNovoReagente({ onClose, dispatch }) {
   };
   const criarMutation = useCriarReagente();
   const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
-  const { data: usuarios = [] } = useUsuarios();
+  const { data: usuarios = [], isPending: usuariosPending, isError: usuariosError } = useUsuarios();
   const responsaveis = usuarios.filter(u => u.status === 'ativo').sort((a, b) => a.nome.localeCompare(b.nome));
   const [f, setF] = useState({
     nome: '', sinonimo: '', cas: '', formula: '', classe: 1,
@@ -117,8 +117,8 @@ export function FormNovoReagente({ onClose, dispatch }) {
           </select>
         </div>
         <div className="field"><label htmlFor={ids.responsavel}>Responsável</label>
-          <select id={ids.responsavel} value={f.responsavel} onChange={e => upd('responsavel', e.target.value)}>
-            <option value="">Selecione…</option>
+          <select id={ids.responsavel} value={f.responsavel} onChange={e => upd('responsavel', e.target.value)} disabled={usuariosPending}>
+            <option value="">{usuariosPending ? 'Carregando…' : usuariosError ? 'Erro ao carregar' : 'Selecione…'}</option>
             {responsaveis.map(u => <option key={u.id ?? u.email ?? u.nome} value={u.nome}>{u.nome}</option>)}
           </select>
         </div>
