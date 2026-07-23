@@ -5,6 +5,7 @@ import { useGetNotificacaoPrefs } from '../notificacoes/useGetNotificacaoPrefs';
 import { useNotificacaoPrefs } from '../notificacoes/useNotificacaoPrefs';
 import { useCriarChamado } from '../chamados/useCriarChamado';
 import { useAuth } from '../auth/AuthContext';
+import { useAtualizarPerfil } from '../auth/useAtualizarPerfil';
 import { iniciaisUsuario } from '../utils';
 import {
   useAlterarSenha, useSetup2fa, useAtivar2fa, useDesativar2fa,
@@ -17,7 +18,20 @@ const pgrsCheck = { display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.
 
 // ---------- Conta: Perfil ----------
 export function FormPerfil({ onClose }) {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const mutation = useAtualizarPerfil();
+  const [nome, setNome] = useState(user?.nome ?? '');
+  const [email, setEmail] = useState(user?.email ?? '');
+
+  const podeSalvar = nome.trim() !== '' && email.includes('@');
+  const salvar = () => {
+    if (!podeSalvar) return;
+    mutation.mutate(
+      { Nome: nome.trim(), Email: email.trim() },
+      { onSuccess: (profile) => { updateUser(profile); onClose(); } }
+    );
+  };
+
   const avatarStyle = {
     width: 80, height: 80, borderRadius: '50%', background: 'var(--accent)',
     color: '#fff', display: 'grid', placeItems: 'center', fontSize: 28, fontWeight: 600,
@@ -25,23 +39,29 @@ export function FormPerfil({ onClose }) {
   };
   return (
     <Modal title="Perfil" sub="Dados da conta" onClose={onClose} width={600}
-      footer={<button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>}>
+      footer={<>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={salvar} disabled={mutation.isPending}>
+          <Icon name="check" size={12}/> {mutation.isPending ? 'Salvando…' : 'Salvar'}
+        </button>
+      </>}>
+      {mutation.isError && <div className="login-err" style={{ marginBottom: 12 }}>{mutation.error.message}</div>}
       <div style={{display: 'flex', gap: 18, alignItems: 'center', marginBottom: 18}}>
-        <div style={avatarStyle}>{iniciaisUsuario(user)}</div>
+        <div style={avatarStyle}>{iniciaisUsuario({ ...user, nome })}</div>
         <div style={{fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5}}>
-          Edição de perfil em breve. Os dados abaixo vêm da sua conta autenticada.
+          Edite seu nome e e-mail. Matrícula e papel são geridos pela instituição.
         </div>
       </div>
 
       <div className="form-row">
         <div className="field"><label htmlFor="perfil-nome">Nome</label>
-          <input id="perfil-nome" aria-label="Nome" value={user?.nome ?? '—'} readOnly/></div>
+          <input id="perfil-nome" aria-label="Nome" value={nome} onChange={e => setNome(e.target.value)}/></div>
         <div className="field"><label htmlFor="perfil-matricula">Matrícula / SIAPE</label>
           <input id="perfil-matricula" aria-label="Matrícula / SIAPE" value={user?.matricula ?? '—'} readOnly style={{fontFamily: 'var(--mono)'}}/></div>
       </div>
       <div className="form-row">
         <div className="field"><label htmlFor="perfil-email">E-mail</label>
-          <input id="perfil-email" aria-label="E-mail" value={user?.email ?? '—'} readOnly style={{fontFamily: 'var(--mono)'}}/></div>
+          <input id="perfil-email" aria-label="E-mail" type="email" value={email} onChange={e => setEmail(e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
         <div className="field"><label htmlFor="perfil-papel">Papel</label>
           <input id="perfil-papel" aria-label="Papel" value={user?.papel ?? '—'} readOnly/></div>
       </div>
