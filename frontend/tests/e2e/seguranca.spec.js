@@ -173,3 +173,35 @@ test('Professor é bloqueado ao criar MTR', async ({ request }) => {
   });
   expect(mtr.status()).toBe(403);
 });
+
+// Hard-delete de usuário JÁ ARQUIVADO deve removê-lo de fato (erasure LGPD).
+// Ancora o fix do bug em que ExcluirAsync gateava por FindByIdAsync (filtra Arquivado)
+// e fazia no-op silencioso (204 falso-sucesso) ao excluir um arquivado.
+test('hard-delete remove usuário arquivado e some da listagem', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `del_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Del@1234', Papel: 'Tecnico', Nome: 'Del E2E' },
+  });
+
+  const achar = async () =>
+    (await (await request.get('/api/usuarios', { headers: auth })).json())
+      .find((u) => u.email === email);
+
+  const criado = await achar();
+  expect(criado).toBeTruthy();
+
+  // Arquiva (soft-delete): continua na listagem, marcado como arquivado.
+  const arq = await request.delete(`/api/usuarios/${criado.id}`, { headers: auth });
+  expect(arq.status()).toBe(204);
+  const arquivado = await achar();
+  expect(arquivado?.arquivado).toBe(true);
+
+  // Hard-delete do usuário arquivado — o caso que antes falhava em silêncio.
+  const del = await request.delete(`/api/usuarios/${criado.id}/definitivo`, { headers: auth });
+  expect(del.status()).toBe(204);
+
+  // Agora some de vez da listagem.
+  expect(await achar()).toBeFalsy();
+});
