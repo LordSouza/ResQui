@@ -1,0 +1,108 @@
+// Parser de CSV/TSV e análise de importação de reagentes (funções puras).
+
+export function parseCsv(text) {
+  const clean = String(text).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+  const linhas = clean.split('\n').filter(l => l.trim() !== '');
+  if (linhas.length === 0) return { headers: [], rows: [] };
+
+  const virgulas = (linhas[0].match(/,/g) || []).length;
+  const tabs = (linhas[0].match(/\t/g) || []).length;
+  const sep = tabs > virgulas ? '\t' : ',';
+
+  const parseLinha = (linha) => {
+    const campos = [];
+    let atual = '', aspas = false;
+    for (let i = 0; i < linha.length; i++) {
+      const c = linha[i];
+      if (aspas) {
+        if (c === '"' && linha[i + 1] === '"') { atual += '"'; i++; }
+        else if (c === '"') aspas = false;
+        else atual += c;
+      } else if (c === '"') aspas = true;
+      else if (c === sep) { campos.push(atual); atual = ''; }
+      else atual += c;
+    }
+    campos.push(atual);
+    return campos.map(s => s.trim());
+  };
+
+  return { headers: parseLinha(linhas[0]), rows: linhas.slice(1).map(parseLinha) };
+}
+
+export const CAMPOS_IMPORT = [
+  { campo: 'Nome', aliases: ['nome'], obrigatorio: true },
+  { campo: 'Cas', aliases: ['cas'], obrigatorio: true },
+  { campo: 'Estoque', aliases: ['estoque', 'quantidade', 'qtd'], obrigatorio: true },
+  { campo: 'Unidade', aliases: ['unidade', 'unid', 'unid.'], obrigatorio: true },
+  { campo: 'Local', aliases: ['local', 'localizacao', 'localização'], obrigatorio: true },
+  { campo: 'Formula', aliases: ['formula', 'fórmula'], obrigatorio: false },
+  { campo: 'Validade', aliases: ['validade'], obrigatorio: false },
+  { campo: 'Responsavel', aliases: ['responsavel', 'responsável'], obrigatorio: false },
+  { campo: 'ClasseReatividade', aliases: ['classe', 'classereatividade', 'reatividade'], obrigatorio: false },
+  { campo: 'Controlado', aliases: ['controlado'], obrigatorio: false },
+  { campo: 'Sinonimo', aliases: ['sinonimo', 'sinônimo'], obrigatorio: false },
+];
+
+const norm = (s) => String(s ?? '').trim().toLowerCase();
+
+export function mapearColunas(headers) {
+  const mapa = {};
+  headers.forEach((h, i) => {
+    const def = CAMPOS_IMPORT.find(c => c.aliases.includes(norm(h)));
+    if (def && !(def.campo in mapa)) mapa[def.campo] = i;
+  });
+  return mapa;
+}
+
+export function analisarImportacao(headers, rows, { responsavelDefault = '' } = {}) {
+  const mapa = mapearColunas(headers);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const get = (row, campo) => {
+    const i = mapa[campo];
+    return i == null ? '' : String(row[i] ?? '').trim();
+  };
+
+  return rows.map((row, idx) => {
+    const nome = get(row, 'Nome');
+    const cas = get(row, 'Cas');
+    const estoqueRaw = get(row, 'Estoque');
+    const unidade = get(row, 'Unidade');
+    const local = get(row, 'Local');
+    const estoque = Number(estoqueRaw.replace(',', '.'));
+
+    const motivos = [];
+    if (!nome) motivos.push('Nome ausente');
+    if (!cas) motivos.push('CAS ausente');
+    if (!estoqueRaw || Number.isNaN(estoque)) motivos.push('Estoque inválido');
+    if (!unidade) motivos.push('Unidade ausente');
+    if (!local) motivos.push('Local ausente');
+
+    const validade = get(row, 'Validade');
+    const avisos = [];
+    if (validade && /^\d{4}-\d{2}-\d{2}$/.test(validade) && validade < hoje) avisos.push('Validade expirada');
+
+    const classeRaw = get(row, 'ClasseReatividade');
+    const classe = Number(classeRaw);
+    const controlado = ['sim', 'true', '1', 'x'].includes(norm(get(row, 'Controlado')));
+
+    const cmd = motivos.length ? null : {
+      Id: null,
+      Nome: nome,
+      Cas: cas,
+      Formula: get(row, 'Formula') || '',
+      Sinonimo: get(row, 'Sinonimo') || null,
+      ClasseReatividade: classeRaw && !Number.isNaN(classe) ? classe : 12,
+      Estoque: estoque,
+      EstoqueMin: null,
+      Unidade: unidade,
+      Validade: validade || null,
+      Local: local,
+      Responsavel: get(row, 'Responsavel') || responsavelDefault,
+      Controlado: controlado,
+      Lote: null,
+      Ghs: null,
+    };
+
+    return { linhaCsv: idx + 2, cmd, avisos, bloqueada: motivos.length > 0, motivos };
+  });
+}
