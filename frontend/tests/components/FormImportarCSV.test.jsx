@@ -8,6 +8,7 @@ import { FormImportarCSV } from '../../src/forms/reagentes';
 vi.mock('../../src/auth/AuthContext', () => ({
   useAuth: () => ({ user: { nome: 'Ana Lima' }, token: 't' }),
 }));
+vi.mock('../../src/components/ToastContext', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
 
 const CSV = 'Nome,CAS,Quantidade,Unid.,Local\nEtanol,64-17-5,2.5,L,Lab-201\n,,,,\n';
 

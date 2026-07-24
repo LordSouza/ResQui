@@ -283,6 +283,7 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
 // ---------- Importar CSV (real) ----------
 export function FormImportarCSV({ onClose, dispatch }) {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const importar = useImportarReagentes();
   const [step, setStep] = useState('pick');   // pick | review | done
   const [fileName, setFileName] = useState('');
@@ -299,6 +300,9 @@ export function FormImportarCSV({ onClose, dispatch }) {
       const { headers, rows } = parseCsv(String(e.target.result));
       setItens(analisarImportacao(headers, rows, { responsavelDefault: user?.nome || '' }));
       setStep('review');
+    };
+    reader.onerror = () => {
+      addToast('Não foi possível ler o arquivo.', 'error');
     };
     reader.readAsText(file);
   };

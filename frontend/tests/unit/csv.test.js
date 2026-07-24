@@ -61,4 +61,11 @@ describe('analisarImportacao', () => {
     expect(item.bloqueada).toBe(false);
     expect(item.avisos).toContain('Validade expirada');
   });
+
+  it('aceita vírgula decimal (pt-BR) no estoque', () => {
+    const rows = [['Etanol', '64-17-5', '2,5', 'L', 'Lab-201', '2027-01-01']];
+    const [item] = analisarImportacao(headers, rows, {});
+    expect(item.bloqueada).toBe(false);
+    expect(item.cmd.Estoque).toBe(2.5);
+  });
 });

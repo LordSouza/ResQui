@@ -246,7 +246,7 @@ public class ReagentesServiceTests
         result.Importados.Should().Be(1);
         result.Erros.Should().ContainSingle();
         result.Erros[0].Indice.Should().Be(0);
-        result.Erros[0].Motivo.Should().Contain("validade", "a mensagem deve indicar o campo inválido (case-insensitive)");
+        result.Erros[0].Motivo.Should().Contain("validade", "a mensagem deve indicar o campo inválido (substring literal em minúsculas — Contain é case-sensitive)");
     }
 
     [Fact]
