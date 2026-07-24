@@ -1,4 +1,4 @@
-import { useState, useReducer, useRef, useId } from 'react';
+import { useState, useRef, useId } from 'react';
 import { Icon, Badge, Tag, Picto } from '../components';
 import { REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
 import { useCriarReagente } from '../reagentes/useCriarReagente';
@@ -11,6 +11,9 @@ import { useCompatOverrides } from '../compat/useCompatOverrides';
 import { useSalvarCompatOverride } from '../compat/useSalvarCompatOverride';
 import { useRemoverCompatOverride } from '../compat/useRemoverCompatOverride';
 import { useToast } from '../components/ToastContext';
+import { useAuth } from '../auth/AuthContext';
+import { useImportarReagentes } from '../reagentes/useImportarReagentes';
+import { parseCsv, analisarImportacao } from '../lib/csv';
 
 // ---------- Novo Reagente ----------
 export function FormNovoReagente({ onClose, dispatch }) {
@@ -277,213 +280,79 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
   );
 }
 
-// ---------- Importar CSV (fluxo simulado) ----------
-const IMPORT_PREVIEW = [
-  ['Nome',                  'CAS',        'Fórmula', 'Quantidade', 'Unid.', 'Validade',   'Local'],
-  ['Ácido sulfúrico 98%',   '7664-93-9',  'H2SO4',   '2.5',        'L',     '2027-03-15', 'Lab-201/A/2'],
-  ['Hidróxido de sódio',    '1310-73-2',  'NaOH',    '500',        'g',     '2026-11-30', 'Lab-201/B/1'],
-  ['Etanol absoluto',       '64-17-5',    'C2H6O',   '8.0',        'L',     '2026-09-22', 'Lab-203/C/4'],
-  ['Acetonitrila HPLC',     '75-05-8',    'C2H3N',   '4.0',        'L',     '—',          'Lab-205/A/1'],
-  ['Bicarbonato de sódio',  '144-55-8',   'NaHCO3',  '1',          'kg',    '2028-05-10', 'Lab-209/B/2'],
-  ['Cloreto de potássio',   '7447-40-7',  'KCl',     '250',        'g',     '2027-08-01', 'Lab-209/B/3'],
-  ['Tolueno P.A.',          '108-88-3',   'C7H8',    '1.0',        'L',     '2026-04-12', 'Lab-203/C/5'],
-];
-
-const IMPORT_FIELDS = [
-  ['nome',        'Nome',          true],
-  ['cas',         'CAS',           true],
-  ['formula',     'Fórmula',       false],
-  ['estoque',     'Estoque',       true],
-  ['unidade',     'Unidade',       true],
-  ['validade',    'Validade',      false],
-  ['local',       'Local',         true],
-  ['__ignore',    '— Ignorar —',   false],
-];
-
-const IMPORT_WARNINGS = [
-  { linha: 23,  campo: 'CAS',       msg: 'CAS vazio — reagente ficará pendente de identificação', sev: 'amber' },
-  { linha: 47,  campo: 'Validade',  msg: 'Validade 2024-08-10 já expirou — será marcado como vencido', sev: 'red' },
-  { linha: 89,  campo: 'Estoque',   msg: 'Estoque = 0 — linha será ignorada', sev: 'gray' },
-  { linha: 112, campo: 'Local',     msg: '"Lab-XXX/D/1" não cadastrado — será criado automaticamente', sev: 'amber' },
-  { linha: 134, campo: 'GHS',       msg: 'Pictogramas não informados — usar Atenção como padrão', sev: 'amber' },
-];
-
-const CSV_IMPORT_INITIAL = {
-  step: 'pick', // pick | mapping | validating | review | done
-  fileName: '',
-  dragOver: false,
-  mapping: {
-    'Nome': 'nome',
-    'CAS': 'cas',
-    'Fórmula': 'formula',
-    'Quantidade': 'estoque',
-    'Unid.': 'unidade',
-    'Validade': 'validade',
-    'Local': 'local',
-  },
-  progress: 0,
-};
-
-function csvImportReducer(state, action) {
-  switch (action.type) {
-    case 'pick':   return { ...state, fileName: action.fileName, step: 'mapping' };
-    case 'dragOver': return { ...state, dragOver: action.value };
-    case 'setMapping': return { ...state, mapping: { ...state.mapping, [action.col]: action.field } };
-    case 'startValidating': return { ...state, step: 'validating', progress: 0 };
-    case 'setProgress': return { ...state, progress: action.value };
-    case 'setStep':  return { ...state, step: action.step };
-    default: return state;
-  }
-}
-
+// ---------- Importar CSV (real) ----------
 export function FormImportarCSV({ onClose, dispatch }) {
-  const [csv, csvDispatch] = useReducer(csvImportReducer, CSV_IMPORT_INITIAL);
-  const { step, fileName, dragOver, mapping, progress } = csv;
+  const { user } = useAuth();
+  const importar = useImportarReagentes();
+  const [step, setStep] = useState('pick');   // pick | review | done
+  const [fileName, setFileName] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const [itens, setItens] = useState([]);
+  const [resultado, setResultado] = useState(null);
   const fileInputRef = useRef(null);
 
-  const fakePick = (name) => {
-    csvDispatch({ type: 'pick', fileName: name || 'inventario_lab_201_nov2025.csv' });
-  };
-
-  const advanceToValidating = () => {
-    csvDispatch({ type: 'startValidating' });
-    let p = 0;
-    const tick = () => {
-      p += Math.random() * 18 + 8;
-      if (p >= 100) {
-        csvDispatch({ type: 'setProgress', value: 100 });
-        setTimeout(() => csvDispatch({ type: 'setStep', step: 'review' }), 250);
-        return;
-      }
-      csvDispatch({ type: 'setProgress', value: p });
-      setTimeout(tick, 120);
+  const carregarArquivo = (file) => {
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const { headers, rows } = parseCsv(String(e.target.result));
+      setItens(analisarImportacao(headers, rows, { responsavelDefault: user?.nome || '' }));
+      setStep('review');
     };
-    tick();
+    reader.readAsText(file);
   };
 
-  const confirmImport = () => {
-    csvDispatch({ type: 'setStep', step: 'done' });
-  };
+  const prontas = itens.filter(i => !i.bloqueada);
+  const comAviso = prontas.filter(i => i.avisos.length > 0);
+  const bloqueadas = itens.filter(i => i.bloqueada);
 
-  const headers = IMPORT_PREVIEW[0];
-  const bodyRows = IMPORT_PREVIEW.slice(1);
+  const confirmarImport = async () => {
+    const res = await importar.mutateAsync(prontas.map(i => i.cmd));
+    setResultado(res);
+    setStep('done');
+  };
 
   // —————————— STEP: pick ——————————
   if (step === 'pick') {
     return (
-      <Modal title="Importar inventário em lote" sub="Carregue um CSV exportado de planilha (Excel, Google Sheets)"
+      <Modal title="Importar inventário em lote" sub="Carregue um CSV/TSV exportado de planilha (Excel, Google Sheets)"
         onClose={onClose} width={620}
-        footer={<>
-          <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-          <button type="button" className="btn btn-sm" onClick={() => fakePick()}>Usar arquivo de exemplo</button>
-        </>}>
+        footer={<button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>}>
         <button
           type="button"
           aria-label="Área para arrastar arquivo ou clique para selecionar"
-          onDragOver={e => { e.preventDefault(); csvDispatch({ type: 'dragOver', value: true }); }}
-          onDragLeave={() => csvDispatch({ type: 'dragOver', value: false })}
-          onDrop={e => { e.preventDefault(); csvDispatch({ type: 'dragOver', value: false }); fakePick(e.dataTransfer.files[0]?.name); }}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={e => { e.preventDefault(); setDragOver(false); carregarArquivo(e.dataTransfer.files[0]); }}
           onClick={() => fileInputRef.current?.click()}
           className="csv-dropzone"
           style={{
             border: '2px dashed ' + (dragOver ? 'var(--accent)' : 'var(--border)'),
             background: dragOver ? 'var(--accent-soft)' : 'var(--surface-2)',
           }}>
-          <input ref={fileInputRef} type="file" accept=".csv,.tsv,.xlsx" style={{display: 'none'}}
-            aria-label="Selecionar arquivo CSV, TSV ou XLSX"
-            onChange={e => fakePick(e.target.files[0]?.name)}/>
-          <div style={{color: 'var(--text-3)', marginBottom: 10, display: 'flex', justifyContent: 'center'}}>
-            <Icon name="upload" size={32}/>
+          <input ref={fileInputRef} type="file" accept=".csv,.tsv" style={{ display: 'none' }}
+            aria-label="Selecionar arquivo CSV ou TSV"
+            onChange={e => carregarArquivo(e.target.files[0])} />
+          <div style={{ color: 'var(--text-3)', marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
+            <Icon name="upload" size={32} />
           </div>
-          <div style={{fontSize: 13, fontWeight: 600, marginBottom: 4}}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
             Arraste o arquivo aqui ou clique para selecionar
           </div>
-          <div className="small muted">CSV, TSV ou XLSX · até 5 MB</div>
+          <div className="small muted">CSV ou TSV · até 5 MB</div>
         </button>
 
-        <div style={{marginTop: 16, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.55}}>
-          <div style={{fontWeight: 600, marginBottom: 6, color: 'var(--text)'}}>Colunas esperadas</div>
-          <div style={{display: 'flex', flexWrap: 'wrap', gap: 6}}>
-            {['Nome', 'CAS', 'Fórmula', 'Quantidade', 'Unidade', 'Validade', 'Local'].map(c => (
+        <div style={{ marginTop: 16, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.55 }}>
+          <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>Colunas reconhecidas</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {['Nome*', 'CAS*', 'Quantidade*', 'Unidade*', 'Local*', 'Fórmula', 'Validade', 'Responsável', 'Classe', 'Controlado'].map(c => (
               <Tag key={c}>{c}</Tag>
             ))}
           </div>
-          <div className="small muted" style={{marginTop: 8}}>
-            Colunas com nomes diferentes podem ser remapeadas na próxima etapa.
+          <div className="small muted" style={{ marginTop: 8 }}>
+            Campos com <span className="mono" style={{ color: 'var(--red)' }}>*</span> são obrigatórios. Colunas não reconhecidas são ignoradas.
           </div>
-        </div>
-      </Modal>
-    );
-  }
-
-  // —————————— STEP: mapping ——————————
-  if (step === 'mapping') {
-    return (
-      <Modal title="Mapear colunas" sub={fileName}
-        onClose={onClose} width={760}
-        footer={<>
-          <button type="button" className="btn btn-sm" onClick={() => csvDispatch({ type: 'setStep', step: 'pick' })}>Voltar</button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={advanceToValidating}>Validar 147 linhas</button>
-        </>}>
-        <div className="small muted" style={{marginBottom: 10}}>
-          Confira o mapeamento detectado. Campos marcados com <span className="mono" style={{color: 'var(--red)'}}>*</span> são obrigatórios.
-        </div>
-        <div style={{border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden'}}>
-          <div className="import-mapping-header">
-            <span>Coluna do CSV</span><span/><span>Campo no sistema</span>
-          </div>
-          {headers.map(h => (
-            <div key={h} style={{display: 'grid', gridTemplateColumns: '1fr 16px 1fr', alignItems: 'center', gap: 8,
-              padding: '8px 12px', borderBottom: '1px solid var(--border)', fontSize: 12.5}}>
-              <span className="mono">{h}</span>
-              <span style={{color: 'var(--text-3)', textAlign: 'center'}}>→</span>
-              <select aria-label={`Mapear coluna ${h}`} value={mapping[h] || '__ignore'} onChange={e => csvDispatch({ type: 'setMapping', col: h, field: e.target.value })}
-                style={{padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12, background: '#fff'}}>
-                {IMPORT_FIELDS.map(([v, label, req]) => (
-                  <option key={v} value={v}>{label}{req ? ' *' : ''}</option>
-                ))}
-              </select>
-            </div>
-          ))}
-        </div>
-
-        <div style={{marginTop: 14}}>
-          <div style={{fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: 6}}>
-            Pré-visualização · 7 de 147 linhas
-          </div>
-          <div style={{border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'auto', maxHeight: 220}}>
-            <table style={{width: '100%', fontSize: 12, borderCollapse: 'collapse', fontFamily: 'var(--mono)'}}>
-              <thead>
-                <tr style={{background: 'var(--surface-2)'}}>
-                  {headers.map(h => <th key={h} style={{padding: '6px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)', fontWeight: 500, color: 'var(--text-3)'}}>{h}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {bodyRows.map((row, i) => (
-                  <tr key={row[0]} style={{borderBottom: i < bodyRows.length - 1 ? '1px solid var(--border)' : 0}}>
-                    {row.map((c, j) => <td key={`${row[0]}-${headers[j]}`} style={{padding: '5px 10px', whiteSpace: 'nowrap'}}>{c}</td>)}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Modal>
-    );
-  }
-
-  // —————————— STEP: validating ——————————
-  if (step === 'validating') {
-    return (
-      <Modal title="Validando linhas" sub={fileName} onClose={onClose} width={520}>
-        <div style={{padding: '30px 10px', textAlign: 'center'}}>
-          <div style={{fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14}}>
-            Conferindo CAS, validade, locais e compatibilidades
-          </div>
-          <div style={{height: 6, background: 'var(--surface-3)', borderRadius: 6, overflow: 'hidden', marginBottom: 12}}>
-            <div style={{height: '100%', width: '100%', background: 'var(--accent)', transform: `scaleX(${progress / 100})`, transformOrigin: 'left', transition: 'transform 100ms ease'}}/>
-          </div>
-          <div className="mono tnum small muted">{Math.min(147, Math.round(progress * 1.47))} / 147 linhas</div>
         </div>
       </Modal>
     );
@@ -493,43 +362,63 @@ export function FormImportarCSV({ onClose, dispatch }) {
   if (step === 'review') {
     return (
       <Modal title="Revisar importação" sub={fileName}
-        onClose={onClose} width={680}
+        onClose={onClose} width={720}
         footer={<>
-          <button type="button" className="btn btn-sm" onClick={() => csvDispatch({ type: 'setStep', step: 'mapping' })}>Voltar ao mapeamento</button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={confirmImport}>Importar 142 reagentes</button>
+          <button type="button" className="btn btn-sm" onClick={() => setStep('pick')}>Voltar</button>
+          <button type="button" className="btn btn-primary btn-sm" disabled={prontas.length === 0 || importar.isPending}
+            onClick={confirmarImport}>
+            {importar.isPending ? 'Importando…' : `Importar ${prontas.length} reagentes`}
+          </button>
         </>}>
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16}}>
-          <div style={{padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--green-soft)'}}>
-            <div className="small mono" style={{color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4}}>Prontos</div>
-            <div style={{fontSize: 22, fontWeight: 600, color: 'var(--green)'}}>142</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--green-soft)' }}>
+            <div className="small mono" style={{ color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Prontas</div>
+            <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--green)' }}>{prontas.length}</div>
           </div>
-          <div style={{padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--amber-soft)'}}>
-            <div className="small mono" style={{color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4}}>Avisos</div>
-            <div style={{fontSize: 22, fontWeight: 600, color: 'var(--amber)'}}>5</div>
+          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--amber-soft)' }}>
+            <div className="small mono" style={{ color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Com aviso</div>
+            <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--amber)' }}>{comAviso.length}</div>
           </div>
-          <div style={{padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--surface-2)'}}>
-            <div className="small mono" style={{color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4}}>Ignoradas</div>
-            <div style={{fontSize: 22, fontWeight: 600, color: 'var(--text-2)'}}>0</div>
+          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--surface-2)' }}>
+            <div className="small mono" style={{ color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Bloqueadas</div>
+            <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-2)' }}>{bloqueadas.length} bloqueada{bloqueadas.length === 1 ? '' : 's'}</div>
           </div>
         </div>
 
-        <div style={{fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: 8}}>
-          Avisos detectados
+        <div style={{ fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: 8 }}>
+          Pré-visualização · {Math.min(20, itens.length)} de {itens.length} linhas
         </div>
-        <div style={{border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden'}}>
-          {IMPORT_WARNINGS.map((w, i) => (
-            <div key={w.linha} style={{display: 'grid', gridTemplateColumns: '60px 90px 1fr 70px', alignItems: 'center', gap: 10,
-              padding: '8px 12px', borderBottom: i < IMPORT_WARNINGS.length - 1 ? '1px solid var(--border)' : 0, fontSize: 12}}>
-              <span className="mono small muted">Linha {w.linha}</span>
-              <Badge kind={w.sev}>{w.campo}</Badge>
-              <span>{w.msg}</span>
-              <button type="button" className="btn btn-sm" style={{justifySelf: 'end'}}>Editar</button>
-            </div>
-          ))}
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'auto', maxHeight: 260 }}>
+          <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', fontFamily: 'var(--mono)' }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-2)' }}>
+                {['Linha', 'Nome', 'CAS', 'Estoque', 'Situação'].map(h => (
+                  <th key={h} style={{ padding: '6px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)', fontWeight: 500, color: 'var(--text-3)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {itens.slice(0, 20).map(it => (
+                <tr key={it.linhaCsv} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '5px 10px' }} className="muted">{it.linhaCsv}</td>
+                  <td style={{ padding: '5px 10px', whiteSpace: 'nowrap' }}>{it.cmd?.Nome || '—'}</td>
+                  <td style={{ padding: '5px 10px' }}>{it.cmd?.Cas || '—'}</td>
+                  <td style={{ padding: '5px 10px' }}>{it.cmd ? `${it.cmd.Estoque} ${it.cmd.Unidade}` : '—'}</td>
+                  <td style={{ padding: '5px 10px' }}>
+                    {it.bloqueada
+                      ? <Badge kind="gray">{it.motivos.join(', ')}</Badge>
+                      : it.avisos.length
+                        ? <Badge kind="amber">{it.avisos.join(', ')}</Badge>
+                        : <Badge kind="green">OK</Badge>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        <div className="small muted" style={{marginTop: 12, lineHeight: 1.55}}>
-          Os 142 reagentes prontos serão adicionados ao inventário. Os 5 com avisos serão importados com os ajustes descritos acima; você pode editar individualmente depois.
+        <div className="small muted" style={{ marginTop: 12, lineHeight: 1.55 }}>
+          As {prontas.length} linhas prontas serão importadas (as bloqueadas são ignoradas). O servidor valida cada linha e pode reportar erros adicionais.
         </div>
       </Modal>
     );
@@ -538,18 +427,36 @@ export function FormImportarCSV({ onClose, dispatch }) {
   // —————————— STEP: done ——————————
   return (
     <Modal title="Importação concluída" sub={fileName}
-      onClose={onClose} width={480}
+      onClose={onClose} width={520}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => { onClose(); dispatch({type: 'refresh'}); }}>Ver inventário</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={() => { onClose(); dispatch({ type: 'refresh' }); }}>Ver inventário</button>
       </>}>
-      <div style={{padding: '20px 0', textAlign: 'center'}}>
+      <div style={{ padding: '16px 0', textAlign: 'center' }}>
         <div className="import-done-icon">
-          <Icon name="check" size={24}/>
+          <Icon name="check" size={24} />
         </div>
-        <div style={{fontSize: 15, fontWeight: 600, marginBottom: 4}}>142 reagentes importados</div>
-        <div className="small muted">Evento <span className="mono">bulk.import</span> registrado na auditoria.</div>
+        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+          {resultado?.importados ?? 0} reagentes importados
+        </div>
+        <div className="small muted">Evento <span className="mono">reagente.bulk-import</span> registrado na auditoria.</div>
       </div>
+
+      {resultado?.erros?.length > 0 && (
+        <>
+          <div style={{ fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', margin: '4px 0 8px' }}>
+            {resultado.erros.length} com erro
+          </div>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'auto', maxHeight: 180 }}>
+            {resultado.erros.map(e => (
+              <div key={e.indice} style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: 10, padding: '8px 12px', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
+                <span className="mono small muted">Item {e.indice + 1}</span>
+                <span>{e.motivo}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </Modal>
   );
 }
