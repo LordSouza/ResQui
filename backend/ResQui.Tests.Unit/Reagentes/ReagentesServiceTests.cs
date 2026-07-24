@@ -209,8 +209,8 @@ public class ReagentesServiceTests
 
     // Nome distinto de FakeCmd (já existente acima, com 3 parâmetros) para evitar
     // ambiguidade de overload — mesmos valores/semântica especificados na brief.
-    private static CriarReagenteCmd FakeImportCmd(string nome = "Reagente", decimal estoque = 1m) =>
-        new(null, nome, "64-17-5", "C2H6O", null, 12, estoque, null, "L", null, "Lab-201", "Ana", false, null, null);
+    private static CriarReagenteCmd FakeImportCmd(string nome = "Reagente", decimal estoque = 1m, string? validade = null) =>
+        new(null, nome, "64-17-5", "C2H6O", null, 12, estoque, null, "L", validade, "Lab-201", "Ana", false, null, null);
 
     [Fact]
     public async Task ImportarLoteAsync_ImportaValidasEReportaInvalidas()
@@ -229,6 +229,24 @@ public class ReagentesServiceTests
         result.Erros.Should().ContainSingle();
         result.Erros[0].Indice.Should().Be(1);
         result.Erros[0].Motivo.Should().Contain("Nome");
+    }
+
+    [Fact]
+    public async Task ImportarLoteAsync_ValidadeInvalida_ReportaErroDeLinhaSemAbortarLote()
+    {
+        var cmds = new[]
+        {
+            FakeImportCmd(nome: "Etanol", validade: "amanhã"), // inválida: FormatException no DateOnly.Parse
+            FakeImportCmd(nome: "Acetona"),
+        };
+
+        var result = await _sut.ImportarLoteAsync(cmds, "u@x.com");
+
+        result.Total.Should().Be(2);
+        result.Importados.Should().Be(1);
+        result.Erros.Should().ContainSingle();
+        result.Erros[0].Indice.Should().Be(0);
+        result.Erros[0].Motivo.Should().Contain("validade", "a mensagem deve indicar o campo inválido (case-insensitive)");
     }
 
     [Fact]

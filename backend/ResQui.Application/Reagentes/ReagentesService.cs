@@ -165,7 +165,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
 
     public async Task<ImportarLoteResultDto> ImportarLoteAsync(IEnumerable<CriarReagenteCmd> cmds, string usuarioEmail)
     {
-        var lista = cmds.ToList();
+        var lista = (cmds ?? Enumerable.Empty<CriarReagenteCmd>()).ToList();
         if (lista.Count == 0) throw new ValidationException("Nenhuma linha para importar.");
 
         var erros = new List<ErroLinhaDto>();
@@ -180,6 +180,10 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             catch (ValidationException ex)
             {
                 erros.Add(new ErroLinhaDto(i, ex.Message));
+            }
+            catch (FormatException)
+            {
+                erros.Add(new ErroLinhaDto(i, "Data de validade inválida (use AAAA-MM-DD)."));
             }
         }
 
