@@ -163,6 +163,32 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         return ToDetalhe(r);
     }
 
+    public async Task<ImportarLoteResultDto> ImportarLoteAsync(IEnumerable<CriarReagenteCmd> cmds, string usuarioEmail)
+    {
+        var lista = cmds.ToList();
+        if (lista.Count == 0) throw new ValidationException("Nenhuma linha para importar.");
+
+        var erros = new List<ErroLinhaDto>();
+        var importados = 0;
+        for (var i = 0; i < lista.Count; i++)
+        {
+            try
+            {
+                await CriarAsync(lista[i], usuarioEmail);
+                importados++;
+            }
+            catch (ValidationException ex)
+            {
+                erros.Add(new ErroLinhaDto(i, ex.Message));
+            }
+        }
+
+        await auditoria.RegistrarAsync(usuarioEmail, "reagente.bulk-import", "Inventário",
+            $"Importou {importados} reagente(s) em lote ({erros.Count} com erro)", RiscoAuditoria.Medium);
+
+        return new ImportarLoteResultDto(lista.Count, importados, erros);
+    }
+
     public async Task<ReagenteDetalheDto?> AtualizarAsync(string id, AtualizarReagenteCmd cmd, string usuarioEmail)
     {
         if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");

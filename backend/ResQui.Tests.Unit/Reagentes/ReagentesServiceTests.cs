@@ -5,6 +5,7 @@ using ResQui.Application.Common;
 using ResQui.Application.Pdf;
 using ResQui.Application.Reagentes;
 using ResQui.Domain.Entities;
+using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Tests.Unit.Reagentes;
@@ -204,5 +205,45 @@ public class ReagentesServiceTests
         var result = await _sut.TransferirAsync("X-999",
             new TransferirReagenteCmd("Lab-203 · Armário Inflamáveis · Pra. 1"), "ana");
         result.Should().BeNull();
+    }
+
+    // Nome distinto de FakeCmd (já existente acima, com 3 parâmetros) para evitar
+    // ambiguidade de overload — mesmos valores/semântica especificados na brief.
+    private static CriarReagenteCmd FakeImportCmd(string nome = "Reagente", decimal estoque = 1m) =>
+        new(null, nome, "64-17-5", "C2H6O", null, 12, estoque, null, "L", null, "Lab-201", "Ana", false, null, null);
+
+    [Fact]
+    public async Task ImportarLoteAsync_ImportaValidasEReportaInvalidas()
+    {
+        var cmds = new[]
+        {
+            FakeImportCmd(nome: "Etanol"),
+            FakeImportCmd(nome: ""),        // inválida: Nome obrigatório
+            FakeImportCmd(nome: "Acetona"),
+        };
+
+        var result = await _sut.ImportarLoteAsync(cmds, "u@x.com");
+
+        result.Total.Should().Be(3);
+        result.Importados.Should().Be(2);
+        result.Erros.Should().ContainSingle();
+        result.Erros[0].Indice.Should().Be(1);
+        result.Erros[0].Motivo.Should().Contain("Nome");
+    }
+
+    [Fact]
+    public async Task ImportarLoteAsync_ListaVazia_LancaValidationException()
+    {
+        var act = () => _sut.ImportarLoteAsync(Array.Empty<CriarReagenteCmd>(), "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task ImportarLoteAsync_RegistraAuditoria()
+    {
+        await _sut.ImportarLoteAsync(new[] { FakeImportCmd() }, "u@x.com");
+
+        await _audit.Received().RegistrarAsync("u@x.com", "reagente.bulk-import", "Inventário",
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
 }

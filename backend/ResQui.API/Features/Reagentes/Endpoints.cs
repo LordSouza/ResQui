@@ -34,6 +34,14 @@ public static class Endpoints
         })
         .RequireAuthorization("Gestor");
 
+        group.MapPost("/importar-lote", async (CriarReagenteCmd[] cmds, IReagentesService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var result = await svc.ImportarLoteAsync(cmds, email);
+            return Results.Ok(result);
+        })
+        .RequireAuthorization("Gestor");
+
         group.MapPut("/{id}", async (string id, AtualizarReagenteCmd cmd, IReagentesService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";

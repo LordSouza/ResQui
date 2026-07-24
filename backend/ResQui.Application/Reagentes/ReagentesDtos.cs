@@ -88,3 +88,7 @@ public record ReagentesFiltroDto(
     int? Classe = null,
     bool Vencendo = false
 );
+
+public record ImportarLoteResultDto(int Total, int Importados, IReadOnlyList<ErroLinhaDto> Erros);
+
+public record ErroLinhaDto(int Indice, string Motivo);

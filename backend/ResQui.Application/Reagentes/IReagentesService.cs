@@ -15,4 +15,5 @@ public interface IReagentesService
     Task<IEnumerable<LoteDto>?> ListarLotesAsync(string reagenteId);
     Task<LoteDto?> CriarLoteAsync(string reagenteId, CriarLoteCmd cmd, string usuarioEmail);
     Task<LoteDto?> BaixaLoteAsync(string reagenteId, int loteId, BaixaCmd cmd, string usuarioEmail);
+    Task<ImportarLoteResultDto> ImportarLoteAsync(IEnumerable<CriarReagenteCmd> cmds, string usuarioEmail);
 }
