@@ -27,7 +27,7 @@ import { ChamadosScreen } from './screens/ChamadosScreen';
 import { ChatMCP } from './chat/ChatMCP';
 
 import { FormNovoReagente, FormImportarCSV, FormEditarRegrasCompat, FormPreviewFispq, FormBaixa, FormTransferirReagente } from './forms/reagentes';
-import { FormNovoResiduo, FormEditarResiduo, FormNovoMtr, FormPreviewMtrPdf, FormConfigurarPgrs } from './forms/residuos';
+import { FormNovoResiduo, FormEditarResiduo, FormNovoMtr, FormConfigurarPgrs } from './forms/residuos';
 import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/laboratorios';
 import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario } from './forms/usuarios';
 import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes, FormAtalhos, FormDocs, FormReportar } from './forms/sistema';
@@ -420,7 +420,6 @@ export default function App() {
       {state.modal === 'novoReagente' && <FormNovoReagente onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'importarCsv' && <FormImportarCSV onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'editarRegrasCompat' && <FormEditarRegrasCompat onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
-      {state.modal === 'previewMtrPdf' && <FormPreviewMtrPdf onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'previewFispq' && <FormPreviewFispq onClose={() => dispatch({type: 'closeModal'})} reagente={state.modalReagente} dispatch={dispatch}/>}
       {state.modal === 'configurarPgrs' && <FormConfigurarPgrs onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'perfil' && <FormPerfil onClose={() => dispatch({type: 'closeModal'})}/>}

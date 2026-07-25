@@ -5,10 +5,13 @@ import { useEnviarSinir } from '../mtrs/useEnviarSinir';
 import { useEnviarBatch } from '../mtrs/useEnviarBatch';
 import { useResíduos } from '../residuos/useResíduos';
 import { downloadSinirCsv, downloadMtrPdf } from '../mtrs/downloadMtr';
+import { FormPreviewMtrPdf } from '../forms/residuos';
 
 function MtrDetalhe({ mtr, dispatch, enviarSinir }) {
   const { data: residuos = [], isPending } = useResíduos({ mtrId: mtr.id });
+  const [preview, setPreview] = useState(false);
   return (
+    <>
     <div className="detail-grid">
       <div className="card card-tight">
         <SectionTitle title="Resíduos vinculados" sub={`${(mtr.residuo_ids ?? []).length} item(ns) neste manifesto`} />
@@ -42,6 +45,9 @@ function MtrDetalhe({ mtr, dispatch, enviarSinir }) {
             <div className="k">Massa total</div><div className="v mono">{Number(mtr.massa ?? 0).toFixed(2)} kg</div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14 }}>
+            <button type="button" className="btn btn-sm" onClick={() => setPreview(true)}>
+              <Icon name="search" size={12} /> Pré-visualizar
+            </button>
             <button type="button" className="btn btn-sm" onClick={() => downloadSinirCsv(mtr.id, mtr.numero)}>
               <Icon name="download" size={12} /> CSV SINIR
             </button>
@@ -58,6 +64,8 @@ function MtrDetalhe({ mtr, dispatch, enviarSinir }) {
         </div>
       </div>
     </div>
+    {preview && <FormPreviewMtrPdf mtr={mtr} residuos={residuos} onClose={() => setPreview(false)} />}
+    </>
   );
 }
 

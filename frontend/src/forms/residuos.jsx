@@ -7,6 +7,7 @@ import { useAtualizarResiduo } from '../residuos/useAtualizarResiduo';
 import { useLaboratorios } from '../laboratorios/useLaboratorios';
 import { useCriarMtr } from '../mtrs/useCriarMtr';
 import { useResíduos } from '../residuos/useResíduos';
+import { downloadMtrPdf } from '../mtrs/downloadMtr';
 
 // Seletor de classes de reatividade da mistura — o backend bloqueia pares Perigo/Proibido na matriz
 function ClassesSelector({ idPrefix, value, onChange }) {
@@ -302,9 +303,11 @@ function RowMtr({ label, value, mono }) {
   );
 }
 
-export function FormPreviewMtrPdf({ onClose, dispatch }) {
+export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
+  // Preview espelha o PDF real do backend (PdfService.ManifestoMtr) — só dados reais do MTR.
+  const emissao = mtr.data_emissao ? mtr.data_emissao.slice(0, 10).split('-').reverse().join('/') : '—';
   return (
-    <Modal title="Pré-visualização · MTR-2025-1143" sub="Documento gerado conforme Res. ANTT 5947/21"
+    <Modal title={`Pré-visualização · ${mtr.numero}`} sub="Pré-MTR · uso interno — não substitui o MTR oficial do SINIR"
       onClose={onClose} width={920}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
@@ -339,139 +342,90 @@ export function FormPreviewMtrPdf({ onClose, dispatch }) {
         }}>
           <Icon name="clipboard" size={12}/> Imprimir
         </button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => {
-          alert('Download iniciado: MTR-2025-1143.pdf');
-        }}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={() => downloadMtrPdf(mtr.id, mtr.numero)}>
           <Icon name="download" size={12}/> Baixar PDF
         </button>
       </>}>
       <div className="mtr-preview-bg">
         <div className="mtr-sheet mtr-sheet-doc">
-          {/* Cabeçalho oficial */}
-          <div style={{display: 'grid', gridTemplateColumns: '50px 1fr 90px', gap: 14, alignItems: 'center', borderBottom: '2px solid #111', paddingBottom: 12}}>
-            <div className="mtr-header-logo">
-              IBAMA
-            </div>
-            <div style={{textAlign: 'center'}}>
-              <div style={{fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#444'}}>
-                Ministério do Meio Ambiente · IBAMA
-              </div>
-              <div style={{fontSize: 13, fontWeight: 700, marginTop: 3}}>
-                MANIFESTO DE TRANSPORTE DE RESÍDUOS: MTR
+          {/* Cabeçalho */}
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 120px', gap: 14, alignItems: 'center', borderBottom: '2px solid #111', paddingBottom: 12}}>
+            <div>
+              <div style={{fontSize: 15, fontWeight: 700}}>
+                Manifesto de Transporte de Resíduos (Pré-MTR)
               </div>
               <div style={{fontSize: 12, color: '#444', marginTop: 2}}>
-                Sistema Nacional de Informações sobre a Gestão dos Resíduos Sólidos · SINIR
+                Sistema de gestão ResQui · Resolução ANTT 5947/21
               </div>
             </div>
             <div style={{textAlign: 'right'}}>
               <div style={{fontSize: 12, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Nº do manifesto</div>
-              <div style={{fontFamily: 'Courier, monospace', fontSize: 13, fontWeight: 700, marginTop: 2}}>2025-1143</div>
-              <div style={{fontSize: 12, color: '#666', marginTop: 4}}>via 1 de 4</div>
+              <div style={{fontFamily: 'Courier, monospace', fontSize: 13, fontWeight: 700, marginTop: 2}}>{mtr.numero}</div>
             </div>
           </div>
 
-          {/* Barras de status */}
+          {/* Barra de status */}
           <div className="mtr-status-bar">
-            Documento provisório · não válido para transporte · pendente validação SINIR
+            Documento de uso interno · não substitui o MTR oficial do SINIR
           </div>
 
-          {/* Seção 1 - Gerador */}
-          <SectionMtr num="1" title="IDENTIFICAÇÃO DO GERADOR">
-            <RowMtr label="Razão social" value="UNIVERSIDADE FEDERAL DE ITAJUBÁ — UNIFEI"/>
-            <RowMtr label="Unidade geradora" value="Instituto de Matemática e Computação · Lab de Química Geral"/>
-            <RowMtr label="CNPJ" value="12.345.678/0001-95" mono/>
-            <RowMtr label="Endereço" value="Rua Demonstração, 100 · Cidade Demo/UF"/>
-            <RowMtr label="Responsável técnico" value="Profa. Dra. Ana Lúcia Lima · CRQ 00-00000"/>
+          {/* Seção 1 - Dados do manifesto */}
+          <SectionMtr num="1" title="DADOS DO MANIFESTO">
+            <RowMtr label="Data de emissão" value={emissao}/>
+            <RowMtr label="Gerador" value={mtr.gerador}/>
+            <RowMtr label="Transportadora" value={mtr.transportadora}/>
+            <RowMtr label="Destinador" value={mtr.destinador || '—'}/>
+            <RowMtr label="Código IBAMA" value={mtr.codigo_ibama || '—'} mono/>
+            <RowMtr label="Massa total (kg)" value={Number(mtr.massa ?? 0).toFixed(2)} mono/>
+            <RowMtr label="Status" value={mtr.status}/>
           </SectionMtr>
 
-          {/* Seção 2 - Transportador */}
-          <SectionMtr num="2" title="TRANSPORTADOR">
-            <RowMtr label="Razão social" value="ECOLOG TRANSPORTES DE RESÍDUOS LTDA"/>
-            <RowMtr label="CNPJ" value="11.222.333/0001-44" mono/>
-            <RowMtr label="Licença ambiental" value="LO-IBAMA 2024/0892 · válida até 12/2026" mono/>
-            <RowMtr label="Veículo · placa" value="CAMINHÃO BAÚ ISOTÉRMICO · RTB-4521" mono/>
-            <RowMtr label="Condutor (MOPP)" value="José Antônio da Silva · CNH 04582319003"/>
-          </SectionMtr>
-
-          {/* Seção 3 - Destinador */}
-          <SectionMtr num="3" title="DESTINADOR">
-            <RowMtr label="Razão social" value="ECOQUÍMICA SA · TRATAMENTO DE RESÍDUOS INDUSTRIAIS"/>
-            <RowMtr label="CNPJ" value="55.666.777/0001-22" mono/>
-            <RowMtr label="Tecnologia" value="T34 — Incineração com lavagem de gases · Cap. 2,5 t/dia"/>
-            <RowMtr label="Licença operação" value="LO-FEAM 2023/4471 · válida até 08/2027" mono/>
-          </SectionMtr>
-
-          {/* Seção 4 - Resíduos */}
-          <SectionMtr num="4" title="RELAÇÃO DE RESÍDUOS TRANSPORTADOS">
+          {/* Seção 2 - Resíduos */}
+          <SectionMtr num="2" title={`RESÍDUOS (${residuos.length})`}>
             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 6}}>
               <thead>
                 <tr style={{background: '#f0f0f0'}}>
-                  <th style={mtrTh}>ID interno</th>
+                  <th style={mtrTh}>ID</th>
                   <th style={mtrTh}>Descrição</th>
-                  <th style={mtrTh}>Cód. IBAMA</th>
-                  <th style={mtrTh}>Classe ABNT</th>
-                  <th style={{...mtrTh, textAlign: 'right'}}>Massa (kg)</th>
-                  <th style={mtrTh}>Embalagem</th>
+                  <th style={mtrTh}>Tipo</th>
+                  <th style={{...mtrTh, textAlign: 'right'}}>Quantidade</th>
+                  <th style={mtrTh}>Risco</th>
+                  <th style={mtrTh}>Classes</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td style={mtrTd}>W-0451</td><td style={mtrTd}>Solventes orgânicos halogenados (clorofórmio + diclorometano)</td><td style={mtrTd}>A007</td><td style={mtrTd}>F003</td><td style={{...mtrTd, textAlign: 'right', fontFamily: 'Courier, monospace'}}>5,10</td><td style={mtrTd}>Bombona PEAD 5L</td></tr>
-                <tr><td style={mtrTd}>W-0452</td><td style={mtrTd}>Soluções ácidas inorgânicas (HCl + H₂SO₄ diluído)</td><td style={mtrTd}>A002</td><td style={mtrTd}>D002</td><td style={{...mtrTd, textAlign: 'right', fontFamily: 'Courier, monospace'}}>2,40</td><td style={mtrTd}>Bombona PEAD 5L</td></tr>
-                <tr><td style={mtrTd}>W-0454</td><td style={mtrTd}>Sais de metais pesados (Pb, Cd, Cr)</td><td style={mtrTd}>A099</td><td style={mtrTd}>D008</td><td style={{...mtrTd, textAlign: 'right', fontFamily: 'Courier, monospace'}}>0,80</td><td style={mtrTd}>Pote vidro 1kg</td></tr>
-                <tr style={{borderTop: '2px solid #111', fontWeight: 700, background: '#fafafa'}}>
-                  <td style={mtrTd} colSpan={4}>TOTAL · 3 itens</td>
-                  <td style={{...mtrTd, textAlign: 'right', fontFamily: 'Courier, monospace'}}>8,30</td>
-                  <td style={mtrTd}>-</td>
-                </tr>
+                {residuos.length === 0 && (
+                  <tr><td style={mtrTd} colSpan={6}>Nenhum resíduo vinculado.</td></tr>
+                )}
+                {residuos.map((r) => (
+                  <tr key={r.id}>
+                    <td style={mtrTd}>#{r.id}</td>
+                    <td style={mtrTd}>{r.descricao}</td>
+                    <td style={mtrTd}>{r.tipo}</td>
+                    <td style={{...mtrTd, textAlign: 'right', fontFamily: 'Courier, monospace'}}>{Number(r.volume ?? 0)} {r.unidade}</td>
+                    <td style={mtrTd}>{r.risco}</td>
+                    <td style={mtrTd}>{(r.classes ?? []).length > 0 ? r.classes.join(', ') : '—'}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </SectionMtr>
 
-          {/* Seção 5 - Observações */}
-          <SectionMtr num="5" title="OBSERVAÇÕES">
-            <div style={{fontSize: 12, lineHeight: 1.55, padding: '4px 0'}}>
-              Transporte conforme classificação ONU 3264 e 3082. Acompanhar com FISPQ de cada item.
-              Veículo sinalizado com painel de segurança e rótulo de risco classes 6.1 e 8. Manter
-              kit de emergência (absorvente + neutralizante) durante todo o trajeto. Rota aprovada:
-              Itajubá/MG → BR-459 → Pouso Alegre/MG (destino).
-            </div>
-          </SectionMtr>
-
-          {/* Seção 6 - Assinaturas */}
-          <div style={{marginTop: 18, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, fontSize: 12}}>
-            {['Gerador', 'Transportador', 'Destinador'].map(t => (
+          {/* Assinaturas */}
+          <div style={{marginTop: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12}}>
+            {['pelo gerador', 'pelo transporte'].map(t => (
               <div key={t}>
-                <div style={{borderTop: '1px solid #111', paddingTop: 4, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#444'}}>
-                  Assinatura · {t}
-                </div>
                 <div style={{marginTop: 22, height: 1, background: '#111'}}/>
-                <div style={{fontSize: 12, color: '#666', textAlign: 'center', marginTop: 4}}>Nome legível · data · carimbo</div>
+                <div style={{fontSize: 12, color: '#666', textAlign: 'center', marginTop: 4}}>Responsável {t}</div>
               </div>
             ))}
           </div>
 
-          {/* Rodapé com código de barras + hash */}
-          <div style={{marginTop: 22, paddingTop: 12, borderTop: '1px solid #111', display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'flex-end'}}>
-            <div style={{fontSize: 12, color: '#444', lineHeight: 1.5}}>
-              Gerado em 22/11/2025 14:32:18 (GMT-3) · ResQui v1.4.2 · UNIFEI-IMC<br/>
-              Hash de validação: <span style={{fontFamily: 'Courier, monospace'}}>SHA-256 · 7f3a91b2c4d8e6f5a1029384756bcdef</span><br/>
-              Para validar acesse <span style={{fontFamily: 'Courier, monospace'}}>sinir.gov.br/validar</span> e informe o nº do manifesto.
-            </div>
-            <div style={{textAlign: 'right'}}>
-              <div style={{display: 'flex', gap: 1, marginBottom: 3, height: 36, alignItems: 'center'}}>
-                {'113211322112213121132132212311211322'.split('').map((w, i) => (
-                  <div key={i} style={{width: Number(w), height: 36, background: '#111'}}/>
-                ))}
-              </div>
-              <div style={{fontFamily: 'Courier, monospace', fontSize: 12, letterSpacing: '0.05em'}}>
-                MTR-2025-1143-1143
-              </div>
-            </div>
+          {/* Rodapé honesto */}
+          <div style={{marginTop: 22, paddingTop: 12, borderTop: '1px solid #111', fontSize: 12, color: '#444', lineHeight: 1.5}}>
+            ResQui · Pré-MTR de uso interno — não substitui o MTR oficial do SINIR. Emita o manifesto
+            oficial em <span style={{fontFamily: 'Courier, monospace'}}>sinir.gov.br</span>.
           </div>
-        </div>
-
-        <div style={{textAlign: 'center', marginTop: 12, fontSize: 12, color: 'var(--text-3)'}}>
-          Página 1 de 1 · A4 retrato · 96 dpi
         </div>
       </div>
     </Modal>
