@@ -3,6 +3,7 @@ import { useToast } from '../components/ToastContext';
 import { useRelatorios } from '../relatorios/useRelatorios';
 import { useGerarRelatorio } from '../relatorios/useGerarRelatorio';
 import { downloadRelatorio } from '../relatorios/downloadRelatorio';
+import { useAuth } from '../auth/AuthContext';
 
 const TIPOS = [
   { slug: 'pgrs',           titulo: 'PGRS Anual',                  desc: 'Exportação completa do PGRS (todos os tipos)' },
@@ -17,6 +18,8 @@ export function RelatoriosScreen({ state, dispatch }) {
   const { data: historico = [], isPending, isError, refetch } = useRelatorios();
   const gerar = useGerarRelatorio();
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const podeConfigurar = user?.papel === 'Admin' || user?.papel === 'Gestor';
 
   async function handleGerar(slug) {
     try {
@@ -34,6 +37,13 @@ export function RelatoriosScreen({ state, dispatch }) {
           <h1 className="page-title">Relatórios e PGRS</h1>
           <p className="page-sub">Plano de Gerenciamento de Resíduos Sólidos · documentos consolidados para órgãos fiscalizadores</p>
         </div>
+        {podeConfigurar && (
+          <div className="page-actions">
+            <button type="button" className="btn btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'configurarPgrs' })}>
+              <Icon name="settings" size={12} /> Configurar PGRS
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid-3" style={{ marginBottom: 16 }}>

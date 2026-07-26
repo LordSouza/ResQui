@@ -35,4 +35,32 @@ describe('FormNovoMtr — entradas inválidas', () => {
     expect(window.alert).toHaveBeenCalledWith('Selecione ao menos um resíduo.');
     expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
   });
+
+  it('usa os padrões da configuração PGRS', async () => {
+    mockFetch.mockImplementation((url) => {
+      if (String(url).includes('/api/pgrs-config')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({
+          geradorPadrao: 'Instituição Teste', transportadorPadrao: 'Transportadora Teste',
+          destinadorPadrao: 'Destinadora Teste', codigoIbamaPadrao: 'B123',
+        })});
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] });
+    });
+
+    render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    await screen.findByDisplayValue('Instituição Teste');
+    expect(screen.getByLabelText(/Transportador/i)).toHaveValue('Transportadora Teste');
+    expect(screen.getByLabelText(/Destinador/i)).toHaveValue('Destinadora Teste');
+    expect(screen.getByLabelText(/Código IBAMA/i)).toHaveValue('B123');
+  });
+
+  it('sem configuração, nasce com campos vazios e sem valores inventados', async () => {
+    render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    await screen.findByLabelText(/Gerador/i);
+    expect(screen.getByLabelText(/Gerador/i)).toHaveValue('');
+    expect(screen.getByLabelText(/Transportador/i)).toHaveValue('');
+    expect(document.body.textContent).not.toMatch(/EcoLog|EcoQuímica|CleanWaste|Resitec/i);
+  });
 });

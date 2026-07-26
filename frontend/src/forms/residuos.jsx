@@ -209,9 +209,20 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
 // ---------- Novo Pré-MTR ----------
 export function FormNovoMtr({ onClose, dispatch }) {
   const criarMtr = useCriarMtr();
+  const { data: cfg } = useConfigPgrs();
   const { data: residuos = [] } = useResíduos({ status: 'aguardando-coleta' });
   const [selected, setSelected] = useState([]);
-  const [f, setF] = useState({ transp: 'EcoLog Transportes', dest: 'EcoQuímica SA', codigo: 'A099', gerador: 'Unifei' });
+  const [f, setF] = useState({ transp: '', dest: '', codigo: '', gerador: '' });
+
+  useEffect(() => {
+    if (!cfg) return;
+    setF(s => ({
+      transp: s.transp || (cfg.transportadorPadrao ?? ''),
+      dest: s.dest || (cfg.destinadorPadrao ?? ''),
+      codigo: s.codigo || (cfg.codigoIbamaPadrao ?? ''),
+      gerador: s.gerador || (cfg.geradorPadrao ?? ''),
+    }));
+  }, [cfg]);
 
   const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   const toKg = { kg: 1, g: 0.001, L: 1.0, mL: 0.001, 'm³': 1000 };
@@ -247,14 +258,10 @@ export function FormNovoMtr({ onClose, dispatch }) {
       </div>
       <div className="form-row">
         <div className="field"><label htmlFor="mtr-transportador">Transportador</label>
-          <select id="mtr-transportador" value={f.transp} onChange={e => setF(s => ({ ...s, transp: e.target.value }))}>
-            <option>EcoLog Transportes</option><option>CleanWaste</option>
-          </select>
+          <input id="mtr-transportador" value={f.transp} onChange={e => setF(s => ({ ...s, transp: e.target.value }))} />
         </div>
         <div className="field"><label htmlFor="mtr-destinador">Destinador</label>
-          <select id="mtr-destinador" value={f.dest} onChange={e => setF(s => ({ ...s, dest: e.target.value }))}>
-            <option>EcoQuímica SA</option><option>Resitec Ambiental</option>
-          </select>
+          <input id="mtr-destinador" value={f.dest} onChange={e => setF(s => ({ ...s, dest: e.target.value }))} />
         </div>
       </div>
       <div style={{ marginTop: 12 }}>

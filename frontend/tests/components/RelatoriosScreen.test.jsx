@@ -5,6 +5,9 @@ import { RelatoriosScreen } from '../../src/screens/RelatoriosScreen';
 import { initialState } from '../../src/store/reducer';
 
 vi.mock('../../src/components/ToastContext', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
+vi.mock('../../src/auth/AuthContext', () => ({
+  useAuth: () => ({ user: { papel: 'Admin' } }),
+}));
 
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
