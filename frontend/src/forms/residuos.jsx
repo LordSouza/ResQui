@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon, Badge, riscoBadge } from '../components';
 import { REATIVIDADE_CLASSES } from '../data';
 import Modal from './Modal';
@@ -8,6 +8,8 @@ import { useLaboratorios } from '../laboratorios/useLaboratorios';
 import { useCriarMtr } from '../mtrs/useCriarMtr';
 import { useResíduos } from '../residuos/useResíduos';
 import { downloadMtrPdf } from '../mtrs/downloadMtr';
+import { useConfigPgrs } from '../pgrs/useConfigPgrs';
+import { useSalvarConfigPgrs } from '../pgrs/useSalvarConfigPgrs';
 
 // Seletor de classes de reatividade da mistura — o backend bloqueia pares Perigo/Proibido na matriz
 function ClassesSelector({ idPrefix, value, onChange }) {
@@ -435,242 +437,92 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
 // ---------- Configurar PGRS (Lei 12.305/10 art. 21) ----------
 const pgrsHint = { fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 14, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--accent)' };
 const pgrsSub = { fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: 8, marginTop: 4 };
-const pgrsCheck = { display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, padding: '4px 0', cursor: 'pointer' };
 
-export function FormConfigurarPgrs({ onClose, dispatch }) {
-  const [tab, setTab] = useState('identificacao');
-  const [cfg, setCfg] = useState(() => ({
-    // Identificação
-    razao_social: 'Universidade Federal de Itajubá — UNIFEI',
-    cnpj: '12.345.678/0001-95',
-    endereco: 'Rua Demonstração, 100 · Cidade Demo/UF',
-    unidade: 'Instituto de Matemática e Computação · IMC',
-    resp_tecnico: 'Profa. Dra. Ana Lúcia Lima',
-    resp_crq: 'CRQ 00-00000',
-    resp_email: 'ana.lima@instituto.example',
-    resp_tel: '(00) 0000-0000',
-    area_m2: 1840,
-    pesquisadores: 87,
-    // Escopo
-    labs: ['Lab-201', 'Lab-203', 'Lab-205', 'Lab-209', 'Lab-211'],
-    tipos_residuo: { quimicos: true, biologicos: false, perfurocortantes: true, eletronicos: true, comum: true },
-    vigencia: 'anual',
-    // Metas
-    hierarquia: { naoGeracao: true, reducao: true, reutilizacao: true, reciclagem: true, tratamento: true, destinacao: true },
-    meta_reducao_pct: 15,
-    meta_reciclagem_pct: 40,
-    meta_destinacao_pct: 100,
-    transportador_padrao: 'EcoLog Transportes de Resíduos Ltda',
-    destinador_padrao: 'EcoQuímica SA — Incineração T34',
-    // Aprovações
-    workflow: 'Resp. técnico → Coordenação IMC → Pró-Reitoria de Administração',
-    orgao_destino: 'FEAM-MG',
-    publicar_sinir: true,
-    publicar_sisema: true,
-    revisao_proxima: '2026-11-30',
-  }));
+export function FormConfigurarPgrs({ onClose }) {
+  const { data: cfgApi, isPending } = useConfigPgrs();
+  const salvar = useSalvarConfigPgrs();
+  const [f, setF] = useState(null);
 
-  const set = (k, v) => setCfg(c => ({ ...c, [k]: v }));
-  const toggle = (group, k) => setCfg(c => ({ ...c, [group]: { ...c[group], [k]: !c[group][k] } }));
-  const toggleLab = (lab) => setCfg(c => ({ ...c, labs: c.labs.includes(lab) ? c.labs.filter(l => l !== lab) : [...c.labs, lab] }));
+  useEffect(() => {
+    if (!cfgApi) return;
+    setF({
+      razaoSocial: cfgApi.razaoSocial ?? '', cnpj: cfgApi.cnpj ?? '',
+      endereco: cfgApi.endereco ?? '', unidade: cfgApi.unidade ?? '',
+      respTecnico: cfgApi.respTecnico ?? '', respCrq: cfgApi.respCrq ?? '',
+      respEmail: cfgApi.respEmail ?? '', respTel: cfgApi.respTel ?? '',
+      geradorPadrao: cfgApi.geradorPadrao ?? '', transportadorPadrao: cfgApi.transportadorPadrao ?? '',
+      destinadorPadrao: cfgApi.destinadorPadrao ?? '', codigoIbamaPadrao: cfgApi.codigoIbamaPadrao ?? '',
+    });
+  }, [cfgApi]);
 
-  const save = () => {
-    dispatch({ type: 'refresh' });
-    onClose();
+  const set = (k, v) => setF(s => ({ ...s, [k]: v }));
+
+  const submit = () => {
+    salvar.mutate({
+      RazaoSocial: f.razaoSocial, Cnpj: f.cnpj, Endereco: f.endereco, Unidade: f.unidade,
+      RespTecnico: f.respTecnico, RespCrq: f.respCrq, RespEmail: f.respEmail, RespTel: f.respTel,
+      GeradorPadrao: f.geradorPadrao, TransportadorPadrao: f.transportadorPadrao,
+      DestinadorPadrao: f.destinadorPadrao, CodigoIbamaPadrao: f.codigoIbamaPadrao,
+    }, { onSuccess: onClose });
   };
 
-  const { data: labsApi = [] } = useLaboratorios();
-  const labsTodos = labsApi.map(l => l.id);
-
   return (
-    <Modal title="Configurar PGRS" sub="Plano de Gerenciamento de Resíduos Sólidos · Lei 12.305/10 art. 21 · parâmetros institucionais"
-      onClose={onClose} width={720}
+    <Modal title="Configurar PGRS" sub="Dados institucionais usados no relatório PGRS e como padrão do Pré-MTR"
+      onClose={onClose} width={680}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={save}><Icon name="check" size={12}/> Salvar configuração</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={!f || salvar.isPending}>
+          <Icon name="check" size={12}/> {salvar.isPending ? 'Salvando…' : 'Salvar configuração'}
+        </button>
       </>}>
-      <div className="tabs">
-        <button type="button" className={`tab ${tab === 'identificacao' ? 'active' : ''}`} onClick={() => setTab('identificacao')}>Identificação</button>
-        <button type="button" className={`tab ${tab === 'escopo' ? 'active' : ''}`} onClick={() => setTab('escopo')}>Escopo</button>
-        <button type="button" className={`tab ${tab === 'metas' ? 'active' : ''}`} onClick={() => setTab('metas')}>Metas e hierarquia</button>
-        <button type="button" className={`tab ${tab === 'aprovacoes' ? 'active' : ''}`} onClick={() => setTab('aprovacoes')}>Aprovações</button>
-      </div>
-
-      {tab === 'identificacao' && (
-        <div>
-          <div style={pgrsHint}>Dados do empreendimento exigidos no inciso I do art. 21; preenchidos automaticamente nos PGRS gerados.</div>
+      {isPending && !f && <div className="page-loading"><Icon name="refresh" size={16}/> Carregando...</div>}
+      {f && (
+        <>
+          <div style={pgrsHint}>Identificação do empreendimento (Lei 12.305/10, art. 21, inc. I). Campos em branco são omitidos do relatório.</div>
           <div className="form-row full">
             <div className="field"><label htmlFor="pgrs-razao-social">Razão social</label>
-              <input id="pgrs-razao-social" aria-label="Razão social" value={cfg.razao_social} onChange={e => set('razao_social', e.target.value)}/></div>
+              <input id="pgrs-razao-social" aria-label="Razão social" value={f.razaoSocial} onChange={e => set('razaoSocial', e.target.value)}/></div>
           </div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-cnpj">CNPJ</label>
-              <input id="pgrs-cnpj" aria-label="CNPJ" value={cfg.cnpj} onChange={e => set('cnpj', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="pgrs-cnpj" aria-label="CNPJ" value={f.cnpj} onChange={e => set('cnpj', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
             <div className="field"><label htmlFor="pgrs-unidade">Unidade geradora</label>
-              <input id="pgrs-unidade" aria-label="Unidade geradora" value={cfg.unidade} onChange={e => set('unidade', e.target.value)}/></div>
+              <input id="pgrs-unidade" aria-label="Unidade geradora" value={f.unidade} onChange={e => set('unidade', e.target.value)}/></div>
           </div>
           <div className="form-row full">
             <div className="field"><label htmlFor="pgrs-endereco">Endereço</label>
-              <input id="pgrs-endereco" aria-label="Endereço" value={cfg.endereco} onChange={e => set('endereco', e.target.value)}/></div>
+              <input id="pgrs-endereco" aria-label="Endereço" value={f.endereco} onChange={e => set('endereco', e.target.value)}/></div>
           </div>
+
           <div style={pgrsSub}>Responsável técnico</div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-resp-nome">Nome</label>
-              <input id="pgrs-resp-nome" aria-label="Nome do responsável técnico" value={cfg.resp_tecnico} onChange={e => set('resp_tecnico', e.target.value)}/></div>
+              <input id="pgrs-resp-nome" aria-label="Nome do responsável técnico" value={f.respTecnico} onChange={e => set('respTecnico', e.target.value)}/></div>
             <div className="field"><label htmlFor="pgrs-resp-crq">Registro CRQ</label>
-              <input id="pgrs-resp-crq" aria-label="Registro CRQ" value={cfg.resp_crq} onChange={e => set('resp_crq', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="pgrs-resp-crq" aria-label="Registro CRQ" value={f.respCrq} onChange={e => set('respCrq', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
           </div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-resp-email">E-mail</label>
-              <input id="pgrs-resp-email" aria-label="E-mail do responsável técnico" value={cfg.resp_email} onChange={e => set('resp_email', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="pgrs-resp-email" aria-label="E-mail do responsável técnico" value={f.respEmail} onChange={e => set('respEmail', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
             <div className="field"><label htmlFor="pgrs-resp-tel">Telefone</label>
-              <input id="pgrs-resp-tel" aria-label="Telefone do responsável técnico" value={cfg.resp_tel} onChange={e => set('resp_tel', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="pgrs-resp-tel" aria-label="Telefone do responsável técnico" value={f.respTel} onChange={e => set('respTel', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+          </div>
+
+          <div style={pgrsSub}>Padrões do Pré-MTR</div>
+          <div style={pgrsHint}>Preenchem os campos do novo Pré-MTR; seguem editáveis a cada emissão.</div>
+          <div className="form-row">
+            <div className="field"><label htmlFor="pgrs-gerador">Gerador padrão</label>
+              <input id="pgrs-gerador" aria-label="Gerador padrão" value={f.geradorPadrao} onChange={e => set('geradorPadrao', e.target.value)}/></div>
+            <div className="field"><label htmlFor="pgrs-codigo-ibama">Código IBAMA padrão</label>
+              <input id="pgrs-codigo-ibama" aria-label="Código IBAMA padrão" value={f.codigoIbamaPadrao} onChange={e => set('codigoIbamaPadrao', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
           </div>
           <div className="form-row">
-            <div className="field"><label htmlFor="pgrs-area-m2">Área construída (m²)</label>
-              <input id="pgrs-area-m2" aria-label="Área construída em m²" type="number" value={cfg.area_m2} onChange={e => set('area_m2', +e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
-            <div className="field"><label htmlFor="pgrs-pesquisadores">Nº de pesquisadores/usuários</label>
-              <input id="pgrs-pesquisadores" aria-label="Número de pesquisadores e usuários" type="number" value={cfg.pesquisadores} onChange={e => set('pesquisadores', +e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+            <div className="field"><label htmlFor="pgrs-transportador">Transportador padrão</label>
+              <input id="pgrs-transportador" aria-label="Transportador padrão" value={f.transportadorPadrao} onChange={e => set('transportadorPadrao', e.target.value)}/></div>
+            <div className="field"><label htmlFor="pgrs-destinador">Destinador padrão</label>
+              <input id="pgrs-destinador" aria-label="Destinador padrão" value={f.destinadorPadrao} onChange={e => set('destinadorPadrao', e.target.value)}/></div>
           </div>
-        </div>
-      )}
-
-      {tab === 'escopo' && (
-        <div>
-          <div style={pgrsHint}>Define quais laboratórios e tipos de resíduo estão cobertos pelo plano (incisos II e III).</div>
-          <div style={pgrsSub}>Laboratórios incluídos</div>
-          <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14}}>
-            {labsTodos.map(lab => {
-              const ativo = cfg.labs.includes(lab);
-              const labInfo = labsApi.find(l => l.id === lab);
-              return (
-                <button type="button" key={lab} onClick={() => toggleLab(lab)}
-                  className="pgrs-lab-btn"
-                  style={{
-                    border: `1.5px solid ${ativo ? 'var(--accent)' : 'var(--border)'}`,
-                    background: ativo ? 'var(--accent-soft)' : '#fff',
-                  }}>
-                  <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
-                    <span className="pgrs-lab-btn-check"
-                      style={{
-                        border: '1.5px solid ' + (ativo ? 'var(--accent)' : 'var(--border)'),
-                        background: ativo ? 'var(--accent)' : '#fff',
-                      }}>{ativo && <Icon name="check" size={10} stroke={2.5}/>}</span>
-                    <span style={{fontFamily: 'var(--mono)', fontWeight: 600}}>{lab}</span>
-                  </div>
-                  {labInfo && <div style={{fontSize: 12, color: 'var(--text-3)', marginTop: 2, marginLeft: 19}}>{labInfo.nome}</div>}
-                </button>
-              );
-            })}
-          </div>
-
-          <div style={pgrsSub}>Tipos de resíduo cobertos</div>
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 14}}>
-            {[
-              ['quimicos', 'Resíduos químicos perigosos (NBR 10004)'],
-              ['biologicos', 'Resíduos de saúde / biológicos (RDC 222)'],
-              ['perfurocortantes', 'Perfurocortantes'],
-              ['eletronicos', 'Resíduos eletroeletrônicos (REEE)'],
-              ['comum', 'Resíduos comuns / recicláveis'],
-            ].map(([k, label]) => (
-              <label key={k} style={pgrsCheck}>
-                <input type="checkbox" aria-label={label} checked={cfg.tipos_residuo[k]} onChange={() => toggle('tipos_residuo', k)}/>
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
-
-          <div className="form-row">
-            <div className="field"><label htmlFor="pgrs-vigencia">Periodicidade de revisão</label>
-              <select id="pgrs-vigencia" value={cfg.vigencia} onChange={e => set('vigencia', e.target.value)}>
-                <option value="anual">Anual (recomendado)</option>
-                <option value="bienal">Bienal</option>
-                <option value="trienal">Trienal</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === 'metas' && (
-        <div>
-          <div style={pgrsHint}>Hierarquia de gestão (art. 9º) e metas quantitativas (inciso VI).</div>
-          <div style={pgrsSub}>Práticas adotadas: ordem de prioridade</div>
-          <div style={{display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 14}}>
-            {[
-              ['naoGeracao', '1. Não-geração'],
-              ['reducao', '2. Redução na fonte'],
-              ['reutilizacao', '3. Reutilização'],
-              ['reciclagem', '4. Reciclagem'],
-              ['tratamento', '5. Tratamento'],
-              ['destinacao', '6. Destinação ambientalmente adequada'],
-            ].map(([k, label]) => (
-              <label key={k} style={pgrsCheck}>
-                <input type="checkbox" aria-label={label} checked={cfg.hierarquia[k]} onChange={() => toggle('hierarquia', k)}/>
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
-
-          <div style={pgrsSub}>Metas anuais</div>
-          <div className="form-row">
-            <div className="field"><label htmlFor="pgrs-meta-reducao">Redução de geração (%)</label>
-              <input id="pgrs-meta-reducao" aria-label="Meta de redução de geração em percentual" type="number" min={0} max={100} value={cfg.meta_reducao_pct} onChange={e => set('meta_reducao_pct', +e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
-            <div className="field"><label htmlFor="pgrs-meta-reciclagem">Reciclagem (%)</label>
-              <input id="pgrs-meta-reciclagem" aria-label="Meta de reciclagem em percentual" type="number" min={0} max={100} value={cfg.meta_reciclagem_pct} onChange={e => set('meta_reciclagem_pct', +e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
-          </div>
-          <div className="form-row">
-            <div className="field"><label htmlFor="pgrs-meta-destinacao">Destinação adequada (%)</label>
-              <input id="pgrs-meta-destinacao" aria-label="Meta de destinação adequada em percentual" type="number" min={0} max={100} value={cfg.meta_destinacao_pct} onChange={e => set('meta_destinacao_pct', +e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
-          </div>
-
-          <div style={pgrsSub}>Parceiros padrão (inciso IV)</div>
-          <div className="form-row">
-            <div className="field"><label htmlFor="pgrs-transportador-padrao">Transportador padrão</label>
-              <input id="pgrs-transportador-padrao" aria-label="Transportador padrão" value={cfg.transportador_padrao} onChange={e => set('transportador_padrao', e.target.value)}/></div>
-            <div className="field"><label htmlFor="pgrs-destinador-padrao">Destinador padrão</label>
-              <input id="pgrs-destinador-padrao" aria-label="Destinador padrão" value={cfg.destinador_padrao} onChange={e => set('destinador_padrao', e.target.value)}/></div>
-          </div>
-        </div>
-      )}
-
-      {tab === 'aprovacoes' && (
-        <div>
-          <div style={pgrsHint}>Fluxo de aprovação e publicação do PGRS aos órgãos fiscalizadores.</div>
-          <div className="form-row full">
-            <div className="field"><label htmlFor="pgrs-workflow">Workflow de assinatura</label>
-              <input id="pgrs-workflow" aria-label="Workflow de assinatura" value={cfg.workflow} onChange={e => set('workflow', e.target.value)}/></div>
-          </div>
-          <div className="form-row">
-            <div className="field"><label htmlFor="pgrs-orgao-destino">Órgão fiscalizador destino</label>
-              <select id="pgrs-orgao-destino" aria-label="Órgão fiscalizador destino" value={cfg.orgao_destino} onChange={e => set('orgao_destino', e.target.value)}>
-                <option value="FEAM-MG">FEAM-MG · Fundação Estadual MA</option>
-                <option value="CETESB">CETESB (SP)</option>
-                <option value="IBAMA">IBAMA · federal</option>
-                <option value="INEA-RJ">INEA-RJ</option>
-              </select>
-            </div>
-            <div className="field"><label htmlFor="pgrs-revisao-proxima">Próxima revisão</label>
-              <input id="pgrs-revisao-proxima" aria-label="Data da próxima revisão" type="date" value={cfg.revisao_proxima} onChange={e => set('revisao_proxima', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
-          </div>
-
-          <div style={pgrsSub}>Publicação automática</div>
-          <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
-            <label htmlFor="pgrs-publicar-sinir" style={pgrsCheck}>
-              <input id="pgrs-publicar-sinir" type="checkbox" aria-label="Publicar no SINIR ao gerar nova versão" checked={cfg.publicar_sinir} onChange={() => set('publicar_sinir', !cfg.publicar_sinir)}/>
-              <span>Publicar no <strong>SINIR</strong> (Sistema Nacional · MMA) ao gerar nova versão</span>
-            </label>
-            <label htmlFor="pgrs-publicar-sisema" style={pgrsCheck}>
-              <input id="pgrs-publicar-sisema" type="checkbox" aria-label="Publicar no SISEMA ao gerar nova versão" checked={cfg.publicar_sisema} onChange={() => set('publicar_sisema', !cfg.publicar_sisema)}/>
-              <span>Publicar no <strong>SISEMA</strong> (Sistema Estadual · MG) ao gerar nova versão</span>
-            </label>
-          </div>
-
-          <div style={{marginTop: 16, padding: 10, background: 'var(--amber-soft)', border: '1px solid var(--amber)', borderRadius: 'var(--radius)', fontSize: 12, lineHeight: 1.5}}>
-            <strong>Atenção:</strong> alterações no PGRS publicado exigem nova aprovação do responsável técnico
-            e geram nova versão no SINIR. A versão anterior fica arquivada por 5 anos (Lei 12.305 art. 23).
-          </div>
-        </div>
+        </>
       )}
     </Modal>
   );

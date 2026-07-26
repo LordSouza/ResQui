@@ -421,7 +421,7 @@ export default function App() {
       {state.modal === 'importarCsv' && <FormImportarCSV onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'editarRegrasCompat' && <FormEditarRegrasCompat onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'previewFispq' && <FormPreviewFispq onClose={() => dispatch({type: 'closeModal'})} reagente={state.modalReagente} dispatch={dispatch}/>}
-      {state.modal === 'configurarPgrs' && <FormConfigurarPgrs onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'configurarPgrs' && <FormConfigurarPgrs onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'perfil' && <FormPerfil onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'senha2fa' && <FormSenha2FA onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'sessoes' && <FormSessoes onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
