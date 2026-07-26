@@ -1693,25 +1693,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   font-family: Helvetica, Arial, sans-serif;
 }
 
-.pgrs-lab-btn {
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  font-size: 12px;
-  cursor: pointer;
-  text-align: left;
-  min-width: 180px;
-}
-
-.pgrs-lab-btn-check {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-}
-
 /* laboratorios.jsx extracted styles */
 .lab-cor-swatches {
   display: flex;

@@ -76,4 +76,12 @@ describe('FormConfigurarPgrs', () => {
     await waitFor(() => expect(screen.getByLabelText(/Razão social/i)).toHaveValue(''));
     expect(document.body.textContent).not.toMatch(/UNIFEI|Itajubá|Ana Lúcia|CRQ III/i);
   });
+
+  it('mostra erro e botão de tentar novamente quando a API falha, sem renderizar o formulário', async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 500, text: async () => '' });
+    render(<FormConfigurarPgrs onClose={vi.fn()} />, { wrapper });
+    await waitFor(() => expect(screen.getByText(/Erro ao carregar dados/i)).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /Tentar novamente/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Razão social/i)).not.toBeInTheDocument();
+  });
 });

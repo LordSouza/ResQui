@@ -439,7 +439,7 @@ const pgrsHint = { fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, margin
 const pgrsSub = { fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: 8, marginTop: 4 };
 
 export function FormConfigurarPgrs({ onClose }) {
-  const { data: cfgApi, isPending } = useConfigPgrs();
+  const { data: cfgApi, isPending, isError, refetch } = useConfigPgrs();
   const salvar = useSalvarConfigPgrs();
   const [f, setF] = useState(null);
 
@@ -475,7 +475,8 @@ export function FormConfigurarPgrs({ onClose }) {
           <Icon name="check" size={12}/> {salvar.isPending ? 'Salvando…' : 'Salvar configuração'}
         </button>
       </>}>
-      {isPending && !f && <div className="page-loading"><Icon name="refresh" size={16}/> Carregando...</div>}
+      {isPending && <div className="page-loading"><Icon name="refresh" size={16}/> Carregando...</div>}
+      {isError && <div className="page-error">Erro ao carregar dados. <button onClick={refetch}>Tentar novamente</button></div>}
       {f && (
         <>
           <div style={pgrsHint}>Identificação do empreendimento (Lei 12.305/10, art. 21, inc. I). Campos em branco são omitidos do relatório.</div>
