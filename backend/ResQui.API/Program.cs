@@ -14,6 +14,7 @@ using ResQui.Application.Relatorios;
 using ResQui.Application.Residuos;
 using ResQui.Application.Email;
 using ResQui.Application.Usuarios;
+using ResQui.Application.Pgrs;
 using ResQui.Infrastructure;
 using ResQui.Infrastructure.Data;
 using ResQui.Infrastructure.Identity;
@@ -29,6 +30,7 @@ using ResQui.API.Features.Notificacoes;
 using ResQui.API.Features.Usuarios;
 using ResQui.API.Features.Compatibilidade;
 using ResQui.API.Features.Relatorios;
+using ResQui.API.Features.Pgrs;
 using ResQui.Infrastructure.Jobs;
 using ResQui.Application.Common;
 
@@ -58,6 +60,7 @@ builder.Services.AddScoped<INotificacoesService, NotificacoesService>();
 builder.Services.AddScoped<IUsuariosService, UsuariosService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRelatoriosService, RelatoriosService>();
+builder.Services.AddScoped<IPgrsConfigService, PgrsConfigService>();
 builder.Services.AddSingleton<ResQui.Application.Pdf.IPdfService, ResQui.Application.Pdf.PdfService>();
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -170,6 +173,7 @@ app.MapGroup("/api/chamados").RequireAuthorization().MapChamadosEndpoints();
 app.MapGroup("/api/compat").RequireAuthorization().MapCompatEndpoints();
 app.MapGroup("/api/notificacoes").RequireAuthorization().MapNotificacoesEndpoints();
 app.MapGroup("/api/relatorios").RequireAuthorization().MapRelatoriosEndpoints();
+app.MapGroup("/api/pgrs-config").RequireAuthorization().MapPgrsConfigEndpoints();
 
 app.Run();
 
