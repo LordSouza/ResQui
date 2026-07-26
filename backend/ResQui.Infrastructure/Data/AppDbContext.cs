@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<CompatOverride> CompatOverrides => Set<CompatOverride>();
     public DbSet<RelatorioGerado> RelatoriosGerados => Set<RelatorioGerado>();
     public DbSet<SessaoToken> SessoesTokens => Set<SessaoToken>();
+    public DbSet<ConfiguracaoPgrs> ConfiguracaoPgrs => Set<ConfiguracaoPgrs>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

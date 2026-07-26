@@ -304,6 +304,70 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.ToTable("compat_overrides", (string)null);
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.ConfiguracaoPgrs", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AtualizadoPorId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Cnpj")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CodigoIbamaPadrao")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DestinadorPadrao")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Endereco")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GeradorPadrao")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RazaoSocial")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RespCrq")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RespEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RespTecnico")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RespTel")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TransportadorPadrao")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Unidade")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("configuracao_pgrs", (string)null);
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.Laboratorio", b =>
                 {
                     b.Property<string>("Id")

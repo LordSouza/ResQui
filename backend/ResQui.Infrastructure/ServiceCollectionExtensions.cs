@@ -41,6 +41,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICompatOverridesRepository, EfCompatOverridesRepository>();
         services.AddScoped<IAuthRepository, EfAuthRepository>();
         services.AddScoped<ISessoesRepository, EfSessoesRepository>();
+        services.AddScoped<IPgrsConfigRepository, EfPgrsConfigRepository>();
 
         services.AddScoped<ExpiryChecker>();
         services.AddScoped<LowStockChecker>();
