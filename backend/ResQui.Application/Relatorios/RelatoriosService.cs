@@ -11,7 +11,8 @@ public class RelatoriosService(
     IReagentesRepository reagentesRepo,
     IResiduosRepository residuosRepo,
     IMtrsRepository mtrsRepo,
-    ILaboratoriosRepository laboratoriosRepo) : IRelatoriosService
+    ILaboratoriosRepository laboratoriosRepo,
+    IPgrsConfigRepository pgrsConfigRepo) : IRelatoriosService
 {
     private static readonly Dictionary<string, string> Titulos = new()
     {
@@ -164,6 +165,12 @@ public class RelatoriosService(
         var sb = new StringBuilder();
         var total = 0;
 
+        var ident = await GerarIdentificacaoCsvAsync();
+        if (ident.TotalLinhas > 0)
+        {
+            sb.AppendLine("# IDENTIFICACAO"); sb.Append(ident.Csv); total += ident.TotalLinhas;
+        }
+
         var inv = await GerarInventarioCsvAsync();
         sb.AppendLine("# INVENTARIO"); sb.Append(inv.Csv); total += inv.TotalLinhas;
 
@@ -180,6 +187,33 @@ public class RelatoriosService(
         sb.AppendLine("# INDICADORES"); sb.Append(ind.Csv); total += ind.TotalLinhas;
 
         return (sb.ToString(), total);
+    }
+
+    private async Task<(string Csv, int TotalLinhas)> GerarIdentificacaoCsvAsync()
+    {
+        var cfg = await pgrsConfigRepo.GetAsync();
+        if (cfg is null) return ("", 0);
+
+        var campos = new (string Rotulo, string Valor)[]
+        {
+            ("Razao social", cfg.RazaoSocial),
+            ("CNPJ", cfg.Cnpj),
+            ("Endereco", cfg.Endereco),
+            ("Unidade geradora", cfg.Unidade),
+            ("Responsavel tecnico", cfg.RespTecnico),
+            ("Registro CRQ", cfg.RespCrq),
+            ("E-mail do responsavel", cfg.RespEmail),
+            ("Telefone do responsavel", cfg.RespTel),
+        };
+
+        var preenchidos = campos.Where(c => !string.IsNullOrWhiteSpace(c.Valor)).ToList();
+        if (preenchidos.Count == 0) return ("", 0);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Campo,Valor");
+        foreach (var (rotulo, valor) in preenchidos) sb.AppendLine($"{Esc(rotulo)},{Esc(valor)}");
+        sb.AppendLine();
+        return (sb.ToString(), preenchidos.Count);
     }
 
     // ---------------------------------------------------------------

@@ -15,10 +15,11 @@ public class RelatoriosServiceTests
     private readonly IResiduosRepository _residuosRepo = Substitute.For<IResiduosRepository>();
     private readonly IMtrsRepository _mtrsRepo = Substitute.For<IMtrsRepository>();
     private readonly ILaboratoriosRepository _labsRepo = Substitute.For<ILaboratoriosRepository>();
+    private readonly IPgrsConfigRepository _pgrsRepo = Substitute.For<IPgrsConfigRepository>();
     private readonly RelatoriosService _sut;
 
     public RelatoriosServiceTests() =>
-        _sut = new RelatoriosService(_repo, _reagentesRepo, _residuosRepo, _mtrsRepo, _labsRepo);
+        _sut = new RelatoriosService(_repo, _reagentesRepo, _residuosRepo, _mtrsRepo, _labsRepo, _pgrsRepo);
 
     private static RelatorioGerado FakeRelatorio(int id = 1) => new()
     {
@@ -137,5 +138,51 @@ public class RelatoriosServiceTests
         result!.Value.Csv.Should().Contain("Id,Nome");
         result!.Value.Csv.Should().Contain("R-00001");
         result!.Value.Filename.Should().EndWith(".csv");
+    }
+
+    private static RelatorioGerado FakeRelatorioPgrs() => new()
+    {
+        Id = 1, Tipo = "pgrs", Titulo = "PGRS Anual",
+        GeradoPorId = "u1", TotalLinhas = 0, Formato = "csv",
+        GeradoEm = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc),
+    };
+
+    [Fact]
+    public async Task DownloadAsync_Pgrs_IncluiIdentificacaoQuandoConfigurado()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeRelatorioPgrs());
+        _reagentesRepo.GetAllAsync().Returns([]);
+        _residuosRepo.GetAllAsync().Returns([]);
+        _mtrsRepo.GetAllAsync().Returns([]);
+        _labsRepo.GetAllAsync().Returns([]);
+        _pgrsRepo.GetAsync().Returns(new ConfiguracaoPgrs
+        {
+            Id = 1, RazaoSocial = "Instituição Teste", Cnpj = "12.345.678/0001-95",
+            RespTecnico = "Resp. Teste", RespCrq = "CRQ-123",
+        });
+
+        var result = await _sut.DownloadAsync(1);
+
+        result.Should().NotBeNull();
+        result!.Value.Csv.Should().Contain("# IDENTIFICACAO");
+        result.Value.Csv.Should().Contain("Instituição Teste");
+        result.Value.Csv.Should().Contain("12.345.678/0001-95");
+        result.Value.Csv.Should().Contain("CRQ-123");
+    }
+
+    [Fact]
+    public async Task DownloadAsync_Pgrs_SemConfiguracao_OmiteIdentificacao()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeRelatorioPgrs());
+        _reagentesRepo.GetAllAsync().Returns([]);
+        _residuosRepo.GetAllAsync().Returns([]);
+        _mtrsRepo.GetAllAsync().Returns([]);
+        _labsRepo.GetAllAsync().Returns([]);
+        _pgrsRepo.GetAsync().Returns((ConfiguracaoPgrs?)null);
+
+        var result = await _sut.DownloadAsync(1);
+
+        result.Should().NotBeNull();
+        result!.Value.Csv.Should().NotContain("# IDENTIFICACAO");
     }
 }
