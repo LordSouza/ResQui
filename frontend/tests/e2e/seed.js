@@ -56,6 +56,27 @@ export async function aprovarResiduo(request, auth, id) {
   return request.put(`/api/residuos/${id}/aprovar`, { headers: auth });
 }
 
+// Config institucional do PGRS (singleton) usada como padrão do Novo Pré-MTR.
+// Valor de teste explícito — nunca depender do que o seed demo (DemoDataSeeder) preencheu.
+export const PGRS_CONFIG_E2E = {
+  GeradorPadrao: 'Gerador E2E Ltda',
+  TransportadorPadrao: 'Transportadora E2E Ltda',
+  DestinadorPadrao: 'Destinadora E2E Ltda',
+  CodigoIbamaPadrao: 'E2E01',
+};
+
+export async function seedPgrsConfig(request, auth, overrides = {}) {
+  return request.put('/api/pgrs-config', {
+    headers: auth,
+    data: {
+      RazaoSocial: '', Cnpj: '', Endereco: '', Unidade: '',
+      RespTecnico: '', RespCrq: '', RespEmail: '', RespTel: '',
+      ...PGRS_CONFIG_E2E,
+      ...overrides,
+    },
+  });
+}
+
 export async function criarResiduoAguardandoColeta(request, auth) {
   await ensureLab(request, auth);
   const res = await request.post('/api/residuos', {

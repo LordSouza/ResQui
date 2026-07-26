@@ -63,4 +63,29 @@ describe('FormNovoMtr — entradas inválidas', () => {
     expect(screen.getByLabelText(/Transportador/i)).toHaveValue('');
     expect(document.body.textContent).not.toMatch(/EcoLog|EcoQuímica|CleanWaste|Resitec/i);
   });
+
+  it('bloqueia criação sem gerador/transportador preenchidos, mesmo com resíduo selecionado', async () => {
+    mockFetch.mockImplementation((url) => {
+      if (String(url).includes('/api/pgrs-config')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+      }
+      if (String(url).includes('/api/residuos')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ([
+          { id: 1, tipo: 'Solventes orgânicos não-halogenados', volume: 2, unidade: 'L' },
+        ]) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] });
+    });
+
+    render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    const checkbox = await screen.findByRole('checkbox');
+    await userEvent.click(checkbox);
+    expect(screen.getByLabelText(/Gerador/i)).toHaveValue('');
+    expect(screen.getByLabelText(/Transportador/i)).toHaveValue('');
+
+    await userEvent.click(screen.getByRole('button', { name: /Criar Pré-MTR/i }));
+    expect(window.alert).toHaveBeenCalledWith('Informe gerador e transportador.');
+    expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
+  });
 });

@@ -233,6 +233,7 @@ export function FormNovoMtr({ onClose, dispatch }) {
 
   const submit = () => {
     if (selected.length === 0) { alert('Selecione ao menos um resíduo.'); return; }
+    if (!f.gerador.trim() || !f.transp.trim()) { alert('Informe gerador e transportador.'); return; }
     criarMtr.mutate(
       { Gerador: f.gerador, Transportadora: f.transp, Destinador: f.dest, CodigoIbama: f.codigo, ResiduoIds: selected },
       { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
