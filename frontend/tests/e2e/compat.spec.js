@@ -11,17 +11,20 @@ async function loginAndNavigate(page, navLabel) {
 
 async function seedReagentes(request) {
   const auth = await apiAuth(request);
-  await ensureReagente(request, auth, { nome: 'Ácido Clorídrico', cas: '7647-01-0', classe: 1 });
-  await ensureReagente(request, auth, { nome: 'Hidróxido de Sódio', cas: '1310-73-2', classe: 3 });
-  await ensureReagente(request, auth, { nome: 'Metanol', cas: '67-56-1', classe: 5 });
-  await ensureReagente(request, auth, { nome: 'Etanol Absoluto', cas: '64-17-5', classe: 5 });
+  return {
+    acido: await ensureReagente(request, auth, { nome: 'Ácido Clorídrico', cas: '7647-01-0', classe: 1 }),
+    base: await ensureReagente(request, auth, { nome: 'Hidróxido de Sódio', cas: '1310-73-2', classe: 3 }),
+    metanol: await ensureReagente(request, auth, { nome: 'Metanol', cas: '67-56-1', classe: 5 }),
+    etanol: await ensureReagente(request, auth, { nome: 'Etanol Absoluto', cas: '64-17-5', classe: 5 }),
+  };
 }
 
-// Seleciona uma opção pelo texto visível ("Nome (R-00001)")
-async function selectByName(page, selectId, nome) {
-  const option = page.locator(`#${selectId} option`, { hasText: nome }).first();
-  await option.waitFor({ state: 'attached' });
-  await page.locator(`#${selectId}`).selectOption(await option.getAttribute('value'));
+// Seleciona pelo id do reagente semeado. Casar por nome não serve: o seed demo tem
+// nomes que contêm os nossos ("Metanol P.A.", "Hidróxido de sódio P.A.") com outras
+// classes de reatividade, e o primeiro casamento venceria — mudando o par avaliado.
+async function selectById(page, selectId, reagenteId) {
+  await page.locator(`#${selectId} option[value="${reagenteId}"]`).waitFor({ state: 'attached' });
+  await page.locator(`#${selectId}`).selectOption(reagenteId);
 }
 
 test('shows the compatibility checker screen', async ({ page }) => {
@@ -30,25 +33,25 @@ test('shows the compatibility checker screen', async ({ page }) => {
 });
 
 test('selecting two class-5 reagents shows Compatíveis result', async ({ page, request }) => {
-  await seedReagentes(request);
+  const { metanol, etanol } = await seedReagentes(request);
   await loginAndNavigate(page, 'Compatibilidade');
-  await selectByName(page, 'compat-select-a', 'Metanol');
-  await selectByName(page, 'compat-select-b', 'Etanol Absoluto');
+  await selectById(page, 'compat-select-a', metanol.id);
+  await selectById(page, 'compat-select-b', etanol.id);
   await expect(page.getByText(/Compatíveis/)).toBeVisible();
 });
 
 test('selecting incompatible pair (acid + base) shows Proibido result', async ({ page, request }) => {
-  await seedReagentes(request);
+  const { acido, base } = await seedReagentes(request);
   await loginAndNavigate(page, 'Compatibilidade');
-  await selectByName(page, 'compat-select-a', 'Ácido Clorídrico');
-  await selectByName(page, 'compat-select-b', 'Hidróxido de Sódio');
+  await selectById(page, 'compat-select-a', acido.id);
+  await selectById(page, 'compat-select-b', base.id);
   await expect(page.getByText(/Proibido/)).toBeVisible();
 });
 
 test('selecting cautela pair shows Cautela result', async ({ page, request }) => {
-  await seedReagentes(request);
+  const { acido, metanol } = await seedReagentes(request);
   await loginAndNavigate(page, 'Compatibilidade');
-  await selectByName(page, 'compat-select-a', 'Ácido Clorídrico');
-  await selectByName(page, 'compat-select-b', 'Metanol');
+  await selectById(page, 'compat-select-a', acido.id);
+  await selectById(page, 'compat-select-b', metanol.id);
   await expect(page.getByText(/Cautela/)).toBeVisible();
 });

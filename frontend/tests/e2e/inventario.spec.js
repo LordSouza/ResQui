@@ -25,9 +25,16 @@ test('shows the inventory screen with reagent list', async ({ page, request }) =
 test('filter reduces the reagent list', async ({ page, request }) => {
   await seedReagentes(request);
   await loginAndNavigate(page, 'Inventário');
+  // Ancora o estado inicial: sem isto, a asserção de ausência abaixo passaria por
+  // vacuidade caso a lista simplesmente não renderizasse.
+  await expect(page.getByText(/clorídrico/i).first()).toBeVisible();
+
   await page.getByPlaceholder(/Buscar por nome/i).fill('Sulfúrico');
+  // toHaveCount tem retry automático — cobre o debounce de 300ms da busca server-side.
+  // Regex ampla porque o seed demo também traz um "Ácido clorídrico 37%": depois do
+  // filtro nenhum clorídrico pode restar, seja o semeado aqui ou o do demo.
+  await expect(page.getByText(/clorídrico/i)).toHaveCount(0);
   await expect(page.getByText('Ácido Sulfúrico').first()).toBeVisible();
-  await expect(page.getByText('Ácido Clorídrico')).not.toBeVisible();
 });
 
 test('clicking a reagent opens the detail screen', async ({ page, request }) => {
