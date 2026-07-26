@@ -102,6 +102,28 @@ public static class DemoDataSeeder
                 new Chamado { Titulo = "Sugestão: filtro por responsável", Descricao = "Seria útil filtrar reagentes por responsável na tela de inventário.", LaboratorioId = lab3, AbertoPorId = adminId, Tipo = ChamadoTipo.Feature, Severidade = ChamadoSeveridade.Baixa, Status = ChamadoStatus.Aberto, Comentarios = [] });
             await db.SaveChangesAsync();
         }
+
+        if (!await db.ConfiguracaoPgrs.AnyAsync())
+        {
+            // Valores deliberadamente fictícios — não usar dados de instituição ou pessoa reais.
+            db.ConfiguracaoPgrs.Add(new ConfiguracaoPgrs
+            {
+                Id = 1,
+                RazaoSocial = "Instituição Demo de Ensino",
+                Cnpj = "00.000.000/0001-00",
+                Endereco = "Rua Demonstração, 100 · Cidade Demo/UF",
+                Unidade = "Instituto Demo",
+                RespTecnico = "Responsável Técnico Demo",
+                RespCrq = "CRQ-00000",
+                RespEmail = "demo@resqui.local",
+                RespTel = "(00) 0000-0000",
+                GeradorPadrao = "Instituição Demo de Ensino",
+                TransportadorPadrao = "Transportadora Demo Ltda",
+                DestinadorPadrao = "Destinadora Demo SA",
+                CodigoIbamaPadrao = "A099",
+            });
+            await db.SaveChangesAsync();
+        }
     }
 
     private static Reagente Reag(string nome, string cas, string formula, int classe, decimal estoque, decimal estoqueMin, string unidade, DateOnly validade, string local, string responsavel, bool controlado, List<string> pictos, string signal, List<string> frasesH, List<string> frasesP) => new()
