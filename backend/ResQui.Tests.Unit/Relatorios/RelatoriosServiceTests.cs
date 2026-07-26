@@ -185,4 +185,20 @@ public class RelatoriosServiceTests
         result.Should().NotBeNull();
         result!.Value.Csv.Should().NotContain("# IDENTIFICACAO");
     }
+
+    [Fact]
+    public async Task DownloadAsync_Pgrs_ConfiguracaoComCamposVazios_OmiteIdentificacao()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeRelatorioPgrs());
+        _reagentesRepo.GetAllAsync().Returns([]);
+        _residuosRepo.GetAllAsync().Returns([]);
+        _mtrsRepo.GetAllAsync().Returns([]);
+        _labsRepo.GetAllAsync().Returns([]);
+        _pgrsRepo.GetAsync().Returns(new ConfiguracaoPgrs());
+
+        var result = await _sut.DownloadAsync(1);
+
+        result.Should().NotBeNull();
+        result!.Value.Csv.Should().NotContain("# IDENTIFICACAO");
+    }
 }
