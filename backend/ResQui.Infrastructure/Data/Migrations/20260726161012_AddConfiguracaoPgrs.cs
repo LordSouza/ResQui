@@ -29,7 +29,7 @@ namespace ResQui.Infrastructure.Data.Migrations
                     DestinadorPadrao = table.Column<string>(type: "text", nullable: false),
                     CodigoIbamaPadrao = table.Column<string>(type: "text", nullable: false),
                     AtualizadoEm = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    AtualizadoPorId = table.Column<string>(type: "text", nullable: true)
+                    AtualizadoPor = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {

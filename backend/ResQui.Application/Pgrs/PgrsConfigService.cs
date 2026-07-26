@@ -41,7 +41,7 @@ public class PgrsConfigService(IPgrsConfigRepository repo, IAuditoriaService aud
         cfg.DestinadorPadrao = N(cmd.DestinadorPadrao);
         cfg.CodigoIbamaPadrao = N(cmd.CodigoIbamaPadrao);
         cfg.AtualizadoEm = DateTime.UtcNow;
-        cfg.AtualizadoPorId = usuarioEmail;
+        cfg.AtualizadoPor = usuarioEmail;
 
         await repo.SaveChangesAsync();
         await auditoria.RegistrarAsync(usuarioEmail, "pgrs.configurar", "Relatórios",

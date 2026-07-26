@@ -312,7 +312,7 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("AtualizadoEm")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("AtualizadoPorId")
+                    b.Property<string>("AtualizadoPor")
                         .HasColumnType("text");
 
                     b.Property<string>("Cnpj")

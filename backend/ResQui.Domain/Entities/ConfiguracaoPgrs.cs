@@ -20,5 +20,6 @@ public class ConfiguracaoPgrs
     public string DestinadorPadrao { get; set; } = "";
     public string CodigoIbamaPadrao { get; set; } = "";
     public DateTime? AtualizadoEm { get; set; }
-    public string? AtualizadoPorId { get; set; }
+    /// <summary>E-mail de quem editou por último — mesmo valor do "who" da auditoria, não um Id de usuário.</summary>
+    public string? AtualizadoPor { get; set; }
 }

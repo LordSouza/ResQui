@@ -13,7 +13,7 @@ using ResQui.Infrastructure.Data;
 namespace ResQui.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260726154301_AddConfiguracaoPgrs")]
+    [Migration("20260726161012_AddConfiguracaoPgrs")]
     partial class AddConfiguracaoPgrs
     {
         /// <inheritdoc />
@@ -315,7 +315,7 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("AtualizadoEm")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("AtualizadoPorId")
+                    b.Property<string>("AtualizadoPor")
                         .HasColumnType("text");
 
                     b.Property<string>("Cnpj")
