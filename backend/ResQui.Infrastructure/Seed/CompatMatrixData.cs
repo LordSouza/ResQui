@@ -8,11 +8,12 @@ public static class CompatMatrixData
     // Proveniência (fonte, referência e mapeamento classe → grupo de reatividade da EPA):
     // ResQui.Application.Compatibilidade.CompatProveniencia e docs/compatibilidade-proveniencia.md.
     // A matriz é simétrica com diagonal zero — propriedades travadas por CompatMatrixDataTests.
-    // Há divergências conhecidas em relação à fonte, listadas no documento acima; nenhuma delas
-    // foi reconciliada aqui (ver DEBITOS-TECNICOS.md §3).
+    // Há divergências conhecidas em relação à fonte, listadas no documento acima; restam 13
+    // pares mais permissivos que a fonte, não reconciliados aqui (ver DEBITOS-TECNICOS.md §3).
     // 2026-07-27: os 8 pares da classe 12 (reativos com água) foram reconciliados com a fonte —
-    // o RGN 107 da EPA é "não misturar com nenhum produto químico ou resíduo". As 13 divergências
-    // permissivas restantes envolvem classes agregadas e seguem em aberto.
+    // o RGN 107 da EPA é "não misturar com nenhum produto químico ou resíduo". Das 13 divergências
+    // permissivas restantes, a maioria envolve classes agregadas; 4 (2x7, 2x10, 6x10, 6x11) são
+    // pares de RGN único e seguem em aberto (ver docs/compatibilidade-proveniencia.md).
     private static readonly int[,] Matrix =
     {
         {   0, 1, 3, 2, 1, 1, 1, 3, 3, 2, 3, 3 }, // 1
