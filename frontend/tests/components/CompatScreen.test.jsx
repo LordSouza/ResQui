@@ -64,4 +64,15 @@ describe('CompatScreen', () => {
     render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
     expect(screen.getByRole('heading', { name: /Motor de compatibilidade/i })).toBeInTheDocument();
   });
+
+  it('exibe a proveniência da matriz vinda da API', () => {
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    expect(screen.getByText(/EPA-600\/2-80-076/)).toBeInTheDocument();
+    expect(screen.getByText(/Johnson/)).toBeInTheDocument();
+  });
+
+  it('não afirma regras institucionais que não existem no sistema', () => {
+    const { container } = render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    expect(container.textContent).not.toMatch(/regras institucionais UNIFEI/i);
+  });
 });

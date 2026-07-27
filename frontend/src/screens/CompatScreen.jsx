@@ -41,7 +41,7 @@ export function CompatScreen({ state, dispatch }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Motor de compatibilidade química</h1>
-          <p className="page-sub">Verifica reações de risco entre pares antes do armazenamento, manuseio ou descarte conjunto. Base: matriz EPA/NOAA + regras institucionais UNIFEI.</p>
+          <p className="page-sub">Verifica reações de risco entre pares antes do armazenamento, manuseio ou descarte conjunto. Regras institucionais só se aplicam quando um Gestor cadastra uma exceção na matriz.</p>
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => {
@@ -53,6 +53,10 @@ export function CompatScreen({ state, dispatch }) {
             });
             rows.push([]);
             rows.push(['Legenda', '0 = compatível', '1 = cautela', '2 = perigo', '3 = proibido']);
+            rows.push([]);
+            rows.push(['Fonte', fonte?.fonte ?? '']);
+            rows.push(['Referência', fonte?.referencia ?? '']);
+            rows.push(['Detalhamento', fonte?.detalhamento ?? '']);
             exportCsv(rows, `matriz-compatibilidade-${exportDate.toISOString().slice(0,10)}.csv`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar matriz</button>
@@ -172,6 +176,13 @@ export function CompatScreen({ state, dispatch }) {
             ))}
           </div>
         </div>
+        {fonte && (
+          <p className="page-sub" style={{padding: '0 16px 14px'}}>
+            Fonte: {fonte.fonte}. Abordagem consolidada em: {fonte.referencia} Mapeamento das classes,
+            regra de conversão e divergências conhecidas em <code>{fonte.detalhamento}</code>.
+            Revisado em {fonte.revisadoEm}.
+          </p>
+        )}
       </div>
     </>
   );
