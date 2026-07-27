@@ -34,21 +34,21 @@ describe('mapearColunas', () => {
 });
 
 describe('analisarImportacao', () => {
-  const headers = ['Nome', 'CAS', 'Quantidade', 'Unid.', 'Local', 'Validade'];
+  const headers = ['Nome', 'CAS', 'Quantidade', 'Unid.', 'Local', 'Validade', 'Classe'];
 
   it('monta cmd com defaults para linha completa', () => {
-    const rows = [['Etanol', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01']];
+    const rows = [['Etanol', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01', '5']];
     const [item] = analisarImportacao(headers, rows, { responsavelDefault: 'Ana' });
     expect(item.bloqueada).toBe(false);
     expect(item.linhaCsv).toBe(2);
     expect(item.cmd).toMatchObject({
       Nome: 'Etanol', Cas: '64-17-5', Estoque: 2.5, Unidade: 'L', Local: 'Lab-201',
-      Responsavel: 'Ana', ClasseReatividade: 12, Controlado: false, Formula: '', Id: null,
+      Responsavel: 'Ana', ClasseReatividade: 5, Controlado: false, Formula: '', Id: null,
     });
   });
 
   it('bloqueia linha sem obrigatório e lista o motivo', () => {
-    const rows = [['', '64-17-5', '2.5', 'L', 'Lab-201', '']];
+    const rows = [['', '64-17-5', '2.5', 'L', 'Lab-201', '', '5']];
     const [item] = analisarImportacao(headers, rows, {});
     expect(item.bloqueada).toBe(true);
     expect(item.cmd).toBeNull();
@@ -56,16 +56,54 @@ describe('analisarImportacao', () => {
   });
 
   it('marca aviso quando a validade já expirou', () => {
-    const rows = [['Etanol', '64-17-5', '1', 'L', 'Lab-201', '2000-01-01']];
+    const rows = [['Etanol', '64-17-5', '1', 'L', 'Lab-201', '2000-01-01', '5']];
     const [item] = analisarImportacao(headers, rows, {});
     expect(item.bloqueada).toBe(false);
     expect(item.avisos).toContain('Validade expirada');
   });
 
   it('aceita vírgula decimal (pt-BR) no estoque', () => {
-    const rows = [['Etanol', '64-17-5', '2,5', 'L', 'Lab-201', '2027-01-01']];
+    const rows = [['Etanol', '64-17-5', '2,5', 'L', 'Lab-201', '2027-01-01', '5']];
     const [item] = analisarImportacao(headers, rows, {});
     expect(item.bloqueada).toBe(false);
     expect(item.cmd.Estoque).toBe(2.5);
+  });
+
+  it('bloqueia linha quando a planilha não tem coluna de classe', () => {
+    const semClasse = ['Nome', 'CAS', 'Quantidade', 'Unid.', 'Local', 'Validade'];
+    const rows = [['Etanol', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01']];
+    const [item] = analisarImportacao(semClasse, rows, {});
+    expect(item.bloqueada).toBe(true);
+    expect(item.cmd).toBeNull();
+    expect(item.motivos).toContain('Classe de reatividade ausente');
+  });
+
+  it('bloqueia linha com célula de classe vazia', () => {
+    const rows = [['Etanol', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01', '']];
+    const [item] = analisarImportacao(headers, rows, {});
+    expect(item.bloqueada).toBe(true);
+    expect(item.motivos).toContain('Classe de reatividade ausente');
+  });
+
+  it.each(['abc', '3.7', '0', '13', '-1'])('bloqueia classe inválida: %s', (valor) => {
+    const rows = [['Etanol', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01', valor]];
+    const [item] = analisarImportacao(headers, rows, {});
+    expect(item.bloqueada).toBe(true);
+    expect(item.cmd).toBeNull();
+    expect(item.motivos).toContain('Classe de reatividade inválida');
+  });
+
+  it.each(['1', '12'])('aceita os limites válidos da faixa: %s', (valor) => {
+    const rows = [['Etanol', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01', valor]];
+    const [item] = analisarImportacao(headers, rows, {});
+    expect(item.bloqueada).toBe(false);
+    expect(item.cmd.ClasseReatividade).toBe(Number(valor));
+  });
+
+  it('acumula o motivo da classe junto dos demais motivos', () => {
+    const rows = [['', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01', '']];
+    const [item] = analisarImportacao(headers, rows, {});
+    expect(item.motivos).toContain('Nome ausente');
+    expect(item.motivos).toContain('Classe de reatividade ausente');
   });
 });

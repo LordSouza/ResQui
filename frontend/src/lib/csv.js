@@ -38,7 +38,7 @@ export const CAMPOS_IMPORT = [
   { campo: 'Formula', aliases: ['formula', 'fórmula'], obrigatorio: false },
   { campo: 'Validade', aliases: ['validade'], obrigatorio: false },
   { campo: 'Responsavel', aliases: ['responsavel', 'responsável'], obrigatorio: false },
-  { campo: 'ClasseReatividade', aliases: ['classe', 'classereatividade', 'reatividade'], obrigatorio: false },
+  { campo: 'ClasseReatividade', aliases: ['classe', 'classereatividade', 'reatividade'], obrigatorio: true },
   { campo: 'Controlado', aliases: ['controlado'], obrigatorio: false },
   { campo: 'Sinonimo', aliases: ['sinonimo', 'sinônimo'], obrigatorio: false },
 ];
@@ -69,6 +69,8 @@ export function analisarImportacao(headers, rows, { responsavelDefault = '' } = 
     const unidade = get(row, 'Unidade');
     const local = get(row, 'Local');
     const estoque = Number(estoqueRaw.replace(',', '.'));
+    const classeRaw = get(row, 'ClasseReatividade');
+    const classe = Number(classeRaw);
 
     const motivos = [];
     if (!nome) motivos.push('Nome ausente');
@@ -76,13 +78,13 @@ export function analisarImportacao(headers, rows, { responsavelDefault = '' } = 
     if (!estoqueRaw || Number.isNaN(estoque)) motivos.push('Estoque inválido');
     if (!unidade) motivos.push('Unidade ausente');
     if (!local) motivos.push('Local ausente');
+    if (!classeRaw) motivos.push('Classe de reatividade ausente');
+    else if (!Number.isInteger(classe) || classe < 1 || classe > 12) motivos.push('Classe de reatividade inválida');
 
     const validade = get(row, 'Validade');
     const avisos = [];
     if (validade && /^\d{4}-\d{2}-\d{2}$/.test(validade) && validade < hoje) avisos.push('Validade expirada');
 
-    const classeRaw = get(row, 'ClasseReatividade');
-    const classe = Number(classeRaw);
     const controlado = ['sim', 'true', '1', 'x'].includes(norm(get(row, 'Controlado')));
 
     const cmd = motivos.length ? null : {
@@ -91,7 +93,7 @@ export function analisarImportacao(headers, rows, { responsavelDefault = '' } = 
       Cas: cas,
       Formula: get(row, 'Formula') || '',
       Sinonimo: get(row, 'Sinonimo') || null,
-      ClasseReatividade: classeRaw && !Number.isNaN(classe) ? classe : 12,
+      ClasseReatividade: classe,
       Estoque: estoque,
       EstoqueMin: null,
       Unidade: unidade,
