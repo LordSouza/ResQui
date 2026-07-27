@@ -98,7 +98,8 @@ export function DetalheScreen({ state, dispatch }) {
   const { data: listData } = useReagentes({ pageSize: 200 });
   const deletarMutation = useDeletarReagente();
   const { user } = useAuth();
-  const { data: compatMatrix = {} } = useCompatMatriz();
+  const { data: matrizData } = useCompatMatriz();
+  const compatMatrix = matrizData?.matrix ?? {};
 
   // Redirect to inventario when reagent not found (404)
   useEffect(() => {
