@@ -40,4 +40,17 @@ public class CompatMatrixDataTests
             .Where(e => e.ClasseA == e.ClasseB)
             .Should().OnlyContain(e => e.Nivel == 0);
     }
+
+    [Fact]
+    public void GetAll_Classe12_EhProibidaComTodasAsOutrasClasses()
+    {
+        // RGN 107 no chart EPA-600/2-80-076: "extremamente reativo — não misturar com nenhum
+        // produto químico ou resíduo". Ver docs/compatibilidade-proveniencia.md.
+        var pares = CompatMatrixData.GetAll()
+            .Where(e => (e.ClasseA == 12 || e.ClasseB == 12) && e.ClasseA != e.ClasseB)
+            .ToList();
+
+        pares.Should().HaveCount(22, "11 pares em cada direção");
+        pares.Should().OnlyContain(e => e.Nivel == 3);
+    }
 }

@@ -57,6 +57,14 @@ public class MisturasAltoRiscoTests
         { 7, 8, "Metais pesados × Cianetos" },
         { 10, 11, "Agentes redutores × Peróxidos" },
         { 3, 12, "Bases × Reativos com água" },
+        { 2, 12, "Ácidos orgânicos × Reativos com água" },
+        { 4, 12, "Oxidantes fortes × Reativos com água" },
+        { 5, 12, "Solventes orgânicos × Reativos com água" },
+        { 6, 12, "Solventes halogenados × Reativos com água" },
+        { 7, 12, "Metais pesados × Reativos com água" },
+        { 8, 12, "Cianetos × Reativos com água" },
+        { 9, 12, "Sulfetos × Reativos com água" },
+        { 10, 12, "Agentes redutores × Reativos com água" },
     };
 
     [Theory]
