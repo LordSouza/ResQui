@@ -57,6 +57,8 @@ public class CompatMatrixDataTests
     [Theory]
     [InlineData(2, 7, 2)]   // RGN 3×24, código S — mesma leitura de 3×7, que já é nível 2
     [InlineData(2, 10, 2)]  // RGN 3×105, códigos H GF
+    [InlineData(6, 10, 3)]  // RGN 17×105, códigos H E — E (explosão) → nível 3
+    [InlineData(6, 11, 3)]  // RGN 17×30, códigos H E
     public void GetAll_ParesDeRgnUnico_TemONivelDaFonte(int classeA, int classeB, int esperado)
     {
         // Pares com um único grupo de reatividade (RGN) de cada lado no chart EPA-600/2-80-076:

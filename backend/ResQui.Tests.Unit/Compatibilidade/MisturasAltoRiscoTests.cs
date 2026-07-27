@@ -65,6 +65,8 @@ public class MisturasAltoRiscoTests
         { 8, 12, "Cianetos × Reativos com água" },
         { 9, 12, "Sulfetos × Reativos com água" },
         { 10, 12, "Agentes redutores × Reativos com água" },
+        { 6, 10, "Solventes halogenados × Agentes redutores" },
+        { 6, 11, "Solventes halogenados × Peróxidos" },
     };
 
     [Theory]
@@ -129,6 +131,26 @@ public class MisturasAltoRiscoTests
         var dto = await _mtrs.CriarAsync(cmd, "u1", "gestor@resqui.local");
 
         dto.Numero.Should().StartWith("MTR-");
+    }
+
+    [Theory]
+    [InlineData(6, 10, "Solventes halogenados × Agentes redutores")]
+    [InlineData(6, 11, "Solventes halogenados × Peróxidos")]
+    public async Task CriarMtr_BloqueiaAgrupamento_ComParDeRgnUnicoProibido(
+        int classeA, int classeB, string nome)
+    {
+        // A EPA registra E (explosão) nos dois pares (RGN 17×105 e 17×30). Nível 3 é o que
+        // fecha o gate do MTR — nível 2 bloqueia a mistura, mas não o transporte conjunto.
+        var r1 = new Residuo { Id = 1, Descricao = nome, Status = "aguardando-coleta", ClassesReatividade = [classeA] };
+        var r2 = new Residuo { Id = 2, Descricao = nome, Status = "aguardando-coleta", ClassesReatividade = [classeB] };
+        _residuosRepo.GetByIdAsync(1).Returns(r1);
+        _residuosRepo.GetByIdAsync(2).Returns(r2);
+
+        var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [1, 2]);
+        var act = () => _mtrs.CriarAsync(cmd, "u1", "gestor@resqui.local");
+
+        await act.Should().ThrowAsync<ValidationException>($"o par {nome} é nível 3 na matriz")
+            .WithMessage("*Proibido*");
     }
 
     [Fact]
