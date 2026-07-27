@@ -527,7 +527,7 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
 
   return (
     <Modal title="Editar regras de compatibilidade"
-      sub="Sobreposições institucionais à matriz EPA/NOAA padrão"
+      sub="Sobreposições institucionais à matriz baseada no chart EPA-600/2-80-076"
       onClose={onClose} width={860}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
@@ -581,7 +581,7 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
             ))}
             {!isPending && overrides.length === 0 && (
               <div style={{padding: 30, textAlign: 'center', color: 'var(--text-3)', fontSize: 12}}>
-                Nenhuma regra. A matriz cai para os padrões EPA/NOAA.
+                Nenhuma regra. A matriz cai para os níveis do chart EPA-600/2-80-076.
               </div>
             )}
           </div>

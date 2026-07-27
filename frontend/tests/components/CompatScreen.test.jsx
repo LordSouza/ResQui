@@ -71,6 +71,14 @@ describe('CompatScreen', () => {
     expect(screen.getByText(/Johnson/)).toBeInTheDocument();
   });
 
+  it('a citação da fonte é um link clicável para a URL da proveniência', () => {
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    const link = screen.getByRole('link', { name: /EPA-600\/2-80-076/ });
+    expect(link).toHaveAttribute('href', baseFonte.url);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noreferrer');
+  });
+
   it('não afirma regras institucionais que não existem no sistema', () => {
     const { container } = render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
     expect(container.textContent).not.toMatch(/regras institucionais UNIFEI/i);

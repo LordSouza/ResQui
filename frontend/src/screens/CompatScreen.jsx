@@ -56,7 +56,9 @@ export function CompatScreen({ state, dispatch }) {
             rows.push([]);
             rows.push(['Fonte', fonte?.fonte ?? '']);
             rows.push(['Referência', fonte?.referencia ?? '']);
+            rows.push(['URL', fonte?.url ?? '']);
             rows.push(['Detalhamento', fonte?.detalhamento ?? '']);
+            rows.push(['Revisado em', fonte?.revisadoEm ?? '']);
             exportCsv(rows, `matriz-compatibilidade-${exportDate.toISOString().slice(0,10)}.csv`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar matriz</button>
@@ -178,7 +180,10 @@ export function CompatScreen({ state, dispatch }) {
         </div>
         {fonte && (
           <p className="page-sub" style={{padding: '0 16px 14px'}}>
-            Fonte: {fonte.fonte}. Abordagem consolidada em: {fonte.referencia} Mapeamento das classes,
+            Fonte:{' '}
+            {fonte.url ? (
+              <a href={fonte.url} target="_blank" rel="noreferrer">{fonte.fonte}</a>
+            ) : fonte.fonte}. Abordagem consolidada em: {fonte.referencia} Mapeamento das classes,
             regra de conversão e divergências conhecidas em <code>{fonte.detalhamento}</code>.
             Revisado em {fonte.revisadoEm}.
           </p>

@@ -1,5 +1,5 @@
 // Valida o critério de eficácia do TCC: 100% das misturas de alto risco
-// (nível Perigo/Proibido na matriz EPA/NOAA seedada) devem ser bloqueadas.
+// (nível Perigo/Proibido na matriz baseada no chart EPA-600/2-80-076 seedada) devem ser bloqueadas.
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
