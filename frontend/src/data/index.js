@@ -1,5 +1,6 @@
 // Constantes de domínio do ResQui
-// Classes de reatividade (baseado em EPA/NOAA simplificado)
+// Classes de reatividade do ResQui (12). Mapeamento para os grupos de reatividade da EPA
+// (EPA-600/2-80-076) e proveniência da matriz: docs/compatibilidade-proveniencia.md
 export let REATIVIDADE_CLASSES = {
   1: 'Ácidos inorgânicos',
   2: 'Ácidos orgânicos',
