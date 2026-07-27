@@ -100,6 +100,13 @@ describe('analisarImportacao', () => {
     expect(item.cmd.ClasseReatividade).toBe(Number(valor));
   });
 
+  it.each(['5.0', '05'])('aceita forma numérica não-canônica da classe: %s', (valor) => {
+    const rows = [['Etanol', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01', valor]];
+    const [item] = analisarImportacao(headers, rows, {});
+    expect(item.bloqueada).toBe(false);
+    expect(item.cmd.ClasseReatividade).toBe(5);
+  });
+
   it('acumula o motivo da classe junto dos demais motivos', () => {
     const rows = [['', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01', '']];
     const [item] = analisarImportacao(headers, rows, {});

@@ -143,10 +143,9 @@ public class ReagentesServiceTests
     [Theory]
     [InlineData(1)]
     [InlineData(12)]
-    public async Task CriarAsync_ClasseNosLimitesDaFaixa_NaoLanca(int classe)
+    public async Task CriarAsync_ClasseNosLimitesDaFaixa_CriaComAClasseInformada(int classe)
     {
-        var act = () => _sut.CriarAsync(FakeCmd(classe: classe), "ana@lab.com");
-        await act.Should().NotThrowAsync();
+        (await _sut.CriarAsync(FakeCmd(classe: classe), "ana@lab.com")).ClasseReatividade.Should().Be(classe);
     }
 
     [Fact]

@@ -21,7 +21,7 @@ export async function ensureLab(request, auth) {
   return res.json();
 }
 
-export async function ensureReagente(request, auth, { nome, cas, classe }) {
+export async function ensureReagente(request, auth, { nome, cas, classe = 1 }) {
   const res = await request.get(`/api/reagentes?q=${encodeURIComponent(nome)}&page=1&pageSize=5`, { headers: auth });
   const data = await res.json();
   const items = data.items ?? data;
