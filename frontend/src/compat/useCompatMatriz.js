@@ -14,7 +14,7 @@ export function useCompatMatriz() {
         if (!matrix[classeA]) matrix[classeA] = [];
         matrix[classeA][classeB - 1] = nivel;
       }
-      return matrix;
+      return { matrix, fonte: data?.fonte ?? null };
     },
     staleTime: 30_000,
   });

@@ -44,9 +44,9 @@ describe('useCompatMatriz', () => {
     });
     const { result } = renderHook(() => useCompatMatriz(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data[1][0]).toBe(0);
-    expect(result.current.data[1][2]).toBe(3);
-    expect(result.current.data[2][0]).toBe(1);
+    expect(result.current.data.matrix[1][0]).toBe(0);
+    expect(result.current.data.matrix[1][2]).toBe(3);
+    expect(result.current.data.matrix[2][0]).toBe(1);
   });
 
   it('seta isError em resposta não-ok', async () => {
@@ -62,6 +62,26 @@ describe('useCompatMatriz', () => {
     fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
     const { result } = renderHook(() => useCompatMatriz(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual({});
+    expect(result.current.data).toEqual({ matrix: {}, fonte: null });
+  });
+
+  it('expõe a fonte da matriz vinda da API', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true, status: 200,
+      json: async () => ({
+        entries: [{ classeA: 1, classeB: 1, nivel: 0 }],
+        fonte: {
+          fonte: 'EPA-600/2-80-076 — A Method for Determining the Compatibility of Hazardous Wastes (EPA, 1980)',
+          referencia: 'Johnson, L. E. & Farr, J. K. (2008).',
+          url: 'https://www.epa.gov/',
+          revisadoEm: '2026-07-27',
+          detalhamento: 'docs/compatibilidade-proveniencia.md',
+        },
+      }),
+    });
+    const { result } = renderHook(() => useCompatMatriz(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data.fonte.fonte).toContain('EPA-600/2-80-076');
+    expect(result.current.data.fonte.revisadoEm).toBe('2026-07-27');
   });
 });

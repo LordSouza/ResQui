@@ -18,7 +18,9 @@ export function CompatScreen({ state, dispatch }) {
   const { data: ra } = useReagente(a || null);
   const { data: rb } = useReagente(b || null);
 
-  const { data: matrix, isPending: matrixPending, isError: matrixError, refetch: refetchMatrix } = useCompatMatriz();
+  const { data: matrizData, isPending: matrixPending, isError: matrixError, refetch: refetchMatrix } = useCompatMatriz();
+  const matrix = matrizData?.matrix;
+  const fonte = matrizData?.fonte;
   const { data: overrides = [] } = useCompatOverrides();
   const { addToast } = useToast();
   const overrideSet = new Set(overrides.map(o => `${o.classeA}-${o.classeB}`));

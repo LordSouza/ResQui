@@ -25,9 +25,16 @@ import { useReagentes } from '../../src/reagentes/useReagentes';
 import { useReagente } from '../../src/reagentes/useReagente';
 
 const baseMatrix = { 1: [0, 1, 3], 2: [1, 0, 2], 3: [3, 2, 0] };
+const baseFonte = {
+  fonte: 'EPA-600/2-80-076 — A Method for Determining the Compatibility of Hazardous Wastes (EPA, 1980)',
+  referencia: 'Johnson, L. E. & Farr, J. K. (2008). CRW 2.0. Process Safety Progress, 27(3), 212–218.',
+  url: 'https://www.epa.gov/sites/default/files/2016-03/documents/compat-haz-waste.pdf',
+  revisadoEm: '2026-07-27',
+  detalhamento: 'docs/compatibilidade-proveniencia.md',
+};
 
 beforeEach(() => {
-  useCompatMatriz.mockReturnValue({ data: baseMatrix, isPending: false, isError: false });
+  useCompatMatriz.mockReturnValue({ data: { matrix: baseMatrix, fonte: baseFonte }, isPending: false, isError: false });
   useCompatOverrides.mockReturnValue({ data: [], isPending: false, isError: false });
   useReagentes.mockReturnValue({ data: { items: [], total: 0 }, isPending: false, isError: false, refetch: vi.fn() });
   useReagente.mockReturnValue({ data: null });
