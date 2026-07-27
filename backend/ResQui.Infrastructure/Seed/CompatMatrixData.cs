@@ -4,7 +4,12 @@ namespace ResQui.Infrastructure.Seed;
 
 public static class CompatMatrixData
 {
-    // 0=compatível 1=cautela 2=perigo 3=proibido
+    // Níveis: 0=compatível 1=cautela 2=perigo 3=proibido.
+    // Proveniência (fonte, referência e mapeamento classe → grupo de reatividade da EPA):
+    // ResQui.Application.Compatibilidade.CompatProveniencia e docs/compatibilidade-proveniencia.md.
+    // A matriz é simétrica com diagonal zero — propriedades travadas por CompatMatrixDataTests.
+    // Há divergências conhecidas em relação à fonte, listadas no documento acima; nenhuma delas
+    // foi reconciliada aqui (ver DEBITOS-TECNICOS.md §3).
     private static readonly int[,] Matrix =
     {
         {   0, 1, 3, 2, 1, 1, 1, 3, 3, 2, 3, 3 }, // 1
