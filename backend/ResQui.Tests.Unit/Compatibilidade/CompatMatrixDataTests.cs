@@ -53,4 +53,18 @@ public class CompatMatrixDataTests
         pares.Should().HaveCount(22, "11 pares em cada direção");
         pares.Should().OnlyContain(e => e.Nivel == 3);
     }
+
+    [Theory]
+    [InlineData(2, 7, 2)]   // RGN 3×24, código S — mesma leitura de 3×7, que já é nível 2
+    [InlineData(2, 10, 2)]  // RGN 3×105, códigos H GF
+    public void GetAll_ParesDeRgnUnico_TemONivelDaFonte(int classeA, int classeB, int esperado)
+    {
+        // Pares com um único grupo de reatividade (RGN) de cada lado no chart EPA-600/2-80-076:
+        // o nível é leitura direta dos códigos de consequência, sem teto de agregação.
+        // Ver docs/compatibilidade-proveniencia.md e o spec da reconciliação de 2026-07-27.
+        var nivel = CompatMatrixData.GetAll().ToDictionary(e => (e.ClasseA, e.ClasseB), e => e.Nivel);
+
+        nivel[(classeA, classeB)].Should().Be(esperado);
+        nivel[(classeB, classeA)].Should().Be(esperado, "a matriz é simétrica");
+    }
 }
