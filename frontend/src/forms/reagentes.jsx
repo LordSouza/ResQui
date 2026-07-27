@@ -13,7 +13,7 @@ import { useRemoverCompatOverride } from '../compat/useRemoverCompatOverride';
 import { useToast } from '../components/ToastContext';
 import { useAuth } from '../auth/AuthContext';
 import { useImportarReagentes } from '../reagentes/useImportarReagentes';
-import { parseCsv, analisarImportacao } from '../lib/csv';
+import { parseCsv, analisarImportacao, mapearColunas } from '../lib/csv';
 
 // ---------- Novo Reagente ----------
 export function FormNovoReagente({ onClose, dispatch }) {
@@ -289,6 +289,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
   const [fileName, setFileName] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [itens, setItens] = useState([]);
+  const [headers, setHeaders] = useState([]);
   const [resultado, setResultado] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -298,6 +299,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const { headers, rows } = parseCsv(String(e.target.result));
+      setHeaders(headers);
       setItens(analisarImportacao(headers, rows, { responsavelDefault: user?.nome || '' }));
       setStep('review');
     };
@@ -310,6 +312,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
   const prontas = itens.filter(i => !i.bloqueada);
   const comAviso = prontas.filter(i => i.avisos.length > 0);
   const bloqueadas = itens.filter(i => i.bloqueada);
+  const semColunaClasse = headers.length > 0 && !('ClasseReatividade' in mapearColunas(headers));
 
   const confirmarImport = async () => {
     const res = await importar.mutateAsync(prontas.map(i => i.cmd));
@@ -350,7 +353,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
         <div style={{ marginTop: 16, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.55 }}>
           <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>Colunas reconhecidas</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {['Nome*', 'CAS*', 'Quantidade*', 'Unidade*', 'Local*', 'Fórmula', 'Validade', 'Responsável', 'Classe', 'Controlado'].map(c => (
+            {['Nome*', 'CAS*', 'Quantidade*', 'Unidade*', 'Local*', 'Fórmula', 'Validade', 'Responsável', 'Classe*', 'Controlado'].map(c => (
               <Tag key={c}>{c}</Tag>
             ))}
           </div>
@@ -374,6 +377,17 @@ export function FormImportarCSV({ onClose, dispatch }) {
             {importar.isPending ? 'Importando…' : `Importar ${prontas.length} reagentes`}
           </button>
         </>}>
+        {semColunaClasse && (
+          <div role="status" style={{
+            padding: '10px 12px', marginBottom: 12, fontSize: 12, lineHeight: 1.5,
+            border: '1px solid var(--amber)', borderRadius: 'var(--radius)',
+            background: 'var(--amber-soft)', color: 'var(--text)',
+          }}>
+            A planilha não tem coluna de classe de reatividade — cabeçalhos aceitos:{' '}
+            <span className="mono">classe</span>, <span className="mono">classereatividade</span>,{' '}
+            <span className="mono">reatividade</span>.
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--green-soft)' }}>
             <div className="small mono" style={{ color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Prontas</div>

@@ -10,7 +10,8 @@ vi.mock('../../src/auth/AuthContext', () => ({
 }));
 vi.mock('../../src/components/ToastContext', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
 
-const CSV = 'Nome,CAS,Quantidade,Unid.,Local\nEtanol,64-17-5,2.5,L,Lab-201\n,,,,\n';
+const CSV = 'Nome,CAS,Quantidade,Unid.,Local,Classe\nEtanol,64-17-5,2.5,L,Lab-201,5\n,,,,,\n';
+const CSV_SEM_CLASSE = 'Nome,CAS,Quantidade,Unid.,Local\nEtanol,64-17-5,2.5,L,Lab-201\n';
 
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -66,5 +67,25 @@ describe('FormImportarCSV', () => {
     expect(enviado).toHaveLength(1);
     expect(enviado[0]).toMatchObject({ Nome: 'Etanol', Responsavel: 'Ana Lima' });
     await waitFor(() => expect(screen.getByText(/1 reagentes importados|1 importado/i)).toBeInTheDocument());
+  });
+
+  it('avisa quando a planilha não tem coluna de classe de reatividade', async () => {
+    render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    const file = new File([CSV_SEM_CLASSE], 'inv.csv', { type: 'text/csv' });
+    await userEvent.upload(screen.getByLabelText(/Selecionar arquivo/i), file);
+
+    await waitFor(() => expect(screen.getByText(/não tem coluna de classe de reatividade/i)).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /Importar 0/i })).toBeDisabled();
+  });
+
+  it('não mostra o aviso quando a planilha traz a coluna de classe', async () => {
+    render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    const file = new File([CSV], 'inv.csv', { type: 'text/csv' });
+    await userEvent.upload(screen.getByLabelText(/Selecionar arquivo/i), file);
+
+    await waitFor(() => expect(screen.getByText(/Etanol/)).toBeInTheDocument());
+    expect(screen.queryByText(/não tem coluna de classe de reatividade/i)).not.toBeInTheDocument();
   });
 });
