@@ -150,4 +150,25 @@ public class CompatServiceTests
 
         await _overridesRepo.Received(1).DeleteAsync(1, 3);
     }
+
+    // --- Proveniência ---
+
+    [Fact]
+    public async Task GetMatrizAsync_IncluiFonteDaMatriz()
+    {
+        _repo.GetAllAsync().Returns(new[]
+        {
+            new CompatEntry { ClasseA = 1, ClasseB = 2, Nivel = 1 },
+        });
+        _overridesRepo.GetAllAsync().Returns(Array.Empty<CompatOverride>());
+
+        var matriz = await _sut.GetMatrizAsync();
+
+        matriz.Fonte.Should().NotBeNull();
+        matriz.Fonte.Fonte.Should().Contain("EPA-600/2-80-076");
+        matriz.Fonte.Referencia.Should().Contain("Johnson");
+        matriz.Fonte.Referencia.Should().Contain("2008");
+        matriz.Fonte.Url.Should().StartWith("https://");
+        matriz.Fonte.Detalhamento.Should().Be("docs/compatibilidade-proveniencia.md");
+    }
 }

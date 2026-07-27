@@ -46,7 +46,8 @@ public class CompatService(
                     ? ov.Nivel
                     : e.Nivel;
                 return new CompatEntryDto(e.ClasseA, e.ClasseB, nivel);
-            }).ToList()
+            }).ToList(),
+            CompatProveniencia.ToDto()
         );
     }
 
