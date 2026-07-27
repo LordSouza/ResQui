@@ -1,6 +1,6 @@
 // frontend/tests/components/CompatScreen.test.jsx
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { CompatScreen } from '../../src/screens/CompatScreen';
 import { initialState } from '../../src/store/reducer';
 
@@ -18,7 +18,12 @@ vi.mock('../../src/reagentes/useReagentes', () => ({
 vi.mock('../../src/reagentes/useReagente', () => ({
   useReagente: vi.fn(),
 }));
+vi.mock('../../src/utils', async (importOriginal) => ({
+  ...(await importOriginal()),
+  exportCsv: vi.fn(),
+}));
 
+import { exportCsv } from '../../src/utils';
 import { useCompatMatriz } from '../../src/compat/useCompatMatriz';
 import { useCompatOverrides } from '../../src/compat/useCompatOverrides';
 import { useReagentes } from '../../src/reagentes/useReagentes';
@@ -82,5 +87,18 @@ describe('CompatScreen', () => {
   it('não afirma regras institucionais que não existem no sistema', () => {
     const { container } = render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
     expect(container.textContent).not.toMatch(/regras institucionais UNIFEI/i);
+  });
+
+  it('leva a proveniência para o CSV exportado', () => {
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Exportar matriz/i }));
+
+    const [rows] = exportCsv.mock.calls[0];
+    const linha = (rotulo) => rows.find(r => r[0] === rotulo);
+    expect(linha('Fonte')[1]).toBe(baseFonte.fonte);
+    expect(linha('Referência')[1]).toBe(baseFonte.referencia);
+    expect(linha('URL')[1]).toBe(baseFonte.url);
+    expect(linha('Detalhamento')[1]).toBe(baseFonte.detalhamento);
+    expect(linha('Revisado em')[1]).toBe(baseFonte.revisadoEm);
   });
 });
