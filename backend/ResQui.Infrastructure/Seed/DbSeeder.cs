@@ -39,9 +39,10 @@ public static class DbSeeder
         // (CompatOverride) são tabela à parte e continuam vencendo na consulta.
         var persistidas = await db.CompatEntries.ToListAsync();
         var diff = CompatMatrixSync.Diff(persistidas, CompatMatrixData.GetAll());
-        if (diff.Inserir.Count > 0)
-            await db.CompatEntries.AddRangeAsync(diff.Inserir);
         if (diff.Inserir.Count > 0 || diff.Atualizar.Count > 0)
+        {
+            db.CompatEntries.AddRange(diff.Inserir);
             await db.SaveChangesAsync();
+        }
     }
 }

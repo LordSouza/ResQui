@@ -7,7 +7,7 @@ public record CompatMatrixDiff(List<CompatEntry> Inserir, List<CompatEntry> Atua
 
 /// <summary>
 /// Compara a matriz de compatibilidade persistida com a matriz base de <see cref="CompatMatrixData"/>.
-/// Função pura, sem acesso a banco: o DbSeeder aplica o resultado. As entradas de
+/// Sem acesso a banco: o DbSeeder aplica o resultado. As entradas de
 /// <c>Atualizar</c> são as próprias instâncias recebidas em <paramref name="existentes"/>, já com o
 /// nível corrigido, para que o change tracking do EF persista a alteração.
 /// Overrides institucionais vivem em CompatOverride e não são afetados.

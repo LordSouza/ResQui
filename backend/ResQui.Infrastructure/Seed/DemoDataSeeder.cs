@@ -55,7 +55,7 @@ public static class DemoDataSeeder
                 Reag("Ácido sulfúrico 98%", "7664-93-9", "H2SO4", 1, 0.4m, 1m, "L", hoje.AddMonths(16), "Lab-201 · Armário A · Pra. 2", "Ana Lima", true, ["corrosion"], "Perigo", ["H314"], ["P280"]),
                 Reag("Nitrato de prata", "7761-88-8", "AgNO3", 4, 20m, 50m, "g", hoje.AddMonths(22), "Lab-205 · Armário A · Pra. 2", "Júlia Mendes", true, ["flame_circle", "corrosion"], "Perigo", ["H272", "H314"], ["P210", "P280"]),
                 Reag("Tolueno P.A.", "108-88-3", "C7H8", 3, 2m, 0.5m, "L", hoje.AddMonths(7), "Lab-203 · Armário C · Pra. 3", "Renan Costa", false, ["flame", "health"], "Perigo", ["H225", "H361d"], ["P210", "P280"]),
-                Reag("Cloreto de potássio", "7447-40-7", "KCl", 12, 500m, 100m, "g", hoje.AddMonths(30), "Lab-209 · Armário B · Pra. 3", "Júlia Mendes", false, [], "Atenção", [], []));
+                Reag("Cloreto de potássio", "7447-40-7", "KCl", 7, 500m, 100m, "g", hoje.AddMonths(30), "Lab-209 · Armário B · Pra. 3", "Júlia Mendes", false, [], "Atenção", [], []));
             await db.SaveChangesAsync();
         }
 
