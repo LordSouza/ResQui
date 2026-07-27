@@ -103,8 +103,8 @@ public class ReagentesServiceTests
         result.Should().BeNull();
     }
 
-    private static CriarReagenteCmd FakeCmd(string nome = "Ácido X", decimal estoque = 1m, decimal? estoqueMin = 0.5m) =>
-        new(null, nome, "123-45-6", "HX", null, 1, estoque, estoqueMin, "L", null, "Lab-201", "Ana", false, null, null);
+    private static CriarReagenteCmd FakeCmd(string nome = "Ácido X", decimal estoque = 1m, decimal? estoqueMin = 0.5m, int classe = 1) =>
+        new(null, nome, "123-45-6", "HX", null, classe, estoque, estoqueMin, "L", null, "Lab-201", "Ana", false, null, null);
 
     [Theory]
     [InlineData(null)]
@@ -128,6 +128,25 @@ public class ReagentesServiceTests
     {
         var act = () => _sut.CriarAsync(FakeCmd(estoqueMin: -2m), "ana@lab.com");
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*mínimo*");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(13)]
+    [InlineData(-1)]
+    public async Task CriarAsync_ClasseForaDaFaixa_LancaValidationException(int classe)
+    {
+        var act = () => _sut.CriarAsync(FakeCmd(classe: classe), "ana@lab.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Classe de reatividade*");
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(12)]
+    public async Task CriarAsync_ClasseNosLimitesDaFaixa_NaoLanca(int classe)
+    {
+        var act = () => _sut.CriarAsync(FakeCmd(classe: classe), "ana@lab.com");
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]

@@ -141,6 +141,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
         if (cmd.Estoque < 0) throw new ValidationException("Estoque não pode ser negativo.");
         if (cmd.EstoqueMin is < 0) throw new ValidationException("Estoque mínimo não pode ser negativo.");
+        if (cmd.ClasseReatividade is < 1 or > 12) throw new ValidationException("Classe de reatividade deve estar entre 1 e 12.");
 
         var r = new Reagente
         {
