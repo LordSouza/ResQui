@@ -39,11 +39,11 @@ export async function ensureReagente(request, auth, { nome, cas, classe = 1 }) {
 }
 
 export async function criarResiduoComClasses(request, auth, classes, extra = {}) {
-  await ensureLab(request, auth);
+  const lab = await ensureLab(request, auth);
   return request.post('/api/residuos', {
     headers: auth,
     data: {
-      Descricao: 'Resíduo E2E classes', LaboratorioId: 1,
+      Descricao: 'Resíduo E2E classes', LaboratorioId: lab.id,
       Tipo: 'Solventes orgânicos não-halogenados', Volume: 1, Unidade: 'L',
       Composicao: 'mistura E2E', Risco: 'alto', Destino: null,
       ClassesReatividade: classes, ...extra,
@@ -78,11 +78,11 @@ export async function seedPgrsConfig(request, auth, overrides = {}) {
 }
 
 export async function criarResiduoAguardandoColeta(request, auth) {
-  await ensureLab(request, auth);
+  const lab = await ensureLab(request, auth);
   const res = await request.post('/api/residuos', {
     headers: auth,
     data: {
-      Descricao: 'Resíduo E2E', LaboratorioId: 1,
+      Descricao: 'Resíduo E2E', LaboratorioId: lab.id,
       Tipo: 'Solventes orgânicos não-halogenados', Volume: 2, Unidade: 'L',
       Composicao: 'Acetona 70%', Risco: 'medio', Destino: null,
     },

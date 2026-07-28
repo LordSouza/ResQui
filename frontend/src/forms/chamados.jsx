@@ -35,7 +35,7 @@ export function FormNovoChamado({ onClose, dispatch }) {
       {
         Titulo: f.titulo.trim(),
         Descricao: f.descricao.trim(),
-        LaboratorioId: Number(f.laboratorioId) || 0,
+        LaboratorioId: f.laboratorioId || null,
         Tipo: f.tipo.charAt(0).toUpperCase() + f.tipo.slice(1),
         Severidade: f.severidade.charAt(0).toUpperCase() + f.severidade.slice(1),
       },

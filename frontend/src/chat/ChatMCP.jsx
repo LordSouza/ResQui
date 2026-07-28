@@ -50,7 +50,7 @@ export function ChatMCP({ state, dispatch }) {
 
     // catálogo simplificado para o LLM
     const reagsCat = reagentes.map(r => `${r.id} ${r.nome} (CAS ${r.cas}) classe ${r.classe}`).join('\n');
-    const residCat = residuos.flatMap(r => r.status === 'aguardando-coleta' ? [`W-${r.id} ${r.tipo} ${r.volume}${r.unidade} Lab-${String(r.lab_id).padStart(3, '0')}`] : []).join('\n');
+    const residCat = residuos.flatMap(r => r.status === 'aguardando-coleta' ? [`W-${r.id} ${r.tipo} ${r.volume}${r.unidade} ${r.lab_id}`] : []).join('\n');
 
     const sys = `Você é o assistente MCP (Model Context Protocol) do ResQui, sistema de gestão de resíduos químicos da UNIFEI.
 Responda em português brasileiro, conciso e técnico, sem usar markdown.
@@ -322,7 +322,7 @@ export async function executeAction(action, params, { reagentes, residuos, addCa
   }
 
   if (action === 'registerWaste') {
-    const labId = Number(String(params.gerador ?? '').replace(/\D/g, '')) || residuos[0]?.lab_id || 1;
+    const labId = params.gerador || residuos[0]?.lab_id || 'Lab-001';
     try {
       const res = await apiFetch('/api/residuos', {
         method: 'POST',
@@ -338,7 +338,7 @@ export async function executeAction(action, params, { reagentes, residuos, addCa
         }),
       });
       const novo = await res.json();
-      addCard({kind: 'waste', r: {id: novo.id, tipo: novo.tipo, volume: novo.volume, unidade: novo.unidade, gerador: `Lab-${String(novo.laboratorioId).padStart(3, '0')}`}});
+      addCard({kind: 'waste', r: {id: novo.id, tipo: novo.tipo, volume: novo.volume, unidade: novo.unidade, gerador: novo.laboratorioId}});
       queryClient.invalidateQueries({ queryKey: ['residuos'] });
       dispatch({type: 'refresh', flashId: novo.id});
     } catch (err) { erro(err.message); }

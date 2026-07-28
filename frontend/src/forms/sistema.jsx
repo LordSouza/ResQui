@@ -530,7 +530,7 @@ export function FormReportar({ onClose, dispatch }) {
       {
         Titulo: data.titulo.trim(),
         Descricao: data.descricao.trim() + (data.passos.trim() ? '\n\nPassos:\n' + data.passos.trim() : ''),
-        LaboratorioId: 0,
+        LaboratorioId: null,
         Tipo: data.tipo.charAt(0).toUpperCase() + data.tipo.slice(1),
         Severidade: data.severidade.charAt(0).toUpperCase() + data.severidade.slice(1),
       },

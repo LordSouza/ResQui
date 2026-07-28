@@ -6,8 +6,8 @@ const REAGS = [
   { id: 'R-002', nome: 'H2O2', classe: 4, estoque: 1.5, unidade: 'L' },
 ];
 const RESIDS = [
-  { id: 1, tipo: 'Solventes', volume: 5, unidade: 'L', status: 'aguardando-coleta', lab_id: 2 },
-  { id: 2, tipo: 'Ácidos', volume: 2, unidade: 'kg', status: 'em-coleta', lab_id: 1 },
+  { id: 1, tipo: 'Solventes', volume: 5, unidade: 'L', status: 'aguardando-coleta', lab_id: 'Lab-002' },
+  { id: 2, tipo: 'Ácidos', volume: 2, unidade: 'kg', status: 'em-coleta', lab_id: 'Lab-001' },
 ];
 
 describe('executeAction (ChatMCP)', () => {
@@ -67,10 +67,10 @@ describe('executeAction (ChatMCP)', () => {
   });
 
   it('registerWaste faz POST /api/residuos e invalida a query de resíduos', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 7, tipo: 'Solventes', volume: 2, unidade: 'L', laboratorioId: 2 }) });
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 7, tipo: 'Solventes', volume: 2, unidade: 'L', laboratorioId: 'Lab-002' }) });
     await executeAction('registerWaste', { tipo: 'Solventes', volume: 2, unidade: 'L', gerador: 'Lab-002', composicao: 'acetona', risco: 'medio' }, deps);
     expect(mockFetch.mock.calls[0][0]).toBe('/api/residuos');
-    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toMatchObject({ LaboratorioId: 2, Volume: 2, Risco: 'medio' });
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toMatchObject({ LaboratorioId: 'Lab-002', Volume: 2, Risco: 'medio' });
     expect(deps.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['residuos'] });
     expect(deps.addCard).toHaveBeenCalledWith(expect.objectContaining({ kind: 'waste' }));
   });

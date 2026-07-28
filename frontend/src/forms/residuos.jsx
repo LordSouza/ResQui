@@ -54,8 +54,7 @@ export function FormNovoResiduo({ onClose, dispatch }) {
     criarResiduo.mutate(
       {
         Descricao: f.composicao.slice(0, 80),
-        // IDs de laboratório são strings ("Lab-001"); o backend usa o número da sequência
-        LaboratorioId: Number(String(f.laboratorioId).replace(/\D/g, '')),
+        LaboratorioId: f.laboratorioId,
         Tipo: f.tipo,
         Volume: Number(f.volume),
         Unidade: f.unidade,

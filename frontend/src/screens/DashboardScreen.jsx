@@ -136,7 +136,7 @@ export function DashboardScreen({ state, dispatch }) {
                   <tr key={r.id} onClick={() => dispatch({type: 'nav', screen: 'residuos'})}>
                     <td className="num">{r.id}</td>
                     <td>{r.tipo}</td>
-                    <td><Tag>Lab-{String(r.lab_id).padStart(3, '0')}</Tag></td>
+                    <td><Tag>{r.lab_id}</Tag></td>
                     <td className="num">{r.volume} {r.unidade}</td>
                     <td>{riscoBadge(r.risco)}</td>
                     <td className="mono small muted">{r.data_registro?.slice(0, 10)}</td>

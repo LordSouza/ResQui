@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { apiAuth } from './seed';
+import { apiAuth, ensureLab } from './seed';
 
 // Visualizador não pode mutar estoque/resíduos/MTRs (item: autorização fina).
 test('Visualizador é bloqueado em mutações operacionais', async ({ request }) => {
@@ -14,10 +14,11 @@ test('Visualizador é bloqueado em mutações operacionais', async ({ request })
   const { token } = await loginRes.json();
   const visuAuth = { Authorization: `Bearer ${token}` };
 
+  const lab = await ensureLab(request, auth);
   const res = await request.post('/api/residuos', {
     headers: visuAuth,
     data: {
-      Descricao: 'tentativa visu', LaboratorioId: 1, Tipo: 'x',
+      Descricao: 'tentativa visu', LaboratorioId: lab.id, Tipo: 'x',
       Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
     },
   });
@@ -85,10 +86,11 @@ test('Pesquisador cria resíduo mas é bloqueado em MTR', async ({ request }) =>
   const { token } = await login.json();
   const pesqAuth = { Authorization: `Bearer ${token}` };
 
+  const lab = await ensureLab(request, auth);
   const criar = await request.post('/api/residuos', {
     headers: pesqAuth,
     data: {
-      Descricao: 'descarte pesquisador', LaboratorioId: 1, Tipo: 'x',
+      Descricao: 'descarte pesquisador', LaboratorioId: lab.id, Tipo: 'x',
       Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
     },
   });
@@ -114,10 +116,11 @@ test('Professor aprova descarte solicitado', async ({ request }) => {
   const profAuth = { Authorization: `Bearer ${token}` };
 
   // admin cria o resíduo (nasce "solicitado")
+  const lab = await ensureLab(request, auth);
   const criar = await request.post('/api/residuos', {
     headers: auth,
     data: {
-      Descricao: 'descarte p/ professor', LaboratorioId: 1, Tipo: 'x',
+      Descricao: 'descarte p/ professor', LaboratorioId: lab.id, Tipo: 'x',
       Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
     },
   });
@@ -142,10 +145,11 @@ test('Pesquisador é bloqueado ao aprovar descarte', async ({ request }) => {
   const pesqAuth = { Authorization: `Bearer ${token}` };
 
   // admin cria o resíduo (nasce "solicitado")
+  const lab = await ensureLab(request, auth);
   const criar = await request.post('/api/residuos', {
     headers: auth,
     data: {
-      Descricao: 'descarte p/ bloqueio pesquisador', LaboratorioId: 1, Tipo: 'x',
+      Descricao: 'descarte p/ bloqueio pesquisador', LaboratorioId: lab.id, Tipo: 'x',
       Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
     },
   });
