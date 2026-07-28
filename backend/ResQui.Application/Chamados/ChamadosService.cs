@@ -10,7 +10,7 @@ public class ChamadosService(IChamadosRepository repo, ILaboratoriosRepository l
     public async Task<IEnumerable<ChamadoDto>> ListarAsync() =>
         (await repo.GetAllWithComentariosAsync()).Select(ToDto);
 
-    public async Task<ChamadoDto> CriarAsync(CriarChamadoCmd cmd, string usuarioId)
+    public async Task<ChamadoDto> CriarAsync(CriarChamadoCmd cmd, string? usuarioId)
     {
         if (string.IsNullOrWhiteSpace(cmd.Titulo)) throw new ValidationException("Título é obrigatório.");
         if (string.IsNullOrWhiteSpace(cmd.Descricao)) throw new ValidationException("Descrição é obrigatória.");
@@ -48,7 +48,7 @@ public class ChamadosService(IChamadosRepository repo, ILaboratoriosRepository l
         return ToDto(c);
     }
 
-    public async Task<ChamadoDto?> ComentarAsync(int id, ComentarChamadoCmd cmd, string autorId)
+    public async Task<ChamadoDto?> ComentarAsync(int id, ComentarChamadoCmd cmd, string? autorId)
     {
         var c = await repo.GetByIdWithComentariosAsync(id);
         if (c is null) return null;

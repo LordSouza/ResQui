@@ -24,7 +24,7 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         return ToDto(m, residuos);
     }
 
-    public async Task<MtrDto> CriarAsync(CriarMtrCmd cmd, string usuarioId, string usuarioEmail)
+    public async Task<MtrDto> CriarAsync(CriarMtrCmd cmd, string? usuarioId, string usuarioEmail)
     {
         if (string.IsNullOrWhiteSpace(cmd.Gerador)) throw new ValidationException("Gerador é obrigatório.");
         if (string.IsNullOrWhiteSpace(cmd.Transportadora)) throw new ValidationException("Transportadora é obrigatória.");

@@ -8,7 +8,7 @@ public class Mtr
     public string Numero { get; set; } = "";
     public string Gerador { get; set; } = "";
     public string Transportadora { get; set; } = "";
-    public string ResponsavelId { get; set; } = "";
+    public string? ResponsavelId { get; set; }
     public MtrStatus Status { get; set; } = MtrStatus.Rascunho;
     public DateTime DataEmissao { get; set; } = DateTime.UtcNow;
 

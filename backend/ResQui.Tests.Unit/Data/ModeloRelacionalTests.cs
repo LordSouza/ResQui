@@ -24,6 +24,8 @@ public class ModeloRelacionalTests
     [InlineData(typeof(ChamadoComentario), "ChamadoId", typeof(Chamado), DeleteBehavior.Cascade)]
     [InlineData(typeof(ChamadoComentario), "AutorId", typeof(Usuario), DeleteBehavior.SetNull)]
     [InlineData(typeof(ReagenteLote), "ReagenteId", typeof(Reagente), DeleteBehavior.Cascade)]
+    [InlineData(typeof(ReagenteGhs), "ReagenteId", typeof(Reagente), DeleteBehavior.Cascade)]
+    [InlineData(typeof(Mtr), "ResponsavelId", typeof(Usuario), DeleteBehavior.SetNull)]
     [InlineData(typeof(Notificacao), "UsuarioId", typeof(Usuario), DeleteBehavior.Cascade)]
     [InlineData(typeof(SessaoToken), "UsuarioId", typeof(Usuario), DeleteBehavior.Cascade)]
     [InlineData(typeof(RelatorioGerado), "GeradoPorId", typeof(Usuario), DeleteBehavior.SetNull)]
@@ -43,7 +45,9 @@ public class ModeloRelacionalTests
     }
 
     [Theory]
-    [InlineData(typeof(CompatOverride))]   // ClasseA/ClasseB são inteiros de domínio, não referências
+    // ClasseA/ClasseB são inteiros de domínio, não referências; Autor é o nome de quem editou,
+    // gravado em texto — mesma categoria de AuditoriaEntry.Who.
+    [InlineData(typeof(CompatOverride))]
     [InlineData(typeof(AuditoriaEntry))]   // a trilha precisa sobreviver ao usuário que ela registra
     public void Modelo_NaoDeclaraFk_NasEntidadesDeliberadamenteSoltas(Type entidade)
     {

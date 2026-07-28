@@ -16,7 +16,7 @@ public static class Endpoints
             IRelatoriosService svc,
             ClaimsPrincipal user) =>
         {
-            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
             var dto = await svc.GerarAsync(cmd, userId);
             return Results.Created($"/api/relatorios/{dto.Id}", dto);
         }).RequireAuthorization("Gestor");

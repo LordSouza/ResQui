@@ -18,7 +18,7 @@ public static class Endpoints
 
         group.MapPost("/", async (CriarMtrCmd cmd, IMtrsService svc, ClaimsPrincipal user) =>
         {
-            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var m = await svc.CriarAsync(cmd, userId, email);
             return Results.Created($"/api/mtrs/{m.Id}", m);

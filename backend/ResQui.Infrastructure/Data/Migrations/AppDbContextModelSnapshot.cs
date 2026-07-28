@@ -459,7 +459,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ResponsavelId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("Status")
@@ -470,6 +469,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ResponsavelId");
 
                     b.ToTable("Mtrs");
                 });
@@ -951,6 +952,14 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Chamado");
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.Mtr", b =>
+                {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsavelId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("ResQui.Domain.Entities.Notificacao", b =>

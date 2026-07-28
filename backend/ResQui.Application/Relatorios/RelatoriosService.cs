@@ -27,7 +27,7 @@ public class RelatoriosService(
     public async Task<IEnumerable<RelatorioGeradoDto>> ListarAsync() =>
         (await relatoriosRepo.GetAllAsync()).Select(ToDto);
 
-    public async Task<RelatorioGeradoDto> GerarAsync(GerarRelatorioCmd cmd, string userId)
+    public async Task<RelatorioGeradoDto> GerarAsync(GerarRelatorioCmd cmd, string? userId)
     {
         var (csv, totalLinhas) = await GerarCsvAsync(cmd.Tipo);
         var titulo = Titulos.TryGetValue(cmd.Tipo, out var t) ? t : cmd.Tipo;
