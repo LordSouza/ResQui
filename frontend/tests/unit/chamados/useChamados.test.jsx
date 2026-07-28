@@ -8,7 +8,7 @@ function wrapper({ children }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
-const fakeChamado = { id: 1, titulo: 'Bug login', descricao: 'Erro ao logar', status: 'aberto', tipo: 'bug', severidade: 'alta', laboratorioId: 1, abertoPorId: 'u1', criadoEm: '2026-01-01', comentarios: [] };
+const fakeChamado = { id: 1, titulo: 'Bug login', descricao: 'Erro ao logar', status: 'aberto', tipo: 'bug', severidade: 'alta', laboratorioId: 'Lab-001', abertoPorId: 'u1', criadoEm: '2026-01-01', comentarios: [] };
 
 describe('useChamados', () => {
   beforeEach(() => {

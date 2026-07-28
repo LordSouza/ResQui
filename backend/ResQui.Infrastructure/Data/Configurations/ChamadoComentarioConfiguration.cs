@@ -15,6 +15,7 @@ public class ChamadoComentarioConfiguration : IEntityTypeConfiguration<ChamadoCo
             .HasForeignKey(k => k.ChamadoId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Autoria é registro histórico: o comentário sobrevive à exclusão do usuário.
         builder.HasOne<Usuario>()
             .WithMany()
             .HasForeignKey(k => k.AutorId)

@@ -252,6 +252,14 @@ namespace ResQui.Infrastructure.Data.Migrations
                 name: "IX_ChamadoComentarios_AutorId",
                 table: "ChamadoComentarios");
 
+            // Os AlterColumn que devolvem as três colunas de autoria para NOT NULL emitem
+            // SET DEFAULT + SET NOT NULL, mas não preenchem as linhas existentes — e NULL é
+            // exatamente o que o SetNull das FKs produz a cada hard-delete de usuário. Sem este
+            // backfill o rollback aborta com "column contains null values".
+            migrationBuilder.Sql(@"UPDATE ""RelatoriosGerados"" SET ""GeradoPorId"" = '' WHERE ""GeradoPorId"" IS NULL;");
+            migrationBuilder.Sql(@"UPDATE ""Chamados"" SET ""AbertoPorId"" = '' WHERE ""AbertoPorId"" IS NULL;");
+            migrationBuilder.Sql(@"UPDATE ""ChamadoComentarios"" SET ""AutorId"" = '' WHERE ""AutorId"" IS NULL;");
+
             migrationBuilder.AlterColumn<string>(
                 name: "LaboratorioId",
                 table: "Residuos",
