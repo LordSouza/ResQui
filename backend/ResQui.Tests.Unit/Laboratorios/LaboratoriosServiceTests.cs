@@ -13,11 +13,15 @@ public class LaboratoriosServiceTests
 {
     private readonly ILaboratoriosRepository _repo = Substitute.For<ILaboratoriosRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
+    private readonly IResiduosRepository _residuosRepo = Substitute.For<IResiduosRepository>();
+    private readonly IChamadosRepository _chamadosRepo = Substitute.For<IChamadosRepository>();
     private readonly LaboratoriosService _sut;
 
     public LaboratoriosServiceTests()
     {
-        _sut = new LaboratoriosService(_repo, _audit);
+        _residuosRepo.GetAllAsync().Returns([]);
+        _chamadosRepo.GetAllWithComentariosAsync().Returns([]);
+        _sut = new LaboratoriosService(_repo, _audit, _residuosRepo, _chamadosRepo);
     }
 
     private static Laboratorio FakeLab(string id = "Lab-001") => new()
@@ -134,5 +138,43 @@ public class LaboratoriosServiceTests
     {
         var act = () => _sut.CriarAsync(FakeLabCmd(areaM2: -5m), "u@x.com");
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Área*");
+    }
+
+    [Fact]
+    public async Task Deletar_ComResiduosVinculados_Bloqueia()
+    {
+        var labRepo = Substitute.For<ILaboratoriosRepository>();
+        labRepo.GetByIdAsync("Lab-001").Returns(new Laboratorio { Id = "Lab-001", Nome = "Química" });
+        var residuosRepo = Substitute.For<IResiduosRepository>();
+        residuosRepo.GetAllAsync().Returns([
+            new Residuo { Id = 1, LaboratorioId = "Lab-001" },
+            new Residuo { Id = 2, LaboratorioId = "Lab-002" },
+        ]);
+        var chamadosRepo = Substitute.For<IChamadosRepository>();
+        chamadosRepo.GetAllWithComentariosAsync().Returns([]);
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, chamadosRepo);
+
+        var act = () => svc.DeletarAsync("Lab-001", "gestor@resqui.local");
+
+        await act.Should().ThrowAsync<ValidationException>()
+            .WithMessage("*1 resíduo*");
+        await labRepo.DidNotReceive().DeleteAsync("Lab-001");
+    }
+
+    [Fact]
+    public async Task Deletar_SemVinculos_Exclui()
+    {
+        var labRepo = Substitute.For<ILaboratoriosRepository>();
+        labRepo.GetByIdAsync("Lab-003").Returns(new Laboratorio { Id = "Lab-003", Nome = "Vazio" });
+        var residuosRepo = Substitute.For<IResiduosRepository>();
+        residuosRepo.GetAllAsync().Returns([new Residuo { Id = 1, LaboratorioId = "Lab-001" }]);
+        var chamadosRepo = Substitute.For<IChamadosRepository>();
+        chamadosRepo.GetAllWithComentariosAsync().Returns([new Chamado { Id = 1, LaboratorioId = "Lab-002" }]);
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, chamadosRepo);
+
+        var ok = await svc.DeletarAsync("Lab-003", "gestor@resqui.local");
+
+        ok.Should().BeTrue();
+        await labRepo.Received().DeleteAsync("Lab-003");
     }
 }
