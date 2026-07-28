@@ -23,6 +23,15 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal
         working-directory: backend
+      # ModeloRelacionalTests trava configuração ↔ modelo, mas nada travava modelo ↔ migration:
+      # uma configuração editada sem gerar migration passava no CI e só quebrava na startup.
+      - name: Install dotnet-ef
+        run: |
+          dotnet tool install --global dotnet-ef --version "10.*"
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+      - name: Model matches migrations
+        run: dotnet ef migrations has-pending-model-changes --project ResQui.Infrastructure --startup-project ResQui.API --no-build --configuration Release
+        working-directory: backend
 
   frontend:
     name: Frontend (Vitest + build)
