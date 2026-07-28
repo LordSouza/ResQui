@@ -201,7 +201,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AbertoPorId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CriadoEm")
@@ -212,7 +211,7 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("LaboratorioId")
-                        .HasColumnType("text");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<int>("Severidade")
                         .HasColumnType("integer");
@@ -229,6 +228,10 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AbertoPorId");
+
+                    b.HasIndex("LaboratorioId");
+
                     b.ToTable("Chamados");
                 });
 
@@ -241,7 +244,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AutorId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("ChamadoId")
@@ -255,6 +257,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AutorId");
 
                     b.HasIndex("ChamadoId");
 
@@ -506,6 +510,8 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UsuarioId");
+
                     b.ToTable("Notificacoes");
                 });
 
@@ -636,7 +642,7 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.Property<string>("ReagenteId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateOnly>("Validade")
                         .HasColumnType("date");
@@ -648,6 +654,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ReagenteId");
 
                     b.ToTable("ReagenteLotes");
                 });
@@ -668,7 +676,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("GeradoPorId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Tipo")
@@ -683,6 +690,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GeradoPorId");
 
                     b.ToTable("RelatoriosGerados");
                 });
@@ -715,7 +724,7 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.Property<string>("LaboratorioId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<int?>("MtrId")
                         .HasColumnType("integer");
@@ -740,6 +749,10 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("numeric");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LaboratorioId");
+
+                    b.HasIndex("MtrId");
 
                     b.ToTable("Residuos");
                 });
@@ -773,6 +786,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
 
                     b.ToTable("SessoesTokens");
                 });
@@ -909,8 +924,26 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.Chamado", b =>
+                {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("AbertoPorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ResQui.Domain.Entities.Laboratorio", null)
+                        .WithMany()
+                        .HasForeignKey("LaboratorioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.ChamadoComentario", b =>
                 {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("AutorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ResQui.Domain.Entities.Chamado", "Chamado")
                         .WithMany("Comentarios")
                         .HasForeignKey("ChamadoId")
@@ -920,11 +953,60 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Navigation("Chamado");
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.Notificacao", b =>
+                {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.ReagenteGhs", b =>
                 {
                     b.HasOne("ResQui.Domain.Entities.Reagente", null)
                         .WithOne("Ghs")
                         .HasForeignKey("ResQui.Domain.Entities.ReagenteGhs", "ReagenteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.ReagenteLote", b =>
+                {
+                    b.HasOne("ResQui.Domain.Entities.Reagente", null)
+                        .WithMany()
+                        .HasForeignKey("ReagenteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.RelatorioGerado", b =>
+                {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("GeradoPorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.Residuo", b =>
+                {
+                    b.HasOne("ResQui.Domain.Entities.Laboratorio", null)
+                        .WithMany()
+                        .HasForeignKey("LaboratorioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ResQui.Domain.Entities.Mtr", null)
+                        .WithMany()
+                        .HasForeignKey("MtrId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.SessaoToken", b =>
+                {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

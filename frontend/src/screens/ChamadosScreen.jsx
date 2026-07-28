@@ -99,7 +99,7 @@ function ChamadoDetail({ chamado, onClose, dispatch }) {
           <div className="drawer-section">
             <div className="drawer-section-h"><h4>Metadados</h4></div>
             <div className="kv">
-              <div className="k">Aberto por</div><div className="v">{c.abertoPorId}</div>
+              <div className="k">Aberto por</div><div className="v">{c.abertoPorId ?? 'usuário removido'}</div>
               <div className="k">Criado em</div><div className="v mono">{c.criadoEm?.slice(0, 10)}</div>
             </div>
           </div>
@@ -116,11 +116,11 @@ function ChamadoDetail({ chamado, onClose, dispatch }) {
                   return (
                     <div key={com.id} style={{display: 'flex', gap: 10}}>
                       <div className={`comment-avatar ${eu ? 'eu' : 'outro'}`}>
-                        {com.autorId?.slice(0, 2).toUpperCase()}
+                        {(com.autorId ?? '—').slice(0, 2).toUpperCase()}
                       </div>
                       <div style={{flex: 1, minWidth: 0}}>
                         <div style={{display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3, flexWrap: 'wrap'}}>
-                          <span style={{fontSize: 12.5, fontWeight: 600}}>{com.autorId}</span>
+                          <span style={{fontSize: 12.5, fontWeight: 600}}>{com.autorId ?? 'usuário removido'}</span>
                           <span style={{fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--text-3)'}}>{com.criadoEm?.slice(0, 16)}</span>
                         </div>
                         <div className={`comment-bubble ${eu ? 'eu' : 'outro'}`}>{com.texto}</div>
@@ -222,7 +222,7 @@ export function ChamadosScreen({ state, dispatch }) {
     if (sevFilter !== 'todas' && c.severidade !== sevFilter) return false;
     if (query.trim()) {
       const q = query.trim().toLowerCase();
-      const hay = `${c.id} ${c.titulo} ${c.descricao} ${c.abertoPorId}`.toLowerCase();
+      const hay = `${c.id} ${c.titulo} ${c.descricao} ${c.abertoPorId ?? ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -248,7 +248,7 @@ export function ChamadosScreen({ state, dispatch }) {
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => {
             const rows = [['ID', 'Título', 'Tipo', 'Severidade', 'Status', 'Aberto por', 'Criado em', 'Comentários']];
-            list.forEach(c => rows.push([c.id, c.titulo, c.tipo, c.severidade, c.status, c.abertoPorId, c.criadoEm?.slice(0, 10), (c.comentarios || []).length]));
+            list.forEach(c => rows.push([c.id, c.titulo, c.tipo, c.severidade, c.status, c.abertoPorId ?? '', c.criadoEm?.slice(0, 10), (c.comentarios || []).length]));
             exportCsv(rows, `chamados-${exportDate}.csv`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar</button>
@@ -349,7 +349,7 @@ export function ChamadosScreen({ state, dispatch }) {
                   <td className="small">{tipoChamado(c.tipo)}</td>
                   <td>{sevChamado(c.severidade)}</td>
                   <td>{statusChamado(c.status)}</td>
-                  <td className="small">{c.abertoPorId}</td>
+                  <td className="small">{c.abertoPorId ?? ''}</td>
                   <td className="mono small">{c.criadoEm?.slice(0, 10)}</td>
                 </tr>
               ))}
