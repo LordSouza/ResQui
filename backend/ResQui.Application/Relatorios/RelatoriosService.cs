@@ -108,7 +108,7 @@ public class RelatoriosService(
             var mtr = r.MtrId.HasValue && mtrs.TryGetValue(r.MtrId.Value, out var m) ? m : null;
             var ibama = mtr?.CodigoIbama ?? "";
             var nrMtr = mtr?.Numero ?? "";
-            var lab = labs.TryGetValue(r.LaboratorioId, out var nome) ? nome : $"Lab-{r.LaboratorioId:D3}";
+            var lab = labs.TryGetValue(r.LaboratorioId, out var nome) ? nome : r.LaboratorioId;
             sb.AppendLine($"{Esc(ibama)},{Esc(r.Descricao)},{Esc(r.Tipo)},{r.Volume},{Esc(r.Unidade)}," +
                           $"{Esc(lab)},{r.DataRegistro:yyyy-MM-dd},{Esc(r.Status)},{Esc(nrMtr)}");
         }
@@ -145,7 +145,7 @@ public class RelatoriosService(
         var porLab = residuos
             .GroupBy(r => r.LaboratorioId)
             .Select(g => (
-                Lab: labs.TryGetValue(g.Key, out var n) ? n : $"Lab-{g.Key:D3}",
+                Lab: labs.TryGetValue(g.Key, out var n) ? n : g.Key,
                 Volume: g.Sum(r => Normalizar(r.Volume, r.Unidade))))
             .OrderByDescending(x => x.Volume)
             .ToList();
@@ -220,19 +220,10 @@ public class RelatoriosService(
     // Helpers
     // ---------------------------------------------------------------
 
-    private async Task<Dictionary<int, string>> BuildLabDictAsync()
+    private async Task<Dictionary<string, string>> BuildLabDictAsync()
     {
         var labs = await laboratoriosRepo.GetAllAsync();
-        return labs
-            .Select(l => (Nome: l.Nome, Seq: ParseLabSeq(l.Id)))
-            .Where(x => x.Seq >= 0)
-            .ToDictionary(x => x.Seq, x => x.Nome);
-    }
-
-    private static int ParseLabSeq(string labId)
-    {
-        var parts = labId.Split('-');
-        return parts.Length == 2 && int.TryParse(parts[1], out var n) ? n : -1;
+        return labs.ToDictionary(l => l.Id, l => l.Nome);
     }
 
     private static decimal Normalizar(decimal volume, string unidade) =>

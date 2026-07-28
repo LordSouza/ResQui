@@ -34,7 +34,7 @@ public class MtrsServiceTests
 
     private static Residuo FakeResiduo(int id, int? mtrId = null) => new()
     {
-        Id = id, Descricao = "Resíduo", LaboratorioId = 1,
+        Id = id, Descricao = "Resíduo", LaboratorioId = "Lab-001",
         MtrId = mtrId, Status = "aguardando-coleta",
         Tipo = "Solventes", Volume = 5.0m, Unidade = "L",
         Composicao = "Acetona", Risco = "medio",

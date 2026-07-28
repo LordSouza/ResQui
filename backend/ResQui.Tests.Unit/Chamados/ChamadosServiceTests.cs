@@ -22,7 +22,7 @@ public class ChamadosServiceTests
 
     private static Chamado FakeChamado(int id = 1) => new()
     {
-        Id = id, Titulo = "Teste", Descricao = "Desc", LaboratorioId = 1,
+        Id = id, Titulo = "Teste", Descricao = "Desc", LaboratorioId = "Lab-001",
         AbertoPorId = "u1", Tipo = ChamadoTipo.Bug, Severidade = ChamadoSeveridade.Alta,
         Status = ChamadoStatus.Aberto, Comentarios = [],
     };
@@ -38,7 +38,7 @@ public class ChamadosServiceTests
     [Fact]
     public async Task CriarAsync_PersisteCampos()
     {
-        var cmd = new CriarChamadoCmd("Título", "Descrição", 1, "Bug", "Alta");
+        var cmd = new CriarChamadoCmd("Título", "Descrição", "Lab-001", "Bug", "Alta");
         _repo.AddAsync(Arg.Any<Chamado>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
@@ -109,7 +109,7 @@ public class ChamadosServiceTests
     [InlineData("Título", "")]
     public async Task CriarAsync_TituloOuDescricaoVazios_LancaValidationException(string titulo, string desc)
     {
-        var cmd = new CriarChamadoCmd(titulo, desc, 1, "Bug", "Alta");
+        var cmd = new CriarChamadoCmd(titulo, desc, "Lab-001", "Bug", "Alta");
         var act = () => _sut.CriarAsync(cmd, "u1");
         await act.Should().ThrowAsync<ValidationException>();
     }
@@ -117,19 +117,29 @@ public class ChamadosServiceTests
     [Fact]
     public async Task CriarAsync_LaboratorioInexistente_LancaValidationException()
     {
-        var cmd = new CriarChamadoCmd("Título", "Desc", 99, "Bug", "Alta");
+        var cmd = new CriarChamadoCmd("Título", "Desc", "Lab-999", "Bug", "Alta");
         var act = () => _sut.CriarAsync(cmd, "u1");
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Laboratório*");
     }
 
     [Fact]
-    public async Task CriarAsync_LaboratorioZero_EhPermitido()
+    public async Task CriarAsync_SemLaboratorio_EhPermitido()
     {
-        var cmd = new CriarChamadoCmd("Título", "Desc", 0, "Bug", "Alta");
+        var cmd = new CriarChamadoCmd("Título", "Desc", null, "Bug", "Alta");
         _repo.AddAsync(Arg.Any<Chamado>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
         var result = await _sut.CriarAsync(cmd, "u1");
-        result.LaboratorioId.Should().Be(0);
+        result.LaboratorioId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CriarAsync_LaboratorioStringVazia_GravaNull()
+    {
+        var cmd = new CriarChamadoCmd("Título", "Desc", "", "Bug", "Alta");
+        _repo.AddAsync(Arg.Any<Chamado>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+        var result = await _sut.CriarAsync(cmd, "u1");
+        result.LaboratorioId.Should().BeNull();
     }
 
     [Fact]

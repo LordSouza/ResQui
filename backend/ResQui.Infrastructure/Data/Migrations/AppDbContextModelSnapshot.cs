@@ -211,8 +211,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("LaboratorioId")
-                        .HasColumnType("integer");
+                    b.Property<string>("LaboratorioId")
+                        .HasColumnType("text");
 
                     b.Property<int>("Severidade")
                         .HasColumnType("integer");
@@ -713,8 +713,9 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<string>("Destino")
                         .HasColumnType("text");
 
-                    b.Property<int>("LaboratorioId")
-                        .HasColumnType("integer");
+                    b.Property<string>("LaboratorioId")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int?>("MtrId")
                         .HasColumnType("integer");

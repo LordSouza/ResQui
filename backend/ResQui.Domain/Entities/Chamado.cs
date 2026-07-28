@@ -10,7 +10,7 @@ public class Chamado
     public ChamadoStatus Status { get; set; } = ChamadoStatus.Aberto;
     public ChamadoTipo Tipo { get; set; } = ChamadoTipo.Outro;
     public ChamadoSeveridade Severidade { get; set; } = ChamadoSeveridade.Media;
-    public int LaboratorioId { get; set; }
+    public string? LaboratorioId { get; set; }
     public string AbertoPorId { get; set; } = "";
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
     public ICollection<ChamadoComentario> Comentarios { get; set; } = [];

@@ -3,7 +3,7 @@ namespace ResQui.Application.Residuos;
 public record ResiduoDto(
     int Id,
     string Descricao,
-    int LaboratorioId,
+    string LaboratorioId,
     int? MtrId,
     string Status,
     DateTime DataRegistro,
@@ -18,7 +18,7 @@ public record ResiduoDto(
 
 public record CriarResiduoCmd(
     string Descricao,
-    int LaboratorioId,
+    string LaboratorioId,
     string Tipo,
     decimal Volume,
     string Unidade,

@@ -14,9 +14,9 @@ public class ChamadosService(IChamadosRepository repo, ILaboratoriosRepository l
     {
         if (string.IsNullOrWhiteSpace(cmd.Titulo)) throw new ValidationException("Título é obrigatório.");
         if (string.IsNullOrWhiteSpace(cmd.Descricao)) throw new ValidationException("Descrição é obrigatória.");
-        if (cmd.LaboratorioId != 0)
+        if (!string.IsNullOrEmpty(cmd.LaboratorioId))
         {
-            var existe = (await labRepo.GetAllAsync()).Any(l => ParseLabSeq(l.Id) == cmd.LaboratorioId);
+            var existe = (await labRepo.GetAllAsync()).Any(l => l.Id == cmd.LaboratorioId);
             if (!existe) throw new ValidationException($"Laboratório {cmd.LaboratorioId} não encontrado.");
         }
 
@@ -24,7 +24,8 @@ public class ChamadosService(IChamadosRepository repo, ILaboratoriosRepository l
         {
             Titulo = cmd.Titulo,
             Descricao = cmd.Descricao,
-            LaboratorioId = cmd.LaboratorioId,
+            // Normaliza string vazia para null — "sem laboratório" nunca deve virar "".
+            LaboratorioId = string.IsNullOrEmpty(cmd.LaboratorioId) ? null : cmd.LaboratorioId,
             AbertoPorId = usuarioId,
             Tipo = Enum.TryParse<ChamadoTipo>(cmd.Tipo, ignoreCase: true, out var t) ? t : ChamadoTipo.Outro,
             Severidade = Enum.TryParse<ChamadoSeveridade>(cmd.Severidade, ignoreCase: true, out var sv) ? sv : ChamadoSeveridade.Media,
@@ -66,10 +67,4 @@ public class ChamadosService(IChamadosRepository repo, ILaboratoriosRepository l
         c.Severidade.ToString().ToLower(),
         c.LaboratorioId, c.AbertoPorId, c.CriadoEm,
         c.Comentarios.Select(x => new ComentarioDto(x.Id, x.Texto, x.AutorId, x.CriadoEm)).ToList());
-
-    private static int ParseLabSeq(string labId)
-    {
-        var parts = labId.Split('-');
-        return parts.Length == 2 && int.TryParse(parts[1], out var n) ? n : -1;
-    }
 }

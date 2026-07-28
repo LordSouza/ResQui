@@ -37,7 +37,7 @@ public class RelatoriosServiceTests
 
     private static Residuo FakeResiduo(int id = 1, int? mtrId = null) => new()
     {
-        Id = id, Descricao = "Solvente usado", LaboratorioId = 1,
+        Id = id, Descricao = "Solvente usado", LaboratorioId = "Lab-001",
         MtrId = mtrId, Status = "aguardando-coleta", Tipo = "solvente",
         Volume = 10, Unidade = "L", DataRegistro = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
     };

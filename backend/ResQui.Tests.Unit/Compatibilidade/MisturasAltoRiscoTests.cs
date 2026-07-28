@@ -41,7 +41,7 @@ public class MisturasAltoRiscoTests
     }
 
     private static CriarResiduoCmd CmdComClasses(params int[] classes) =>
-        new("Mistura de teste", 1, "quimico", 1m, "L", "teste", "medio", null, classes);
+        new("Mistura de teste", "Lab-001", "quimico", 1m, "L", "teste", "medio", null, classes);
 
     public static TheoryData<int, int, string> ParesProibidos => new()
     {

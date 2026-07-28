@@ -9,7 +9,7 @@ public static class Endpoints
     {
         group.MapGet("/", async (
             IResiduosService svc,
-            int? labId = null,
+            string? labId = null,
             int? mtrId = null,
             string? status = null) =>
             Results.Ok(await svc.ListarAsync(labId, mtrId, status)));

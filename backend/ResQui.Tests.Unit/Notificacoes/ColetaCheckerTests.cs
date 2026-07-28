@@ -22,7 +22,7 @@ public class ColetaCheckerTests
     [Fact]
     public async Task RunAsync_ResiduoAtrasadoSemNotif_InsereParaAdminGestor()
     {
-        var r = new Residuo { Id = 10, Descricao = "Solvente", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-10), LaboratorioId = 1, Tipo = "solvente", Volume = 5, Unidade = "L", Composicao = "", Risco = "medio" };
+        var r = new Residuo { Id = 10, Descricao = "Solvente", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-10), LaboratorioId = "Lab-001", Tipo = "solvente", Volume = 5, Unidade = "L", Composicao = "", Risco = "medio" };
         _residuos.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
         _notifs.ExisteNaoLidaAsync("u-admin", "coleta", "10").Returns(false);
@@ -35,7 +35,7 @@ public class ColetaCheckerTests
     [Fact]
     public async Task RunAsync_ResiduoRecente_NaoInsere()
     {
-        var r = new Residuo { Id = 11, Descricao = "Ácido", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-2), LaboratorioId = 1, Tipo = "acido", Volume = 2, Unidade = "L", Composicao = "", Risco = "alto" };
+        var r = new Residuo { Id = 11, Descricao = "Ácido", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-2), LaboratorioId = "Lab-001", Tipo = "acido", Volume = 2, Unidade = "L", Composicao = "", Risco = "alto" };
         _residuos.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
 

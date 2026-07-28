@@ -27,7 +27,7 @@ public class ResiduosServiceTests
     {
         Id = id,
         Descricao = "Resíduo teste",
-        LaboratorioId = 1,
+        LaboratorioId = "Lab-001",
         MtrId = mtrId,
         Status = status,
         Tipo = "Solventes orgânicos não-halogenados",
@@ -78,10 +78,10 @@ public class ResiduosServiceTests
     [Fact]
     public async Task CriarAsync_PersisteTodosOsCampos()
     {
-        LabExiste(2);
+        LabExiste("Lab-002");
         var cmd = new CriarResiduoCmd(
             Descricao: "Ácido clorídrico usado",
-            LaboratorioId: 2,
+            LaboratorioId: "Lab-002",
             Tipo: "Ácidos inorgânicos",
             Volume: 2.0m,
             Unidade: "L",
@@ -134,7 +134,7 @@ public class ResiduosServiceTests
     public async Task CriarAsync_RegistraAuditoria()
     {
         LabExiste();
-        var cmd = new CriarResiduoCmd("Solventes", 1, "Solventes orgânicos", 4.2m, "L", "Acetona", "medio", null);
+        var cmd = new CriarResiduoCmd("Solventes", "Lab-001", "Solventes orgânicos", 4.2m, "L", "Acetona", "medio", null);
         _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
@@ -148,7 +148,7 @@ public class ResiduosServiceTests
     [Fact]
     public async Task AtualizarAsync_ResiduoExistente_RegistraAuditoria()
     {
-        var r = new Residuo { Id = 1, Descricao = "R1", LaboratorioId = 1, Tipo = "Solventes", Volume = 4.2m, Unidade = "L", Composicao = "Acetona", Risco = "medio", Status = "aguardando-coleta" };
+        var r = new Residuo { Id = 1, Descricao = "R1", LaboratorioId = "Lab-001", Tipo = "Solventes", Volume = 4.2m, Unidade = "L", Composicao = "Acetona", Risco = "medio", Status = "aguardando-coleta" };
         _repo.GetByIdAsync(1).Returns(r);
         _repo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
@@ -209,11 +209,11 @@ public class ResiduosServiceTests
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*solicitação pendente*");
     }
 
-    private static CriarResiduoCmd FakeResiduoCmd(decimal volume = 1m, string risco = "medio", string unidade = "L", int labId = 1, string descricao = "Solvente usado") =>
+    private static CriarResiduoCmd FakeResiduoCmd(decimal volume = 1m, string risco = "medio", string unidade = "L", string labId = "Lab-001", string descricao = "Solvente usado") =>
         new(descricao, labId, "Solventes orgânicos não-halogenados", volume, unidade, "acetona 80%", risco, null);
 
-    private void LabExiste(int seq = 1) =>
-        _labRepo.GetAllAsync().Returns([new Laboratorio { Id = $"Lab-{seq:D3}", Nome = "Lab" }]);
+    private void LabExiste(string id = "Lab-001") =>
+        _labRepo.GetAllAsync().Returns([new Laboratorio { Id = id, Nome = "Lab" }]);
 
     [Fact]
     public async Task CriarAsync_VolumeZero_LancaValidationException() { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(volume: 0m), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*"); }
@@ -237,7 +237,7 @@ public class ResiduosServiceTests
 
     [Fact]
     public async Task CriarAsync_LaboratorioInexistente_LancaValidationException()
-    { _labRepo.GetAllAsync().Returns([]); var act = () => _sut.CriarAsync(FakeResiduoCmd(labId: 99), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Laboratório*"); }
+    { _labRepo.GetAllAsync().Returns([]); var act = () => _sut.CriarAsync(FakeResiduoCmd(labId: "Lab-999"), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Laboratório*"); }
 
     [Fact]
     public async Task AtualizarAsync_VolumeNaoPositivo_LancaValidationException()
@@ -273,8 +273,8 @@ public class ResiduosServiceTests
     [Fact]
     public async Task AnalyticsAsync_AgregaPorLab()
     {
-        var r1 = FakeResiduo(1); r1.Volume = 3; r1.Unidade = "L"; r1.LaboratorioId = 1;
-        var r2 = FakeResiduo(2); r2.Volume = 7; r2.Unidade = "L"; r2.LaboratorioId = 1;
+        var r1 = FakeResiduo(1); r1.Volume = 3; r1.Unidade = "L"; r1.LaboratorioId = "Lab-001";
+        var r2 = FakeResiduo(2); r2.Volume = 7; r2.Unidade = "L"; r2.LaboratorioId = "Lab-001";
         _repo.GetAllAsync().Returns([r1, r2]);
         _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab Química")]);
 
@@ -286,7 +286,7 @@ public class ResiduosServiceTests
     [Fact]
     public async Task AnalyticsAsync_NormalizaMl()
     {
-        var r = FakeResiduo(1); r.Volume = 500; r.Unidade = "mL"; r.LaboratorioId = 1;
+        var r = FakeResiduo(1); r.Volume = 500; r.Unidade = "mL"; r.LaboratorioId = "Lab-001";
         _repo.GetAllAsync().Returns([r]);
         _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab A")]);
 

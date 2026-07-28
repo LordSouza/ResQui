@@ -4,7 +4,7 @@ public class Residuo
 {
     public int Id { get; set; }
     public string Descricao { get; set; } = "";
-    public int LaboratorioId { get; set; }
+    public string LaboratorioId { get; set; } = "";
     public int? MtrId { get; set; }
     public string Status { get; set; } = "solicitado";
     public DateTime DataRegistro { get; set; } = DateTime.UtcNow;

@@ -36,12 +36,12 @@ public static class DemoDataSeeder
             await db.SaveChangesAsync();
         }
 
-        var labSeqs = (await db.Laboratorios.AsNoTracking().ToListAsync())
-            .Select(l => ParseSeq(l.Id)).Where(s => s > 0).OrderBy(s => s).ToList();
-        var lab1 = labSeqs.ElementAtOrDefault(0); // primeiro lab (ex.: Lab-001 → 1)
-        var lab2 = labSeqs.ElementAtOrDefault(1);
-        var lab3 = labSeqs.ElementAtOrDefault(2);
-        if (labSeqs.Count < 3) return; // labs insuficientes — não criar dados dependentes com referência inválida
+        var labIds = (await db.Laboratorios.AsNoTracking().ToListAsync())
+            .Select(l => l.Id).OrderBy(id => id).ToList();
+        if (labIds.Count < 3) return; // labs insuficientes — não criar dados dependentes
+        var lab1 = labIds[0];
+        var lab2 = labIds[1];
+        var lab3 = labIds[2];
 
         if (!await db.Reagentes.AnyAsync())
         {
@@ -149,11 +149,5 @@ public static class DemoDataSeeder
             }
         }
         if (alterou) await db.SaveChangesAsync();
-    }
-
-    private static int ParseSeq(string labId)
-    {
-        var parts = labId.Split('-');
-        return parts.Length == 2 && int.TryParse(parts[1], out var n) ? n : -1;
     }
 }

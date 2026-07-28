@@ -5,11 +5,11 @@ public record ComentarioDto(int Id, string Texto, string AutorId, DateTime Criad
 public record ChamadoDto(
     int Id, string Titulo, string Descricao,
     string Status, string Tipo, string Severidade,
-    int LaboratorioId, string AbertoPorId,
+    string? LaboratorioId, string AbertoPorId,
     DateTime CriadoEm, IList<ComentarioDto> Comentarios);
 
 public record CriarChamadoCmd(
-    string Titulo, string Descricao, int LaboratorioId,
+    string Titulo, string Descricao, string? LaboratorioId,
     string Tipo, string Severidade);
 
 public record AtualizarStatusCmd(string Status);

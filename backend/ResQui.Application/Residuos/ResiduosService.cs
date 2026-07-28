@@ -30,10 +30,10 @@ public class ResiduosService(
                 "Segregue os componentes em resíduos separados.");
         }
     }
-    public async Task<IEnumerable<ResiduoDto>> ListarAsync(int? labId, int? mtrId, string? status)
+    public async Task<IEnumerable<ResiduoDto>> ListarAsync(string? labId, int? mtrId, string? status)
     {
         var all = await repo.GetAllAsync();
-        if (labId.HasValue) all = all.Where(r => r.LaboratorioId == labId.Value);
+        if (!string.IsNullOrEmpty(labId)) all = all.Where(r => r.LaboratorioId == labId);
         if (mtrId.HasValue) all = all.Where(r => r.MtrId == mtrId.Value);
         if (!string.IsNullOrEmpty(status)) all = all.Where(r => r.Status == status);
         return all.Select(ToDto);
@@ -45,7 +45,7 @@ public class ResiduosService(
         if (cmd.Volume <= 0) throw new ValidationException("Volume deve ser maior que zero.");
         if (!RiscosValidos.Contains(cmd.Risco)) throw new ValidationException("Risco inválido — use baixo, medio ou alto.");
         if (!UnidadesValidas.Contains(cmd.Unidade)) throw new ValidationException("Unidade inválida — use L, mL, kg, g ou m³.");
-        var labExiste = (await labRepo.GetAllAsync()).Any(l => ParseLabSeq(l.Id) == cmd.LaboratorioId);
+        var labExiste = (await labRepo.GetAllAsync()).Any(l => l.Id == cmd.LaboratorioId);
         if (!labExiste) throw new ValidationException($"Laboratório {cmd.LaboratorioId} não encontrado.");
         await ValidarMisturaAsync(cmd.ClassesReatividade, usuarioEmail);
         var r = new Residuo
@@ -131,10 +131,7 @@ public class ResiduosService(
             .ToList();
 
         var labs = (await labRepo.GetAllAsync()).ToList();
-        var labPorSeq = labs
-            .Select(l => (Nome: l.Nome, Seq: ParseLabSeq(l.Id)))
-            .Where(x => x.Seq >= 0)
-            .ToDictionary(x => x.Seq, x => x.Nome);
+        var nomePorId = labs.ToDictionary(l => l.Id, l => l.Nome);
 
         var mensal = residuos
             .GroupBy(r => r.DataRegistro.ToString("yyyy-MM"))
@@ -145,18 +142,12 @@ public class ResiduosService(
         var porLab = residuos
             .GroupBy(r => r.LaboratorioId)
             .Select(g => new LabItem(
-                labPorSeq.TryGetValue(g.Key, out var nome) ? nome : $"Lab-{g.Key:D3}",
+                nomePorId.TryGetValue(g.Key, out var nome) ? nome : g.Key,
                 g.Sum(r => NormalizarVolume(r.Volume, r.Unidade))))
             .OrderByDescending(x => x.Valor)
             .ToList();
 
         return new ResiduosAnalyticsDto(mensal, porLab);
-    }
-
-    private static int ParseLabSeq(string labId)
-    {
-        var parts = labId.Split('-');
-        return parts.Length == 2 && int.TryParse(parts[1], out var n) ? n : -1;
     }
 
     private static decimal NormalizarVolume(decimal volume, string unidade) =>
