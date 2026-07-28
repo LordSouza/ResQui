@@ -55,4 +55,19 @@ public class ModeloRelacionalTests
         db.Model.FindEntityType(entidade)!.GetForeignKeys()
             .Should().BeEmpty("a ausência de FK aqui é decisão registrada na spec de 2026-07-28");
     }
+
+    // Estas colunas guardam referência mas vivem em entidades que têm FK por outros campos — o
+    // teste acima, que exige zero FKs na entidade inteira, não consegue expressá-las. Sem esta
+    // trava a isenção delas seria só documental.
+    [Theory]
+    [InlineData(typeof(ConfiguracaoPgrs), "AtualizadoPor")]  // e-mail de autoria em texto
+    [InlineData(typeof(Notificacao), "ReferenciaId")]        // polimórfico; no tipo compat, um par de ids
+    [InlineData(typeof(CompatOverride), "Autor")]            // nome de quem editou, não o id do usuário
+    public void Modelo_NaoDeclaraFk_NasColunasDeReferenciaIsentas(Type entidade, string propriedade)
+    {
+        using var db = NovoContexto();
+        db.Model.FindEntityType(entidade)!.GetForeignKeys()
+            .Where(f => f.Properties.Count == 1 && f.Properties[0].Name == propriedade)
+            .Should().BeEmpty($"{entidade.Name}.{propriedade} é isenta de FK por decisão registrada");
+    }
 }
