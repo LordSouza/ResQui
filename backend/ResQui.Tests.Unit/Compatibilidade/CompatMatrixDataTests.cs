@@ -77,9 +77,9 @@ public class CompatMatrixDataTests
     // Leitura direta: as duas metades da classe 1 sustentam o nível.
     [InlineData(1, 6, 2)]    // RGN 1×17 já dá GT sozinho; RGN 2×17 dá H,F GT
     // Adoção precaucional: o teto vem de METADE da classe agregada.
-    [InlineData(1, 5, 2)]    // só de RGN 2 (ácidos oxidantes) × solventes, código H,F
+    [InlineData(1, 5, 2)]    // só de RGN 2 (ácidos oxidantes) × solventes: F H com todos os 8
     [InlineData(1, 7, 2)]    // só de RGN 2×24 (S); RGN 1×24 é célula vazia
-    [InlineData(9, 10, 2)]   // só de RGN 20×105 (mercaptanas), código GF; RGN 33×105 é vazio
+    [InlineData(9, 10, 2)]   // só de RGN 20×105 (mercaptanas), códigos GF H; RGN 33×105 é vazio
     // Adoção do teto — E (explosão) de RGN 19×30, cetonas × peróxidos.
     [InlineData(5, 11, 3)]
     // Desvios declarados: ResQui fica ABAIXO do teto da EPA por decisão de projeto.
