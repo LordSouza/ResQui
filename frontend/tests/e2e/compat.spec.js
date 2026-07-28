@@ -49,9 +49,11 @@ test('selecting incompatible pair (acid + base) shows Proibido result', async ({
 });
 
 test('selecting cautela pair shows Cautela result', async ({ page, request }) => {
-  const { acido, metanol } = await seedReagentes(request);
+  // acido (1) x metanol (5) subiu para nível 2 (Perigo) na reconciliação com a EPA
+  // (2026-07-28) — base (3) x metanol (5) segue nível 1 na matriz atual.
+  const { base, metanol } = await seedReagentes(request);
   await loginAndNavigate(page, 'Compatibilidade');
-  await selectById(page, 'compat-select-a', acido.id);
+  await selectById(page, 'compat-select-a', base.id);
   await selectById(page, 'compat-select-b', metanol.id);
   await expect(page.getByText(/Cautela/)).toBeVisible();
 });
