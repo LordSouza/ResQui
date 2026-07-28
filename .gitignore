@@ -58,3 +58,6 @@ frontend/test-results-e2e/
 
 # Claude Code agent worktrees (não versionar)
 .claude/worktrees/
+
+# Cache do Python (scripts de auditoria em docs/fontes/)
+__pycache__/
