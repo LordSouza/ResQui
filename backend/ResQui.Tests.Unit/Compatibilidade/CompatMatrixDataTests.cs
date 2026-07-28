@@ -69,4 +69,33 @@ public class CompatMatrixDataTests
         nivel[(classeA, classeB)].Should().Be(esperado);
         nivel[(classeB, classeA)].Should().Be(esperado, "a matriz é simétrica");
     }
+
+    [Theory]
+    // Adoção do teto da EPA — nível 1 não aciona gate nenhum.
+    [InlineData(5, 9, 1)]    // RGN 19×20 (cetonas × mercaptanas), código H
+    [InlineData(6, 9, 1)]    // RGN 17×20, código H
+    // Leitura direta: as duas metades da classe 1 sustentam o nível.
+    [InlineData(1, 6, 2)]    // RGN 1×17 já dá GT sozinho; RGN 2×17 dá H,F GT
+    // Adoção precaucional: o teto vem de METADE da classe agregada.
+    [InlineData(1, 5, 2)]    // só de RGN 2 (ácidos oxidantes) × solventes, código H,F
+    [InlineData(1, 7, 2)]    // só de RGN 2×24 (S); RGN 1×24 é célula vazia
+    [InlineData(9, 10, 2)]   // só de RGN 20×105 (mercaptanas), código GF; RGN 33×105 é vazio
+    // Adoção do teto — E (explosão) de RGN 19×30, cetonas × peróxidos.
+    [InlineData(5, 11, 3)]
+    // Desvios declarados: ResQui fica ABAIXO do teto da EPA por decisão de projeto.
+    [InlineData(2, 5, 1)]    // teto da fonte é 2 (P de RGN 3×4)
+    [InlineData(5, 10, 2)]   // teto da fonte é 3 (E de RGN 16×105, aromáticos)
+    public void GetAll_ParesComClasseAgregada_TemONivelDecidido(int classeA, int classeB, int esperado)
+    {
+        // Pares em que ao menos um lado agrega vários grupos de reatividade da EPA — o nível da
+        // fonte é o pior caso do grupo, um teto. A decisão par a par (adotar o teto, adotar por
+        // precaução quando ele vem de meia classe, ou declarar desvio) está em
+        // docs/superpowers/specs/2026-07-28-reconciliacao-classes-agregadas-design.md.
+        // Os dois desvios só podem mudar junto com a seção "Desvios declarados" de
+        // docs/compatibilidade-proveniencia.md e o dict DESVIOS de docs/fontes/.../derive.py.
+        var nivel = CompatMatrixData.GetAll().ToDictionary(e => (e.ClasseA, e.ClasseB), e => e.Nivel);
+
+        nivel[(classeA, classeB)].Should().Be(esperado);
+        nivel[(classeB, classeA)].Should().Be(esperado, "a matriz é simétrica");
+    }
 }

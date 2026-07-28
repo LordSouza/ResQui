@@ -94,13 +94,49 @@ public class MisturasAltoRiscoTests
     }
 
     [Theory]
-    [InlineData(2, 5)]  // Ácidos orgânicos × Solventes orgânicos — compatível (0)
+    [InlineData(2, 5)]  // Ácidos orgânicos × Solventes orgânicos — cautela (1), desvio declarado
     [InlineData(5, 6)]  // Solventes orgânicos × halogenados — compatível (0)
     [InlineData(1, 2)]  // Ácidos inorgânicos × orgânicos — cautela (1)
     public async Task CriarResiduo_Permite_ParesCompativeisOuCautela(int classeA, int classeB)
     {
         var dto = await _residuos.CriarAsync(CmdComClasses(classeA, classeB), "tecnico@resqui.local");
         dto.ClassesReatividade.Should().BeEquivalentTo(new[] { classeA, classeB });
+    }
+
+    public static TheoryData<int, int, string> ParesAgregadosPerigo => new()
+    {
+        { 1, 5, "Ácidos inorgânicos × Solventes orgânicos" },
+        { 1, 6, "Ácidos inorgânicos × Solventes halogenados" },
+        { 1, 7, "Ácidos inorgânicos × Metais pesados" },
+        { 9, 10, "Sulfetos × Agentes redutores" },
+        { 5, 10, "Solventes orgânicos × Agentes redutores" },
+    };
+
+    [Theory]
+    [MemberData(nameof(ParesAgregadosPerigo))]
+    public async Task CriarResiduo_BloqueiaPar_AgregadoNivelPerigo(int classeA, int classeB, string nome)
+    {
+        // Reconciliação de 2026-07-28 (Fatia 3): pares com classe agregada que subiram para
+        // nível 2 e passaram a barrar a mistura na criação do resíduo.
+        var act = () => _residuos.CriarAsync(CmdComClasses(classeA, classeB), "tecnico@resqui.local");
+        await act.Should().ThrowAsync<ValidationException>($"o par {nome} é nível Perigo na matriz");
+    }
+
+    [Fact]
+    public async Task CriarMtr_BloqueiaAgrupamento_SolventeOrganicoComPeroxido()
+    {
+        // 5×11 subiu para 3 na Fatia 3: o E do chart vem de RGN 19×30 (cetonas × peróxidos) —
+        // a química do peróxido de acetona. Nível 3 é o que fecha o gate do MTR.
+        var r1 = new Residuo { Id = 1, Descricao = "Acetona", Status = "aguardando-coleta", ClassesReatividade = [5] };
+        var r2 = new Residuo { Id = 2, Descricao = "Peróxido", Status = "aguardando-coleta", ClassesReatividade = [11] };
+        _residuosRepo.GetByIdAsync(1).Returns(r1);
+        _residuosRepo.GetByIdAsync(2).Returns(r2);
+
+        var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [1, 2]);
+        var act = () => _mtrs.CriarAsync(cmd, "u1", "gestor@resqui.local");
+
+        await act.Should().ThrowAsync<ValidationException>()
+            .WithMessage("*Proibido*");
     }
 
     [Fact]
@@ -156,7 +192,7 @@ public class MisturasAltoRiscoTests
     [Fact]
     public async Task AvaliarMistura_RetornaPiorPar()
     {
-        var pior = await _compat.AvaliarMisturaAsync([2, 5, 4]); // (2,5)=0, (2,4)=2, (5,4)=3
+        var pior = await _compat.AvaliarMisturaAsync([2, 5, 4]); // (2,5)=1, (2,4)=2, (5,4)=3
         pior.Should().NotBeNull();
         pior!.Nivel.Should().Be(3);
     }
