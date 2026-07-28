@@ -18,7 +18,7 @@ public static class CompatProveniencia
     public const string Url =
         "https://www.epa.gov/sites/default/files/2016-03/documents/compat-haz-waste.pdf";
 
-    public const string RevisadoEm = "2026-07-27";
+    public const string RevisadoEm = "2026-07-28";
 
     public const string Detalhamento = "docs/compatibilidade-proveniencia.md";
 
