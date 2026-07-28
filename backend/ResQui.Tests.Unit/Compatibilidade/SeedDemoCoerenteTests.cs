@@ -30,7 +30,18 @@ public class SeedDemoCoerenteTests
                 .Select(int.Parse).ToArray())
             .ToList();
 
-        combinacoes.Should().NotBeEmpty("o regex tem que casar com os resíduos do seed demo");
+        // "o regex casou algo" não é o mesmo que "casou todas as declarações": um resíduo novo com
+        // outro formato de inicializador — ou sem ClassesReatividade — sairia da cobertura em
+        // silêncio. Ancorar na contagem de `new Residuo` faz a divergência derrubar o teste.
+        var declaracoes = Regex.Matches(fonte, @"new Residuo\b").Count;
+
+        declaracoes.Should().BePositive(
+            "o teste precisa achar as declarações de Residuo em DemoDataSeeder.cs");
+
+        combinacoes.Should().HaveCount(declaracoes,
+            $"o seed demo declara {declaracoes} resíduos, mas o regex de ClassesReatividade casou "
+            + $"{combinacoes.Count} — toda declaração de Residuo tem que trazer ClassesReatividade "
+            + "explícito, no formato esperado, para entrar nesta verificação");
 
         foreach (var classes in combinacoes)
         foreach (var a in classes)
