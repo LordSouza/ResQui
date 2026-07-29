@@ -154,4 +154,26 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         var u = await userManager.FindByIdAsync(userId);
         if (u is not null) await userManager.SetTwoFactorEnabledAsync(u, enabled);
     }
+
+    public async Task<IEnumerable<string>> GerarCodigosRecuperacaoAsync(string userId, int quantidade)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return [];
+        var codigos = await userManager.GenerateNewTwoFactorRecoveryCodesAsync(u, quantidade);
+        return codigos ?? [];
+    }
+
+    public async Task<bool> ResgatarCodigoRecuperacaoAsync(string userId, string codigo)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return false;
+        var result = await userManager.RedeemTwoFactorRecoveryCodeAsync(u, codigo);
+        return result.Succeeded;
+    }
+
+    public async Task<int> ContarCodigosRecuperacaoAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        return u is null ? 0 : await userManager.CountRecoveryCodesAsync(u);
+    }
 }

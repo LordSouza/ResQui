@@ -30,4 +30,7 @@ public interface IAuthRepository
     Task<string?> GetOrCreateAuthenticatorKeyAsync(string userId);
     Task<bool> VerifyTwoFactorCodeAsync(string userId, string codigo);
     Task SetTwoFactorEnabledAsync(string userId, bool enabled);
+    Task<IEnumerable<string>> GerarCodigosRecuperacaoAsync(string userId, int quantidade);
+    Task<bool> ResgatarCodigoRecuperacaoAsync(string userId, string codigo);
+    Task<int> ContarCodigosRecuperacaoAsync(string userId);
 }
