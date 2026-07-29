@@ -37,11 +37,13 @@ describe('hooks de segurança', () => {
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ SenhaAtual: 'a', NovaSenha: 'NovaSenha@1' });
   });
 
-  it('useSetup2fa returns secret + otpauthUri', async () => {
+  it('useSetup2fa sends the current password and returns secret + otpauthUri', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ secret: 'ABC', otpauthUri: 'otpauth://totp/ResQui' }) });
     const { result } = renderHook(() => useSetup2fa(), { wrapper });
-    act(() => result.current.mutate());
+    act(() => result.current.mutate('senha123'));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/auth/2fa/setup');
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ Senha: 'senha123' });
     expect(result.current.data.secret).toBe('ABC');
   });
 
