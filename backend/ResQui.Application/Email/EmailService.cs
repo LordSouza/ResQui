@@ -45,7 +45,10 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger) :
             await smtp.SendAsync(message, cts.Token);
             await smtp.DisconnectAsync(true, cts.Token);
         }
-        catch (OperationCanceledException)
+        // O MailKit não aflora estouro de tempo de forma uniforme: o CTS vira
+        // OperationCanceledException, o SmtpClient.Timeout pode virar TimeoutException, e alguns
+        // caminhos de socket ainda saem como IOException — esses últimos caem no LogError abaixo.
+        catch (Exception ex) when (ex is OperationCanceledException or TimeoutException)
         {
             logger.LogWarning("Envio de e-mail para {To} abortado após {Timeout}s (SMTP {Host}:{Port} não respondeu): {Subject}",
                 to, timeout.TotalSeconds, host, port, subject);

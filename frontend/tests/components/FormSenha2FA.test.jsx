@@ -97,4 +97,23 @@ describe('FormSenha2FA — códigos de recuperação', () => {
     expect(screen.getByRole('button', { name: /gerar novos códigos/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /ativar 2fa/i })).not.toBeInTheDocument();
   });
+
+  // A outra ponta da mesma sincronização: sem ela, reabrir depois de desativar mostraria
+  // "2FA ativo" e um botão "Gerar novos códigos" que devolve 400.
+  it('desativar reflete no estado da aba sem reload', async () => {
+    fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
+    vi.stubGlobal('prompt', vi.fn(() => 'cod-1'));
+
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor',
+      twoFactorEnabled: true, codigosRecuperacaoRestantes: 5 });
+
+    abrirAbaMfa();
+    expect(screen.getByText(/2FA ativo/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^desativar$/i }));
+
+    await waitFor(() => expect(screen.getByText(/2FA desativado/i)).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /ativar 2fa/i })).toBeInTheDocument();
+    expect(screen.queryByText(/códigos de recuperação restantes/i)).not.toBeInTheDocument();
+  });
 });
