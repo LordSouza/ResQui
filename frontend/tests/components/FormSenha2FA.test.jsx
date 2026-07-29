@@ -35,6 +35,7 @@ async function ativar2fa(codigos) {
     json: async () => ({ codigos, secret: 'ABC123', otpauthUri: 'otpauth://totp/ResQui:ana' }),
   });
   abrirAbaMfa();
+  fireEvent.change(screen.getByLabelText('Senha atual para ativar o 2FA'), { target: { value: 'Senha@123' } });
   fireEvent.click(screen.getByRole('button', { name: /ativar 2fa/i }));
   // o setup (secret/otpauthUri) resolve antes de o campo de código aparecer
   const input = await screen.findByLabelText('Código de verificação');
@@ -115,5 +116,44 @@ describe('FormSenha2FA — códigos de recuperação', () => {
     await waitFor(() => expect(screen.getByText(/2FA desativado/i)).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /ativar 2fa/i })).toBeInTheDocument();
     expect(screen.queryByText(/códigos de recuperação restantes/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('FormSenha2FA — senha exigida no setup do 2FA', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      data: {},
+      setItem(k, v) { this.data[k] = String(v); },
+      getItem(k) { return this.data[k] ?? null; },
+      removeItem(k) { delete this.data[k]; },
+      clear() { this.data = {}; },
+    });
+    vi.stubGlobal('fetch', vi.fn());
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('não deixa iniciar o setup sem senha', () => {
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor', twoFactorEnabled: false });
+    abrirAbaMfa();
+
+    expect(screen.getByRole('button', { name: /ativar 2fa/i })).toBeDisabled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('envia a senha digitada para o endpoint de setup', async () => {
+    fetch.mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ secret: 'ABC123', otpauthUri: 'otpauth://totp/ResQui:ana' }),
+    });
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor', twoFactorEnabled: false });
+    abrirAbaMfa();
+
+    fireEvent.change(screen.getByLabelText('Senha atual para ativar o 2FA'), { target: { value: 'Senha@123' } });
+    fireEvent.click(screen.getByRole('button', { name: /ativar 2fa/i }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    const [url, opts] = fetch.mock.calls[0];
+    expect(url).toContain('/api/auth/2fa/setup');
+    expect(JSON.parse(opts.body)).toEqual({ Senha: 'Senha@123' });
   });
 });

@@ -15,8 +15,11 @@ export function useAlterarSenha() {
 
 export function useSetup2fa() {
   return useMutation({
-    mutationFn: async () => {
-      const res = await apiFetch('/api/auth/2fa/setup', { method: 'POST' });
+    mutationFn: async (senha) => {
+      const res = await apiFetch('/api/auth/2fa/setup', {
+        method: 'POST',
+        body: JSON.stringify({ Senha: senha }),
+      });
       return res.json();
     },
   });

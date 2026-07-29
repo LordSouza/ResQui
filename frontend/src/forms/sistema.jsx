@@ -122,6 +122,7 @@ export function FormSenha2FA({ onClose, dispatch }) {
   const [setup, setSetup] = useState(null); // { secret, otpauthUri }
   const [codigo, setCodigo] = useState('');
   const [codigosRecuperacao, setCodigosRecuperacao] = useState(null);
+  const [senhaSetup, setSenhaSetup] = useState('');
 
   const forcaSenha = (s) => {
     let score = 0;
@@ -145,7 +146,9 @@ export function FormSenha2FA({ onClose, dispatch }) {
     );
   };
 
-  const iniciarSetup = () => setup2fa.mutate(undefined, { onSuccess: setSetup });
+  const iniciarSetup = () => setup2fa.mutate(senhaSetup, {
+    onSuccess: (data) => { setSetup(data); setSenhaSetup(''); },
+  });
   const confirmarAtivacao = () => ativar2fa.mutate(codigo, {
     onSuccess: (data) => {
       setSetup(null); setCodigo('');
@@ -243,8 +246,20 @@ export function FormSenha2FA({ onClose, dispatch }) {
                   </button>
                   <button type="button" className="btn btn-sm" disabled={desativar2fa.isPending} onClick={desativar}>Desativar</button>
                 </div>
-              : <button type="button" className="btn btn-sm" disabled={setup2fa.isPending} onClick={iniciarSetup}>{setup2fa.isPending ? '…' : 'Ativar 2FA'}</button>}
+              : <div style={{display: 'flex', gap: 8, alignItems: 'flex-end'}}>
+                  <div className="field" style={{margin: 0}}>
+                    <label htmlFor="senha-setup-2fa">Senha atual</label>
+                    <input id="senha-setup-2fa" type="password" autoComplete="current-password"
+                      aria-label="Senha atual para ativar o 2FA"
+                      value={senhaSetup} onChange={e => setSenhaSetup(e.target.value)}/>
+                  </div>
+                  <button type="button" className="btn btn-sm" disabled={!senhaSetup || setup2fa.isPending} onClick={iniciarSetup}>
+                    {setup2fa.isPending ? '…' : 'Ativar 2FA'}
+                  </button>
+                </div>}
           </div>
+
+          {setup2fa.isError && <div className="login-err" style={{marginBottom: 12}}>{setup2fa.error.message}</div>}
 
           {mfaEnabled && !codigosRecuperacao && (
             <div style={{fontSize: 12, color: restantes <= 2 ? 'var(--amber)' : 'var(--text-2)', marginBottom: 12}}>
