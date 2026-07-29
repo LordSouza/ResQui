@@ -19,16 +19,20 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         var valid = await repo.CheckPasswordAsync(user.Id, cmd.Senha);
         if (!valid) return null;
 
+        var viaRecuperacao = false;
         if (user.TwoFactorEnabled)
         {
             if (string.IsNullOrWhiteSpace(cmd.Codigo2fa))
                 return new LoginResultDto(true, null);
-            if (!await repo.VerifyTwoFactorCodeAsync(user.Id, cmd.Codigo2fa))
+
+            var fator = await VerificarSegundoFatorAsync(user.Id, cmd.Codigo2fa);
+            if (fator == SegundoFator.Invalido)
             {
                 await auditoria.RegistrarAsync(cmd.Email, "user.login-2fa-falha", "Auth",
                     $"Código 2FA inválido para {cmd.Email}", RiscoAuditoria.Medium);
                 return null;
             }
+            viaRecuperacao = fator == SegundoFator.Recuperacao;
         }
 
         var expireAt = DateTime.UtcNow.AddHours(jwtOptions.ExpirationHours);
@@ -43,6 +47,12 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         });
         await sessoes.SaveChangesAsync();
         var profile = new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula, user.Papel, user.Roles, user.TwoFactorEnabled);
+        if (viaRecuperacao)
+        {
+            var restantes = await repo.ContarCodigosRecuperacaoAsync(user.Id);
+            await auditoria.RegistrarAsync(cmd.Email, "user.2fa-recuperacao-usada", "Auth",
+                $"Entrou com código de recuperação; restam {restantes} código(s)", RiscoAuditoria.High);
+        }
         await auditoria.RegistrarAsync(cmd.Email, "user.login", "Auth",
             $"Login de {cmd.Email}", RiscoAuditoria.Low);
         return new LoginResultDto(false, new TokenDto(token, expireAt, profile));
@@ -168,6 +178,17 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         await auditoria.RegistrarAsync(requesterEmail, "user.perfil-atualizar", "Conta",
             "Atualizou perfil (nome/e-mail)", RiscoAuditoria.Low);
         return (await GetMeAsync(userId))!;
+    }
+
+    private enum SegundoFator { Invalido, Totp, Recuperacao }
+
+    private async Task<SegundoFator> VerificarSegundoFatorAsync(string userId, string codigo)
+    {
+        if (await repo.VerifyTwoFactorCodeAsync(userId, codigo))
+            return SegundoFator.Totp;
+        if (await repo.ResgatarCodigoRecuperacaoAsync(userId, codigo))
+            return SegundoFator.Recuperacao;
+        return SegundoFator.Invalido;
     }
 
     private string GenerateToken(UsuarioInfo user, DateTime expireAt, string jti)

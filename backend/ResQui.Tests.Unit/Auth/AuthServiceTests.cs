@@ -270,4 +270,67 @@ public class AuthServiceTests
         await _audit.Received(1).RegistrarAsync("req@x.com", "user.perfil-atualizar",
             "Conta", Arg.Any<string>(), RiscoAuditoria.Low);
     }
+
+    private static UsuarioInfo FakeUser2fa() => new(
+        "user-1", "ana@lab.com", "Ana Silva", "M-001", "Gestor",
+        new List<string> { "Gestor" }, false, true);
+
+    [Fact]
+    public async Task LoginAsync_TotpValido_NaoTentaResgatarCodigoDeRecuperacao()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser2fa());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.VerifyTwoFactorCodeAsync("user-1", "123456").Returns(true);
+
+        var res = await _sut.LoginAsync(new LoginCmd("ana@lab.com", "senha123", "123456"));
+
+        res!.Token.Should().NotBeNull();
+        await _repo.DidNotReceive().ResgatarCodigoRecuperacaoAsync(
+            Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task LoginAsync_TotpInvalidoMasCodigoDeRecuperacaoValido_Autentica()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser2fa());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.VerifyTwoFactorCodeAsync("user-1", "abcd-efgh").Returns(false);
+        _repo.ResgatarCodigoRecuperacaoAsync("user-1", "abcd-efgh").Returns(true);
+
+        var res = await _sut.LoginAsync(new LoginCmd("ana@lab.com", "senha123", "abcd-efgh"));
+
+        res!.Requires2fa.Should().BeFalse();
+        res.Token.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task LoginAsync_CodigoDeRecuperacaoUsado_RegistraAuditoriaHigh()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser2fa());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.VerifyTwoFactorCodeAsync("user-1", "abcd-efgh").Returns(false);
+        _repo.ResgatarCodigoRecuperacaoAsync("user-1", "abcd-efgh").Returns(true);
+
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "senha123", "abcd-efgh"));
+
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "user.2fa-recuperacao-usada", "Auth",
+            Arg.Any<string>(), RiscoAuditoria.High);
+    }
+
+    [Fact]
+    public async Task LoginAsync_TotpEResgateFalham_Retorna401()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser2fa());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.VerifyTwoFactorCodeAsync("user-1", "000000").Returns(false);
+        _repo.ResgatarCodigoRecuperacaoAsync("user-1", "000000").Returns(false);
+
+        var res = await _sut.LoginAsync(new LoginCmd("ana@lab.com", "senha123", "000000"));
+
+        res.Should().BeNull();
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "user.login-2fa-falha", "Auth",
+            Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
 }
