@@ -142,6 +142,38 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         return codigos;
     }
 
+    public async Task<bool> ResetarSegundoFatorAsync(string alvoId, string requesterId, string requesterEmail)
+    {
+        // Sem esta guarda, um token de Admin roubado desliga o próprio 2FA sem saber código
+        // nenhum. Um Admin trancado fora não conseguiria chamar este endpoint de qualquer forma.
+        if (alvoId == requesterId)
+            throw new ValidationException("Você não pode resetar o 2FA da própria conta.");
+        var alvo = await repo.FindByIdIncluindoArquivadosAsync(alvoId);
+        if (alvo is null) return false;
+
+        await repo.SetTwoFactorEnabledAsync(alvoId, false);
+        await repo.ResetAuthenticatorKeyAsync(alvoId);
+        // Desligar a flag não apaga os códigos (Desativar2faAsync depende disso), e rotacionar
+        // a chave também não: substituir o conjunto por vazio é o passo que os invalida.
+        await repo.GerarCodigosRecuperacaoAsync(alvoId, 0);
+
+        // O motivo canônico do reset é conta/aparelho comprometido, e o JWT vale até expirar
+        // salvo revogação do jti: deixar as sessões vivas manteria o invasor logado.
+        var ativas = (await sessoes.GetAtivasByUsuarioAsync(alvoId)).ToList();
+        foreach (var s in ativas)
+        {
+            s.Revogada = true;
+            await sessoes.UpdateAsync(s);
+        }
+        if (ativas.Count > 0) await sessoes.SaveChangesAsync();
+
+        await auditoria.RegistrarAsync(requesterEmail, "user.2fa-reset-admin", "Usuários",
+            $"Resetou o 2FA de {alvo.Email}; {ativas.Count} sessão(ões) revogada(s)", RiscoAuditoria.High);
+        var (assunto, html) = NotificacaoEmailBuilder.Build2faResetadoPorAdmin(requesterEmail);
+        await email.SendAsync(alvo.Email, assunto, html);
+        return true;
+    }
+
     public async Task<IEnumerable<SessaoDto>> ListarSessoesAsync(string userId, string? jtiAtual)
     {
         var ativas = await sessoes.GetAtivasByUsuarioAsync(userId);

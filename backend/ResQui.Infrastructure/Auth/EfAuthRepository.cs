@@ -24,6 +24,14 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         return new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado, u.TwoFactorEnabled);
     }
 
+    public async Task<UsuarioInfo?> FindByIdIncluindoArquivadosAsync(string id)
+    {
+        var u = await userManager.FindByIdAsync(id);
+        if (u is null) return null;
+        var roles = await userManager.GetRolesAsync(u);
+        return new UsuarioInfo(u.Id, u.Email!, u.Nome, u.Matricula, u.Papel, roles, u.Arquivado, u.TwoFactorEnabled);
+    }
+
     public async Task<bool> CheckPasswordAsync(string userId, string password)
     {
         var u = await userManager.FindByIdAsync(userId);

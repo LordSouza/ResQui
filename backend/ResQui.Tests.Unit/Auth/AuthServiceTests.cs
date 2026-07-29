@@ -564,4 +564,90 @@ public class AuthServiceTests
 
         dto.Should().BeNull();
     }
+
+    // ---------- Reset de 2FA por Admin ----------
+
+    private static UsuarioInfo AlvoComMfa() => new(
+        "alvo-9", "bruno@lab.com", "Bruno Lima", "M-009", "Tecnico",
+        new List<string> { "Tecnico" }, false, true);
+
+    [Fact]
+    public async Task ResetarSegundoFatorAsync_ProprioUsuario_LancaSemEfeitoColateral()
+    {
+        var act = () => _sut.ResetarSegundoFatorAsync("admin-1", "admin-1", "admin@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>()
+            .WithMessage("*própria conta*");
+        await _repo.DidNotReceive().SetTwoFactorEnabledAsync(Arg.Any<string>(), Arg.Any<bool>());
+        await _repo.DidNotReceive().ResetAuthenticatorKeyAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task ResetarSegundoFatorAsync_AlvoInexistente_RetornaFalse()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("fantasma").Returns((UsuarioInfo?)null);
+
+        var ok = await _sut.ResetarSegundoFatorAsync("fantasma", "admin-1", "admin@lab.com");
+
+        ok.Should().BeFalse();
+        await _repo.DidNotReceive().SetTwoFactorEnabledAsync(Arg.Any<string>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public async Task ResetarSegundoFatorAsync_CaminhoFeliz_LimpaEstadoDoAlvo()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("alvo-9").Returns(AlvoComMfa());
+        _sessoes.GetAtivasByUsuarioAsync("alvo-9").Returns(new List<Domain.Entities.SessaoToken>());
+
+        var ok = await _sut.ResetarSegundoFatorAsync("alvo-9", "admin-1", "admin@lab.com");
+
+        ok.Should().BeTrue();
+        await _repo.Received(1).SetTwoFactorEnabledAsync("alvo-9", false);
+        await _repo.Received(1).ResetAuthenticatorKeyAsync("alvo-9");
+        // Nem desligar a flag nem rotacionar a chave apagam os códigos no Identity:
+        // zerar é passo explícito.
+        await _repo.Received(1).GerarCodigosRecuperacaoAsync("alvo-9", 0);
+    }
+
+    [Fact]
+    public async Task ResetarSegundoFatorAsync_RevogaTodasAsSessoesDoAlvo()
+    {
+        var s1 = new Domain.Entities.SessaoToken { UsuarioId = "alvo-9", Jti = "j1" };
+        var s2 = new Domain.Entities.SessaoToken { UsuarioId = "alvo-9", Jti = "j2" };
+        _repo.FindByIdIncluindoArquivadosAsync("alvo-9").Returns(AlvoComMfa());
+        _sessoes.GetAtivasByUsuarioAsync("alvo-9").Returns(new List<Domain.Entities.SessaoToken> { s1, s2 });
+
+        await _sut.ResetarSegundoFatorAsync("alvo-9", "admin-1", "admin@lab.com");
+
+        s1.Revogada.Should().BeTrue();
+        s2.Revogada.Should().BeTrue();
+        await _sessoes.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task ResetarSegundoFatorAsync_AuditaHighEAvisaODono()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("alvo-9").Returns(AlvoComMfa());
+        _sessoes.GetAtivasByUsuarioAsync("alvo-9").Returns(new List<Domain.Entities.SessaoToken>());
+
+        await _sut.ResetarSegundoFatorAsync("alvo-9", "admin-1", "admin@lab.com");
+
+        await _audit.Received(1).RegistrarAsync(
+            "admin@lab.com", "user.2fa-reset-admin", "Usuários",
+            Arg.Any<string>(), RiscoAuditoria.High);
+        await _email.Received(1).SendAsync("bruno@lab.com", Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task ResetarSegundoFatorAsync_AlvoArquivado_ResetaNormalmente()
+    {
+        var arquivado = AlvoComMfa() with { Arquivado = true };
+        _repo.FindByIdIncluindoArquivadosAsync("alvo-9").Returns(arquivado);
+        _sessoes.GetAtivasByUsuarioAsync("alvo-9").Returns(new List<Domain.Entities.SessaoToken>());
+
+        var ok = await _sut.ResetarSegundoFatorAsync("alvo-9", "admin-1", "admin@lab.com");
+
+        ok.Should().BeTrue();
+        await _repo.Received(1).SetTwoFactorEnabledAsync("alvo-9", false);
+    }
 }

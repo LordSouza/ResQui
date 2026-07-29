@@ -14,4 +14,5 @@ public interface IAuthService
     Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, string requesterEmail);
     Task<UserProfileDto?> GetMeAsync(string userId);
     Task<UserProfileDto> AtualizarPerfilAsync(string userId, AtualizarPerfilCmd cmd, string requesterEmail);
+    Task<bool> ResetarSegundoFatorAsync(string alvoId, string requesterId, string requesterEmail);
 }

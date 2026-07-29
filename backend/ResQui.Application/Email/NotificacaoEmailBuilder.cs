@@ -69,4 +69,15 @@ public static class NotificacaoEmailBuilder
             $"<p>Restam <strong>{restantes}</strong> de 10 códigos.</p>" +
             $"<p>Se não foi você, troque sua senha e gere novos códigos imediatamente.</p>")
     );
+
+    public static (string Subject, string Html) Build2faResetadoPorAdmin(string adminEmail) =>
+    (
+        "[ResQui] Autenticação em dois fatores resetada",
+        Layout("2FA resetado por um administrador",
+            $"<p>O administrador <strong>{adminEmail}</strong> resetou a autenticação em dois fatores da sua conta.</p>" +
+            $"<p>Seu aplicativo autenticador e seus códigos de recuperação <strong>deixaram de valer</strong>, " +
+            $"e todas as sessões abertas foram encerradas.</p>" +
+            $"<p>Entre com sua senha e configure o 2FA novamente em <em>Senha e autenticação</em>.</p>" +
+            $"<p>Se você não pediu este reset, procure o administrador imediatamente.</p>")
+    );
 }

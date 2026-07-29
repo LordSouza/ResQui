@@ -42,6 +42,16 @@ public static class Endpoints
             return Results.NoContent();
         });
 
+        group.MapPost("/{id}/2fa/reset", async (string id, IAuthService authSvc, ClaimsPrincipal user) =>
+        {
+            var requesterId = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                           ?? user.FindFirstValue("sub") ?? "";
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var ok = await authSvc.ResetarSegundoFatorAsync(id, requesterId, email);
+            return ok ? Results.NoContent() : Results.NotFound();
+        })
+        .RequireAuthorization("Admin");
+
         return group;
     }
 }
