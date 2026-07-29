@@ -3,6 +3,7 @@ using NSubstitute;
 using ResQui.Application.Auditoria;
 using ResQui.Application.Auth;
 using ResQui.Application.Common;
+using ResQui.Application.Email;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
@@ -13,6 +14,7 @@ public class AuthServiceTests
     private readonly IAuthRepository _repo = Substitute.For<IAuthRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly ISessoesRepository _sessoes = Substitute.For<ISessoesRepository>();
+    private readonly IEmailService _email = Substitute.For<IEmailService>();
     private readonly JwtOptions _jwt = new()
     {
         Key = "secret-key-32-chars-long-enough!!",
@@ -24,7 +26,7 @@ public class AuthServiceTests
 
     public AuthServiceTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes);
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email);
     }
 
     private static UsuarioInfo FakeUser() => new(
@@ -354,5 +356,35 @@ public class AuthServiceTests
 
         perfil!.CodigosRecuperacaoRestantes.Should().Be(0);
         await _repo.DidNotReceive().ContarCodigosRecuperacaoAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task LoginAsync_CodigoDeRecuperacaoUsado_EnviaAlertaPorEmail()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser2fa());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.VerifyTwoFactorCodeAsync("user-1", "abcd-efgh").Returns(false);
+        _repo.ResgatarCodigoRecuperacaoAsync("user-1", "abcd-efgh").Returns(true);
+        _repo.ContarCodigosRecuperacaoAsync("user-1").Returns(9);
+
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "senha123", "abcd-efgh"));
+
+        await _email.Received(1).SendAsync(
+            "ana@lab.com",
+            Arg.Any<string>(),
+            Arg.Is<string>(html => html.Contains("9")));
+    }
+
+    [Fact]
+    public async Task LoginAsync_TotpValido_NaoEnviaEmail()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser2fa());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.VerifyTwoFactorCodeAsync("user-1", "123456").Returns(true);
+
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "senha123", "123456"));
+
+        await _email.DidNotReceive().SendAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
 }

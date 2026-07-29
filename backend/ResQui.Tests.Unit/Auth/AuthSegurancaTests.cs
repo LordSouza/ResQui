@@ -3,6 +3,7 @@ using NSubstitute;
 using ResQui.Application.Auditoria;
 using ResQui.Application.Auth;
 using ResQui.Application.Common;
+using ResQui.Application.Email;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
@@ -14,10 +15,11 @@ public class AuthSegurancaTests
     private readonly IAuthRepository _repo = Substitute.For<IAuthRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly ISessoesRepository _sessoes = Substitute.For<ISessoesRepository>();
+    private readonly IEmailService _email = Substitute.For<IEmailService>();
     private readonly JwtOptions _jwt = new() { Key = "secret-key-32-chars-long-enough!!", Issuer = "resqui", Audience = "resqui-app", ExpirationHours = 8 };
     private readonly AuthService _sut;
 
-    public AuthSegurancaTests() => _sut = new AuthService(_repo, _jwt, _audit, _sessoes);
+    public AuthSegurancaTests() => _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email);
 
     private static UsuarioInfo User2fa(bool twoFactor) =>
         new("u1", "ana@lab.com", "Ana", "M1", "Gestor", ["Gestor"], false, twoFactor);

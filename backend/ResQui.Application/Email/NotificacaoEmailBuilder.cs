@@ -60,4 +60,13 @@ public static class NotificacaoEmailBuilder
         Layout("Incompatibilidade detectada",
             $"<p>Uma tentativa de combinar <strong>{nomeA}</strong> com <strong>{nomeB}</strong> foi bloqueada pelo sistema de compatibilidade.</p>")
     );
+
+    public static (string Subject, string Html) BuildCodigoRecuperacaoUsado(int restantes) =>
+    (
+        "[ResQui] Código de recuperação usado na sua conta",
+        Layout("Código de recuperação usado",
+            $"<p>Um <strong>código de recuperação</strong> acabou de ser usado para entrar na sua conta.</p>" +
+            $"<p>Restam <strong>{restantes}</strong> de 10 códigos.</p>" +
+            $"<p>Se não foi você, troque sua senha e gere novos códigos imediatamente.</p>")
+    );
 }

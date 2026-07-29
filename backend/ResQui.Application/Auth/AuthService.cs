@@ -4,12 +4,13 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
+using ResQui.Application.Email;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Auth;
 
-public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes) : IAuthService
+public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email) : IAuthService
 {
     public async Task<LoginResultDto?> LoginAsync(LoginCmd cmd, string? userAgent = null)
     {
@@ -51,6 +52,8 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         {
             await auditoria.RegistrarAsync(cmd.Email, "user.2fa-recuperacao-usada", "Auth",
                 $"Entrou com código de recuperação; restam {profile.CodigosRecuperacaoRestantes} código(s)", RiscoAuditoria.High);
+            var (assunto, html) = NotificacaoEmailBuilder.BuildCodigoRecuperacaoUsado(profile.CodigosRecuperacaoRestantes);
+            await email.SendAsync(user.Email, assunto, html);
         }
         await auditoria.RegistrarAsync(cmd.Email, "user.login", "Auth",
             $"Login de {cmd.Email}", RiscoAuditoria.Low);
