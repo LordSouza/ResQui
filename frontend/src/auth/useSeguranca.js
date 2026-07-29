@@ -22,19 +22,20 @@ export function useSetup2fa() {
   });
 }
 
+// O perfil do usuário não é uma query do React Query — vive no AuthContext, que só busca
+// /api/auth/me no mount da página. Estes três hooks invalidavam ['me'], uma key que ninguém
+// consome; quem sincroniza o estado do 2FA é o `updateUser` do AuthContext, chamado no
+// onSuccess de cada mutation em FormSenha2FA.
 export function useAtivar2fa() {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (codigo) => {
       const res = await apiFetch('/api/auth/2fa/ativar', { method: 'POST', body: JSON.stringify({ Codigo: codigo }) });
       return res.json();
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
   });
 }
 
 export function useGerarCodigosRecuperacao() {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (codigo) => {
       const res = await apiFetch('/api/auth/2fa/codigos-recuperacao', {
@@ -43,18 +44,15 @@ export function useGerarCodigosRecuperacao() {
       });
       return res.json();
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
   });
 }
 
 export function useDesativar2fa() {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (codigo) => {
       await apiFetch('/api/auth/2fa/desativar', { method: 'POST', body: JSON.stringify({ Codigo: codigo }) });
       return true;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
   });
 }
 

@@ -102,10 +102,16 @@ function PainelCodigosRecuperacao({ codigos }) {
 
 // ---------- Senha e 2FA ----------
 export function FormSenha2FA({ onClose, dispatch }) {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [aba, setAba] = useState('senha');
   const [pwd, setPwd] = useState({ atual: '', nova: '', conf: '' });
-  const [mfaEnabled, setMfaEnabled] = useState(!!user?.twoFactorEnabled);
+  // Derivado do AuthContext, não copiado para estado local: com uma cópia, reabrir o modal na
+  // mesma sessão mostrava "2FA desativado" depois de ativar (o AuthContext só busca /api/auth/me
+  // no mount da página) e um clique em "Ativar 2FA" destruía os códigos recém-salvos.
+  const mfaEnabled = !!user?.twoFactorEnabled;
+  const restantes = user?.codigosRecuperacaoRestantes ?? 0;
+  const sincronizar2fa = (ativo, qtdCodigos) =>
+    updateUser?.({ ...user, twoFactorEnabled: ativo, codigosRecuperacaoRestantes: qtdCodigos });
 
   const alterarSenha = useAlterarSenha();
   const setup2fa = useSetup2fa();
@@ -116,7 +122,6 @@ export function FormSenha2FA({ onClose, dispatch }) {
   const [setup, setSetup] = useState(null); // { secret, otpauthUri }
   const [codigo, setCodigo] = useState('');
   const [codigosRecuperacao, setCodigosRecuperacao] = useState(null);
-  const [restantes, setRestantes] = useState(user?.codigosRecuperacaoRestantes ?? 0);
 
   const forcaSenha = (s) => {
     let score = 0;
@@ -143,15 +148,17 @@ export function FormSenha2FA({ onClose, dispatch }) {
   const iniciarSetup = () => setup2fa.mutate(undefined, { onSuccess: setSetup });
   const confirmarAtivacao = () => ativar2fa.mutate(codigo, {
     onSuccess: (data) => {
-      setSetup(null); setCodigo(''); setMfaEnabled(true);
+      setSetup(null); setCodigo('');
       setCodigosRecuperacao(data?.codigos ?? []);
-      setRestantes(data?.codigos?.length ?? 0);
+      sincronizar2fa(true, data?.codigos?.length ?? 0);
       dispatch({ type: 'refresh' });
     },
   });
   const desativar = () => {
-    const c = window.prompt('Digite o código do app autenticador para desativar o 2FA:');
-    if (c) desativar2fa.mutate(c, { onSuccess: () => { setMfaEnabled(false); dispatch({ type: 'refresh' }); } });
+    const c = window.prompt('Digite o código do autenticador (ou um código de recuperação) para desativar o 2FA:');
+    if (c) desativar2fa.mutate(c, {
+      onSuccess: () => { setCodigosRecuperacao(null); sincronizar2fa(false, 0); dispatch({ type: 'refresh' }); },
+    });
   };
   const regenerar = () => {
     const c = window.prompt('Digite o código do autenticador (ou um código de recuperação) para gerar novos códigos:');
@@ -159,7 +166,7 @@ export function FormSenha2FA({ onClose, dispatch }) {
     gerarCodigos.mutate(c, {
       onSuccess: (data) => {
         setCodigosRecuperacao(data?.codigos ?? []);
-        setRestantes(data?.codigos?.length ?? 0);
+        sincronizar2fa(true, data?.codigos?.length ?? 0);
       },
     });
   };
