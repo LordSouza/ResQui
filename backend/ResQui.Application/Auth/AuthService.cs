@@ -96,8 +96,8 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         var user = await repo.FindByIdAsync(userId)
             ?? throw new ValidationException("Usuário não encontrado.");
         // Reativar destruiria os códigos de recuperação já entregues (GerarCodigosRecuperacaoAsync
-        // substitui o conjunto inteiro), e o setup devolve a mesma chave — então um clique
-        // acidental em "Ativar 2FA" invalidaria silenciosamente os códigos guardados pelo usuário.
+        // substitui o conjunto inteiro) — um clique acidental em "Ativar 2FA" invalidaria
+        // silenciosamente os códigos guardados pelo usuário.
         if (user.TwoFactorEnabled)
             throw new ValidationException("2FA já está ativo. Use \"Gerar novos códigos\" para renovar os códigos de recuperação.");
         if (!await repo.VerifyTwoFactorCodeAsync(userId, codigo))

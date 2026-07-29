@@ -417,8 +417,8 @@ public class AuthServiceTests
             Arg.Any<string>(), Arg.Any<int>());
     }
 
-    // Reativar o 2FA já ativo substituiria os 10 códigos que o usuário guardou — o setup devolve
-    // a mesma chave, então um TOTP válido faria a troca passar despercebida.
+    // Reativar o 2FA já ativo substituiria os 10 códigos que o usuário guardou — um TOTP válido
+    // faria a troca passar despercebida.
     [Fact]
     public async Task Ativar2faAsync_Com2faJaAtivo_NaoSubstituiOsCodigosExistentes()
     {
