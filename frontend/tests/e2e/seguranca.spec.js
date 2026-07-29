@@ -264,7 +264,7 @@ test('códigos de recuperação: ativa 2FA, entra com um código e a contagem ca
   expect(repetido.status()).toBe(401);
 });
 
-test('Admin reseta o 2FA: derruba a sessão antiga, dispensa o código e o segredo antigo para de autenticar', async ({ request }) => {
+test('Admin reseta o 2FA: derruba a sessão antiga e a própria rotação (não um setup subsequente) invalida o segredo antigo', async ({ request }) => {
   const adminAuth = await apiAuth(request);
   const email = `reset_${Date.now()}@resqui.local`;
   const senha = 'Reset@123';
@@ -303,26 +303,25 @@ test('Admin reseta o 2FA: derruba a sessão antiga, dispensa o código e o segre
   expect(depois.token).toBeTruthy();
   const novoAuth = { Authorization: `Bearer ${depois.token}` };
 
-  // A chave foi rotacionada: reativa com o segredo novo e prova que o segredo antigo
-  // não autentica mais (comparar só os dois secrets seria vácuo — /2fa/setup rotaciona
-  // a cada chamada de qualquer forma, reset ou não).
+  // Discriminante: SEM chamar /2fa/setup de novo (que também rotaciona a chave — comparar
+  // dois secrets de dois setups seria vácuo quanto ao reset), tenta reativar o 2FA com o
+  // código do segredo pré-reset. /2fa/ativar nunca rotaciona chave — só valida o código
+  // contra a chave atual. Se ResetarSegundoFatorAsync não tivesse chamado
+  // ResetAuthenticatorKeyAsync, a chave ainda seria a de setup1 e esta ativação teria
+  // sucesso; a recusa abaixo só se explica pela rotação feita PELO reset.
+  const ativarComSegredoAntigo = await request.post('/api/auth/2fa/ativar', {
+    headers: novoAuth, data: { Codigo: totp(setup1.secret) },
+  });
+  expect(ativarComSegredoAntigo.status()).toBe(400);
+
+  // Fluxo normal: setup novo + ativação com o segredo atual funciona.
   const setup2 = await (await request.post('/api/auth/2fa/setup', {
     headers: novoAuth, data: { Senha: senha },
   })).json();
-  expect(setup2.secret).not.toBe(setup1.secret);
-  await request.post('/api/auth/2fa/ativar', {
+  const ativar2 = await request.post('/api/auth/2fa/ativar', {
     headers: novoAuth, data: { Codigo: totp(setup2.secret) },
   });
-
-  const comSegredoAntigo = await request.post('/api/auth/login', {
-    data: { Email: email, Senha: senha, Codigo2fa: totp(setup1.secret) },
-  });
-  expect(comSegredoAntigo.status()).toBe(401);
-
-  const comSegredoNovo = await request.post('/api/auth/login', {
-    data: { Email: email, Senha: senha, Codigo2fa: totp(setup2.secret) },
-  });
-  expect(comSegredoNovo.ok()).toBeTruthy();
+  expect(ativar2.ok()).toBeTruthy();
 
   // O próprio Admin não pode se resetar
   const me = await (await request.get('/api/auth/me', { headers: adminAuth })).json();
