@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { apiAuth, ensureLab } from './seed';
+import { apiAuth, ensureLab, totp } from './seed';
 
 // Visualizador não pode mutar estoque/resíduos/MTRs (item: autorização fina).
 test('Visualizador é bloqueado em mutações operacionais', async ({ request }) => {
@@ -208,4 +208,48 @@ test('hard-delete remove usuário arquivado e some da listagem', async ({ reques
 
   // Agora some de vez da listagem.
   expect(await achar()).toBeFalsy();
+});
+
+// Ativa 2FA num usuário dedicado (não o admin — quebraria os outros specs), entra com um
+// código de recuperação e confere que a contagem de códigos restantes cai.
+test('códigos de recuperação: ativa 2FA, entra com um código e a contagem cai', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `rec_${Date.now()}@resqui.local`;
+  const senha = 'Recup@123';
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: senha, Papel: 'Tecnico', Nome: 'Recuperação E2E' },
+  });
+
+  const login1 = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
+  const meuAuth = { Authorization: `Bearer ${(await login1.json()).token}` };
+
+  const setup = await (await request.post('/api/auth/2fa/setup', { headers: meuAuth })).json();
+  const ativar = await request.post('/api/auth/2fa/ativar', {
+    headers: meuAuth,
+    data: { Codigo: totp(setup.secret) },
+  });
+  expect(ativar.ok()).toBeTruthy();
+  const { codigos } = await ativar.json();
+  expect(codigos).toHaveLength(10);
+
+  // Login sem segundo fator agora exige o código
+  const parcial = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
+  expect((await parcial.json()).requires2fa).toBe(true);
+
+  // Entra com um código de recuperação
+  const login2 = await request.post('/api/auth/login', {
+    data: { Email: email, Senha: senha, Codigo2fa: codigos[0] },
+  });
+  expect(login2.ok()).toBeTruthy();
+  const novoAuth = { Authorization: `Bearer ${(await login2.json()).token}` };
+
+  const me = await (await request.get('/api/auth/me', { headers: novoAuth })).json();
+  expect(me.codigosRecuperacaoRestantes).toBe(9);
+
+  // O mesmo código não serve de novo
+  const repetido = await request.post('/api/auth/login', {
+    data: { Email: email, Senha: senha, Codigo2fa: codigos[0] },
+  });
+  expect(repetido.status()).toBe(401);
 });

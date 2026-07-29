@@ -1,3 +1,5 @@
+import { createHmac } from 'node:crypto';
+
 // Helpers de seed via API para deixar os specs E2E independentes do estado do banco.
 export const ADMIN = { email: 'admin@resqui.local', senha: 'Admin@123' };
 
@@ -90,4 +92,30 @@ export async function criarResiduoAguardandoColeta(request, auth) {
   const r = await res.json();
   // Resíduo nasce "solicitado" (RF06); aprova para ficar disponível à coleta/MTR.
   return (await aprovarResiduo(request, auth, r.id)).json();
+}
+
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+function base32Decode(s) {
+  let bits = '';
+  for (const c of s.replace(/=+$/, '').toUpperCase()) {
+    const i = B32.indexOf(c);
+    if (i < 0) continue;
+    bits += i.toString(2).padStart(5, '0');
+  }
+  const bytes = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  return Buffer.from(bytes);
+}
+
+// TOTP de 6 dígitos, HMAC-SHA1, janela de 30s (RFC 6238) — o padrão do Identity.
+export function totp(secret, at = Date.now()) {
+  const contador = Math.floor(at / 1000 / 30);
+  const buf = Buffer.alloc(8);
+  buf.writeBigUInt64BE(BigInt(contador));
+  const hmac = createHmac('sha1', base32Decode(secret)).update(buf).digest();
+  const offset = hmac[hmac.length - 1] & 0x0f;
+  const bin = ((hmac[offset] & 0x7f) << 24) | (hmac[offset + 1] << 16)
+            | (hmac[offset + 2] << 8) | hmac[offset + 3];
+  return String(bin % 1_000_000).padStart(6, '0');
 }
