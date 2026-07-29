@@ -12,6 +12,7 @@ function normalizeItem(u, index) {
     status: u.arquivado ? 'arquivado' : 'ativo',
     iniciais: iniciaisUsuario({ nome }),
     cor: AVATAR_COLORS[index % AVATAR_COLORS.length],
+    mfa: !!u.twoFactorEnabled,
   };
 }
 

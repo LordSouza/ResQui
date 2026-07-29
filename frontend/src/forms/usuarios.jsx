@@ -5,6 +5,7 @@ import Modal from './Modal';
 import ConfirmArquivarUsuario from './ConfirmArquivarUsuario';
 import { useCriarUsuario } from '../usuarios/useCriarUsuario';
 import { useExcluirUsuario } from '../usuarios/useExcluirUsuario';
+import { useResetar2fa } from '../usuarios/useResetar2fa';
 
 const papelBadge = (p) => {
   const r = ROLES[p];
@@ -124,6 +125,44 @@ export function ConfirmExcluirUsuario({ usuario, onClose, dispatch }) {
       <div className="field" style={{marginTop: 12}}>
         <label htmlFor="excluir-usuario-conf">Digite <span className="mono">EXCLUIR</span> para confirmar</label>
         <input id="excluir-usuario-conf" aria-label="Digite EXCLUIR para confirmar exclusão" value={conf} onChange={e => setConf(e.target.value)} placeholder="EXCLUIR"/>
+      </div>
+    </Modal>
+  );
+}
+
+// ============== Modal: Resetar 2FA ==============
+
+export function ConfirmResetar2fa({ usuario, onClose, dispatch }) {
+  const mutation = useResetar2fa();
+  const submit = () => mutation.mutate(usuario.id, {
+    onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); },
+  });
+  return (
+    <Modal title="Resetar autenticação em dois fatores" onClose={onClose} width={480}
+      footer={<>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn-sm" disabled={mutation.isPending}
+          style={{background: 'var(--red)', color: '#fff', borderColor: 'var(--red)'}}
+          onClick={submit}>
+          <Icon name="shield" size={12}/> {mutation.isPending ? 'Resetando…' : 'Resetar 2FA'}
+        </button>
+      </>}>
+      {mutation.isError && <div className="login-err" style={{ marginBottom: 12 }}>{mutation.error.message}</div>}
+      <div className="row" style={{gap: 12, marginBottom: 14, alignItems: 'flex-start'}}>
+        <span className="avatar avatar-lg" style={{background: usuario.cor}}>{usuario.iniciais}</span>
+        <div>
+          <div style={{fontWeight: 600}}>{usuario.nome}</div>
+          <div className="small muted mono">{usuario.email}</div>
+        </div>
+      </div>
+      <div className="hint-card danger">
+        <Icon name="warning" size={14}/>
+        <div className="small">
+          O aplicativo autenticador e os <b>códigos de recuperação</b> deste usuário deixam de
+          valer, e <b>todas as sessões abertas são encerradas</b>. Ele volta a entrar só com a
+          senha e precisa configurar o 2FA de novo. O reset é registrado na auditoria e
+          comunicado por e-mail.
+        </div>
       </div>
     </Modal>
   );

@@ -29,7 +29,7 @@ import { ChatMCP } from './chat/ChatMCP';
 import { FormNovoReagente, FormImportarCSV, FormEditarRegrasCompat, FormPreviewFispq, FormBaixa, FormTransferirReagente } from './forms/reagentes';
 import { FormNovoResiduo, FormEditarResiduo, FormNovoMtr, FormConfigurarPgrs } from './forms/residuos';
 import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/laboratorios';
-import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario } from './forms/usuarios';
+import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario, ConfirmResetar2fa } from './forms/usuarios';
 import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes, FormAtalhos, FormDocs, FormReportar } from './forms/sistema';
 import { FormNovoChamado } from './forms/chamados';
 import { FormEditarReagente } from './forms/FormEditarReagente';
@@ -454,6 +454,7 @@ export default function App() {
       {state.modal === 'novoUsuario' && <FormNovoUsuario onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'arquivarUsuario' && state.modalUsuario && <ConfirmArquivarUsuario usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'excluirUsuario' && state.modalUsuario && <ConfirmExcluirUsuario usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'resetar2fa' && state.modalUsuario && <ConfirmResetar2fa usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
     </div>
   );
 }

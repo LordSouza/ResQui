@@ -4,6 +4,7 @@ import { PERMISSION_GROUPS, ROLES } from '../data';
 import { exportCsv } from '../utils';
 import { useUsuarios } from '../usuarios/useUsuarios';
 import { useAlterarPapel } from '../usuarios/useAlterarPapel';
+import { useAuth } from '../auth/AuthContext';
 
 // ============== Helpers ==============
 
@@ -181,6 +182,9 @@ export function UsuariosScreen({ state, dispatch }) {
   const setSelecionado = (value) => screenDispatch({ type: 'setSelecionado', value });
   const setMenuOpen    = (value) => screenDispatch({ type: 'setMenuOpen', value });
 
+  const { user: usuarioLogado } = useAuth();
+  const souAdmin = usuarioLogado?.papel === 'Admin';
+
   // Timestamp for export filename (stable per render cycle)
   const exportDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -322,7 +326,9 @@ export function UsuariosScreen({ state, dispatch }) {
                         ? <Tag>todos os labs</Tag>
                         : (u.labs ?? []).map(l => <Tag key={l}>{l}</Tag>)}
                     </td>
-                    <td><span className="muted small">—</span></td>
+                    <td>{u.mfa
+                      ? <Badge kind="green">TOTP</Badge>
+                      : <span className="muted small">—</span>}</td>
                     <td className="mono small muted">{u.ultimo_acesso || <span className="muted">—</span>}</td>
                     <td>{statusUsuarioBadge(u.status)}</td>
                     <td className="narrow">
@@ -338,6 +344,11 @@ export function UsuariosScreen({ state, dispatch }) {
                             {u.status === 'ativo' && (
                               <button type="button" onClick={() => { dispatch({type: 'openModal', kind: 'arquivarUsuario', usuario: u}); setMenuOpen(null); }}>
                                 <Icon name="book" size={12}/> Arquivar
+                              </button>
+                            )}
+                            {souAdmin && u.mfa && u.id !== usuarioLogado?.id && (
+                              <button type="button" onClick={() => { dispatch({type: 'openModal', kind: 'resetar2fa', usuario: u}); setMenuOpen(null); }}>
+                                <Icon name="shield" size={12}/> Resetar 2FA
                               </button>
                             )}
                             <div className="row-menu-sep"/>
