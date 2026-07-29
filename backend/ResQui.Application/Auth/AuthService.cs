@@ -85,6 +85,13 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
 
     public async Task<IEnumerable<string>> Ativar2faAsync(string userId, string codigo, string usuarioEmail)
     {
+        var user = await repo.FindByIdAsync(userId)
+            ?? throw new ValidationException("Usuário não encontrado.");
+        // Reativar destruiria os códigos de recuperação já entregues (GerarCodigosRecuperacaoAsync
+        // substitui o conjunto inteiro), e o setup devolve a mesma chave — então um clique
+        // acidental em "Ativar 2FA" invalidaria silenciosamente os códigos guardados pelo usuário.
+        if (user.TwoFactorEnabled)
+            throw new ValidationException("2FA já está ativo. Use \"Gerar novos códigos\" para renovar os códigos de recuperação.");
         if (!await repo.VerifyTwoFactorCodeAsync(userId, codigo))
             throw new ValidationException("Código inválido — confira o aplicativo autenticador.");
         await repo.SetTwoFactorEnabledAsync(userId, true);
@@ -98,6 +105,13 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
 
     public async Task Desativar2faAsync(string userId, string codigo, string usuarioEmail)
     {
+        var user = await repo.FindByIdAsync(userId)
+            ?? throw new ValidationException("Usuário não encontrado.");
+        // Antes de verificar o segundo fator: o resgate é destrutivo, e sem esta guarda um POST
+        // repetido queimaria um código de recuperação para um no-op (o Identity não apaga os
+        // códigos ao desligar a flag) e gravaria auditoria High sem fato correspondente.
+        if (!user.TwoFactorEnabled)
+            throw new ValidationException("2FA não está ativo nesta conta.");
         if (await VerificarSegundoFatorAsync(userId, codigo) == SegundoFator.Invalido)
             throw new ValidationException("Código inválido — use o aplicativo autenticador ou um código de recuperação.");
         await repo.SetTwoFactorEnabledAsync(userId, false);

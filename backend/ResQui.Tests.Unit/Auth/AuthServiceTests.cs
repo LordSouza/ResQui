@@ -391,6 +391,7 @@ public class AuthServiceTests
     [Fact]
     public async Task Ativar2faAsync_CodigoValido_DevolveDezCodigosDeRecuperacao()
     {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
         _repo.VerifyTwoFactorCodeAsync("user-1", "123456").Returns(true);
         _repo.GerarCodigosRecuperacaoAsync("user-1", 10)
             .Returns(Enumerable.Range(1, 10).Select(i => $"cod-{i}"));
@@ -406,6 +407,7 @@ public class AuthServiceTests
     [Fact]
     public async Task Ativar2faAsync_CodigoInvalido_NaoGeraCodigos()
     {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
         _repo.VerifyTwoFactorCodeAsync("user-1", "000000").Returns(false);
 
         var act = () => _sut.Ativar2faAsync("user-1", "000000", "ana@lab.com");
@@ -415,9 +417,27 @@ public class AuthServiceTests
             Arg.Any<string>(), Arg.Any<int>());
     }
 
+    // Reativar o 2FA já ativo substituiria os 10 códigos que o usuário guardou — o setup devolve
+    // a mesma chave, então um TOTP válido faria a troca passar despercebida.
+    [Fact]
+    public async Task Ativar2faAsync_Com2faJaAtivo_NaoSubstituiOsCodigosExistentes()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
+        _repo.VerifyTwoFactorCodeAsync("user-1", "123456").Returns(true);
+
+        var act = () => _sut.Ativar2faAsync("user-1", "123456", "ana@lab.com");
+
+        (await act.Should().ThrowAsync<ValidationException>())
+            .Which.Message.Should().Contain("Gerar novos códigos");
+        await _repo.DidNotReceive().GerarCodigosRecuperacaoAsync(
+            Arg.Any<string>(), Arg.Any<int>());
+        await _repo.DidNotReceive().SetTwoFactorEnabledAsync(Arg.Any<string>(), Arg.Any<bool>());
+    }
+
     [Fact]
     public async Task Desativar2faAsync_AceitaCodigoDeRecuperacao()
     {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
         _repo.VerifyTwoFactorCodeAsync("user-1", "abcd-efgh").Returns(false);
         _repo.ResgatarCodigoRecuperacaoAsync("user-1", "abcd-efgh").Returns(true);
 
@@ -429,6 +449,7 @@ public class AuthServiceTests
     [Fact]
     public async Task Desativar2faAsync_CodigoInvalido_LancaValidationExceptionENaoDesativa()
     {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
         _repo.VerifyTwoFactorCodeAsync("user-1", "000000").Returns(false);
         _repo.ResgatarCodigoRecuperacaoAsync("user-1", "000000").Returns(false);
 

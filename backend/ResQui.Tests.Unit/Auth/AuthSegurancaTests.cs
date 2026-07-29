@@ -94,6 +94,7 @@ public class AuthSegurancaTests
     [Fact]
     public async Task Ativar2fa_CodigoInvalido_NaoHabilita()
     {
+        _repo.FindByIdAsync("u1").Returns(User2fa(false));
         _repo.VerifyTwoFactorCodeAsync("u1", "bad").Returns(false);
         var act = () => _sut.Ativar2faAsync("u1", "bad", "ana@lab.com");
         await act.Should().ThrowAsync<ValidationException>();
@@ -103,9 +104,37 @@ public class AuthSegurancaTests
     [Fact]
     public async Task Ativar2fa_CodigoValido_Habilita()
     {
+        _repo.FindByIdAsync("u1").Returns(User2fa(false));
         _repo.VerifyTwoFactorCodeAsync("u1", "123456").Returns(true);
         await _sut.Ativar2faAsync("u1", "123456", "ana@lab.com");
         await _repo.Received(1).SetTwoFactorEnabledAsync("u1", true);
+    }
+
+    [Fact]
+    public async Task Desativar2fa_Com2faAtivo_Desativa()
+    {
+        _repo.FindByIdAsync("u1").Returns(User2fa(true));
+        _repo.VerifyTwoFactorCodeAsync("u1", "123456").Returns(true);
+        await _sut.Desativar2faAsync("u1", "123456", "ana@lab.com");
+        await _repo.Received(1).SetTwoFactorEnabledAsync("u1", false);
+    }
+
+    // Um POST repetido em /2fa/desativar não pode queimar um código de recuperação (o resgate é
+    // destrutivo e o Identity não apaga os códigos ao desligar a flag) nem gravar auditoria High.
+    [Fact]
+    public async Task Desativar2fa_Com2faJaDesativado_NaoResgataCodigoNemAudita()
+    {
+        _repo.FindByIdAsync("u1").Returns(User2fa(false));
+        _repo.ResgatarCodigoRecuperacaoAsync("u1", Arg.Any<string>()).Returns(true);
+
+        var act = () => _sut.Desativar2faAsync("u1", "abcd-efgh", "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _repo.DidNotReceive().ResgatarCodigoRecuperacaoAsync(Arg.Any<string>(), Arg.Any<string>());
+        await _repo.DidNotReceive().SetTwoFactorEnabledAsync(Arg.Any<string>(), Arg.Any<bool>());
+        await _audit.DidNotReceive().RegistrarAsync(
+            Arg.Any<string>(), "user.2fa-desativado", Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
 
     [Fact]
