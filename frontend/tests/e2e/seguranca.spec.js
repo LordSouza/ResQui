@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { apiAuth, ensureLab, totp } from './seed';
+import { ADMIN, apiAuth, ensureLab, totp } from './seed';
 
 // Visualizador não pode mutar estoque/resíduos/MTRs (item: autorização fina).
 test('Visualizador é bloqueado em mutações operacionais', async ({ request }) => {
@@ -43,9 +43,16 @@ test('alterar senha com senha atual errada retorna 400', async ({ request }) => 
   expect(res.status()).toBe(400);
 });
 
-test('setup 2FA retorna secret e URI otpauth', async ({ request }) => {
+test('setup 2FA exige a senha e devolve secret e URI otpauth', async ({ request }) => {
   const auth = await apiAuth(request);
-  const res = await request.post('/api/auth/2fa/setup', { headers: auth });
+
+  const semSenha = await request.post('/api/auth/2fa/setup', { headers: auth, data: {} });
+  expect(semSenha.status()).toBe(400);
+
+  const res = await request.post('/api/auth/2fa/setup', {
+    headers: auth,
+    data: { Senha: ADMIN.senha },
+  });
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   expect(body.secret?.length).toBeGreaterThan(10);
@@ -224,7 +231,10 @@ test('códigos de recuperação: ativa 2FA, entra com um código e a contagem ca
   const login1 = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
   const meuAuth = { Authorization: `Bearer ${(await login1.json()).token}` };
 
-  const setup = await (await request.post('/api/auth/2fa/setup', { headers: meuAuth })).json();
+  const setup = await (await request.post('/api/auth/2fa/setup', {
+    headers: meuAuth,
+    data: { Senha: senha },
+  })).json();
   const ativar = await request.post('/api/auth/2fa/ativar', {
     headers: meuAuth,
     data: { Codigo: totp(setup.secret) },
@@ -252,4 +262,50 @@ test('códigos de recuperação: ativa 2FA, entra com um código e a contagem ca
     data: { Email: email, Senha: senha, Codigo2fa: codigos[0] },
   });
   expect(repetido.status()).toBe(401);
+});
+
+test('Admin reseta o 2FA: login volta a dispensar o código e o segredo muda', async ({ request }) => {
+  const adminAuth = await apiAuth(request);
+  const email = `reset_${Date.now()}@resqui.local`;
+  const senha = 'Reset@123';
+  const criado = await request.post('/api/auth/register', {
+    headers: adminAuth,
+    data: { Email: email, Senha: senha, Papel: 'Tecnico', Nome: 'Reset E2E' },
+  });
+  const { id } = await criado.json();
+
+  const login1 = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
+  const meuAuth = { Authorization: `Bearer ${(await login1.json()).token}` };
+
+  const setup1 = await (await request.post('/api/auth/2fa/setup', {
+    headers: meuAuth, data: { Senha: senha },
+  })).json();
+  await request.post('/api/auth/2fa/ativar', {
+    headers: meuAuth, data: { Codigo: totp(setup1.secret) },
+  });
+
+  // Com 2FA ativo, o login exige segundo fator
+  const parcial = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
+  expect((await parcial.json()).requires2fa).toBe(true);
+
+  const reset = await request.post(`/api/usuarios/${id}/2fa/reset`, { headers: adminAuth });
+  expect(reset.status()).toBe(204);
+
+  // Login volta a devolver token direto
+  const login2 = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
+  expect(login2.ok()).toBeTruthy();
+  const depois = await login2.json();
+  expect(depois.requires2fa).toBeFalsy();
+  expect(depois.token).toBeTruthy();
+
+  // A chave foi rotacionada: o novo setup devolve um segredo diferente
+  const setup2 = await (await request.post('/api/auth/2fa/setup', {
+    headers: { Authorization: `Bearer ${depois.token}` }, data: { Senha: senha },
+  })).json();
+  expect(setup2.secret).not.toBe(setup1.secret);
+
+  // O próprio Admin não pode se resetar
+  const me = await (await request.get('/api/auth/me', { headers: adminAuth })).json();
+  const auto = await request.post(`/api/usuarios/${me.id}/2fa/reset`, { headers: adminAuth });
+  expect(auto.status()).toBe(400);
 });
