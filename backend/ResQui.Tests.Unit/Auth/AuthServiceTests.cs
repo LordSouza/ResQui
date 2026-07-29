@@ -414,4 +414,56 @@ public class AuthServiceTests
         await _repo.DidNotReceive().GerarCodigosRecuperacaoAsync(
             Arg.Any<string>(), Arg.Any<int>());
     }
+
+    [Fact]
+    public async Task Desativar2faAsync_AceitaCodigoDeRecuperacao()
+    {
+        _repo.VerifyTwoFactorCodeAsync("user-1", "abcd-efgh").Returns(false);
+        _repo.ResgatarCodigoRecuperacaoAsync("user-1", "abcd-efgh").Returns(true);
+
+        await _sut.Desativar2faAsync("user-1", "abcd-efgh", "ana@lab.com");
+
+        await _repo.Received(1).SetTwoFactorEnabledAsync("user-1", false);
+    }
+
+    [Fact]
+    public async Task GerarCodigosRecuperacaoAsync_Com2faAtivoECodigoValido_DevolveDez()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
+        _repo.VerifyTwoFactorCodeAsync("user-1", "123456").Returns(true);
+        _repo.GerarCodigosRecuperacaoAsync("user-1", 10)
+            .Returns(Enumerable.Range(1, 10).Select(i => $"cod-{i}"));
+
+        var codigos = await _sut.GerarCodigosRecuperacaoAsync("user-1", "123456", "ana@lab.com");
+
+        codigos.Should().HaveCount(10);
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "user.2fa-codigos-gerados", "Auth",
+            Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task GerarCodigosRecuperacaoAsync_Sem2faAtivo_LancaValidationException()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+
+        var act = () => _sut.GerarCodigosRecuperacaoAsync("user-1", "123456", "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>()
+            .WithMessage("*2FA não está ativo*");
+    }
+
+    [Fact]
+    public async Task GerarCodigosRecuperacaoAsync_CodigoInvalido_LancaValidationException()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
+        _repo.VerifyTwoFactorCodeAsync("user-1", "000000").Returns(false);
+        _repo.ResgatarCodigoRecuperacaoAsync("user-1", "000000").Returns(false);
+
+        var act = () => _sut.GerarCodigosRecuperacaoAsync("user-1", "000000", "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _repo.DidNotReceive().GerarCodigosRecuperacaoAsync(
+            Arg.Any<string>(), Arg.Any<int>());
+    }
 }

@@ -54,6 +54,15 @@ public static class Endpoints
         })
         .RequireAuthorization();
 
+        group.MapPost("/2fa/codigos-recuperacao", async (Codigo2faCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var codigos = await svc.GerarCodigosRecuperacaoAsync(userId, cmd.Codigo, email);
+            return Results.Ok(new { codigos });
+        })
+        .RequireAuthorization();
+
         group.MapGet("/sessoes", async (IAuthService svc, ClaimsPrincipal user) =>
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";

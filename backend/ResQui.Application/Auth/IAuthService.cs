@@ -7,6 +7,7 @@ public interface IAuthService
     Task<Setup2faDto?> Setup2faAsync(string userId);
     Task<IEnumerable<string>> Ativar2faAsync(string userId, string codigo, string usuarioEmail);
     Task Desativar2faAsync(string userId, string codigo, string usuarioEmail);
+    Task<IEnumerable<string>> GerarCodigosRecuperacaoAsync(string userId, string codigo, string usuarioEmail);
     Task<IEnumerable<SessaoDto>> ListarSessoesAsync(string userId, string? jtiAtual);
     Task<bool> RevogarSessaoAsync(string userId, string jti, string usuarioEmail);
     Task<int> RevogarOutrasSessoesAsync(string userId, string? jtiAtual, string usuarioEmail);

@@ -98,11 +98,26 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
 
     public async Task Desativar2faAsync(string userId, string codigo, string usuarioEmail)
     {
-        if (!await repo.VerifyTwoFactorCodeAsync(userId, codigo))
-            throw new ValidationException("Código inválido — confira o aplicativo autenticador.");
+        if (await VerificarSegundoFatorAsync(userId, codigo) == SegundoFator.Invalido)
+            throw new ValidationException("Código inválido — use o aplicativo autenticador ou um código de recuperação.");
         await repo.SetTwoFactorEnabledAsync(userId, false);
         await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-desativado", "Auth",
             "Desativou autenticação em dois fatores", RiscoAuditoria.High);
+    }
+
+    public async Task<IEnumerable<string>> GerarCodigosRecuperacaoAsync(string userId, string codigo, string usuarioEmail)
+    {
+        var user = await repo.FindByIdAsync(userId)
+            ?? throw new ValidationException("Usuário não encontrado.");
+        if (!user.TwoFactorEnabled)
+            throw new ValidationException("2FA não está ativo nesta conta.");
+        if (await VerificarSegundoFatorAsync(userId, codigo) == SegundoFator.Invalido)
+            throw new ValidationException("Código inválido — use o aplicativo autenticador ou um código de recuperação.");
+
+        var codigos = await repo.GerarCodigosRecuperacaoAsync(userId, QuantidadeCodigosRecuperacao);
+        await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-codigos-gerados", "Auth",
+            $"Gerou {QuantidadeCodigosRecuperacao} novos códigos de recuperação", RiscoAuditoria.Medium);
+        return codigos;
     }
 
     public async Task<IEnumerable<SessaoDto>> ListarSessoesAsync(string userId, string? jtiAtual)
