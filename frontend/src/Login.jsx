@@ -99,6 +99,9 @@ export function LoginScreen() {
                 <label htmlFor="login-2fa">Código de verificação (2FA)</label>
                 <input id="login-2fa" inputMode="numeric" autoComplete="one-time-code" aria-label="Código de verificação"
                   value={codigo2fa} onChange={e => setCodigo2fa(e.target.value)} placeholder="000000" autoFocus/>
+                <div style={{fontSize: 12, color: 'var(--text-2)', marginTop: 6}}>
+                  Sem acesso ao autenticador? Informe um dos seus códigos de recuperação.
+                </div>
               </div>
             )}
 

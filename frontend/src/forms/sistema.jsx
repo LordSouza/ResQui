@@ -9,7 +9,7 @@ import { useAtualizarPerfil } from '../auth/useAtualizarPerfil';
 import { iniciaisUsuario } from '../utils';
 import {
   useAlterarSenha, useSetup2fa, useAtivar2fa, useDesativar2fa,
-  useSessoes, useRevogarSessao, useRevogarOutrasSessoes,
+  useSessoes, useRevogarSessao, useRevogarOutrasSessoes, useGerarCodigosRecuperacao,
 } from '../auth/useSeguranca';
 
 const pgrsHint = { fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 14, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--accent)' };
@@ -69,6 +69,37 @@ export function FormPerfil({ onClose }) {
   );
 }
 
+function PainelCodigosRecuperacao({ codigos }) {
+  const texto = codigos.join('\n');
+  const copiar = () => navigator.clipboard?.writeText(texto);
+  const baixar = () => {
+    const url = URL.createObjectURL(new Blob([texto], { type: 'text/plain' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'resqui-codigos-recuperacao.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div style={{padding: 12, border: '1px solid var(--amber)', background: 'var(--amber-soft)', borderRadius: 'var(--radius)', marginTop: 12}}>
+      <div style={{fontSize: 13, fontWeight: 600, marginBottom: 6}}>
+        <Icon name="shield" size={13}/> Guarde seus códigos de recuperação
+      </div>
+      <div style={{fontSize: 12, color: 'var(--text-2)', marginBottom: 10}}>
+        Cada código serve uma única vez e substitui o app autenticador. Eles <strong>só serão exibidos uma vez</strong> — guarde-os fora deste computador.
+      </div>
+      <div className="mono" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 13, padding: 10, background: 'var(--surface-2)', borderRadius: 'var(--radius)'}}>
+        {codigos.map(c => <div key={c}>{c}</div>)}
+      </div>
+      <div style={{display: 'flex', gap: 8, marginTop: 10}}>
+        <button type="button" className="btn btn-sm" onClick={copiar}>Copiar</button>
+        <button type="button" className="btn btn-sm" onClick={baixar}>Baixar .txt</button>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Senha e 2FA ----------
 export function FormSenha2FA({ onClose, dispatch }) {
   const { user } = useAuth();
@@ -80,9 +111,12 @@ export function FormSenha2FA({ onClose, dispatch }) {
   const setup2fa = useSetup2fa();
   const ativar2fa = useAtivar2fa();
   const desativar2fa = useDesativar2fa();
+  const gerarCodigos = useGerarCodigosRecuperacao();
 
   const [setup, setSetup] = useState(null); // { secret, otpauthUri }
   const [codigo, setCodigo] = useState('');
+  const [codigosRecuperacao, setCodigosRecuperacao] = useState(null);
+  const [restantes, setRestantes] = useState(user?.codigosRecuperacaoRestantes ?? 0);
 
   const forcaSenha = (s) => {
     let score = 0;
@@ -108,11 +142,26 @@ export function FormSenha2FA({ onClose, dispatch }) {
 
   const iniciarSetup = () => setup2fa.mutate(undefined, { onSuccess: setSetup });
   const confirmarAtivacao = () => ativar2fa.mutate(codigo, {
-    onSuccess: () => { setSetup(null); setCodigo(''); setMfaEnabled(true); dispatch({ type: 'refresh' }); },
+    onSuccess: (data) => {
+      setSetup(null); setCodigo(''); setMfaEnabled(true);
+      setCodigosRecuperacao(data?.codigos ?? []);
+      setRestantes(data?.codigos?.length ?? 0);
+      dispatch({ type: 'refresh' });
+    },
   });
   const desativar = () => {
     const c = window.prompt('Digite o código do app autenticador para desativar o 2FA:');
     if (c) desativar2fa.mutate(c, { onSuccess: () => { setMfaEnabled(false); dispatch({ type: 'refresh' }); } });
+  };
+  const regenerar = () => {
+    const c = window.prompt('Digite o código do autenticador (ou um código de recuperação) para gerar novos códigos:');
+    if (!c) return;
+    gerarCodigos.mutate(c, {
+      onSuccess: (data) => {
+        setCodigosRecuperacao(data?.codigos ?? []);
+        setRestantes(data?.codigos?.length ?? 0);
+      },
+    });
   };
 
   return (
@@ -181,9 +230,22 @@ export function FormSenha2FA({ onClose, dispatch }) {
               </div>
             </div>
             {mfaEnabled
-              ? <button type="button" className="btn btn-sm" disabled={desativar2fa.isPending} onClick={desativar}>Desativar</button>
+              ? <div style={{display: 'flex', gap: 8}}>
+                  <button type="button" className="btn btn-sm" disabled={gerarCodigos.isPending} onClick={regenerar}>
+                    {gerarCodigos.isPending ? '…' : 'Gerar novos códigos'}
+                  </button>
+                  <button type="button" className="btn btn-sm" disabled={desativar2fa.isPending} onClick={desativar}>Desativar</button>
+                </div>
               : <button type="button" className="btn btn-sm" disabled={setup2fa.isPending} onClick={iniciarSetup}>{setup2fa.isPending ? '…' : 'Ativar 2FA'}</button>}
           </div>
+
+          {mfaEnabled && !codigosRecuperacao && (
+            <div style={{fontSize: 12, color: restantes <= 2 ? 'var(--amber)' : 'var(--text-2)', marginBottom: 12}}>
+              {restantes} de 10 códigos de recuperação restantes.
+              {restantes <= 2 && ' Gere novos códigos antes que acabem.'}
+            </div>
+          )}
+          {codigosRecuperacao && <PainelCodigosRecuperacao codigos={codigosRecuperacao}/>}
 
           {!mfaEnabled && setup && (
             <div style={{padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--radius)'}}>

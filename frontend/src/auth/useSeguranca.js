@@ -26,8 +26,22 @@ export function useAtivar2fa() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (codigo) => {
-      await apiFetch('/api/auth/2fa/ativar', { method: 'POST', body: JSON.stringify({ Codigo: codigo }) });
-      return true;
+      const res = await apiFetch('/api/auth/2fa/ativar', { method: 'POST', body: JSON.stringify({ Codigo: codigo }) });
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+  });
+}
+
+export function useGerarCodigosRecuperacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (codigo) => {
+      const res = await apiFetch('/api/auth/2fa/codigos-recuperacao', {
+        method: 'POST',
+        body: JSON.stringify({ Codigo: codigo }),
+      });
+      return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
   });

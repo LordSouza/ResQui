@@ -45,13 +45,14 @@ describe('hooks de segurança', () => {
     expect(result.current.data.secret).toBe('ABC');
   });
 
-  it('useAtivar2fa sends the code as Codigo', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, status: 204 });
+  it('useAtivar2fa sends the code as Codigo and returns the recovery codes', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ codigos: ['aaaa-1111', 'bbbb-2222'] }) });
     const { result } = renderHook(() => useAtivar2fa(), { wrapper });
     act(() => result.current.mutate('123456'));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockFetch.mock.calls[0][0]).toBe('/api/auth/2fa/ativar');
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ Codigo: '123456' });
+    expect(result.current.data.codigos).toEqual(['aaaa-1111', 'bbbb-2222']);
   });
 
   it('useSessoes returns the list', async () => {
