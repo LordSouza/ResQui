@@ -128,17 +128,12 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         return result.Succeeded;
     }
 
-    public async Task<string?> GetOrCreateAuthenticatorKeyAsync(string userId)
+    public async Task<string?> ResetAuthenticatorKeyAsync(string userId)
     {
         var u = await userManager.FindByIdAsync(userId);
         if (u is null) return null;
-        var key = await userManager.GetAuthenticatorKeyAsync(u);
-        if (string.IsNullOrEmpty(key))
-        {
-            await userManager.ResetAuthenticatorKeyAsync(u);
-            key = await userManager.GetAuthenticatorKeyAsync(u);
-        }
-        return key;
+        await userManager.ResetAuthenticatorKeyAsync(u);
+        return await userManager.GetAuthenticatorKeyAsync(u);
     }
 
     public async Task<bool> VerifyTwoFactorCodeAsync(string userId, string codigo)

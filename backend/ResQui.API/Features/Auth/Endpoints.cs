@@ -28,10 +28,10 @@ public static class Endpoints
         })
         .RequireAuthorization();
 
-        group.MapPost("/2fa/setup", async (IAuthService svc, ClaimsPrincipal user) =>
+        group.MapPost("/2fa/setup", async (Setup2faCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-            var setup = await svc.Setup2faAsync(userId);
+            var setup = await svc.Setup2faAsync(userId, cmd.Senha);
             return setup is null ? Results.NotFound() : Results.Ok(setup);
         })
         .RequireAuthorization();

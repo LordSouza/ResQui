@@ -499,4 +499,69 @@ public class AuthServiceTests
         await _repo.DidNotReceive().GerarCodigosRecuperacaoAsync(
             Arg.Any<string>(), Arg.Any<int>());
     }
+
+    // ---------- Setup 2FA: senha obrigatória + chave rotacionada ----------
+
+    [Fact]
+    public async Task Setup2faAsync_SenhaIncorreta_LancaValidationException()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+        _repo.CheckPasswordAsync("user-1", "errada").Returns(false);
+
+        var act = () => _sut.Setup2faAsync("user-1", "errada");
+
+        await act.Should().ThrowAsync<ValidationException>()
+            .WithMessage("*Senha incorreta*");
+        await _repo.DidNotReceive().ResetAuthenticatorKeyAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Setup2faAsync_SenhaVazia_LancaValidationExceptionSemConsultarRepo()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+
+        var act = () => _sut.Setup2faAsync("user-1", "   ");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _repo.DidNotReceive().ResetAuthenticatorKeyAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Setup2faAsync_Com2faJaAtivo_LancaValidationException()
+    {
+        var comMfa = FakeUser() with { TwoFactorEnabled = true };
+        _repo.FindByIdAsync("user-1").Returns(comMfa);
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+
+        var act = () => _sut.Setup2faAsync("user-1", "senha123");
+
+        await act.Should().ThrowAsync<ValidationException>()
+            .WithMessage("*já está ativo*");
+        await _repo.DidNotReceive().ResetAuthenticatorKeyAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Setup2faAsync_CaminhoFeliz_RotacionaChaveEMontaOtpauth()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.ResetAuthenticatorKeyAsync("user-1").Returns("CHAVENOVA123");
+
+        var dto = await _sut.Setup2faAsync("user-1", "senha123");
+
+        dto!.Secret.Should().Be("CHAVENOVA123");
+        dto.OtpauthUri.Should().Contain("secret=CHAVENOVA123")
+            .And.Contain("otpauth://totp/ResQui:ana%40lab.com");
+        await _repo.Received(1).ResetAuthenticatorKeyAsync("user-1");
+    }
+
+    [Fact]
+    public async Task Setup2faAsync_UsuarioInexistente_RetornaNull()
+    {
+        _repo.FindByIdAsync("fantasma").Returns((UsuarioInfo?)null);
+
+        var dto = await _sut.Setup2faAsync("fantasma", "senha123");
+
+        dto.Should().BeNull();
+    }
 }

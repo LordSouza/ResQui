@@ -27,7 +27,10 @@ public interface IAuthRepository
     Task<string> GetNotificacaoPrefsJsonAsync(string userId);
     Task SaveNotificacaoPrefsJsonAsync(string userId, string json);
     Task<bool> ChangePasswordAsync(string userId, string senhaAtual, string novaSenha);
-    Task<string?> GetOrCreateAuthenticatorKeyAsync(string userId);
+    // Sempre gera uma chave nova: o setup só é alcançável com o 2FA desligado, então
+    // rotacionar aqui é o que faz o ciclo desativar→reativar entregar um segredo novo
+    // (cenário do aparelho roubado).
+    Task<string?> ResetAuthenticatorKeyAsync(string userId);
     Task<bool> VerifyTwoFactorCodeAsync(string userId, string codigo);
     Task SetTwoFactorEnabledAsync(string userId, bool enabled);
     Task<IEnumerable<string>> GerarCodigosRecuperacaoAsync(string userId, int quantidade);

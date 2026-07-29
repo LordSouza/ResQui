@@ -73,11 +73,19 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
             $"Alterou a própria senha", RiscoAuditoria.Medium);
     }
 
-    public async Task<Setup2faDto?> Setup2faAsync(string userId)
+    public async Task<Setup2faDto?> Setup2faAsync(string userId, string senha)
     {
         var user = await repo.FindByIdAsync(userId);
         if (user is null) return null;
-        var key = await repo.GetOrCreateAuthenticatorKeyAsync(userId);
+        // O JWT vive em localStorage: sem este gate, um token roubado exfiltra o segredo TOTP
+        // (conta já protegida) ou ativa o 2FA e tranca o dono para fora (conta sem 2FA).
+        if (string.IsNullOrWhiteSpace(senha) || !await repo.CheckPasswordAsync(userId, senha))
+            throw new ValidationException("Senha incorreta.");
+        // Redundância barata: não há caminho legítimo — o formulário só oferece "Ativar 2FA"
+        // quando inativo, e /2fa/ativar já recusa reativação.
+        if (user.TwoFactorEnabled)
+            throw new ValidationException("2FA já está ativo. Desative antes de configurar um novo autenticador.");
+        var key = await repo.ResetAuthenticatorKeyAsync(userId);
         if (key is null) return null;
         var uri = $"otpauth://totp/ResQui:{Uri.EscapeDataString(user.Email)}?secret={key}&issuer=ResQui";
         return new Setup2faDto(key, uri);
