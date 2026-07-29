@@ -5,7 +5,7 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Usuarios;
 
-public record UsuarioDto(string Id, string Email, string? Nome, string? Matricula, string Papel, IList<string> Roles, bool Arquivado);
+public record UsuarioDto(string Id, string Email, string? Nome, string? Matricula, string Papel, IList<string> Roles, bool Arquivado, bool TwoFactorEnabled);
 public record AlterarPapelCmd(string NovoPapel);
 
 public interface IUsuariosService
@@ -20,7 +20,7 @@ public class UsuariosService(IAuthRepository repo, IAuditoriaService auditoria) 
 {
     public async Task<IEnumerable<UsuarioDto>> ListarAsync() =>
         (await repo.GetAllAsync())
-            .Select(u => new UsuarioDto(u.Id, u.Email, u.Nome, u.Matricula, u.Papel, u.Roles, u.Arquivado));
+            .Select(u => new UsuarioDto(u.Id, u.Email, u.Nome, u.Matricula, u.Papel, u.Roles, u.Arquivado, u.TwoFactorEnabled));
 
     public async Task AlterarPapelAsync(string id, AlterarPapelCmd cmd, string usuarioEmail)
     {

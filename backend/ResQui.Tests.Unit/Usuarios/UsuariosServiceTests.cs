@@ -125,4 +125,19 @@ public class UsuariosServiceTests
             "admin@lab.com", "user.excluir", "Usuários",
             Arg.Any<string>(), RiscoAuditoria.High);
     }
+
+    [Fact]
+    public async Task ListarAsync_ExpoeEstadoDo2fa()
+    {
+        _repo.GetAllAsync().Returns(new List<UsuarioInfo>
+        {
+            new("u-1", "com@lab.com", "Com MFA", null, "Tecnico", new List<string>(), false, true),
+            new("u-2", "sem@lab.com", "Sem MFA", null, "Tecnico", new List<string>(), false, false),
+        });
+
+        var lista = (await _sut.ListarAsync()).ToList();
+
+        lista.Single(u => u.Id == "u-1").TwoFactorEnabled.Should().BeTrue();
+        lista.Single(u => u.Id == "u-2").TwoFactorEnabled.Should().BeFalse();
+    }
 }
