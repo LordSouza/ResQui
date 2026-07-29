@@ -27,8 +27,12 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger) :
             message.Subject = subject;
             message.Body = new TextPart("html") { Text = htmlBody };
 
+            var socketOptions = string.IsNullOrWhiteSpace(user)
+                ? SecureSocketOptions.Auto
+                : SecureSocketOptions.StartTls;
+
             using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(host, port, SecureSocketOptions.Auto);
+            await smtp.ConnectAsync(host, port, socketOptions);
             if (!string.IsNullOrWhiteSpace(user))
                 await smtp.AuthenticateAsync(user, pass);
             await smtp.SendAsync(message);
