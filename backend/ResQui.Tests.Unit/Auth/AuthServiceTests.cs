@@ -387,4 +387,31 @@ public class AuthServiceTests
         await _email.DidNotReceive().SendAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
+
+    [Fact]
+    public async Task Ativar2faAsync_CodigoValido_DevolveDezCodigosDeRecuperacao()
+    {
+        _repo.VerifyTwoFactorCodeAsync("user-1", "123456").Returns(true);
+        _repo.GerarCodigosRecuperacaoAsync("user-1", 10)
+            .Returns(Enumerable.Range(1, 10).Select(i => $"cod-{i}"));
+
+        var codigos = await _sut.Ativar2faAsync("user-1", "123456", "ana@lab.com");
+
+        codigos.Should().HaveCount(10);
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "user.2fa-codigos-gerados", "Auth",
+            Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task Ativar2faAsync_CodigoInvalido_NaoGeraCodigos()
+    {
+        _repo.VerifyTwoFactorCodeAsync("user-1", "000000").Returns(false);
+
+        var act = () => _sut.Ativar2faAsync("user-1", "000000", "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _repo.DidNotReceive().GerarCodigosRecuperacaoAsync(
+            Arg.Any<string>(), Arg.Any<int>());
+    }
 }

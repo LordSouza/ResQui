@@ -12,6 +12,8 @@ namespace ResQui.Application.Auth;
 
 public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email) : IAuthService
 {
+    private const int QuantidadeCodigosRecuperacao = 10;
+
     public async Task<LoginResultDto?> LoginAsync(LoginCmd cmd, string? userAgent = null)
     {
         var user = await repo.FindByEmailAsync(cmd.Email);
@@ -81,13 +83,17 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         return new Setup2faDto(key, uri);
     }
 
-    public async Task Ativar2faAsync(string userId, string codigo, string usuarioEmail)
+    public async Task<IEnumerable<string>> Ativar2faAsync(string userId, string codigo, string usuarioEmail)
     {
         if (!await repo.VerifyTwoFactorCodeAsync(userId, codigo))
             throw new ValidationException("Código inválido — confira o aplicativo autenticador.");
         await repo.SetTwoFactorEnabledAsync(userId, true);
+        var codigos = await repo.GerarCodigosRecuperacaoAsync(userId, QuantidadeCodigosRecuperacao);
         await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-ativado", "Auth",
             "Ativou autenticação em dois fatores", RiscoAuditoria.Medium);
+        await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-codigos-gerados", "Auth",
+            $"Gerou {QuantidadeCodigosRecuperacao} códigos de recuperação", RiscoAuditoria.Medium);
+        return codigos;
     }
 
     public async Task Desativar2faAsync(string userId, string codigo, string usuarioEmail)

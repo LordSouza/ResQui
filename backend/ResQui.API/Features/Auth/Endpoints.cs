@@ -40,8 +40,8 @@ public static class Endpoints
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            await svc.Ativar2faAsync(userId, cmd.Codigo, email);
-            return Results.NoContent();
+            var codigos = await svc.Ativar2faAsync(userId, cmd.Codigo, email);
+            return Results.Ok(new { codigos });
         })
         .RequireAuthorization();
 
