@@ -46,7 +46,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
             UserAgent = userAgent is { Length: > 200 } ? userAgent[..200] : userAgent,
         });
         await sessoes.SaveChangesAsync();
-        var profile = new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula, user.Papel, user.Roles, user.TwoFactorEnabled);
+        var profile = await MontarPerfilAsync(user);
         if (viaRecuperacao)
         {
             var restantes = await repo.ContarCodigosRecuperacaoAsync(user.Id);
@@ -151,7 +151,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
     {
         var user = await repo.FindByIdAsync(userId);
         if (user is null) return null;
-        return new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula, user.Papel, user.Roles, user.TwoFactorEnabled);
+        return await MontarPerfilAsync(user);
     }
 
     public async Task<UserProfileDto> AtualizarPerfilAsync(string userId, AtualizarPerfilCmd cmd, string requesterEmail)
@@ -178,6 +178,15 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         await auditoria.RegistrarAsync(requesterEmail, "user.perfil-atualizar", "Conta",
             "Atualizou perfil (nome/e-mail)", RiscoAuditoria.Low);
         return (await GetMeAsync(userId))!;
+    }
+
+    private async Task<UserProfileDto> MontarPerfilAsync(UsuarioInfo user)
+    {
+        var restantes = user.TwoFactorEnabled
+            ? await repo.ContarCodigosRecuperacaoAsync(user.Id)
+            : 0;
+        return new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula,
+            user.Papel, user.Roles, user.TwoFactorEnabled, restantes);
     }
 
     private enum SegundoFator { Invalido, Totp, Recuperacao }

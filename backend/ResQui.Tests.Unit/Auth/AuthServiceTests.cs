@@ -333,4 +333,26 @@ public class AuthServiceTests
             "ana@lab.com", "user.login-2fa-falha", "Auth",
             Arg.Any<string>(), RiscoAuditoria.Medium);
     }
+
+    [Fact]
+    public async Task GetMeAsync_Com2faAtivo_ReportaCodigosRestantes()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
+        _repo.ContarCodigosRecuperacaoAsync("user-1").Returns(7);
+
+        var perfil = await _sut.GetMeAsync("user-1");
+
+        perfil!.CodigosRecuperacaoRestantes.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task GetMeAsync_Sem2fa_NaoConsultaContagem()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+
+        var perfil = await _sut.GetMeAsync("user-1");
+
+        perfil!.CodigosRecuperacaoRestantes.Should().Be(0);
+        await _repo.DidNotReceive().ContarCodigosRecuperacaoAsync(Arg.Any<string>());
+    }
 }
