@@ -123,6 +123,10 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         if (await VerificarSegundoFatorAsync(userId, codigo) == SegundoFator.Invalido)
             throw new ValidationException("Código inválido — use o aplicativo autenticador ou um código de recuperação.");
         await repo.SetTwoFactorEnabledAsync(userId, false);
+        // Sem isto, a chave usada para ativar continua valendo depois de desativar: um JWT
+        // roubado + a chave exfiltrada reativam o 2FA via /2fa/ativar pulando o gate de senha
+        // que /2fa/setup exige — exatamente o que esse gate existe para impedir.
+        await repo.ResetAuthenticatorKeyAsync(userId);
         await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-desativado", "Auth",
             "Desativou autenticação em dois fatores", RiscoAuditoria.High);
     }
@@ -270,6 +274,10 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
 
     private async Task<SegundoFator> VerificarSegundoFatorAsync(string userId, string codigo)
     {
+        // UserStoreBase.RedeemCodeAsync do Identity faz "".Split(';').Contains(code): com o
+        // conjunto de códigos esgotado (ou a coluna de token ausente), um código vazio resgata
+        // com sucesso. Sem este guarda, "" seria um segundo fator válido.
+        if (string.IsNullOrWhiteSpace(codigo)) return SegundoFator.Invalido;
         if (await repo.VerifyTwoFactorCodeAsync(userId, codigo))
             return SegundoFator.Totp;
         if (await repo.ResgatarCodigoRecuperacaoAsync(userId, codigo))

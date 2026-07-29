@@ -459,6 +459,34 @@ public class AuthServiceTests
         await _repo.DidNotReceive().SetTwoFactorEnabledAsync(Arg.Any<string>(), Arg.Any<bool>());
     }
 
+    // Sem rotação, a chave que o atacante exfiltrou continua batendo com TOTP(K) depois de
+    // desativar — reativar via /2fa/ativar pula o gate de senha do /2fa/setup por inteiro.
+    [Fact]
+    public async Task Desativar2faAsync_CaminhoFeliz_RotacionaAChaveDoAutenticador()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
+        _repo.VerifyTwoFactorCodeAsync("user-1", "123456").Returns(true);
+
+        await _sut.Desativar2faAsync("user-1", "123456", "ana@lab.com");
+
+        await _repo.Received(1).ResetAuthenticatorKeyAsync("user-1");
+    }
+
+    // UserStoreBase.RedeemCodeAsync do Identity faz "".Split(';').Contains(code): com o
+    // conjunto de códigos esgotado, um código vazio resgata com sucesso. Sem esta guarda, um
+    // JWT roubado desativa o 2FA de uma conta sem códigos restantes mandando Codigo: "".
+    [Fact]
+    public async Task Desativar2faAsync_CodigoVazio_LancaValidationExceptionSemDesativarNemResgatar()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
+
+        var act = () => _sut.Desativar2faAsync("user-1", "   ", "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _repo.DidNotReceive().SetTwoFactorEnabledAsync(Arg.Any<string>(), Arg.Any<bool>());
+        await _repo.DidNotReceive().ResgatarCodigoRecuperacaoAsync(Arg.Any<string>(), Arg.Any<string>());
+    }
+
     [Fact]
     public async Task GerarCodigosRecuperacaoAsync_Com2faAtivoECodigoValido_DevolveDez()
     {
