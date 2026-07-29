@@ -427,6 +427,18 @@ public class AuthServiceTests
     }
 
     [Fact]
+    public async Task Desativar2faAsync_CodigoInvalido_LancaValidationExceptionENaoDesativa()
+    {
+        _repo.VerifyTwoFactorCodeAsync("user-1", "000000").Returns(false);
+        _repo.ResgatarCodigoRecuperacaoAsync("user-1", "000000").Returns(false);
+
+        var act = () => _sut.Desativar2faAsync("user-1", "000000", "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _repo.DidNotReceive().SetTwoFactorEnabledAsync(Arg.Any<string>(), Arg.Any<bool>());
+    }
+
+    [Fact]
     public async Task GerarCodigosRecuperacaoAsync_Com2faAtivoECodigoValido_DevolveDez()
     {
         _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
