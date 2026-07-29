@@ -49,9 +49,8 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         var profile = await MontarPerfilAsync(user);
         if (viaRecuperacao)
         {
-            var restantes = await repo.ContarCodigosRecuperacaoAsync(user.Id);
             await auditoria.RegistrarAsync(cmd.Email, "user.2fa-recuperacao-usada", "Auth",
-                $"Entrou com código de recuperação; restam {restantes} código(s)", RiscoAuditoria.High);
+                $"Entrou com código de recuperação; restam {profile.CodigosRecuperacaoRestantes} código(s)", RiscoAuditoria.High);
         }
         await auditoria.RegistrarAsync(cmd.Email, "user.login", "Auth",
             $"Login de {cmd.Email}", RiscoAuditoria.Low);
