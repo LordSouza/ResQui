@@ -21,8 +21,9 @@ public static class ServiceCollectionExtensions
 
         services.AddIdentityCore<Usuario>(opts =>
         {
-            opts.Password.RequireNonAlphanumeric = false;
-            opts.Password.RequiredLength = 6;
+            // Sem sobrescrever RequireNonAlphanumeric/RequireDigit/RequireLowercase/RequireUppercase:
+            // os defaults do Identity já exigem os quatro. Só o comprimento sobe (default é 6).
+            opts.Password.RequiredLength = 8;
             // São os defaults do Identity hoje. Explicitados para travar o comportamento caso o
             // default mude, e para deixar o número visível a quem lê a configuração.
             opts.Lockout.MaxFailedAccessAttempts = 5;

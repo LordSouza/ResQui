@@ -361,3 +361,31 @@ test('conta bloqueia após 5 senhas erradas e recusa até a senha correta', asyn
   const admin = await request.post('/api/auth/login', { data: ADMIN });
   expect(admin.ok()).toBeTruthy();
 });
+
+test('política de senha: rejeita fraca com 400 e aceita a que atende', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const base = `pol_${Date.now()}`;
+
+  // 7 caracteres, mas com as quatro classes — barrada só pelo comprimento.
+  const curta = await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: `${base}a@resqui.local`, Senha: 'Ab@1234', Papel: 'Visualizador', Nome: 'Pol A' },
+  });
+  // 400, não 500: o CreateAsync passou a lançar ValidationException.
+  expect(curta.status()).toBe(400);
+  expect((await curta.json()).message).toBeTruthy();
+
+  // 8 caracteres, sem caractere não-alfanumérico.
+  const semEspecial = await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: `${base}b@resqui.local`, Senha: 'Abcd1234', Papel: 'Visualizador', Nome: 'Pol B' },
+  });
+  expect(semEspecial.status()).toBe(400);
+
+  // 8 caracteres com dígito, minúscula, maiúscula e especial.
+  const ok = await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: `${base}c@resqui.local`, Senha: 'Abcd@123', Papel: 'Visualizador', Nome: 'Pol C' },
+  });
+  expect(ok.ok()).toBeTruthy();
+});

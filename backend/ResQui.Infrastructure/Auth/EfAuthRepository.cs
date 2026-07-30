@@ -44,7 +44,9 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         var u = new Usuario { UserName = email, Email = email, Matricula = matricula, Papel = papel, Nome = nome };
         var result = await userManager.CreateAsync(u, password);
         if (!result.Succeeded)
-            throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+            // ValidationException (e não InvalidOperationException): o middleware de Program.cs só
+            // converte esta em 400 { message }. Com a outra, senha fraca virava 500 com stack trace.
+            throw new ValidationException(string.Join("; ", result.Errors.Select(e => e.Description)));
         return u.Id;
     }
 
