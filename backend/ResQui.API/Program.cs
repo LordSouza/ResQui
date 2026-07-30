@@ -83,15 +83,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         opts.Events = new JwtBearerEvents
         {
             // Sessões revogadas (logout remoto) derrubam o token mesmo dentro da validade.
-            // Tokens antigos sem jti continuam aceitos até expirarem.
             OnTokenValidated = async ctx =>
             {
                 var jti = ctx.Principal?.FindFirst("jti")?.Value;
-                if (string.IsNullOrEmpty(jti)) return;
+                // Token anterior à feature de sessões: não há como verificar revogação, então
+                // não vale. Custo: quem ainda tiver um desses entra de novo uma vez (JWT dura 8 h).
+                if (string.IsNullOrEmpty(jti))
+                {
+                    ctx.Fail("Token sem identificador de sessão.");
+                    return;
+                }
                 var sessoes = ctx.HttpContext.RequestServices.GetRequiredService<ResQui.Domain.Interfaces.ISessoesRepository>();
                 var sessao = await sessoes.GetByJtiAsync(jti);
-                if (sessao is { Revogada: true })
-                    ctx.Fail("Sessão revogada.");
+                // Linha ausente significa usuário hard-deletado: nada no código apaga SessaoToken,
+                // e o cascade de Usuario removia justamente a evidência que este gate consulta —
+                // o JWT do excluído seguia válido por até 8 h.
+                if (sessao is null || sessao.Revogada)
+                    ctx.Fail("Sessão inválida ou revogada.");
             }
         };
     });

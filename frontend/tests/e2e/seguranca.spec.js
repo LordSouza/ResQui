@@ -389,3 +389,27 @@ test('política de senha: rejeita fraca com 400 e aceita a que atende', async ({
   });
   expect(ok.ok()).toBeTruthy();
 });
+
+test('hard-delete do usuário derruba o token dele na hora', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `tok_${Date.now()}@resqui.local`;
+  const senha = 'Token@123';
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: senha, Papel: 'Tecnico', Nome: 'Token E2E' },
+  });
+
+  const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: senha } })).json();
+  const userAuth = { Authorization: `Bearer ${token}` };
+  expect((await request.get('/api/auth/me', { headers: userAuth })).ok()).toBeTruthy();
+
+  const alvo = (await (await request.get('/api/usuarios', { headers: auth })).json())
+    .find((u) => u.email === email);
+  await request.delete(`/api/usuarios/${alvo.id}`, { headers: auth });             // arquiva primeiro
+  const del = await request.delete(`/api/usuarios/${alvo.id}/definitivo`, { headers: auth });
+  expect(del.status()).toBe(204);
+
+  // O cascade apagou a SessaoToken; sem linha, o gate rejeita o token que antes seguia válido.
+  const depois = await request.get('/api/auth/me', { headers: userAuth });
+  expect(depois.status()).toBe(401);
+});
