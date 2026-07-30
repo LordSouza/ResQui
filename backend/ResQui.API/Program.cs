@@ -61,6 +61,8 @@ builder.Services.AddScoped<IUsuariosService, UsuariosService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRelatoriosService, RelatoriosService>();
 builder.Services.AddScoped<IPgrsConfigService, PgrsConfigService>();
+// Singleton: o estado do throttle vive em memória e precisa sobreviver entre requisições.
+builder.Services.AddSingleton<ILoginThrottle, LoginThrottle>();
 builder.Services.AddSingleton<ResQui.Application.Pdf.IPdfService, ResQui.Application.Pdf.PdfService>();
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
