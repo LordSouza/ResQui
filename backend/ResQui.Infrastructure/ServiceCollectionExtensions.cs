@@ -23,6 +23,11 @@ public static class ServiceCollectionExtensions
         {
             opts.Password.RequireNonAlphanumeric = false;
             opts.Password.RequiredLength = 6;
+            // São os defaults do Identity hoje. Explicitados para travar o comportamento caso o
+            // default mude, e para deixar o número visível a quem lê a configuração.
+            opts.Lockout.MaxFailedAccessAttempts = 5;
+            opts.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+            opts.Lockout.AllowedForNewUsers = true;
         })
         .AddRoles<IdentityRole>()
         .AddEntityFrameworkStores<AppDbContext>()

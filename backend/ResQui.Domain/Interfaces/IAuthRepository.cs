@@ -39,4 +39,10 @@ public interface IAuthRepository
     Task<IEnumerable<string>> GerarCodigosRecuperacaoAsync(string userId, int quantidade);
     Task<bool> ResgatarCodigoRecuperacaoAsync(string userId, string codigo);
     Task<int> ContarCodigosRecuperacaoAsync(string userId);
+    // Lockout do Identity. AddIdentityCore não registra SignInManager, então o login não passa por
+    // CheckPasswordSignInAsync: estes três encostam direto nos contadores do UserManager, que é o
+    // que o SignInManager usaria por baixo.
+    Task<bool> EstaBloqueadoAsync(string userId);
+    Task RegistrarFalhaLoginAsync(string userId);
+    Task ZerarFalhasLoginAsync(string userId);
 }

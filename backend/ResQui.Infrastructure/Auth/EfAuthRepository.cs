@@ -179,4 +179,23 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         var u = await userManager.FindByIdAsync(userId);
         return u is null ? 0 : await userManager.CountRecoveryCodesAsync(u);
     }
+
+    public async Task<bool> EstaBloqueadoAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return false;
+        return await userManager.IsLockedOutAsync(u);
+    }
+
+    public async Task RegistrarFalhaLoginAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is not null) await userManager.AccessFailedAsync(u);
+    }
+
+    public async Task ZerarFalhasLoginAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is not null) await userManager.ResetAccessFailedCountAsync(u);
+    }
 }
