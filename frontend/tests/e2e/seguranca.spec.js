@@ -30,7 +30,11 @@ test('Visualizador é bloqueado em mutações operacionais', async ({ request })
 });
 
 test('login com senha errada retorna 401', async ({ request }) => {
-  const res = await request.post('/api/auth/login', { data: { Email: 'admin@resqui.local', Senha: 'errada' } });
+  // E-mail inexistente em vez de admin@resqui.local: com o lockout ativo, errar a senha da conta
+  // de admin gastaria tentativas da conta que o resto da suíte usa para tudo.
+  const res = await request.post('/api/auth/login', {
+    data: { Email: `fantasma_${Date.now()}@resqui.local`, Senha: 'errada' },
+  });
   expect(res.status()).toBe(401);
 });
 
@@ -327,4 +331,33 @@ test('Admin reseta o 2FA: derruba a sessão antiga e a própria rotação (não 
   const me = await (await request.get('/api/auth/me', { headers: adminAuth })).json();
   const auto = await request.post(`/api/usuarios/${me.id}/2fa/reset`, { headers: adminAuth });
   expect(auto.status()).toBe(400);
+});
+
+test('conta bloqueia após 5 senhas erradas e recusa até a senha correta', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `lock_${Date.now()}@resqui.local`;
+  const senha = 'Lock@123';
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: senha, Papel: 'Visualizador', Nome: 'Lockout E2E' },
+  });
+
+  // As cinco primeiras falhas ainda respondem 401: a checagem de bloqueio roda antes da senha,
+  // então a tentativa que estoura o contador só é recusada como bloqueio na seguinte.
+  for (let i = 0; i < 5; i++) {
+    const r = await request.post('/api/auth/login', { data: { Email: email, Senha: 'errada' } });
+    expect(r.status()).toBe(401);
+  }
+
+  const bloqueado = await request.post('/api/auth/login', { data: { Email: email, Senha: 'errada' } });
+  expect(bloqueado.status()).toBe(400);
+  expect((await bloqueado.json()).message).toContain('bloqueada');
+
+  // A senha CORRETA também é recusada — prova que é bloqueio, não credencial inválida.
+  const comSenhaCerta = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
+  expect(comSenhaCerta.status()).toBe(400);
+
+  // A conta de admin, usada pelo resto da suíte, continua utilizável.
+  const admin = await request.post('/api/auth/login', { data: ADMIN });
+  expect(admin.ok()).toBeTruthy();
 });
