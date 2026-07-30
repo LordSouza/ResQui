@@ -24,6 +24,8 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger) :
         // consumido — tentaria de novo e queimaria um segundo código. O CTS abaixo é único para
         // todo o envio, então o pior caso é TimeoutSeconds no total, não por operação.
         var timeout = TimeSpan.FromSeconds(config.GetValue("Email:TimeoutSeconds", 10));
+        // Default true: a ausência da chave falha fechado. Development a desliga (Mailpit não faz TLS).
+        var requireTls = config.GetValue("Email:RequireTls", true);
 
         try
         {
@@ -34,9 +36,7 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger) :
             message.Subject = subject;
             message.Body = new TextPart("html") { Text = htmlBody };
 
-            var socketOptions = string.IsNullOrWhiteSpace(user)
-                ? SecureSocketOptions.Auto
-                : SecureSocketOptions.StartTls;
+            var socketOptions = EscolherSocketOptions(user, requireTls);
 
             using var smtp = new SmtpClient { Timeout = (int)timeout.TotalMilliseconds };
             await smtp.ConnectAsync(host, port, socketOptions, cts.Token);
@@ -58,4 +58,15 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger) :
             logger.LogError(ex, "Falha ao enviar e-mail para {To}: {Subject}", to, subject);
         }
     }
+
+    /// Extraído do caminho de I/O para ser verificável sem abrir conexão SMTP.
+    ///
+    /// Com requireTls, um servidor que não anuncia STARTTLS faz o ConnectAsync lançar, e o catch
+    /// de SendAsync transforma isso em LogError — ou seja, o e-mail silenciosamente não sai. É o
+    /// comportamento desejado (melhor não enviar do que enviar alerta de segurança em texto
+    /// claro), mas um relay mal configurado se manifesta só como linha de log.
+    public static SecureSocketOptions EscolherSocketOptions(string user, bool requireTls) =>
+        requireTls || !string.IsNullOrWhiteSpace(user)
+            ? SecureSocketOptions.StartTls
+            : SecureSocketOptions.Auto;
 }
