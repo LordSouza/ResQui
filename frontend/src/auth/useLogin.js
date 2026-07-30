@@ -14,9 +14,12 @@ export function useLogin() {
           body: JSON.stringify({ Email: email, Senha: senha, Codigo2fa: codigo2fa || null }),
         });
       } catch (e) {
-        // apiFetch throws on 401 (wrong password) and on network errors
-        const isUnauthorized = e.message === 'Unauthorized';
-        throw new Error(isUnauthorized ? 'Credenciais inválidas' : 'Falha de conexão. Tente novamente.');
+        // apiFetch lança 'Unauthorized' em 401 sem ler o corpo — credencial errada.
+        if (e.message === 'Unauthorized') throw new Error('Credenciais inválidas');
+        // Erro com status é resposta do servidor (400 de bloqueio/throttle traz { message });
+        // sem status é falha de rede.
+        if (e.status) throw new Error(e.message);
+        throw new Error('Falha de conexão. Tente novamente.');
       }
       return res.json();
     },

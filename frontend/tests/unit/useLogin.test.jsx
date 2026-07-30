@@ -84,4 +84,51 @@ describe('useLogin', () => {
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body).toEqual({ Email: 'a@b.com', Senha: 'Senha@123', Codigo2fa: null });
   });
+
+  it('propaga a mensagem do servidor quando a conta está bloqueada (400)', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: async () => JSON.stringify({
+        message: 'Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em alguns minutos.',
+      }),
+    });
+
+    const { result } = renderHook(() => useLogin(), { wrapper });
+    result.current.mutate({ email: 'a@b.com', senha: 'Senha@123' });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error.message).toBe(
+      'Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em alguns minutos.'
+    );
+  });
+
+  it('propaga a mensagem do servidor quando o throttle recusa (400)', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: async () => JSON.stringify({
+        message: 'Muitas tentativas de login. Aguarde um momento e tente novamente.',
+      }),
+    });
+
+    const { result } = renderHook(() => useLogin(), { wrapper });
+    result.current.mutate({ email: 'a@b.com', senha: 'Senha@123' });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error.message).toBe('Muitas tentativas de login. Aguarde um momento e tente novamente.');
+  });
+
+  it('mantém a mensagem de rede quando o fetch falha sem resposta', async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    const { result } = renderHook(() => useLogin(), { wrapper });
+    result.current.mutate({ email: 'a@b.com', senha: 'Senha@123' });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error.message).toBe('Falha de conexão. Tente novamente.');
+  });
 });
