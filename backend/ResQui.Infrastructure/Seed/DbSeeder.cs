@@ -30,7 +30,15 @@ public static class DbSeeder
                 Papel = "Admin",
                 EmailConfirmed = true
             };
-            await userManager.CreateAsync(admin, adminPassword);
+            var criado = await userManager.CreateAsync(admin, adminPassword);
+            // Sem esta checagem o resultado era descartado: uma senha que não atende à política
+            // fazia o admin não ser criado em silêncio, e o startup morria adiante em
+            // "Admin user não encontrado após o seed" — mensagem que não diz o que corrigir.
+            if (!criado.Succeeded)
+                throw new InvalidOperationException(
+                    "Não foi possível criar o admin do seed: "
+                    + string.Join("; ", criado.Errors.Select(e => e.Description))
+                    + " (ajuste ADMIN_PASSWORD / Seed:AdminPassword)");
             await userManager.AddToRoleAsync(admin, "Admin");
         }
 
