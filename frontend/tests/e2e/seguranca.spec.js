@@ -413,3 +413,34 @@ test('hard-delete do usuário derruba o token dele na hora', async ({ request })
   const depois = await request.get('/api/auth/me', { headers: userAuth });
   expect(depois.status()).toBe(401);
 });
+
+test('pgrs-config exige Tecnico: Visualizador 403, Tecnico 200', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const stamp = Date.now();
+
+  const visu = `pgvisu_${stamp}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: visu, Senha: 'Visu@123', Papel: 'Visualizador', Nome: 'PG Visu' },
+  });
+  const { token: tokenVisu } = await (await request.post('/api/auth/login', {
+    data: { Email: visu, Senha: 'Visu@123' },
+  })).json();
+  const bloqueado = await request.get('/api/pgrs-config', {
+    headers: { Authorization: `Bearer ${tokenVisu}` },
+  });
+  expect(bloqueado.status()).toBe(403);
+
+  const tec = `pgtec_${stamp}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: tec, Senha: 'Tecn@123', Papel: 'Tecnico', Nome: 'PG Tec' },
+  });
+  const { token: tokenTec } = await (await request.post('/api/auth/login', {
+    data: { Email: tec, Senha: 'Tecn@123' },
+  })).json();
+  const permitido = await request.get('/api/pgrs-config', {
+    headers: { Authorization: `Bearer ${tokenTec}` },
+  });
+  expect(permitido.ok()).toBeTruthy();
+});
