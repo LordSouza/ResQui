@@ -13,6 +13,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <!-- Pin direto: 2.4.1 vem transitiva de Microsoft.AspNetCore.OpenApi e está no range vulnerável
+         do GHSA-v5pm-xwqc-g5wc (corrigido em 2.7.5). Higiene de dependência, não exposição — a falha
+         é DoS ao parsear documentos OpenAPI de terceiros, e aqui o Swashbuckle gera o documento. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
   </ItemGroup>
 
