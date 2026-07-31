@@ -297,7 +297,7 @@ export function UsuariosScreen({ state, dispatch }) {
               </thead>
               <tbody>
                 {list.map(u => (
-                  <tr key={u.id} className={selecionado === u.id ? 'selected' : ''}
+                  <tr key={u.id} className={`${selecionado === u.id ? 'selected' : ''} ${state.flashId === u.id ? 'flash' : ''}`.trim()}
                     onClick={() => setSelecionado(u.id)}>
                     <td>
                       <div className="user-cell">

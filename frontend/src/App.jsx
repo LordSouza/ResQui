@@ -9,6 +9,7 @@ import { useMarcarLida } from './notificacoes/useMarcarLida';
 import { useMarcarTodasLidas } from './notificacoes/useMarcarTodasLidas';
 import { pgrsTs, exportCsv, iniciaisUsuario } from './utils';
 import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge } from './components';
+import { BuscaGlobal } from './components/BuscaGlobal';
 import { reducer, initialState } from './store/reducer';
 
 import { DashboardScreen } from './screens/DashboardScreen';
@@ -286,6 +287,7 @@ const notifFootBtn = {
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const buscaRef = useRef(null);
   const { user, token, logout } = useAuth();
   const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
   const navBadges = {
@@ -396,11 +398,7 @@ export default function App() {
               </>
             )}
           </div>
-          <div className="topbar-search">
-            <span className="icon"><Icon name="search" size={14}/></span>
-            <input aria-label="Buscar reagente, resíduo, MTR ou usuário" placeholder="Buscar reagente, resíduo, MTR ou usuário…"/>
-            <span className="kbd">⌘K</span>
-          </div>
+          <BuscaGlobal dispatch={dispatch} inputRef={buscaRef}/>
           <NotifBell dispatch={dispatch}/>
           <button type="button" className="topbar-btn" onClick={() => dispatch({type: 'openChat'})}>
             <Icon name="sparkle" size={13}/> MCP

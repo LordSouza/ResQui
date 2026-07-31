@@ -116,4 +116,20 @@ describe('UsuariosScreen — só mostra o que a API devolve', () => {
     const linhaAna = screen.getByText('Ana Silva').closest('tr');
     expect(within(linhaAna).queryByText('você')).not.toBeInTheDocument();
   });
+
+  it('destaca a linha apontada por flashId', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <AuthContext.Provider value={{ user: { id: 'admin-1', papel: 'Admin' }, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
+          <UsuariosScreen state={{ tick: 0, flashId: 'u-2' }} dispatch={vi.fn()} />
+        </AuthContext.Provider>
+      </QueryClientProvider>
+    );
+
+    const linhaBruno = (await screen.findByText('Bruno Lima')).closest('tr');
+    expect(linhaBruno.className).toContain('flash');
+    const linhaAna = screen.getByText('Ana Silva').closest('tr');
+    expect(linhaAna.className).not.toContain('flash');
+  });
 });

@@ -93,7 +93,7 @@ export function MtrScreen({ state, dispatch }) {
           </thead>
           <tbody>
             {mtrs.map((m) => (
-              <tr key={m.id} className={m.id === sel?.id ? 'selected' : ''} onClick={() => setSelectedId(m.id)}>
+              <tr key={m.id} className={`${m.id === sel?.id ? 'selected' : ''} ${state.flashId === m.id ? 'flash' : ''}`.trim()} onClick={() => setSelectedId(m.id)}>
                 <td className="num">{m.numero}</td>
                 <td className="mono small">{m.data_emissao?.slice(0, 10)}</td>
                 <td className="small">{(m.residuo_ids ?? []).map((id) => <Tag key={id}>#{id}</Tag>)}</td>
