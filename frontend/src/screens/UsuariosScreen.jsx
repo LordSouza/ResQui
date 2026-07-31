@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useReducer } from 'react';
-import { Icon, Badge, Tag } from '../components';
+import { Icon, Badge } from '../components';
 import { PERMISSION_GROUPS, ROLES } from '../data';
 import { exportCsv } from '../utils';
 import { useUsuarios } from '../usuarios/useUsuarios';
@@ -16,7 +16,6 @@ const papelBadge = (p) => {
 
 const statusUsuarioBadge = (s) => {
   if (s === 'ativo')     return <Badge kind="green" dot>Ativo</Badge>;
-  if (s === 'pendente')  return <Badge kind="amber" dot>Pendente</Badge>;
   if (s === 'arquivado') return <Badge kind="gray" dot>Arquivado</Badge>;
   return <Badge kind="gray">{s}</Badge>;
 };
@@ -201,7 +200,6 @@ export function UsuariosScreen({ state, dispatch }) {
 
   let list = todos;
   if (filter === 'ativos')     list = list.filter(u => u.status === 'ativo');
-  if (filter === 'pendentes')  list = list.filter(u => u.status === 'pendente');
   if (filter === 'arquivados') list = list.filter(u => u.status === 'arquivado');
   if (papelFilter !== 'todos') list = list.filter(u => u.papel === papelFilter);
   if (busca.trim()) {
@@ -216,7 +214,6 @@ export function UsuariosScreen({ state, dispatch }) {
   const counts = {
     todos: todos.length,
     ativos: todos.filter(u => u.status === 'ativo').length,
-    pendentes: todos.filter(u => u.status === 'pendente').length,
     arquivados: todos.filter(u => u.status === 'arquivado').length,
   };
 
@@ -227,16 +224,15 @@ export function UsuariosScreen({ state, dispatch }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Usuários e permissões</h1>
-          <p className="page-sub">Controle de acesso por papel, laboratório e operação · {counts.ativos} ativos · {counts.pendentes} pendente · {counts.arquivados} arquivados</p>
+          <p className="page-sub">Controle de acesso por papel e operação · {counts.ativos} ativos · {counts.arquivados} arquivados</p>
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => {
-            const rows = [['ID', 'Nome', 'E-mail', 'Matrícula', 'Papel', 'Laboratórios', 'Status', 'Último acesso', 'Permissões customizadas']];
-            todos.forEach(u => rows.push([u.id, u.nome, u.email, u.matricula, u.papel, (u.labs ?? []).join(';'), u.status, u.ultimo_acesso || '', u.perms ? 'sim' : 'não']));
+            const rows = [['ID', 'Nome', 'E-mail', 'Matrícula', 'Papel', 'Status']];
+            todos.forEach(u => rows.push([u.id, u.nome, u.email, u.matricula, u.papel, u.status]));
             exportCsv(rows, `usuarios-${exportDate}.csv`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar lista</button>
-          <button type="button" className="btn btn-sm"><Icon name="upload" size={13}/> Importar CSV</button>
           <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'novoUsuario'})}>
             <Icon name="plus" size={13}/> Novo usuário
           </button>
@@ -266,7 +262,6 @@ export function UsuariosScreen({ state, dispatch }) {
           <div className="toolbar">
             {[
               ['ativos', 'Ativos', counts.ativos],
-              ['pendentes', 'Pendentes', counts.pendentes],
               ['arquivados', 'Arquivados', counts.arquivados],
               ['todos', 'Todos', counts.todos],
             ].map(([k, l, c]) => (
@@ -295,9 +290,7 @@ export function UsuariosScreen({ state, dispatch }) {
                   <th>Usuário</th>
                   <th>Matrícula</th>
                   <th>Papel</th>
-                  <th>Laboratórios</th>
                   <th>MFA</th>
-                  <th>Último acesso</th>
                   <th>Status</th>
                   <th className="narrow" aria-label="Ações"></th>
                 </tr>
@@ -312,8 +305,7 @@ export function UsuariosScreen({ state, dispatch }) {
                         <div style={{minWidth: 0}}>
                           <div className="user-name">
                             {u.nome}
-                            {u.voce && <span className="tag" style={{marginLeft: 6, background: 'var(--accent-soft)', color: 'var(--accent)', borderColor: 'var(--accent-soft-2)'}}>você</span>}
-                            {u.externo && <span className="tag" style={{marginLeft: 6}}>externo</span>}
+                            {u.id === usuarioLogado?.id && <span className="tag" style={{marginLeft: 6, background: 'var(--accent-soft)', color: 'var(--accent)', borderColor: 'var(--accent-soft-2)'}}>você</span>}
                           </div>
                           <div className="user-mail mono">{u.email}</div>
                         </div>
@@ -321,15 +313,9 @@ export function UsuariosScreen({ state, dispatch }) {
                     </td>
                     <td className="mono small muted">{u.matricula}</td>
                     <td>{papelBadge(u.papel)}</td>
-                    <td>
-                      {u.labs?.includes('*')
-                        ? <Tag>todos os labs</Tag>
-                        : (u.labs ?? []).map(l => <Tag key={l}>{l}</Tag>)}
-                    </td>
                     <td>{u.mfa
                       ? <Badge kind="green">TOTP</Badge>
                       : <span className="muted small">—</span>}</td>
-                    <td className="mono small muted">{u.ultimo_acesso || <span className="muted">—</span>}</td>
                     <td>{statusUsuarioBadge(u.status)}</td>
                     <td className="narrow">
                       <div className="row-menu-wrap">

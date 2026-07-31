@@ -70,3 +70,50 @@ describe('UsuariosScreen — MFA', () => {
     expect(screen.queryByRole('button', { name: /resetar 2fa/i })).not.toBeInTheDocument();
   });
 });
+
+describe('UsuariosScreen — só mostra o que a API devolve', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      data: {},
+      setItem(k, v) { this.data[k] = String(v); },
+      getItem(k) { return this.data[k] ?? null; },
+      removeItem(k) { delete this.data[k]; },
+      clear() { this.data = {}; },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => USUARIOS,
+    }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('não oferece importar CSV de usuários', async () => {
+    renderCom({ id: 'admin-1', papel: 'Admin' });
+
+    await screen.findByText('Ana Silva');
+    expect(screen.queryByRole('button', { name: /importar csv/i })).not.toBeInTheDocument();
+  });
+
+  it('não exibe colunas sem dado na API', async () => {
+    renderCom({ id: 'admin-1', papel: 'Admin' });
+
+    await screen.findByText('Ana Silva');
+    expect(screen.queryByRole('columnheader', { name: /laboratórios/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /último acesso/i })).not.toBeInTheDocument();
+  });
+
+  it('não oferece o filtro de pendentes, que nunca tem resultado', async () => {
+    renderCom({ id: 'admin-1', papel: 'Admin' });
+
+    await screen.findByText('Ana Silva');
+    expect(screen.queryByRole('button', { name: /pendentes/i })).not.toBeInTheDocument();
+  });
+
+  it('marca com "você" apenas a linha do usuário logado', async () => {
+    renderCom({ id: 'u-2', papel: 'Admin' });
+
+    const linhaBruno = (await screen.findByText('Bruno Lima')).closest('tr');
+    expect(within(linhaBruno).getByText('você')).toBeInTheDocument();
+    const linhaAna = screen.getByText('Ana Silva').closest('tr');
+    expect(within(linhaAna).queryByText('você')).not.toBeInTheDocument();
+  });
+});
