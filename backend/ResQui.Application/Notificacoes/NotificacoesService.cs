@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Notificacoes;
@@ -16,6 +17,19 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
 
     public async Task MarcarTodasLidasAsync(string usuarioId) =>
         await repo.MarcarTodasLidasAsync(usuarioId);
+
+    public async Task CriarAsync(string usuarioId, string mensagem, string tipo, string referenciaId, string severidade)
+    {
+        await repo.AddAsync(new Notificacao
+        {
+            UsuarioId = usuarioId,
+            Mensagem = mensagem,
+            Tipo = tipo,
+            ReferenciaId = referenciaId,
+            Severidade = severidade,
+        });
+        await repo.SaveChangesAsync();
+    }
 
     public async Task<NotificacaoPrefsDto> GetPrefsAsync(string usuarioId)
     {
