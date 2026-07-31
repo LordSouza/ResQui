@@ -4,6 +4,7 @@ import { exportCsv } from '../utils';
 import { useChamados } from '../chamados/useChamados';
 import { useAtualizarStatusChamado } from '../chamados/useAtualizarStatusChamado';
 import { useComentarChamado } from '../chamados/useComentarChamado';
+import { useAuth } from '../auth/AuthContext';
 
 const statusChamado = (s) => {
   const map = {
@@ -41,6 +42,7 @@ const tipoChamado = (t) => {
 
 function ChamadoDetail({ chamado, onClose, dispatch }) {
   const c = chamado;
+  const { user } = useAuth();
   const [comentario, setComentario] = useState('');
   const atualizarStatus = useAtualizarStatusChamado();
   const comentarMutation = useComentarChamado();
@@ -112,7 +114,7 @@ function ChamadoDetail({ chamado, onClose, dispatch }) {
               </div>
               <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
                 {c.comentarios.map((com) => {
-                  const eu = false;
+                  const eu = com.autorId === user?.id;
                   return (
                     <div key={com.id} style={{display: 'flex', gap: 10}}>
                       <div className={`comment-avatar ${eu ? 'eu' : 'outro'}`}>
