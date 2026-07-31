@@ -227,10 +227,7 @@ export function DetalheScreen({ state, dispatch }) {
 
         <div className="col">
           <div className="card">
-            <SectionTitle title="Rótulo GHS" sub="ABNT NBR 14725-3"
-              right={<button type="button" className="btn btn-sm" onClick={() => {
-                dispatch({type: 'refresh'});
-              }}><Icon name="refresh" size={12}/> Regenerar</button>}/>
+            <SectionTitle title="Rótulo GHS" sub="ABNT NBR 14725-3"/>
             <div className="card-body" style={{background: 'var(--surface-2)'}}>
               <div className="ghs-label">
                 <div className="ghs-h">
