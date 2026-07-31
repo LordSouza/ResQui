@@ -25,21 +25,6 @@ public static class Endpoints
         })
         .RequireAuthorization("Tecnico");
 
-        group.MapPut("/{id:int}/enviar-sinir", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
-        {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var result = await svc.EnviarSinirAsync(id, email);
-            return result.Sucesso ? Results.Ok(result) : Results.BadRequest(result);
-        })
-        .RequireAuthorization("Tecnico");
-
-        group.MapPost("/enviar-batch", async (IMtrsService svc, ClaimsPrincipal user) =>
-        {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            return Results.Ok(await svc.EnviarBatchAsync(email));
-        })
-        .RequireAuthorization("Tecnico");
-
         group.MapGet("/{id:int}/pdf", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
@@ -47,17 +32,6 @@ public static class Endpoints
             if (result is null) return Results.NotFound();
             var (pdf, filename) = result.Value;
             return Results.File(pdf, "application/pdf", filename);
-        });
-
-        group.MapGet("/{id:int}/export-sinir", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
-        {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var result = await svc.ExportarSinirAsync(id, email);
-            if (result is null) return Results.NotFound();
-            var (csv, filename) = result.Value;
-            var bom = System.Text.Encoding.UTF8.GetPreamble();
-            var body = System.Text.Encoding.UTF8.GetBytes(csv);
-            return Results.File(bom.Concat(body).ToArray(), "text/csv; charset=utf-8", filename);
         });
 
         return group;

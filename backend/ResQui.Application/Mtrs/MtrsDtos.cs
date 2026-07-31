@@ -20,5 +20,3 @@ public record CriarMtrCmd(
     string? CodigoIbama,
     List<int> ResiduoIds
 );
-
-public record EnviarSinirResult(bool Sucesso, string Mensagem, string NovoStatus);

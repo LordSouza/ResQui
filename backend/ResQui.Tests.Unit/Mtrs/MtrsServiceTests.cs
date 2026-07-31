@@ -78,44 +78,6 @@ public class MtrsServiceTests
     }
 
     [Fact]
-    public async Task EnviarSinirAsync_MtrInexistente_RetornaFalso()
-    {
-        _repo.GetByIdAsync(999).Returns((Mtr?)null);
-
-        var result = await _sut.EnviarSinirAsync(999, "user@lab.com");
-
-        result.Sucesso.Should().BeFalse();
-        result.Mensagem.Should().Be("MTR não encontrado");
-    }
-
-    [Fact]
-    public async Task EnviarSinirAsync_StatusAceitoSinir_NaoPermiteReenvio()
-    {
-        _repo.GetByIdAsync(1).Returns(FakeMtr(1, MtrStatus.AceitoSinir));
-
-        var result = await _sut.EnviarSinirAsync(1, "user@lab.com");
-
-        result.Sucesso.Should().BeFalse();
-        result.Mensagem.Should().Contain("não está em estado enviável");
-    }
-
-    [Fact]
-    public async Task EnviarBatchAsync_SoProcessaRascunhos()
-    {
-        _repo.GetAllAsync().Returns([
-            FakeMtr(1, MtrStatus.Rascunho),
-            FakeMtr(2, MtrStatus.AceitoSinir),
-        ]);
-        _repo.GetByIdAsync(1).Returns(FakeMtr(1, MtrStatus.Rascunho));
-        _repo.UpdateAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
-        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
-
-        var results = (await _sut.EnviarBatchAsync("user@lab.com")).ToList();
-
-        results.Should().HaveCount(1); // só o rascunho
-    }
-
-    [Fact]
     public async Task CriarAsync_ResiduoNaoAprovado_LancaValidationException()
     {
         var r = FakeResiduo(10);
@@ -145,21 +107,6 @@ public class MtrsServiceTests
         await _audit.Received(1).RegistrarAsync(
             "ana@lab.com", "mtr.criar", "MTR",
             Arg.Any<string>(), RiscoAuditoria.Medium);
-    }
-
-    [Fact]
-    public async Task EnviarSinirAsync_MtrExistente_RegistraAuditoria()
-    {
-        var mtr = FakeMtr(1);
-        _repo.GetByIdAsync(1).Returns(mtr);
-        _repo.UpdateAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
-        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
-
-        await _sut.EnviarSinirAsync(1, "ana@lab.com");
-
-        await _audit.Received(1).RegistrarAsync(
-            "ana@lab.com", "mtr.enviar-sinir", "MTR",
-            Arg.Any<string>(), RiscoAuditoria.High);
     }
 
     [Theory]
