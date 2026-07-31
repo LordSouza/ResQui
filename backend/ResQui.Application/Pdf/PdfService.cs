@@ -213,7 +213,7 @@ public class PdfService : IPdfService
                 });
             });
 
-            page.Footer().Text($"ResQui · documento gerado em {DateTime.UtcNow:dd/MM/yyyy HH:mm} UTC — uso interno, não substitui o MTR oficial do SINIR")
+            page.Footer().Text($"ResQui · documento gerado em {DateTime.UtcNow:dd/MM/yyyy HH:mm} UTC — uso interno, não substitui o MTR oficial emitido pelo órgão ambiental")
                 .FontSize(7).FontColor(Colors.Grey.Darken1);
         })).GeneratePdf();
     }
