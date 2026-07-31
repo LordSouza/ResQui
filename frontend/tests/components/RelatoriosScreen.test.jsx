@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RelatoriosScreen } from '../../src/screens/RelatoriosScreen';
 import { initialState } from '../../src/store/reducer';
 
-vi.mock('../../src/components/ToastContext', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
+vi.mock('../../src/components/ToastContext', () => ({ useToast: vi.fn() }));
+import { useToast } from '../../src/components/ToastContext';
 vi.mock('../../src/auth/AuthContext', () => ({
   useAuth: () => ({ user: { papel: 'Admin' } }),
 }));
@@ -15,7 +16,11 @@ function wrapper({ children }) {
 }
 
 describe('RelatoriosScreen', () => {
+  let addToast;
+
   beforeEach(() => {
+    addToast = vi.fn();
+    useToast.mockReturnValue({ addToast });
     global.URL.createObjectURL = vi.fn(() => 'blob:test');
     vi.stubGlobal('localStorage', {
       data: {}, setItem(k, v) { this.data[k] = String(v); },
@@ -55,5 +60,21 @@ describe('RelatoriosScreen', () => {
     const { container } = render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(container.textContent).not.toContain('NaN');
     expect(container.textContent).not.toContain('undefined');
+  });
+
+  it('passa a mensagem de erro como string para o addToast, não como objeto', async () => {
+    vi.stubGlobal('fetch', vi.fn((url, opts) =>
+      opts?.method === 'POST'
+        ? Promise.resolve({ ok: false, status: 400, text: async () => JSON.stringify({ message: 'Falha ao gerar' }) })
+        : Promise.resolve({ ok: true, json: async () => [] })
+    ));
+
+    render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    fireEvent.click(screen.getAllByRole('button', { name: /Gerar/i })[0]);
+
+    await waitFor(() => expect(addToast).toHaveBeenCalled());
+    expect(typeof addToast.mock.calls[0][0]).toBe('string');
+    expect(addToast.mock.calls[0][0]).toMatch(/Falha ao gerar/);
+    expect(addToast.mock.calls[0][1]).toBe('error');
   });
 });

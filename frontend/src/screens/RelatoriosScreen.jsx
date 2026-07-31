@@ -25,7 +25,7 @@ export function RelatoriosScreen({ state, dispatch }) {
       const novo = await gerar.mutateAsync({ Tipo: slug });
       await downloadRelatorio(novo.id, novo.titulo);
     } catch (e) {
-      addToast({ kind: 'error', msg: e.message });
+      addToast(e.message, 'error');
     }
   }
 

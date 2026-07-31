@@ -516,10 +516,10 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
         Motivo: selected.motivo,
         Autor: selected.autor,
       });
-      addToast({ kind: 'success', msg: 'Regra salva com sucesso.' });
+      addToast('Regra salva com sucesso.', 'success');
       setSelected(null);
     } catch (e) {
-      addToast({ kind: 'error', msg: e.message });
+      addToast(e.message, 'error');
     }
   };
 
@@ -527,10 +527,10 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
     if (!selected) return;
     try {
       await remover.mutateAsync({ classeA: selected.a, classeB: selected.b });
-      addToast({ kind: 'success', msg: 'Regra removida.' });
+      addToast('Regra removida.', 'success');
       setSelected(null);
     } catch (e) {
-      addToast({ kind: 'error', msg: e.message });
+      addToast(e.message, 'error');
     }
   };
 
