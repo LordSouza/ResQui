@@ -1900,6 +1900,32 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   width: 380px; z-index: 100;
 }
 
+/* ============== BUSCA GLOBAL ============== */
+.busca-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.08);
+  width: 420px; max-height: 420px; overflow-y: auto; z-index: 100;
+}
+.busca-secao + .busca-secao { border-top: 1px solid var(--border); }
+.busca-secao-h {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 12px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-3); background: var(--surface-2);
+}
+.busca-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  width: 100%; padding: 7px 12px;
+  background: transparent; border: 0; cursor: pointer; text-align: left;
+  font-size: 12px; color: var(--text);
+}
+.busca-item:hover { background: var(--surface-2); }
+.busca-item-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.busca-item-s { color: var(--text-3); font-size: 11px; flex-shrink: 0; }
+.busca-vazio, .busca-erro { padding: 10px 12px; font-size: 12px; color: var(--text-3); }
+.busca-erro { color: var(--red); }
+
 .notif-dot {
   position: absolute; left: 4px; top: 18px; width: 6px; height: 6px;
   border-radius: 50%; background: var(--accent);

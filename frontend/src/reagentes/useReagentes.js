@@ -12,7 +12,7 @@ function normalizeItem(r) {
   };
 }
 
-export function useReagentes(filtro = {}) {
+export function useReagentes(filtro = {}, options = {}) {
   const { page = 1, pageSize = 20, q = '', classe = null, vencendo = false } = filtro;
 
   return useQuery({
@@ -27,5 +27,6 @@ export function useReagentes(filtro = {}) {
       const items = Array.isArray(data?.items) ? data.items : [];
       return { total: 0, page, pageSize, ...data, items: items.map(normalizeItem) };
     },
+    enabled: options.enabled ?? true,
   });
 }

@@ -16,7 +16,7 @@ function normalizeItem(u, index) {
   };
 }
 
-export function useUsuarios() {
+export function useUsuarios(options = {}) {
   return useQuery({
     queryKey: ['usuarios'],
     queryFn: async () => {
@@ -24,5 +24,6 @@ export function useUsuarios() {
       const data = await res.json();
       return data.map(normalizeItem);
     },
+    enabled: options.enabled ?? true,
   });
 }
