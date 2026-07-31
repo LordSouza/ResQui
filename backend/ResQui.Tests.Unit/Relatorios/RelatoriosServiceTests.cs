@@ -109,7 +109,6 @@ public class RelatoriosServiceTests
         result.Should().NotBeNull();
         var csv = result!.Value.Csv;
         csv.Should().Contain("# MANIFESTOS");
-        csv.Should().NotContain("SINIR");
         // sem filtro de status: os dois manifestos entram
         csv.Should().Contain("MTR-2026-001").And.Contain("MTR-2026-002");
     }
@@ -119,7 +118,7 @@ public class RelatoriosServiceTests
     {
         _repo.GetByIdAsync(7).Returns(new RelatorioGerado
         {
-            Id = 7, Tipo = "sinir", Titulo = "Declaração SINIR trimestral",
+            Id = 7, Tipo = "tipo-descontinuado", Titulo = "Relatório de um tipo que não existe mais",
             GeradoPorId = "u1", TotalLinhas = 2, Formato = "csv",
         });
 

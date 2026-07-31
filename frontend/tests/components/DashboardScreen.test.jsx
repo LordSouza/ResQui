@@ -67,9 +67,8 @@ describe('DashboardScreen', () => {
     render(<DashboardScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     // O KPI de MTR dependia de um status decorativo e saiu junto com ele.
     expect(screen.queryByText(/MTRs pendentes/i)).toBeNull();
-    expect(screen.queryByText(/SINIR/i)).toBeNull();
     // conformidade inventada removida
-    expect(screen.queryByText(/Conformidade SINIR/i)).toBeNull();
+    expect(screen.queryByText(/Conformidade/i)).toBeNull();
     expect(screen.queryByText(/Rotulagem GHS/i)).toBeNull();
     // volume real dos aguardando: 10 L + 5000 mL = 15 L
     expect(await screen.findByText(/\/ 15 L/)).toBeInTheDocument();

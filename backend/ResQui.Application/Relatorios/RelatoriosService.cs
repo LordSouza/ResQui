@@ -48,8 +48,7 @@ public class RelatoriosService(
     {
         var r = await relatoriosRepo.GetByIdAsync(id);
         if (r is null) return null;
-        // Histórico pode conter tipos que não existem mais (ex.: "sinir", removido em 2026-07-31):
-        // baixar um deles é 404, não 500.
+        // O histórico pode conter tipos que saíram do catálogo: baixar um deles é 404, não 500.
         if (!Titulos.ContainsKey(r.Tipo)) return null;
         var (csv, _) = await GerarCsvAsync(r.Tipo);
         var safeName = r.Titulo.Replace(' ', '-').ToLowerInvariant();
