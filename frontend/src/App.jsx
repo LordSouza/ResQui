@@ -9,7 +9,7 @@ import { useMtrs } from './mtrs/useMtrs';
 import { useMarcarLida } from './notificacoes/useMarcarLida';
 import { useMarcarTodasLidas } from './notificacoes/useMarcarTodasLidas';
 import { pgrsTs, exportCsv, iniciaisUsuario } from './utils';
-import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge, mtrStatusBadge } from './components';
+import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge } from './components';
 import { reducer, initialState } from './store/reducer';
 
 import { DashboardScreen } from './screens/DashboardScreen';

@@ -7,9 +7,6 @@ function normalize(m) {
     codigo_ibama: m.codigoIbama,
     data_emissao: m.dataEmissao,
     residuo_ids: m.residuoIds ?? [],
-    status: m.status.toLowerCase().replace('pendenteenvio', 'pendente-sinir')
-                                   .replace('aceitosinir', 'aceito-sinir')
-                                   .replace('pendentesinir', 'pendente-sinir'),
   };
 }
 

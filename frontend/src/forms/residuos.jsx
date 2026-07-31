@@ -316,7 +316,7 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
   // Preview espelha o PDF real do backend (PdfService.ManifestoMtr) — só dados reais do MTR.
   const emissao = mtr.data_emissao ? mtr.data_emissao.slice(0, 10).split('-').reverse().join('/') : '—';
   return (
-    <Modal title={`Pré-visualização · ${mtr.numero}`} sub="Pré-MTR · uso interno — não substitui o MTR oficial do SINIR"
+    <Modal title={`Pré-visualização · ${mtr.numero}`} sub="Pré-MTR · uso interno — não substitui o MTR oficial emitido pelo órgão ambiental"
       onClose={onClose} width={920}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
@@ -375,7 +375,7 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
 
           {/* Barra de status */}
           <div className="mtr-status-bar">
-            Documento de uso interno · não substitui o MTR oficial do SINIR
+            Documento de uso interno · não substitui o MTR oficial emitido pelo órgão ambiental
           </div>
 
           {/* Seção 1 - Dados do manifesto */}
@@ -386,7 +386,6 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
             <RowMtr label="Destinador" value={mtr.destinador || '—'}/>
             <RowMtr label="Código IBAMA" value={mtr.codigo_ibama || '—'} mono/>
             <RowMtr label="Massa total (kg)" value={Number(mtr.massa ?? 0).toFixed(2)} mono/>
-            <RowMtr label="Status" value={mtr.status}/>
           </SectionMtr>
 
           {/* Seção 2 - Resíduos */}
@@ -432,8 +431,8 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
 
           {/* Rodapé honesto */}
           <div style={{marginTop: 22, paddingTop: 12, borderTop: '1px solid #111', fontSize: 12, color: '#444', lineHeight: 1.5}}>
-            ResQui · Pré-MTR de uso interno — não substitui o MTR oficial do SINIR. Emita o manifesto
-            oficial em <span style={{fontFamily: 'Courier, monospace'}}>sinir.gov.br</span>.
+            ResQui · Pré-MTR de uso interno — não substitui o MTR oficial. Emita o manifesto
+            oficial no sistema do órgão ambiental competente.
           </div>
         </div>
       </div>

@@ -10,7 +10,6 @@ const mtr = {
   destinador: 'Ecoquímica SA',
   codigo_ibama: 'A099',
   massa: 8.3,
-  status: 'rascunho',
   data_emissao: '2026-07-24T00:00:00Z',
   residuo_ids: [451, 452],
 };

@@ -8,7 +8,7 @@ function wrapper({ children }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
-const fakeMtr = { id: 1, numero: 'MTR-2026-0001', gerador: 'Unifei', transportadora: 'EcoLog', status: 'Rascunho', dataEmissao: '2026-01-01', destinador: 'EcoQ', codigoIbama: 'A099', massa: 10.0, residuoIds: [1, 2] };
+const fakeMtr = { id: 1, numero: 'MTR-2026-0001', gerador: 'Unifei', transportadora: 'EcoLog', dataEmissao: '2026-01-01', destinador: 'EcoQ', codigoIbama: 'A099', massa: 10.0, residuoIds: [1, 2] };
 
 describe('useMtrs', () => {
   beforeEach(() => {
@@ -32,6 +32,5 @@ describe('useMtrs', () => {
     const m = result.current.data[0];
     expect(m.codigo_ibama).toBe('A099');
     expect(m.residuo_ids).toEqual([1, 2]);
-    expect(m.status).toBe('rascunho');
   });
 });

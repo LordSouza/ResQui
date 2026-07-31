@@ -74,16 +74,6 @@ export const residuoStatusBadge = (s) => {
   return <Badge kind={k}>{l}</Badge>;
 };
 
-export const mtrStatusBadge = (s) => {
-  const map = {
-    'rascunho': ['gray', 'Rascunho'],
-    'pendente-sinir': ['amber', 'Pendente SINIR'],
-    'aceito-sinir': ['green', 'Aceito SINIR'],
-  };
-  const [k, l] = map[s] || ['gray', s];
-  return <Badge kind={k}>{l}</Badge>;
-};
-
 // Pictograma GHS (losango vermelho + ícone)
 export const Picto = ({ kind, small }) => {
   const sym = {

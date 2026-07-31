@@ -11,10 +11,6 @@ async function baixar(path, filename) {
   URL.revokeObjectURL(url);
 }
 
-export function downloadSinirCsv(id, numero) {
-  return baixar(`/api/mtrs/${id}/export-sinir`, `pre-mtr-${(numero || id).toString().toLowerCase()}.csv`);
-}
-
 export function downloadMtrPdf(id, numero) {
   return baixar(`/api/mtrs/${id}/pdf`, `${(numero || `mtr-${id}`).toString().toLowerCase()}.pdf`);
 }
