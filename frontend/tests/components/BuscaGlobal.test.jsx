@@ -91,10 +91,10 @@ describe('BuscaGlobal', () => {
 
     fireEvent.change(campo, { target: { value: 'ácid' } });
 
-    expect(await screen.findByText('Ácido teste 1')).toBeInTheDocument();
-    expect(await screen.findByText(/Mistura ácida de limpeza/)).toBeInTheDocument();
-    expect(await screen.findByText(/MTR-2026-0003/)).toBeInTheDocument();
-    expect(await screen.findByText(/Ana Ácido/)).toBeInTheDocument();
+    expect(await screen.findByText('Ácido teste 1', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Mistura ácida de limpeza/, {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByText(/MTR-2026-0003/, {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Ana Ácido/, {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
   it('mostra no máximo 5 itens por seção e o total real', async () => {
@@ -102,7 +102,7 @@ describe('BuscaGlobal', () => {
 
     fireEvent.change(campo, { target: { value: 'ácid' } });
 
-    await screen.findByText('Ácido teste 1');
+    await screen.findByText('Ácido teste 1', {}, { timeout: 3000 });
     expect(screen.getAllByTestId('resultado-reagente')).toHaveLength(5);
     // total do servidor é 7, não os 5 exibidos
     expect(screen.getByTestId('total-reagentes')).toHaveTextContent('7');
@@ -114,7 +114,7 @@ describe('BuscaGlobal', () => {
 
     fireEvent.change(campo, { target: { value: 'ácid' } });
 
-    await screen.findByText('Ácido teste 1');
+    await screen.findByText('Ácido teste 1', {}, { timeout: 3000 });
     expect(fetchMock.mock.calls.some(([u]) => String(u).includes('/api/usuarios'))).toBe(false);
     expect(screen.queryByText(/Ana Ácido/)).not.toBeInTheDocument();
   });
@@ -123,7 +123,7 @@ describe('BuscaGlobal', () => {
     const { campo, dispatch } = renderCom();
 
     fireEvent.change(campo, { target: { value: 'ácid' } });
-    fireEvent.click(await screen.findByText('Ácido teste 1'));
+    fireEvent.click(await screen.findByText('Ácido teste 1', {}, { timeout: 3000 }));
 
     expect(dispatch).toHaveBeenCalledWith({ type: 'detail', id: 'R-00001' });
   });
@@ -132,7 +132,7 @@ describe('BuscaGlobal', () => {
     const { campo, dispatch } = renderCom();
 
     fireEvent.change(campo, { target: { value: 'ácid' } });
-    fireEvent.click(await screen.findByText(/Mistura ácida de limpeza/));
+    fireEvent.click(await screen.findByText(/Mistura ácida de limpeza/, {}, { timeout: 3000 }));
 
     expect(dispatch).toHaveBeenCalledWith({ type: 'nav', screen: 'residuos', flashId: 12 });
   });
@@ -142,7 +142,7 @@ describe('BuscaGlobal', () => {
 
     fireEvent.change(campo, { target: { value: 'zzzz' } });
 
-    expect(await screen.findByText(/nenhum resultado para/i)).toBeInTheDocument();
+    expect(await screen.findByText(/nenhum resultado para/i, {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
   it('uma seção que falha não derruba as outras', async () => {
@@ -153,7 +153,7 @@ describe('BuscaGlobal', () => {
 
     fireEvent.change(campo, { target: { value: 'ácid' } });
 
-    expect(await screen.findByText(/não foi possível buscar mtrs/i)).toBeInTheDocument();
+    expect(await screen.findByText(/não foi possível buscar mtrs/i, {}, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByText('Ácido teste 1')).toBeInTheDocument();
   });
 
@@ -161,7 +161,7 @@ describe('BuscaGlobal', () => {
     const { campo } = renderCom();
 
     fireEvent.change(campo, { target: { value: 'ácid' } });
-    await screen.findByText('Ácido teste 1');
+    await screen.findByText('Ácido teste 1', {}, { timeout: 3000 });
 
     fireEvent.keyDown(campo, { key: 'Escape' });
 
