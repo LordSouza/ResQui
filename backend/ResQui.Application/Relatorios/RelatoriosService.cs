@@ -19,7 +19,6 @@ public class RelatoriosService(
         ["pgrs"]           = "PGRS Anual",
         ["inventario"]     = "Inventário de reagentes",
         ["residuos-ibama"] = "Resíduos por código IBAMA",
-        ["sinir"]          = "Declaração SINIR trimestral",
         ["mapa-risco"]     = "Mapa de risco químico",
         ["indicadores"]    = "Indicadores de geração",
     };
@@ -49,6 +48,9 @@ public class RelatoriosService(
     {
         var r = await relatoriosRepo.GetByIdAsync(id);
         if (r is null) return null;
+        // Histórico pode conter tipos que não existem mais (ex.: "sinir", removido em 2026-07-31):
+        // baixar um deles é 404, não 500.
+        if (!Titulos.ContainsKey(r.Tipo)) return null;
         var (csv, _) = await GerarCsvAsync(r.Tipo);
         var safeName = r.Titulo.Replace(' ', '-').ToLowerInvariant();
         return (csv, $"{safeName}.csv");
@@ -63,7 +65,6 @@ public class RelatoriosService(
         "inventario"      => await GerarInventarioCsvAsync(),
         "mapa-risco"      => await GerarMapaRiscoCsvAsync(),
         "residuos-ibama"  => await GerarResiduosIbamaCsvAsync(),
-        "sinir"           => await GerarSinirCsvAsync(),
         "indicadores"     => await GerarIndicadoresCsvAsync(),
         "pgrs"            => await GerarPgrsCsvAsync(),
         _                 => throw new ArgumentException($"Tipo desconhecido: {tipo}"),
@@ -115,17 +116,16 @@ public class RelatoriosService(
         return (sb.ToString(), residuos.Count);
     }
 
-    private async Task<(string Csv, int TotalLinhas)> GerarSinirCsvAsync()
+    private async Task<(string Csv, int TotalLinhas)> GerarManifestosCsvAsync()
     {
         var mtrs = (await mtrsRepo.GetAllAsync())
-            .Where(m => m.Status == MtrStatus.AceitoSinir)
             .OrderBy(m => m.DataEmissao)
             .ToList();
         var sb = new StringBuilder();
-        sb.AppendLine("Nr MTR,Gerador,Transportadora,Destinador,Cod. IBAMA,Data Emissao,Massa (kg),Status");
+        sb.AppendLine("Nr MTR,Gerador,Transportadora,Destinador,Cod. IBAMA,Data Emissao,Massa (kg)");
         foreach (var m in mtrs)
             sb.AppendLine($"{Esc(m.Numero)},{Esc(m.Gerador)},{Esc(m.Transportadora)},{Esc(m.Destinador)}," +
-                          $"{Esc(m.CodigoIbama)},{m.DataEmissao:yyyy-MM-dd},{m.Massa},aceito-sinir");
+                          $"{Esc(m.CodigoIbama)},{m.DataEmissao:yyyy-MM-dd},{m.Massa}");
         return (sb.ToString(), mtrs.Count);
     }
 
@@ -180,8 +180,8 @@ public class RelatoriosService(
         var ibama = await GerarResiduosIbamaCsvAsync();
         sb.AppendLine("# RESIDUOS-IBAMA"); sb.Append(ibama.Csv); total += ibama.TotalLinhas;
 
-        var sinir = await GerarSinirCsvAsync();
-        sb.AppendLine("# SINIR"); sb.Append(sinir.Csv); total += sinir.TotalLinhas;
+        var manifestos = await GerarManifestosCsvAsync();
+        sb.AppendLine("# MANIFESTOS"); sb.Append(manifestos.Csv); total += manifestos.TotalLinhas;
 
         var ind = await GerarIndicadoresCsvAsync();
         sb.AppendLine("# INDICADORES"); sb.Append(ind.Csv); total += ind.TotalLinhas;

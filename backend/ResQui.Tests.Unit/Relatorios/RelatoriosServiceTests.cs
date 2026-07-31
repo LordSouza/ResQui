@@ -42,10 +42,10 @@ public class RelatoriosServiceTests
         Volume = 10, Unidade = "L", DataRegistro = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
     };
 
-    private static Mtr FakeMtr(int id = 1, MtrStatus status = MtrStatus.AceitoSinir) => new()
+    private static Mtr FakeMtr(int id = 1) => new()
     {
-        Id = id, Numero = "MTR-2026-001", Gerador = "UniLab",
-        Transportadora = "EcoTrans", Status = status, Massa = 12.5m,
+        Id = id, Numero = $"MTR-2026-{id:D3}", Gerador = "UniLab",
+        Transportadora = "EcoTrans", Massa = 12.5m,
         DataEmissao = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
         CodigoIbama = "001-1",
     };
@@ -95,18 +95,37 @@ public class RelatoriosServiceTests
     }
 
     [Fact]
-    public async Task GerarAsync_Sinir_FiltradoPorAceitoSinir()
+    public async Task DownloadAsync_Pgrs_IncluiTodosOsManifestos()
     {
-        _mtrsRepo.GetAllAsync().Returns([
-            FakeMtr(1, MtrStatus.AceitoSinir),
-            FakeMtr(2, MtrStatus.Rascunho),
-        ]);
-        _repo.AddAsync(Arg.Any<RelatorioGerado>()).Returns(Task.CompletedTask);
-        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+        _repo.GetByIdAsync(1).Returns(new RelatorioGerado
+        {
+            Id = 1, Tipo = "pgrs", Titulo = "PGRS Anual",
+            GeradoPorId = "u1", TotalLinhas = 0, Formato = "csv",
+        });
+        _mtrsRepo.GetAllAsync().Returns([FakeMtr(1), FakeMtr(2)]);
 
-        var result = await _sut.GerarAsync(new GerarRelatorioCmd("sinir"), "u1");
+        var result = await _sut.DownloadAsync(1);
 
-        result.TotalLinhas.Should().Be(1);
+        result.Should().NotBeNull();
+        var csv = result!.Value.Csv;
+        csv.Should().Contain("# MANIFESTOS");
+        csv.Should().NotContain("SINIR");
+        // sem filtro de status: os dois manifestos entram
+        csv.Should().Contain("MTR-2026-001").And.Contain("MTR-2026-002");
+    }
+
+    [Fact]
+    public async Task DownloadAsync_TipoQueNaoExisteMais_RetornaNull()
+    {
+        _repo.GetByIdAsync(7).Returns(new RelatorioGerado
+        {
+            Id = 7, Tipo = "sinir", Titulo = "Declaração SINIR trimestral",
+            GeradoPorId = "u1", TotalLinhas = 2, Formato = "csv",
+        });
+
+        var result = await _sut.DownloadAsync(7);
+
+        result.Should().BeNull();
     }
 
     [Fact]
