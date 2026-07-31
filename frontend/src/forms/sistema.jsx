@@ -450,43 +450,19 @@ const kbdStyle = {
 export function FormAtalhos({ onClose }) {
   const grupos = [
     {
-      titulo: 'Navegação',
+      titulo: 'Busca e navegação',
       atalhos: [
         [['⌘', 'K'], 'Abrir busca global'],
-        [['G', 'D'], 'Ir para Dashboard'],
-        [['G', 'I'], 'Ir para Inventário'],
-        [['G', 'R'], 'Ir para Resíduos'],
-        [['G', 'M'], 'Ir para Pré-MTR'],
-        [['G', 'A'], 'Ir para Auditoria'],
+        [['Esc'], 'Fechar busca'],
         [['?'], 'Mostrar este painel'],
       ],
     },
     {
-      titulo: 'Ações rápidas',
-      atalhos: [
-        [['N', 'R'], 'Novo reagente'],
-        [['N', 'W'], 'Novo resíduo'],
-        [['N', 'M'], 'Novo Pré-MTR'],
-        [['B'], 'Baixar consumo do item atual'],
-        [['P'], 'Imprimir rótulo GHS'],
-        [['F'], 'Abrir resumo de segurança'],
-      ],
-    },
-    {
-      titulo: 'Assistente MCP',
+      titulo: 'Assistente e modais',
       atalhos: [
         [['⌘', '/'], 'Abrir/fechar chat MCP'],
-        [['⌘', 'Enter'], 'Enviar mensagem'],
-        [['Esc'], 'Fechar chat'],
-      ],
-    },
-    {
-      titulo: 'Geral',
-      atalhos: [
+        [['⌘', 'Enter'], 'Enviar mensagem no chat'],
         [['Esc'], 'Fechar modal / cancelar'],
-        [['⌘', 'S'], 'Salvar rascunho'],
-        [['/'], 'Focar busca da tela atual'],
-        [['⌘', '⇧', 'L'], 'Sair da conta'],
       ],
     },
   ];

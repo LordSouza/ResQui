@@ -111,7 +111,7 @@ export function UserMenu({ user, onLogout, dispatch }) {
 
           {/* Ajuda */}
           <UmGroup label="Ajuda">
-            <UmItem icon="sparkle" label="Atalhos de teclado" hint="⌘ + K" onClick={() => openModal('atalhos')}/>
+            <UmItem icon="sparkle" label="Atalhos de teclado" hint="?" onClick={() => openModal('atalhos')}/>
             <UmItem icon="book" label="Documentação" onClick={() => openModal('docs')}/>
             <UmItem icon="warning" label="Reportar problema" onClick={() => openModal('reportar')}/>
             <div style={{padding: '6px 12px', fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--mono)'}}>
