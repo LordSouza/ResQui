@@ -11,6 +11,7 @@ import { pgrsTs, exportCsv, iniciaisUsuario } from './utils';
 import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge } from './components';
 import { BuscaGlobal } from './components/BuscaGlobal';
 import { reducer, initialState } from './store/reducer';
+import { useAtalhosGlobais } from './lib/useAtalhosGlobais';
 
 import { DashboardScreen } from './screens/DashboardScreen';
 import { InventarioScreen } from './screens/InventarioScreen';
@@ -293,6 +294,12 @@ export default function App() {
   const navBadges = {
     residuos: residuosNav.filter(r => r.status === 'aguardando-coleta').length,
   };
+
+  useAtalhosGlobais({
+    onBuscar: () => buscaRef.current?.focus(),
+    onAtalhos: () => dispatch({ type: 'openModal', kind: 'atalhos' }),
+    onChat: () => dispatch({ type: state.chatOpen ? 'closeChat' : 'openChat' }),
+  });
 
   // limpar flash após animação
   useEffect(() => {
