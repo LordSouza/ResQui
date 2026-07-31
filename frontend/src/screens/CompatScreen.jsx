@@ -132,7 +132,7 @@ export function CompatScreen({ state, dispatch }) {
                   value={parecer} onChange={(e) => setParecer(e.target.value)}/>
 
                 <div className="row" style={{marginTop: 8, gap: 8}}>
-                  <button type="button" className="btn btn-sm" disabled={registrarParecer.isPending}
+                  <button type="button" className="btn btn-sm" disabled={!a || !b || registrarParecer.isPending}
                     onClick={async () => {
                       try {
                         await registrarParecer.mutateAsync({ reagenteAId: a, reagenteBId: b, parecer });
