@@ -40,6 +40,13 @@ public static class Endpoints
         })
         .RequireAuthorization("Operacional");
 
+        group.MapPost("/notificar", async (NotificarResponsaveisCmd cmd, ICompatAcoesService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            return Results.Ok(await svc.NotificarResponsaveisAsync(email, cmd));
+        })
+        .RequireAuthorization("Operacional");
+
         return group;
     }
 }

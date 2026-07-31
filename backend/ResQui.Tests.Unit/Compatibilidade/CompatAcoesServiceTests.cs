@@ -106,4 +106,131 @@ public class CompatAcoesServiceTests
         await _audit.DidNotReceive().RegistrarAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
+
+    // --- NotificarResponsaveisAsync ---
+
+    private void SeedUsuarios(params UsuarioInfo[] usuarios) =>
+        _auth.GetAllAsync().Returns(usuarios.AsEnumerable());
+
+    private static UsuarioInfo Usuario(string id, string email, string? nome, bool arquivado = false) =>
+        new(id, email, nome, null, "Tecnico", new List<string> { "Tecnico" }, arquivado, false);
+
+    [Fact]
+    public async Task Notificar_CriaUmaNotificacaoParaCadaResponsavelResolvidoPeloNome()
+    {
+        SeedUsuarios(
+            Usuario("u-1", "ana@resqui.local", "Ana Souza"),
+            Usuario("u-2", "bruno@resqui.local", "Bruno Lima"));
+
+        var r = await _sut.NotificarResponsaveisAsync("tec@resqui.local", new NotificarResponsaveisCmd("R-1", "R-2"));
+
+        r.Notificados.Should().HaveCount(2);
+        r.NaoResolvidos.Should().BeEmpty();
+        await _notifs.Received(1).CriarAsync("u-1", Arg.Any<string>(), "compat", "R-1|R-2", "amber");
+        await _notifs.Received(1).CriarAsync("u-2", Arg.Any<string>(), "compat", "R-1|R-2", "amber");
+    }
+
+    [Fact]
+    public async Task Notificar_UsaSeveridadeRed_QuandoNivelEhProibido()
+    {
+        SeedPar(nivel: 3, descricao: "Proibido");
+        SeedUsuarios(Usuario("u-1", "ana@resqui.local", "Ana Souza"));
+
+        await _sut.NotificarResponsaveisAsync("tec@resqui.local", new NotificarResponsaveisCmd("R-1", "R-2"));
+
+        await _notifs.Received(1).CriarAsync("u-1", Arg.Any<string>(), "compat", "R-1|R-2", "red");
+    }
+
+    [Fact]
+    public async Task Notificar_ResolvePorEmail_QuandoOResponsavelEhUmEndereco()
+    {
+        _reagentes.GetByIdAsync("R-1").Returns(new Reagente
+            { Id = "R-1", Nome = "Metanol", ClasseReatividade = 5, Responsavel = "ana@resqui.local" });
+        SeedUsuarios(Usuario("u-1", "ana@resqui.local", null), Usuario("u-2", "bruno@resqui.local", "Bruno Lima"));
+
+        var r = await _sut.NotificarResponsaveisAsync("tec@resqui.local", new NotificarResponsaveisCmd("R-1", "R-2"));
+
+        r.Notificados.Should().Contain(n => n.UsuarioId == "u-1");
+    }
+
+    [Fact]
+    public async Task Notificar_NaoResolve_QuandoONomeCorrespondeAMaisDeUmUsuario()
+    {
+        SeedUsuarios(
+            Usuario("u-1", "ana1@resqui.local", "Ana Souza"),
+            Usuario("u-3", "ana2@resqui.local", "Ana Souza"),
+            Usuario("u-2", "bruno@resqui.local", "Bruno Lima"));
+
+        var r = await _sut.NotificarResponsaveisAsync("tec@resqui.local", new NotificarResponsaveisCmd("R-1", "R-2"));
+
+        r.NaoResolvidos.Should().ContainSingle(n => n.Responsavel == "Ana Souza"
+            && n.Motivo.Contains("mais de um usuário"));
+        await _notifs.DidNotReceive().CriarAsync("u-1", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Notificar_IgnoraUsuarioArquivado()
+    {
+        SeedUsuarios(
+            Usuario("u-1", "ana@resqui.local", "Ana Souza", arquivado: true),
+            Usuario("u-2", "bruno@resqui.local", "Bruno Lima"));
+
+        var r = await _sut.NotificarResponsaveisAsync("tec@resqui.local", new NotificarResponsaveisCmd("R-1", "R-2"));
+
+        r.Notificados.Should().ContainSingle(n => n.UsuarioId == "u-2");
+        r.NaoResolvidos.Should().ContainSingle(n => n.Responsavel == "Ana Souza");
+    }
+
+    [Fact]
+    public async Task Notificar_ReportaReagenteSemResponsavel()
+    {
+        _reagentes.GetByIdAsync("R-1").Returns(new Reagente
+            { Id = "R-1", Nome = "Metanol", ClasseReatividade = 5, Responsavel = "  " });
+        SeedUsuarios(Usuario("u-2", "bruno@resqui.local", "Bruno Lima"));
+
+        var r = await _sut.NotificarResponsaveisAsync("tec@resqui.local", new NotificarResponsaveisCmd("R-1", "R-2"));
+
+        r.NaoResolvidos.Should().ContainSingle(n => n.Motivo.Contains("sem responsável"));
+    }
+
+    [Fact]
+    public async Task Notificar_CriaUmaSoNotificacao_QuandoOsDoisReagentesTemOMesmoResponsavel()
+    {
+        _reagentes.GetByIdAsync("R-2").Returns(new Reagente
+            { Id = "R-2", Nome = "Ácido Nítrico", ClasseReatividade = 10, Responsavel = "Ana Souza" });
+        SeedUsuarios(Usuario("u-1", "ana@resqui.local", "Ana Souza"));
+
+        var r = await _sut.NotificarResponsaveisAsync("tec@resqui.local", new NotificarResponsaveisCmd("R-1", "R-2"));
+
+        r.Notificados.Should().ContainSingle();
+        await _notifs.Received(1).CriarAsync("u-1", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Notificar_Recusa_QuandoNivelEhMenorQueDois()
+    {
+        SeedPar(nivel: 1, descricao: "Cautela");
+        SeedUsuarios(Usuario("u-1", "ana@resqui.local", "Ana Souza"));
+
+        var act = () => _sut.NotificarResponsaveisAsync("tec@resqui.local", new NotificarResponsaveisCmd("R-1", "R-2"));
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _notifs.DidNotReceive().CriarAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Notificar_AuditaMedium_MesmoQuandoNinguemFoiResolvido()
+    {
+        SeedUsuarios(Usuario("u-9", "outro@resqui.local", "Outro Alguém"));
+
+        var r = await _sut.NotificarResponsaveisAsync("tec@resqui.local", new NotificarResponsaveisCmd("R-1", "R-2"));
+
+        r.Notificados.Should().BeEmpty();
+        r.NaoResolvidos.Should().HaveCount(2);
+        await _notifs.DidNotReceive().CriarAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+        await _audit.Received(1).RegistrarAsync(
+            "tec@resqui.local", "compat.notificar", "Compatibilidade", Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
 }
