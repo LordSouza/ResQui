@@ -18,7 +18,6 @@ export function DashboardScreen({ state, dispatch }) {
   const totalReagentes = totalData?.total;
   const expirando = expirData?.total;
   const aguardando = residuosData.filter(r => r.status === 'aguardando-coleta').length;
-  const mtrPendentes = mtrsData.filter(m => m.status === 'pendente-sinir').length;
   const volumeAguardando = Math.round(
     residuosData.filter(r => r.status === 'aguardando-coleta')
       .reduce((s, r) => s + litrosEquivalentes(r.volume, r.unidade), 0)
@@ -72,11 +71,6 @@ export function DashboardScreen({ state, dispatch }) {
           <div className="kpi-stripe"/>
           <div className="label">Resíduos aguardando coleta</div>
           <div className="value tnum">{aguardando}<span className="unit">/ {volumeAguardando} L</span></div>
-        </div>
-        <div className={`kpi ${mtrPendentes > 0 ? 'warn' : ''}`}>
-          <div className="kpi-stripe"/>
-          <div className="label">MTRs pendentes SINIR</div>
-          <div className="value tnum">{mtrPendentes}<span className="unit">MTRs</span></div>
         </div>
       </div>
 

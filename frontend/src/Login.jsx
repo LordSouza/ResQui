@@ -51,10 +51,6 @@ export function LoginScreen() {
               <div className="lbl">itens em inventário</div>
             </div>
             <div>
-              <div className="num">98<span style={{fontSize: 14}}>%</span></div>
-              <div className="lbl">conformidade SINIR</div>
-            </div>
-            <div>
               <div className="num">12</div>
               <div className="lbl">classes de reatividade</div>
             </div>

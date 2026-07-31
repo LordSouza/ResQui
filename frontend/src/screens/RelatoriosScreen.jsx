@@ -10,7 +10,6 @@ const TIPOS = [
   { slug: 'inventario',     titulo: 'Inventário de reagentes',      desc: 'Listagem completa com estoque, validade e classe' },
   { slug: 'mapa-risco',     titulo: 'Mapa de risco químico',        desc: 'Por classe e sinal GHS' },
   { slug: 'residuos-ibama', titulo: 'Resíduos por código IBAMA',    desc: 'Agregados com número de MTR vinculado' },
-  { slug: 'sinir',          titulo: 'Declaração SINIR trimestral',  desc: 'MTRs com status aceito-sinir' },
   { slug: 'indicadores',    titulo: 'Indicadores de geração',       desc: 'Volume (L) por mês e por laboratório' },
 ];
 

@@ -166,7 +166,7 @@ Se não souber qual reagente, peça esclarecimento usando action="explain".`;
             <Icon name="send" size={14}/>
           </button>
         </div>
-        <div className="chat-foot">MCP · acesso a inventário, resíduos, compat. matrix e SINIR</div>
+        <div className="chat-foot">MCP · acesso a inventário, resíduos, compat. matrix e manifestos</div>
       </div>
     </div>
   );

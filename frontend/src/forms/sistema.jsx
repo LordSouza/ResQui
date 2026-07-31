@@ -395,7 +395,6 @@ export function FormNotificacoes({ onClose }) {
   const tipos = [
     { key: 'expiry',    icon: 'warning',   label: 'Vencimento de reagentes' },
     { key: 'low-stock', icon: 'flask',     label: 'Estoque abaixo do mínimo' },
-    { key: 'sinir',     icon: 'truck',     label: 'MTR pendente no SINIR' },
     { key: 'compat',    icon: 'shield',    label: 'Tentativa de incompatibilidade' },
     { key: 'coleta',    icon: 'clipboard', label: 'Resíduos aguardando coleta' },
   ];
@@ -531,7 +530,6 @@ export function FormDocs({ onClose }) {
       ['Registrando resíduos no Lab', '6 min', 'guia'],
       ['Imprimindo rótulos GHS conforme NBR 14725', '4 min', 'guia'],
       ['Como usar o motor de compatibilidade', '8 min', 'guia'],
-      ['Gerando e validando Pré-MTR no SINIR', '12 min', 'guia'],
     ]},
     { sec: 'Conformidade', items: [
       ['PGRS — estrutura obrigatória (Lei 12.305 art. 21)', '15 min', 'referência'],
@@ -540,7 +538,7 @@ export function FormDocs({ onClose }) {
     ]},
     { sec: 'Administração', items: [
       ['Papéis e permissões (RBAC)', '10 min', 'guia'],
-      ['Configurando integrações (SINIR, FEAM, IBAMA)', '8 min', 'guia'],
+      ['Papéis, políticas de autorização e sessões', '8 min', 'guia'],
       ['API REST do ResQui · OAuth 2.0', '20 min', 'referência'],
     ]},
     { sec: 'Assistente MCP', items: [

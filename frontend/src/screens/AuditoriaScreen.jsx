@@ -10,7 +10,7 @@ function FiltrosAvancadosAuditoria({ adv, setAdv, onClose, allData }) {
   const usuariosOpts = useMemo(() => [...new Set(allData.map(a => a.who))].toSorted(), [allData]);
   const locaisOpts = useMemo(() => [...new Set(allData.map(a => a.where))].filter(w => w && w !== '-').toSorted(), [allData]);
   const categoriasOpts = [
-    ['mtr.', 'MTR · SINIR'],
+    ['mtr.', 'MTR'],
     ['user.', 'Usuários e sessões'],
     ['compat.', 'Compatibilidade química'],
     ['item.', 'Movimentação de inventário'],

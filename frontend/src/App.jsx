@@ -5,7 +5,6 @@ import { useAuth } from './auth/AuthContext';
 import { useSessoes } from './auth/useSeguranca';
 import { useNotificacoes } from './notificacoes/useNotificacoes';
 import { useResíduos } from './residuos/useResíduos';
-import { useMtrs } from './mtrs/useMtrs';
 import { useMarcarLida } from './notificacoes/useMarcarLida';
 import { useMarcarTodasLidas } from './notificacoes/useMarcarTodasLidas';
 import { pgrsTs, exportCsv, iniciaisUsuario } from './utils';
@@ -42,7 +41,7 @@ const NAV = [
   { key: 'inventario', label: 'Inventário', icon: 'flask' },
   { key: 'compat', label: 'Compatibilidade', icon: 'shield' },
   { key: 'residuos', label: 'Resíduos', icon: 'trash' },
-  { key: 'mtr', label: 'Pré-MTR / SINIR', icon: 'truck' },
+  { key: 'mtr', label: 'Pré-MTR', icon: 'truck' },
   { key: 'auditoria', label: 'Auditoria', icon: 'audit' },
   { key: 'relatorios', label: 'Relatórios · PGRS', icon: 'file_chart' },
   { key: 'usuarios', label: 'Usuários', icon: 'clipboard', section: 'sistema' },
@@ -183,13 +182,12 @@ function NotifBell({ dispatch }) {
   const naoLidas = notificacoes.filter(n => !n.lida).length;
 
   const iconePara = (tipo) => ({
-    'expiry': 'warning', 'low-stock': 'flask', 'sinir': 'truck',
+    'expiry': 'warning', 'low-stock': 'flask',
     'compat': 'shield', 'coleta': 'clipboard',
   })[tipo] || 'bell';
 
   const navTarget = (n) => {
     if (n.tipo === 'expiry' || n.tipo === 'low-stock') return { screen: 'inventario' };
-    if (n.tipo === 'sinir') return { screen: 'mtr' };
     if (n.tipo === 'compat') return { screen: 'compat' };
     if (n.tipo === 'coleta') return { screen: 'residuos' };
     return null;
@@ -289,10 +287,8 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { user, token, logout } = useAuth();
   const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
-  const { data: mtrsNav = [] } = useMtrs({ enabled: !!token });
   const navBadges = {
     residuos: residuosNav.filter(r => r.status === 'aguardando-coleta').length,
-    mtr: mtrsNav.filter(m => m.status === 'pendente-sinir').length,
   };
 
   // limpar flash após animação

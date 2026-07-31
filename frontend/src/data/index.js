@@ -31,7 +31,7 @@ export let PICTOS_GHS = {
 export const PERMISSION_GROUPS = [
   { id: 'inventario', label: 'Inventário', icon: 'flask', items: [['inv.view','Visualizar inventário'],['inv.add','Cadastrar reagente'],['inv.edit','Editar ficha do reagente'],['inv.consume','Registrar baixa de estoque'],['inv.move','Mover entre armários'],['inv.delete','Excluir reagente']] },
   { id: 'residuos', label: 'Resíduos', icon: 'trash', items: [['res.view','Visualizar resíduos'],['res.register','Registrar novo resíduo'],['res.classify','Classificar / rotular'],['res.approve','Aprovar / rejeitar descarte'],['res.cancel','Cancelar registro']] },
-  { id: 'mtr', label: 'Pré-MTR · SINIR', icon: 'truck', items: [['mtr.view','Visualizar MTRs'],['mtr.draft','Criar pré-MTR'],['mtr.sinir','Validar e enviar ao SINIR']] },
+  { id: 'mtr', label: 'Pré-MTR', icon: 'truck', items: [['mtr.view','Visualizar MTRs'],['mtr.draft','Criar pré-MTR']] },
   { id: 'compat', label: 'Compatibilidade', icon: 'shield', items: [['compat.view','Consultar matriz'],['compat.override','Sobrepor bloqueio (c/ justificativa)']] },
   { id: 'labs', label: 'Laboratórios', icon: 'location', items: [['lab.view','Visualizar laboratórios'],['lab.create','Cadastrar laboratório'],['lab.edit','Editar laboratório'],['lab.archive','Arquivar laboratório']] },
   { id: 'rel', label: 'Auditoria & Relatórios', icon: 'audit', items: [['audit.view','Visualizar log de auditoria'],['audit.export','Exportar log em CSV'],['rel.view','Visualizar relatórios'],['rel.pgrs','Gerar / publicar PGRS']] },

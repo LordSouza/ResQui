@@ -33,11 +33,11 @@ describe('RelatoriosScreen', () => {
     expect(screen.getByRole('heading', { name: /Relatórios/i, level: 1 })).toBeInTheDocument();
   });
 
-  it('renders all 6 report type cards', () => {
+  it('renders all 5 report type cards', () => {
     render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(screen.getByText('PGRS Anual')).toBeInTheDocument();
     expect(screen.getByText('Inventário de reagentes')).toBeInTheDocument();
-    expect(screen.getByText('Declaração SINIR trimestral')).toBeInTheDocument();
+    expect(screen.getByText('Indicadores de geração')).toBeInTheDocument();
   });
 
   it('shows history section', () => {

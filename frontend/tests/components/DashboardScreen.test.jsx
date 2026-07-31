@@ -28,10 +28,7 @@ describe('DashboardScreen', () => {
         { status: 'aguardando-coleta', volume: 5000, unidade: 'mL' },
         { status: 'solicitado', volume: 3, unidade: 'L' },
       ]);
-      if (u.startsWith('/api/mtrs')) return json([
-        { status: 'pendente-sinir' },
-        { status: 'aceito-sinir' },
-      ]);
+      if (u.startsWith('/api/mtrs')) return json([{}, {}]);
       if (u.startsWith('/api/notificacoes')) return json([]);
       if (u.startsWith('/api/reagentes')) return json({ items: [], total: 847, page: 1, pageSize: 1 });
       return json({});
@@ -68,8 +65,9 @@ describe('DashboardScreen', () => {
 
   it('mostra métricas reais e não os números de conformidade inventados', async () => {
     render(<DashboardScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
-    // KPI de conformidade foi substituído por métrica real
-    expect(await screen.findByText('MTRs pendentes SINIR')).toBeInTheDocument();
+    // O KPI de MTR dependia de um status decorativo e saiu junto com ele.
+    expect(screen.queryByText(/MTRs pendentes/i)).toBeNull();
+    expect(screen.queryByText(/SINIR/i)).toBeNull();
     // conformidade inventada removida
     expect(screen.queryByText(/Conformidade SINIR/i)).toBeNull();
     expect(screen.queryByText(/Rotulagem GHS/i)).toBeNull();
