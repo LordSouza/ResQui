@@ -11,15 +11,15 @@ public class NotificacaoPrefsTests
 
     [Fact]
     public void TipoHabilitado_RetornaTrue()
-        => Avaliar("{\"sinir\":true}", "sinir").Should().BeTrue();
+        => Avaliar("{\"coleta\":true}", "coleta").Should().BeTrue();
 
     [Fact]
     public void TipoDesabilitado_RetornaFalse()
-        => Avaliar("{\"sinir\":false}", "sinir").Should().BeFalse();
+        => Avaliar("{\"coleta\":false}", "coleta").Should().BeFalse();
 
     [Fact]
     public void TipoAusente_RetornaFalse()
-        => Avaliar("{\"expiry\":true}", "sinir").Should().BeFalse();
+        => Avaliar("{\"expiry\":true}", "coleta").Should().BeFalse();
 
     [Theory]
     [InlineData(null)]
@@ -28,5 +28,5 @@ public class NotificacaoPrefsTests
     [InlineData("{ nao é json }")]
     [InlineData("[1,2,3]")]
     public void JsonInvalidoOuVazio_RetornaFalseSemLancar(string? json)
-        => Avaliar(json, "sinir").Should().BeFalse();
+        => Avaliar(json, "coleta").Should().BeFalse();
 }

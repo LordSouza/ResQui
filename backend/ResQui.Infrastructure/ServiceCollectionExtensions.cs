@@ -51,7 +51,6 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ExpiryChecker>();
         services.AddScoped<LowStockChecker>();
-        services.AddScoped<SinirChecker>();
         services.AddScoped<ColetaChecker>();
         services.AddScoped<CompatChecker>();
 

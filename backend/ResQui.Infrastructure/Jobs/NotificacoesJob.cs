@@ -31,7 +31,6 @@ public class NotificacoesJob(
         logger.LogDebug("Executando ciclo de notificações");
         await sp.GetRequiredService<ExpiryChecker>().RunAsync(ct);
         await sp.GetRequiredService<LowStockChecker>().RunAsync(ct);
-        await sp.GetRequiredService<SinirChecker>().RunAsync(ct);
         await sp.GetRequiredService<ColetaChecker>().RunAsync(ct);
         await sp.GetRequiredService<CompatChecker>().RunAsync(ct);
     }

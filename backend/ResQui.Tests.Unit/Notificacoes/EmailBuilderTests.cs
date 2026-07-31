@@ -22,14 +22,6 @@ public class EmailBuilderTests
     }
 
     [Fact]
-    public void BuildSinir_RetornaSubjectEHtmlComNumeroMtr()
-    {
-        var (subject, html) = NotificacaoEmailBuilder.BuildSinir("MTR-2026-001", 1);
-        subject.Should().Contain("SINIR");
-        html.Should().Contain("MTR-2026-001");
-    }
-
-    [Fact]
     public void BuildColeta_RetornaSubjectEHtmlComContagem()
     {
         var (subject, html) = NotificacaoEmailBuilder.BuildColeta(3);

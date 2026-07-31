@@ -19,8 +19,8 @@ describe('useGetNotificacaoPrefs', () => {
   it('chama GET /api/notificacoes/prefs', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ expiry: true, 'low-stock': false, sinir: false, compat: true, coleta: false }),
-      text: async () => JSON.stringify({ expiry: true, 'low-stock': false, sinir: false, compat: true, coleta: false }),
+      json: async () => ({ expiry: true, 'low-stock': false, compat: true, coleta: false }),
+      text: async () => JSON.stringify({ expiry: true, 'low-stock': false, compat: true, coleta: false }),
     });
     const { result } = renderHook(() => useGetNotificacaoPrefs(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -40,7 +40,7 @@ describe('useNotificacaoPrefs', () => {
     fetch.mockResolvedValueOnce({ ok: true });
     const { result } = renderHook(() => useNotificacaoPrefs(), { wrapper });
     await act(async () => {
-      result.current.mutate({ expiry: true, 'low-stock': true, sinir: false, compat: false, coleta: false });
+      result.current.mutate({ expiry: true, 'low-stock': true, compat: false, coleta: false });
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(fetch).toHaveBeenCalledWith('/api/notificacoes/prefs', expect.objectContaining({ method: 'PUT' }));

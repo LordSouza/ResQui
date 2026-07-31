@@ -30,13 +30,6 @@ public static class NotificacaoEmailBuilder
             $"abaixo do mínimo configurado de <strong>{estoqueMin:F2} {unidade}</strong>.</p>")
     );
 
-    public static (string Subject, string Html) BuildSinir(string numero, int id) =>
-    (
-        $"[ResQui] MTR aguarda envio ao SINIR: {numero}",
-        Layout("MTR pendente no SINIR",
-            $"<p>O MTR <strong>{numero}</strong> (ID: {id}) está como rascunho há mais de 2 dias e ainda não foi enviado ao SINIR.</p>")
-    );
-
     public static (string Subject, string Html) BuildColeta(int quantidade) =>
     (
         $"[ResQui] {quantidade} resíduo(s) aguardando coleta",

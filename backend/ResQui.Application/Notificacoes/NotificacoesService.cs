@@ -24,7 +24,6 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
         return new NotificacaoPrefsDto(
             dict.GetValueOrDefault("expiry"),
             dict.GetValueOrDefault("low-stock"),
-            dict.GetValueOrDefault("sinir"),
             dict.GetValueOrDefault("compat"),
             dict.GetValueOrDefault("coleta")
         );
@@ -36,7 +35,6 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
         {
             ["expiry"] = prefs.Expiry,
             ["low-stock"] = prefs.LowStock,
-            ["sinir"] = prefs.Sinir,
             ["compat"] = prefs.Compat,
             ["coleta"] = prefs.Coleta,
         };
