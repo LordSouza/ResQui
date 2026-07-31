@@ -57,3 +57,19 @@ test('selecting cautela pair shows Cautela result', async ({ page, request }) =>
   await selectById(page, 'compat-select-b', metanol.id);
   await expect(page.getByText(/Cautela/)).toBeVisible();
 });
+
+test('registrar parecer grava a entrada na auditoria', async ({ page, request }) => {
+  const { metanol, etanol } = await seedReagentes(request);
+  const marcador = `parecer-e2e-${Date.now()}`;
+
+  await loginAndNavigate(page, 'Compatibilidade');
+  await selectById(page, 'compat-select-a', metanol.id);
+  await selectById(page, 'compat-select-b', etanol.id);
+
+  await page.getByLabel(/Parecer técnico/i).fill(marcador);
+  await page.getByRole('button', { name: /Registrar parecer/i }).click();
+  await expect(page.getByText(/Parecer registrado no log de auditoria/i)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Auditoria' }).click();
+  await expect(page.getByText(marcador)).toBeVisible({ timeout: 5000 });
+});
