@@ -20,7 +20,6 @@ function FiltrosAvancadosAuditoria({ adv, setAdv, onClose, allData }) {
     ['support.', 'Chamados de suporte'],
     ['lab.', 'Laboratórios'],
     ['alert.', 'Alertas do sistema'],
-    ['fispq.', 'FISPQ'],
     ['label.', 'Rótulos GHS'],
     ['pgrs.', 'PGRS'],
   ];

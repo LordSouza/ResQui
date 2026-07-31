@@ -469,7 +469,7 @@ export function FormAtalhos({ onClose }) {
         [['N', 'M'], 'Novo Pré-MTR'],
         [['B'], 'Baixar consumo do item atual'],
         [['P'], 'Imprimir rótulo GHS'],
-        [['F'], 'Abrir FISPQ'],
+        [['F'], 'Abrir resumo de segurança'],
       ],
     },
     {
