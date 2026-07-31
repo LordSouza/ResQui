@@ -166,7 +166,10 @@ public class MisturasAltoRiscoTests
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [1, 2]);
         var dto = await _mtrs.CriarAsync(cmd, "u1", "gestor@resqui.local");
 
-        dto.Numero.Should().StartWith("MTR-");
+        // O par Perigo não bloqueou: o manifesto foi criado com os dois resíduos.
+        // (O Numero fica nulo aqui porque quem o gera é o DEFAULT da coluna, não o serviço.)
+        dto.ResiduoIds.Should().BeEquivalentTo([1, 2]);
+        await _mtrsRepo.Received(1).AddAsync(Arg.Any<Mtr>());
     }
 
     [Theory]

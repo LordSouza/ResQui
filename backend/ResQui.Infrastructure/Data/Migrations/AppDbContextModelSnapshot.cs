@@ -456,7 +456,10 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.Property<string>("Numero")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValueSql("'MTR-' || to_char(now(), 'YYYY') || '-' || lpad(nextval('mtrs_numero_seq')::text, 4, '0')");
 
                     b.Property<string>("ResponsavelId")
                         .HasColumnType("text");
@@ -466,6 +469,9 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Numero")
+                        .IsUnique();
 
                     b.HasIndex("ResponsavelId");
 

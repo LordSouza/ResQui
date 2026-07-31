@@ -56,10 +56,10 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
                 "Emita MTRs separados para esses resíduos.");
         }
 
-        var numero = $"MTR-{DateTime.UtcNow.Year}-{Random.Shared.Next(1000, 9999)}";
+        // Numero é gerado pelo banco (DEFAULT da coluna, sequência mtrs_numero_seq) — ver
+        // MtrConfiguration. Atribuir aqui sobrescreveria o valor único por um palpite.
         var m = new Mtr
         {
-            Numero = numero,
             Gerador = cmd.Gerador,
             Transportadora = cmd.Transportadora,
             Destinador = cmd.Destinador,

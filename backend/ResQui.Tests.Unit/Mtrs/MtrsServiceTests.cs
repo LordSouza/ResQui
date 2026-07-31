@@ -109,6 +109,27 @@ public class MtrsServiceTests
             Arg.Any<string>(), RiscoAuditoria.Medium);
     }
 
+    [Fact]
+    public async Task CriarAsync_NaoAtribuiNumero_DeixaParaOBanco()
+    {
+        var r = FakeResiduo(10);
+        Mtr? gravado = null;
+        _repo.AddAsync(Arg.Do<Mtr>(m => gravado = m)).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+        _repo.UpdateAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
+        _residuosRepo.GetByIdAsync(10).Returns(r);
+        _residuosRepo.GetAllAsync().Returns(new List<Residuo> { r }.AsEnumerable());
+        _residuosRepo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
+        _residuosRepo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        await _sut.CriarAsync(new CriarMtrCmd("Unifei", "EcoLog", null, null, [10]), "u1", "ana@lab.com");
+
+        // O número é DEFAULT da coluna (sequência mtrs_numero_seq): o serviço não pode inventá-lo,
+        // senão o valor sorteado sobrescreve o do banco e a unicidade volta a depender de sorte.
+        gravado.Should().NotBeNull();
+        gravado!.Numero.Should().BeNull();
+    }
+
     [Theory]
     [InlineData("", "Transp")]
     [InlineData("Gerador", "")]
