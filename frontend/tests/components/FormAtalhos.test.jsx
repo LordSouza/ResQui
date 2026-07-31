@@ -11,7 +11,28 @@ describe('FormAtalhos', () => {
     expect(screen.getByText(/mostrar este painel/i)).toBeInTheDocument();
     expect(screen.getByText(/abrir\/fechar chat mcp/i)).toBeInTheDocument();
     expect(screen.getByText(/enviar mensagem/i)).toBeInTheDocument();
+    expect(screen.getByText(/nova linha na mensagem/i)).toBeInTheDocument();
     expect(screen.getByText(/fechar modal/i)).toBeInTheDocument();
+  });
+
+  it('envio do chat é Enter puro (Shift+Enter é nova linha) — não anuncia ⌘/Ctrl', () => {
+    render(<FormAtalhos onClose={vi.fn()} />);
+
+    const linha = screen.getByText(/enviar mensagem no chat/i).closest('div');
+    expect(linha.textContent).not.toMatch(/⌘|ctrl/i);
+    expect(linha.textContent).toMatch(/enter/i);
+  });
+
+  it('atalhos com modificador anunciam a forma Mac e a forma Windows/Linux', () => {
+    render(<FormAtalhos onClose={vi.fn()} />);
+
+    const buscaLinha = screen.getByText(/abrir busca global/i).closest('div');
+    expect(buscaLinha.textContent).toMatch(/⌘/);
+    expect(buscaLinha.textContent).toMatch(/ctrl/i);
+
+    const chatLinha = screen.getByText(/abrir\/fechar chat mcp/i).closest('div');
+    expect(chatLinha.textContent).toMatch(/⌘/);
+    expect(chatLinha.textContent).toMatch(/ctrl/i);
   });
 
   it('não anuncia atalhos que não existem', () => {

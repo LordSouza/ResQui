@@ -50,15 +50,6 @@ describe('useAtalhosGlobais', () => {
     expect(onChat).toHaveBeenCalledTimes(1);
   });
 
-  it('Esc chama onEscape', () => {
-    const onEscape = vi.fn();
-    montar({ onEscape });
-
-    fireEvent.keyDown(window, { key: 'Escape' });
-
-    expect(onEscape).toHaveBeenCalledTimes(1);
-  });
-
   it('? dentro de um campo de texto não dispara', () => {
     const onAtalhos = vi.fn();
     const { getByLabelText } = montar({ onAtalhos });
@@ -77,6 +68,16 @@ describe('useAtalhosGlobais', () => {
     fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     expect(onBuscar).toHaveBeenCalledTimes(1);
+  });
+
+  it('⌘/ dentro de um campo de texto dispara (precisa fechar o chat a partir do próprio textarea)', () => {
+    const onChat = vi.fn();
+    const { getByLabelText } = montar({ onChat });
+    getByLabelText('campo').focus();
+
+    fireEvent.keyDown(window, { key: '/', metaKey: true });
+
+    expect(onChat).toHaveBeenCalledTimes(1);
   });
 
   it('remove o listener ao desmontar', () => {

@@ -167,4 +167,16 @@ describe('BuscaGlobal', () => {
 
     await waitFor(() => expect(screen.queryByText('Ácido teste 1')).not.toBeInTheDocument());
   });
+
+  it('Esc fecha o painel também com o foco num resultado (após Tab para dentro da lista)', async () => {
+    const { campo } = renderCom();
+
+    fireEvent.change(campo, { target: { value: 'ácid' } });
+    const resultado = await screen.findByText('Ácido teste 1', {}, { timeout: 3000 });
+    resultado.closest('button').focus();
+
+    fireEvent.keyDown(resultado.closest('button'), { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByText('Ácido teste 1')).not.toBeInTheDocument());
+  });
 });

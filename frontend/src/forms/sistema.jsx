@@ -452,7 +452,7 @@ export function FormAtalhos({ onClose }) {
     {
       titulo: 'Busca e navegação',
       atalhos: [
-        [['⌘', 'K'], 'Abrir busca global'],
+        [['⌘K ou Ctrl+K'], 'Abrir busca global'],
         [['Esc'], 'Fechar busca'],
         [['?'], 'Mostrar este painel'],
       ],
@@ -460,8 +460,9 @@ export function FormAtalhos({ onClose }) {
     {
       titulo: 'Assistente e modais',
       atalhos: [
-        [['⌘', '/'], 'Abrir/fechar chat MCP'],
-        [['⌘', 'Enter'], 'Enviar mensagem no chat'],
+        [['⌘/ ou Ctrl+/'], 'Abrir/fechar chat MCP'],
+        [['Enter'], 'Enviar mensagem no chat'],
+        [['Shift', 'Enter'], 'Nova linha na mensagem'],
         [['Esc'], 'Fechar modal / cancelar'],
       ],
     },

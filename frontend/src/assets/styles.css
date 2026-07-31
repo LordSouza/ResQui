@@ -1902,7 +1902,10 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 
 /* ============== BUSCA GLOBAL ============== */
 .busca-dropdown {
-  position: absolute; top: calc(100% + 6px); left: 0;
+  /* right: 0 (não left: 0) — o painel (420px) é mais largo que o campo (320px); alinhado
+     pela direita ele cresce para a esquerda em vez de cobrir o sino de notificações e o
+     botão MCP, que ficam logo à direita do campo na topbar */
+  position: absolute; top: calc(100% + 6px); right: 0;
   background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.08);
   width: 420px; max-height: 420px; overflow-y: auto; z-index: 100;

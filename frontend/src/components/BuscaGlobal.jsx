@@ -60,7 +60,10 @@ export function BuscaGlobal({ dispatch, inputRef }) {
   const mtrsQ = useMtrs({ enabled: ativo });
   const usuariosQ = useUsuarios({ enabled: ativo && admin });
 
-  // o filtro local sobre os itens do servidor descarta resposta obsoleta de um termo anterior
+  // o filtro local é o único mecanismo de busca para resíduos, MTRs e usuários: as listas
+  // desses três vêm inteiras do servidor e suas query keys não dependem do termo (diferente
+  // de reagentes, cuja queryKey inclui `q` — o servidor já filtra, e o cache por chave evita
+  // resposta obsoleta sozinho, sem ajuda deste filtro)
   const reagentes = (reagentesQ.data?.items ?? []).filter(r => casa(r.nome, r.cas, r.id));
   const residuos = (residuosQ.data ?? []).filter(r => casa(r.descricao, r.id));
   const mtrs = (mtrsQ.data ?? []).filter(m => casa(m.numero, m.gerador, m.transportadora));
@@ -82,7 +85,18 @@ export function BuscaGlobal({ dispatch, inputRef }) {
   };
 
   return (
-    <div className="topbar-search" ref={wrapRef}>
+    <div
+      className="topbar-search"
+      ref={wrapRef}
+      onKeyDown={e => {
+        // no capítulo raiz (não só no <input>) para pegar o Esc também com foco num
+        // resultado do painel (são <button>, focáveis por Tab) — evento de teclado de
+        // filho borbulha em React, então "Fechar busca" vale em qualquer lugar do painel
+        if (e.key !== 'Escape') return;
+        setAberto(false);
+        if (wrapRef.current?.contains(document.activeElement)) document.activeElement.blur();
+      }}
+    >
       <span className="icon"><Icon name="search" size={14}/></span>
       <input
         ref={inputRef}
@@ -91,7 +105,6 @@ export function BuscaGlobal({ dispatch, inputRef }) {
         value={termo}
         onChange={e => { setTermo(e.target.value); setAberto(true); }}
         onFocus={() => setAberto(true)}
-        onKeyDown={e => { if (e.key === 'Escape') { setAberto(false); e.currentTarget.blur(); } }}
       />
       <span className="kbd">⌘K</span>
 
