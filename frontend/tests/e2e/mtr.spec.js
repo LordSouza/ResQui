@@ -11,7 +11,7 @@ async function loginAndNavigate(page, navLabel) {
 }
 
 test('shows MTR list on the Pré-MTR screen', async ({ page }) => {
-  await loginAndNavigate(page, 'Pré-MTR / SINIR');
+  await loginAndNavigate(page, 'Pré-MTR');
   await expect(page.getByText('MTRs emitidos')).toBeVisible();
 });
 
@@ -21,7 +21,7 @@ test('Novo Pré-MTR modal opens with default values', async ({ page, request }) 
   const auth = await apiAuth(request);
   await seedPgrsConfig(request, auth);
 
-  await loginAndNavigate(page, 'Pré-MTR / SINIR');
+  await loginAndNavigate(page, 'Pré-MTR');
   await page.getByRole('button', { name: /Novo Pré-MTR/i }).click();
   await expect(page.locator('.modal-title', { hasText: 'Novo Pré-MTR' })).toBeVisible();
   await expect(page.getByLabel('Gerador')).toHaveValue(PGRS_CONFIG_E2E.GeradorPadrao);
@@ -35,7 +35,7 @@ test('new MTR appears in the list after creating with a selected resíduo', asyn
   await criarResiduoAguardandoColeta(request, auth);
   await seedPgrsConfig(request, auth);
 
-  await loginAndNavigate(page, 'Pré-MTR / SINIR');
+  await loginAndNavigate(page, 'Pré-MTR');
   const mtrTable = page.locator('.card').filter({ hasText: 'MTRs emitidos' }).locator('tbody tr');
   const countBefore = await mtrTable.count();
 

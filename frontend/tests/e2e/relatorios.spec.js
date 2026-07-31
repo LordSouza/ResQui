@@ -9,14 +9,14 @@ async function loginAndNavigate(page, navLabel) {
   await page.getByRole('button', { name: new RegExp(navLabel.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&')) }).click();
 }
 
-test('shows the relatorios screen with the six report cards', async ({ page }) => {
+test('shows the relatorios screen with the five report cards', async ({ page }) => {
   await loginAndNavigate(page, 'Relatórios · PGRS');
   await expect(page.getByText('Relatórios e PGRS')).toBeVisible();
   // .first() — os títulos também aparecem nas linhas do histórico de relatórios
   await expect(page.getByText('PGRS Anual').first()).toBeVisible();
   await expect(page.getByText('Inventário de reagentes').first()).toBeVisible();
-  await expect(page.getByText('Declaração SINIR trimestral').first()).toBeVisible();
-  await expect(page.getByRole('button', { name: /Gerar/ })).toHaveCount(6);
+  await expect(page.getByText('Indicadores de geração').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /Gerar/ })).toHaveCount(5);
 });
 
 test('shows the report history section', async ({ page }) => {

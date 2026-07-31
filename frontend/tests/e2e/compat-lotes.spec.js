@@ -60,7 +60,7 @@ test('lote criado soma ao estoque e baixa decrementa', async ({ request }) => {
   expect(excesso.status()).toBe(400);
 });
 
-test('downloads de rótulo PDF, MTR PDF e CSV SINIR retornam arquivos', async ({ request }) => {
+test('downloads de rótulo PDF e MTR PDF retornam arquivos', async ({ request }) => {
   const auth = await apiAuth(request);
   const reag = await ensureReagente(request, auth, { nome: 'Reag PDF E2E', cas: '222-22-2', classe: 5 });
 
@@ -78,9 +78,4 @@ test('downloads de rótulo PDF, MTR PDF e CSV SINIR retornam arquivos', async ({
   const pdf = await request.get(`/api/mtrs/${mtr.id}/pdf`, { headers: auth });
   expect(pdf.ok()).toBeTruthy();
   expect(pdf.headers()['content-type']).toContain('application/pdf');
-
-  const csv = await request.get(`/api/mtrs/${mtr.id}/export-sinir`, { headers: auth });
-  expect(csv.ok()).toBeTruthy();
-  expect(csv.headers()['content-type']).toContain('text/csv');
-  expect(await csv.text()).toContain('manifesto;data_emissao');
 });
