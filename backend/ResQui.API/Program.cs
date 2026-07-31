@@ -55,6 +55,7 @@ builder.Services.AddScoped<ILaboratoriosService, LaboratoriosService>();
 builder.Services.AddScoped<IResiduosService, ResiduosService>();
 builder.Services.AddScoped<IMtrsService, MtrsService>();
 builder.Services.AddScoped<ICompatService, CompatService>();
+builder.Services.AddScoped<ICompatAcoesService, CompatAcoesService>();
 builder.Services.AddScoped<IChamadosService, ChamadosService>();
 builder.Services.AddScoped<INotificacoesService, NotificacoesService>();
 builder.Services.AddScoped<IUsuariosService, UsuariosService>();

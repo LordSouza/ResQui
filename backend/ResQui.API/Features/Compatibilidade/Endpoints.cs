@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ResQui.Application.Compatibilidade;
 
 namespace ResQui.API.Features.Compatibilidade;
@@ -30,6 +31,14 @@ public static class Endpoints
                 return Results.NoContent();
             })
             .RequireAuthorization("Gestor");
+
+        group.MapPost("/parecer", async (RegistrarParecerCmd cmd, ICompatAcoesService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            await svc.RegistrarParecerAsync(email, cmd);
+            return Results.NoContent();
+        })
+        .RequireAuthorization("Operacional");
 
         return group;
     }
