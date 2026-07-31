@@ -166,7 +166,6 @@ public class PdfService : IPdfService
                     Linha("Destinador", m.Destinador ?? "—");
                     Linha("Código IBAMA", m.CodigoIbama ?? "—");
                     Linha("Massa total (kg)", m.Massa.ToString("F3"));
-                    Linha("Status", m.Status.ToString());
                 });
 
                 col.Item().PaddingTop(12).Text($"Resíduos ({residuos.Count})").Bold().FontSize(12);

@@ -461,9 +461,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<string>("ResponsavelId")
                         .HasColumnType("text");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Transportadora")
                         .IsRequired()
                         .HasColumnType("text");

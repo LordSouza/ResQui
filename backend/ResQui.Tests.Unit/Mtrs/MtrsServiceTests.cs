@@ -25,11 +25,11 @@ public class MtrsServiceTests
         _sut = new MtrsService(_repo, _residuosRepo, _audit, _compat, _pdf);
     }
 
-    private static Mtr FakeMtr(int id = 1, MtrStatus status = MtrStatus.Rascunho) => new()
+    private static Mtr FakeMtr(int id = 1) => new()
     {
         Id = id, Numero = $"MTR-2026-{id:D4}", Gerador = "Unifei",
         Transportadora = "EcoLog", ResponsavelId = "user1",
-        Status = status, Destinador = "EcoQuímica SA", CodigoIbama = "A099",
+        Destinador = "EcoQuímica SA", CodigoIbama = "A099",
     };
 
     private static Residuo FakeResiduo(int id, int? mtrId = null) => new()

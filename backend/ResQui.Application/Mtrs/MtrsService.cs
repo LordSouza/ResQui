@@ -108,6 +108,6 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
     {
         var ids = todosResíduos.Where(r => r.MtrId == m.Id).Select(r => r.Id).ToList();
         return new MtrDto(m.Id, m.Numero, m.Gerador, m.Transportadora,
-            m.Status.ToString(), m.DataEmissao, m.Destinador, m.CodigoIbama, m.Massa, ids);
+            m.DataEmissao, m.Destinador, m.CodigoIbama, m.Massa, ids);
     }
 }

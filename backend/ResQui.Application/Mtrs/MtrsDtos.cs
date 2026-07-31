@@ -5,7 +5,6 @@ public record MtrDto(
     string Numero,
     string Gerador,
     string Transportadora,
-    string Status,
     DateTime DataEmissao,
     string? Destinador,
     string? CodigoIbama,

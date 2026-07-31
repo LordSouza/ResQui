@@ -62,8 +62,8 @@ public static class DemoDataSeeder
         if (!await db.Mtrs.AnyAsync())
         {
             db.Mtrs.AddRange(
-                new Mtr { Numero = "MTR-2026-1101", Gerador = "Unifei", Transportadora = "EcoLog Transportes", Destinador = "EcoQuímica SA", CodigoIbama = "A099", ResponsavelId = adminId, Status = MtrStatus.Rascunho, DataEmissao = DateTime.UtcNow.AddDays(-5), Massa = 6.5m },
-                new Mtr { Numero = "MTR-2026-1102", Gerador = "Unifei", Transportadora = "CleanWaste", Destinador = "Resitec Ambiental", CodigoIbama = "A104", ResponsavelId = adminId, Status = MtrStatus.AceitoSinir, DataEmissao = DateTime.UtcNow.AddDays(-20), Massa = 12.3m });
+                new Mtr { Numero = "MTR-2026-1101", Gerador = "Unifei", Transportadora = "EcoLog Transportes", Destinador = "EcoQuímica SA", CodigoIbama = "A099", ResponsavelId = adminId, DataEmissao = DateTime.UtcNow.AddDays(-5), Massa = 6.5m },
+                new Mtr { Numero = "MTR-2026-1102", Gerador = "Unifei", Transportadora = "CleanWaste", Destinador = "Resitec Ambiental", CodigoIbama = "A104", ResponsavelId = adminId, DataEmissao = DateTime.UtcNow.AddDays(-20), Massa = 12.3m });
             await db.SaveChangesAsync();
         }
 
