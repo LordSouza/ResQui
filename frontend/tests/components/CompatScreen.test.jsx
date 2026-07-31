@@ -1,10 +1,13 @@
 // frontend/tests/components/CompatScreen.test.jsx
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CompatScreen } from '../../src/screens/CompatScreen';
 import { initialState } from '../../src/store/reducer';
 
-vi.mock('../../src/components/ToastContext', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
+vi.mock('../../src/components/ToastContext', () => ({ useToast: vi.fn() }));
+vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
+vi.mock('../../src/compat/useRegistrarParecer', () => ({ useRegistrarParecer: vi.fn() }));
+vi.mock('../../src/compat/useNotificarResponsaveis', () => ({ useNotificarResponsaveis: vi.fn() }));
 
 vi.mock('../../src/compat/useCompatMatriz', () => ({
   useCompatMatriz: vi.fn(),
@@ -24,6 +27,10 @@ vi.mock('../../src/utils', async (importOriginal) => ({
 }));
 
 import { exportCsv } from '../../src/utils';
+import { useToast } from '../../src/components/ToastContext';
+import { useAuth } from '../../src/auth/AuthContext';
+import { useRegistrarParecer } from '../../src/compat/useRegistrarParecer';
+import { useNotificarResponsaveis } from '../../src/compat/useNotificarResponsaveis';
 import { useCompatMatriz } from '../../src/compat/useCompatMatriz';
 import { useCompatOverrides } from '../../src/compat/useCompatOverrides';
 import { useReagentes } from '../../src/reagentes/useReagentes';
@@ -38,12 +45,36 @@ const baseFonte = {
   detalhamento: 'docs/compatibilidade-proveniencia.md',
 };
 
+let addToast;
+
 beforeEach(() => {
+  addToast = vi.fn();
+  useToast.mockReturnValue({ addToast });
+  useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+  useRegistrarParecer.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false });
+  useNotificarResponsaveis.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue({ notificados: [{ usuarioId: 'u-2', nome: 'Ana Souza' }], naoResolvidos: [] }),
+    isPending: false,
+  });
   useCompatMatriz.mockReturnValue({ data: { matrix: baseMatrix, fonte: baseFonte }, isPending: false, isError: false });
   useCompatOverrides.mockReturnValue({ data: [], isPending: false, isError: false });
   useReagentes.mockReturnValue({ data: { items: [], total: 0 }, isPending: false, isError: false, refetch: vi.fn() });
   useReagente.mockReturnValue({ data: null });
 });
+
+// Par selecionado: R-1 (classe 1) + R-2 (classe 3) → nível 3 na baseMatrix, então o botão
+// de notificar fica habilitado.
+function comParSelecionado() {
+  useReagentes.mockReturnValue({
+    data: { items: [{ id: 'R-1', nome: 'Metanol', classe: 1 }, { id: 'R-2', nome: 'Ácido', classe: 3 }], total: 2 },
+    isPending: false, isError: false, refetch: vi.fn(),
+  });
+  useReagente.mockImplementation((id) => ({
+    data: id === 'R-1'
+      ? { id: 'R-1', nome: 'Metanol', classe: 1, responsavel: 'Ana Souza', pictos: [], h: [] }
+      : { id: 'R-2', nome: 'Ácido', classe: 3, responsavel: 'Bruno Lima', pictos: [], h: [] },
+  }));
+}
 
 afterEach(() => vi.clearAllMocks());
 
@@ -100,5 +131,64 @@ describe('CompatScreen', () => {
     expect(linha('URL')[1]).toBe(baseFonte.url);
     expect(linha('Detalhamento')[1]).toBe(baseFonte.detalhamento);
     expect(linha('Revisado em')[1]).toBe(baseFonte.revisadoEm);
+  });
+});
+
+describe('CompatScreen — ações reais', () => {
+  beforeEach(() => comParSelecionado());
+
+  it('envia o parecer digitado junto com os ids do par', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue(undefined);
+    useRegistrarParecer.mockReturnValue({ mutateAsync, isPending: false });
+
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText(/Parecer técnico/i), { target: { value: 'Bandejas separadas.' } });
+    fireEvent.click(screen.getByRole('button', { name: /Registrar parecer/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({
+      reagenteAId: 'R-1', reagenteBId: 'R-2', parecer: 'Bandejas separadas.',
+    }));
+  });
+
+  it('mostra toast de sucesso com a mensagem como string', async () => {
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Registrar parecer/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalled());
+    expect(typeof addToast.mock.calls[0][0]).toBe('string');
+    expect(addToast.mock.calls[0][1]).toBe('success');
+  });
+
+  it('lista quem foi notificado', async () => {
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Notificar responsáveis/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalled());
+    expect(addToast.mock.calls[0][0]).toMatch(/Ana Souza/);
+    expect(addToast.mock.calls[0][1]).toBe('success');
+  });
+
+  it('não anuncia sucesso quando ninguém foi notificado', async () => {
+    useNotificarResponsaveis.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue({
+        notificados: [],
+        naoResolvidos: [{ responsavel: 'Ana Souza', motivo: 'não corresponde a nenhum usuário ativo' }],
+      }),
+      isPending: false,
+    });
+
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Notificar responsáveis/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalled());
+    expect(addToast.mock.calls[0][1]).toBe('error');
+    expect(addToast.mock.calls[0][0]).toMatch(/Ana Souza/);
+  });
+
+  it('esconde as duas ações do Visualizador', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-9', papel: 'Visualizador' } });
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Registrar parecer/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Notificar responsáveis/i })).toBeNull();
   });
 });

@@ -1,8 +1,11 @@
-import { useMemo, Fragment } from 'react';
+import { useMemo, useState, Fragment } from 'react';
 import { Icon, SectionTitle, Picto } from '../components';
 import { REATIVIDADE_CLASSES } from '../data';
+import { useAuth } from '../auth/AuthContext';
 import { useCompatMatriz } from '../compat/useCompatMatriz';
 import { useCompatOverrides } from '../compat/useCompatOverrides';
+import { useRegistrarParecer } from '../compat/useRegistrarParecer';
+import { useNotificarResponsaveis } from '../compat/useNotificarResponsaveis';
 import { useToast } from '../components/ToastContext';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useReagente } from '../reagentes/useReagente';
@@ -23,6 +26,11 @@ export function CompatScreen({ state, dispatch }) {
   const fonte = matrizData?.fonte;
   const { data: overrides = [] } = useCompatOverrides();
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const podeAgir = ['Admin', 'Gestor', 'Tecnico', 'Pesquisador', 'Professor'].includes(user?.papel);
+  const [parecer, setParecer] = useState('');
+  const registrarParecer = useRegistrarParecer();
+  const notificar = useNotificarResponsaveis();
   const overrideSet = new Set(overrides.map(o => `${o.classeA}-${o.classeB}`));
 
   const score = ra && rb && matrix ? (matrix[ra.classe]?.[rb.classe - 1] ?? 0) : 0;
@@ -116,13 +124,46 @@ export function CompatScreen({ state, dispatch }) {
               </div>
             </div>
 
-            <div className="row" style={{marginTop: 12, gap: 8}}>
-              <button type="button" className="btn btn-sm" onClick={() => addToast({ kind: 'success', msg: 'Parecer registrado no log de auditoria.' })}><Icon name="clipboard" size={13}/> Registrar parecer no log</button>
-              <button type="button" className="btn btn-sm" disabled={score < 2} onClick={() => {
-                const respA = ra?.responsavel; const respB = rb?.responsavel;
-                addToast({ kind: 'success', msg: `Notificação enviada para ${respA}${respA !== respB ? ' e ' + respB : ''}.` });
-              }}><Icon name="bell" size={13}/> Notificar responsáveis</button>
-            </div>
+            {podeAgir && (
+              <div style={{marginTop: 12}}>
+                <label className="lbl" htmlFor="compat-parecer">Parecer técnico (opcional)</label>
+                <textarea id="compat-parecer" className="inp" rows={3} maxLength={1000}
+                  placeholder="Ex.: armazenados em bandejas de contenção separadas, conforme decisão do responsável."
+                  value={parecer} onChange={(e) => setParecer(e.target.value)}/>
+
+                <div className="row" style={{marginTop: 8, gap: 8}}>
+                  <button type="button" className="btn btn-sm" disabled={registrarParecer.isPending}
+                    onClick={async () => {
+                      try {
+                        await registrarParecer.mutateAsync({ reagenteAId: a, reagenteBId: b, parecer });
+                        setParecer('');
+                        addToast('Parecer registrado no log de auditoria.', 'success');
+                      } catch (e) {
+                        addToast(e.message, 'error');
+                      }
+                    }}><Icon name="clipboard" size={13}/> Registrar parecer no log</button>
+
+                  <button type="button" className="btn btn-sm" disabled={score < 2 || notificar.isPending}
+                    onClick={async () => {
+                      try {
+                        const r = await notificar.mutateAsync({ reagenteAId: a, reagenteBId: b });
+                        const pendencias = (r.naoResolvidos ?? [])
+                          .map(n => `${n.responsavel} (${n.motivo})`).join('; ');
+                        if ((r.notificados ?? []).length === 0) {
+                          addToast(`Ninguém foi notificado: ${pendencias}`, 'error');
+                        } else {
+                          const nomes = r.notificados.map(n => n.nome).join(', ');
+                          addToast(
+                            `Notificados no sistema: ${nomes}.${pendencias ? ` Não resolvido: ${pendencias}` : ''}`,
+                            'success');
+                        }
+                      } catch (e) {
+                        addToast(e.message, 'error');
+                      }
+                    }}><Icon name="bell" size={13}/> Notificar responsáveis</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
