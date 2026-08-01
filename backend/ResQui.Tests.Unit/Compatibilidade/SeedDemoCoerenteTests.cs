@@ -1,6 +1,8 @@
-// Impede que o seed demo semeie uma combinação de classes que a própria matriz bloqueia —
-// um resíduo assim nasce ineditável (ResiduosService.AtualizarAsync revalida as classes a cada
-// edição) sem que nada no boot acuse o problema.
+// Impede que o seed demo semeie uma combinação de classes que a própria matriz bloqueia — um
+// resíduo assim contradiz a matriz que a demo existe para demonstrar, encalha na coleta se o par
+// for nível 3 (MtrsService) e recusa qualquer reclassificação, sem que nada no boot acuse o
+// problema. (Desde 2026-07-31 ele não fica ineditável: AtualizarAsync só revalida a mistura
+// quando o conjunto de classes muda.)
 using System.Text.RegularExpressions;
 using FluentAssertions;
 using ResQui.Infrastructure.Seed;
