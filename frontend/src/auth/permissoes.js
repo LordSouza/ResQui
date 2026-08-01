@@ -16,6 +16,18 @@ export function podePor(papel, policy) {
   return (POLICIES[policy] ?? []).includes(papel);
 }
 
+// Telas cujo conteúdo inteiro depende de um endpoint com policy: entrar nelas sem o papel só
+// renderiza erro de carregamento. As demais são legíveis por qualquer usuário autenticado.
+export const POLICY_POR_TELA = {
+  auditoria: 'Supervisao', // GET /api/auditoria
+  usuarios: 'Admin',       // grupo /api/usuarios inteiro
+};
+
+export function podeVerTela(papel, screen) {
+  const policy = POLICY_POR_TELA[screen];
+  return !policy || podePor(papel, policy);
+}
+
 // Hook de conveniência: usePode('Gestor') dentro de uma screen.
 export function usePode(policy) {
   const { user } = useAuth();

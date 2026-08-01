@@ -1,6 +1,6 @@
 // frontend/tests/unit/permissoes.test.js
 import { describe, it, expect } from 'vitest';
-import { POLICIES, podePor } from '../../src/auth/permissoes';
+import { POLICIES, podePor, podeVerTela } from '../../src/auth/permissoes';
 
 // Fonte da verdade: backend/ResQui.API/Program.cs:110-115. Se um caso aqui quebrar, o espelho
 // saiu de sincronia com o servidor — corrija o espelho, não o teste, a menos que a policy do
@@ -47,5 +47,32 @@ describe('podePor', () => {
     for (const policy of Object.keys(POLICIES)) {
       expect(podePor('Visualizador', policy)).toBe(false);
     }
+  });
+});
+
+describe('podeVerTela', () => {
+  it('libera as telas sem policy para qualquer papel', () => {
+    for (const papel of TODOS_OS_PAPEIS) {
+      expect(podeVerTela(papel, 'dashboard')).toBe(true);
+      expect(podeVerTela(papel, 'inventario')).toBe(true);
+      expect(podeVerTela(papel, 'chamados')).toBe(true);
+    }
+  });
+
+  // GET /api/auditoria exige Supervisao: Admin, Gestor ou Professor.
+  it.each([['Admin', true], ['Gestor', true], ['Professor', true], ['Tecnico', false], ['Pesquisador', false], ['Visualizador', false]])
+    ('auditoria para %s → %s', (papel, esperado) => {
+      expect(podeVerTela(papel, 'auditoria')).toBe(esperado);
+    });
+
+  // Todo o grupo /api/usuarios exige Admin.
+  it.each([['Admin', true], ['Gestor', false], ['Professor', false], ['Tecnico', false], ['Pesquisador', false], ['Visualizador', false]])
+    ('usuarios para %s → %s', (papel, esperado) => {
+      expect(podeVerTela(papel, 'usuarios')).toBe(esperado);
+    });
+
+  it('nega telas com policy quando o papel é desconhecido', () => {
+    expect(podeVerTela(undefined, 'auditoria')).toBe(false);
+    expect(podeVerTela(undefined, 'usuarios')).toBe(false);
   });
 });

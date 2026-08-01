@@ -37,6 +37,20 @@ import { FormNovoChamado } from './forms/chamados';
 import { FormEditarReagente } from './forms/FormEditarReagente';
 
 import { LoginScreen } from './Login';
+import { podeVerTela } from './auth/permissoes';
+
+// Renderizada no lugar de uma tela cujo papel do usuário não alcança. Não é segurança — a
+// autorização é do servidor —, é para não mostrar uma tela que só saberia exibir erro de carga.
+function AcessoRestrito({ state }) {
+  return (
+    <div className="page-error">
+      <b>Acesso restrito.</b>{' '}
+      {state?.screen === 'usuarios'
+        ? 'A gestão de usuários é exclusiva de administradores.'
+        : 'O log de auditoria é restrito a Admin, Gestor e Professor.'}
+    </div>
+  );
+}
 
 const NAV = [
   { key: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -169,7 +183,7 @@ const umBadge = {
   fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em',
 };
 
-function NotifBell({ dispatch }) {
+function NotifBell({ dispatch, papel }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const { data: notificacoes = [], isError } = useNotificacoes();
@@ -270,10 +284,12 @@ function NotifBell({ dispatch }) {
               style={notifFootBtn}>
               <Icon name="settings" size={12}/> Configurar
             </button>
-            <button type="button" onClick={() => { setOpen(false); dispatch({ type: 'nav', screen: 'auditoria' }); }}
-              style={notifFootBtn}>
-              <Icon name="audit" size={12}/> Ver histórico
-            </button>
+            {podeVerTela(papel, 'auditoria') && (
+              <button type="button" onClick={() => { setOpen(false); dispatch({ type: 'nav', screen: 'auditoria' }); }}
+                style={notifFootBtn}>
+                <Icon name="audit" size={12}/> Ver histórico
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -313,7 +329,10 @@ export default function App() {
     return <LoginScreen />;
   }
 
-  const Screen = (() => {
+  // Esconder o item da sidebar não basta: state.screen pode chegar a uma tela restrita por outro
+  // caminho (atalho, estado preservado). O render decide de novo, com a mesma regra — dentro do
+  // shell, para que a sidebar continue disponível em vez de prender o usuário.
+  const Screen = !podeVerTela(user?.papel, state.screen) ? AcessoRestrito : (() => {
     switch (state.screen) {
       case 'dashboard': return DashboardScreen;
       case 'laboratorios': return LaboratoriosScreen;
@@ -345,7 +364,7 @@ export default function App() {
 
         <div className="sidebar-section">Operação</div>
         <nav className="nav">
-          {NAV.slice(0, 5).map(n => (
+          {NAV.slice(0, 5).filter(n => podeVerTela(user?.papel, n.key)).map(n => (
             <button type="button" key={n.key} className={`nav-item ${state.screen === n.key || (n.key === 'inventario' && state.screen === 'detalhe') ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
@@ -357,7 +376,7 @@ export default function App() {
 
         <div className="sidebar-section">Conformidade</div>
         <nav className="nav">
-          {NAV.slice(5, 8).map(n => (
+          {NAV.slice(5, 8).filter(n => podeVerTela(user?.papel, n.key)).map(n => (
             <button type="button" key={n.key} className={`nav-item ${state.screen === n.key ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
@@ -369,7 +388,7 @@ export default function App() {
 
         <div className="sidebar-section">Sistema</div>
         <nav className="nav">
-          {NAV.reduce((acc, n) => n.section === 'sistema' ? [...acc, (
+          {NAV.reduce((acc, n) => n.section === 'sistema' && podeVerTela(user?.papel, n.key) ? [...acc, (
             <button type="button" key={n.key} className={`nav-item ${state.screen === n.key ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
@@ -406,7 +425,7 @@ export default function App() {
             )}
           </div>
           <BuscaGlobal dispatch={dispatch} inputRef={buscaRef}/>
-          <NotifBell dispatch={dispatch}/>
+          <NotifBell dispatch={dispatch} papel={user?.papel}/>
           <button type="button" className="topbar-btn" onClick={() => dispatch({type: 'openChat'})}>
             <Icon name="sparkle" size={13}/> MCP
           </button>
