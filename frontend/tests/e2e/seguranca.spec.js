@@ -444,3 +444,39 @@ test('pgrs-config exige Tecnico: Visualizador 403, Tecnico 200', async ({ reques
   });
   expect(permitido.ok()).toBeTruthy();
 });
+
+// O recorte de identificação existe para o resumo de segurança, aberto por qualquer papel: ele
+// libera razão social e unidade sem afrouxar o GET completo (CNPJ, endereço, contatos do RT).
+test('pgrs-config/identificacao é aberto a Visualizador e não vaza os campos restritos', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const stamp = Date.now();
+
+  await request.put('/api/pgrs-config', {
+    headers: auth,
+    data: {
+      RazaoSocial: 'Instituição E2E', Unidade: 'Campus E2E',
+      Cnpj: '00000000000100', Endereco: 'Rua E2E, 1',
+      RespTecnico: 'RT E2E', RespEmail: 'rt@e2e.local', RespTel: '35 90000-0000',
+    },
+  });
+
+  const visu = `idvisu_${stamp}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: visu, Senha: 'Visu@123', Papel: 'Visualizador', Nome: 'Id Visu' },
+  });
+  const { token } = await (await request.post('/api/auth/login', {
+    data: { Email: visu, Senha: 'Visu@123' },
+  })).json();
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const res = await request.get('/api/pgrs-config/identificacao', { headers });
+  expect(res.ok()).toBeTruthy();
+  const corpo = await res.json();
+  expect(corpo.razaoSocial).toBe('Instituição E2E');
+  expect(corpo.unidade).toBe('Campus E2E');
+  expect(Object.keys(corpo).sort()).toEqual(['razaoSocial', 'unidade']);
+
+  // O mesmo token continua barrado no endpoint completo.
+  expect((await request.get('/api/pgrs-config', { headers })).status()).toBe(403);
+});
