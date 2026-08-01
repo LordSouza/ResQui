@@ -3,8 +3,9 @@ import { Icon, Badge, Tag, SectionTitle } from '../components';
 import { REATIVIDADE_CLASSES } from '../data';
 import { exportCsv } from '../utils';
 import { useLaboratorios } from '../laboratorios/useLaboratorios';
+import { usePode } from '../auth/permissoes';
 
-function LabCard({ lab, onRemove, onEdit, dispatch, flash }) {
+function LabCard({ lab, onRemove, onEdit, dispatch, flash, podeEditar, podeRemover }) {
   return (
     <div className={`card lab-card ${flash ? 'flash' : ''}`}>
       <div className="lab-card-h" style={{ borderLeft: `3px solid ${lab.cor}` }}>
@@ -19,12 +20,16 @@ function LabCard({ lab, onRemove, onEdit, dispatch, flash }) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-            <button type="button" className="btn btn-ghost btn-sm" title="Editar laboratório" onClick={onEdit}>
-              <Icon name="edit" size={13} />
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" title="Remover laboratório" onClick={onRemove}>
-              <Icon name="trash" size={13} />
-            </button>
+            {podeEditar && (
+              <button type="button" className="btn btn-ghost btn-sm" title="Editar laboratório" onClick={onEdit}>
+                <Icon name="edit" size={13} />
+              </button>
+            )}
+            {podeRemover && (
+              <button type="button" className="btn btn-ghost btn-sm" title="Remover laboratório" onClick={onRemove}>
+                <Icon name="trash" size={13} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -64,6 +69,8 @@ function LabCard({ lab, onRemove, onEdit, dispatch, flash }) {
 
 export function LaboratoriosScreen({ state, dispatch }) {
   const { data: labs = [], isPending, isError, refetch } = useLaboratorios();
+  const podeGerir = usePode('Gestor');   // POST/PUT /api/laboratorios
+  const podeRemover = usePode('Admin');  // DELETE /api/laboratorios/:id
 
   const totalArmarios = labs.reduce((s, l) => s + l.armarios.length, 0);
   const totalArea = labs.reduce((s, l) => s + l.area_m2, 0);
@@ -82,9 +89,11 @@ export function LaboratoriosScreen({ state, dispatch }) {
             labs.forEach(l => rows.push([l.id, l.nome, l.responsavel, l.sala, l.capacidade, l.area_m2, l.armarios.join(';')]));
             exportCsv(rows, `planta-laboratorios-${new Date().toISOString().slice(0, 10)}.csv`);
           }}><Icon name="download" size={13} /> Exportar planta</button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'novoLab' })}>
-            <Icon name="plus" size={13} /> Novo laboratório
-          </button>
+          {podeGerir && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'novoLab' })}>
+              <Icon name="plus" size={13} /> Novo laboratório
+            </button>
+          )}
         </div>
       </div>
 
@@ -119,6 +128,8 @@ export function LaboratoriosScreen({ state, dispatch }) {
                 lab={lab}
                 onRemove={() => dispatch({ type: 'openModal', kind: 'removerLab', lab })}
                 onEdit={() => dispatch({ type: 'openModal', kind: 'editarLab', lab })}
+                podeEditar={podeGerir}
+                podeRemover={podeRemover}
                 dispatch={dispatch}
                 flash={state.flashId === lab.id}
               />
@@ -127,9 +138,11 @@ export function LaboratoriosScreen({ state, dispatch }) {
               <div className="card" style={{ gridColumn: '1 / -1' }}>
                 <div className="empty">
                   <div style={{ fontSize: 14, marginBottom: 6, color: 'var(--text-2)' }}>Nenhum laboratório cadastrado.</div>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'novoLab' })}>
-                    <Icon name="plus" size={13} /> Cadastrar primeiro laboratório
-                  </button>
+                  {podeGerir && (
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'novoLab' })}>
+                      <Icon name="plus" size={13} /> Cadastrar primeiro laboratório
+                    </button>
+                  )}
                 </div>
               </div>
             )}

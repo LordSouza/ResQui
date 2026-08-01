@@ -29,11 +29,14 @@ const mockReturn = {
 vi.mock('../../src/laboratorios/useLaboratorios', () => ({
   useLaboratorios: vi.fn(),
 }));
+vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
 
 import { useLaboratorios } from '../../src/laboratorios/useLaboratorios';
+import { useAuth } from '../../src/auth/AuthContext';
 
 beforeEach(() => {
   useLaboratorios.mockReturnValue(mockReturn);
+  useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Admin' } });
 });
 
 describe('LaboratoriosScreen', () => {
@@ -59,5 +62,42 @@ describe('LaboratoriosScreen', () => {
     useLaboratorios.mockReturnValue({ data: [], isPending: true, isError: false, refetch: vi.fn() });
     render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
     expect(screen.queryByText('Química Inorgânica')).not.toBeInTheDocument();
+  });
+});
+
+// POST/PUT /api/laboratorios exigem a policy Gestor; DELETE exige Admin.
+describe('LaboratoriosScreen — permissões', () => {
+  const renderCom = (papel) => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel } });
+    return render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
+  };
+
+  it.each(['Admin', 'Gestor'])('mostra criar e editar para %s', (papel) => {
+    renderCom(papel);
+    expect(screen.getByRole('button', { name: /Novo laboratório/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Editar laboratório' }).length).toBeGreaterThan(0);
+  });
+
+  it.each(['Tecnico', 'Professor', 'Pesquisador', 'Visualizador'])('esconde criar e editar de %s', (papel) => {
+    renderCom(papel);
+    expect(screen.queryByRole('button', { name: /Novo laboratório/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Editar laboratório' })).not.toBeInTheDocument();
+  });
+
+  it('só mostra remover para Admin — DELETE é a única rota de lab que exige Admin', () => {
+    renderCom('Admin');
+    expect(screen.getAllByRole('button', { name: 'Remover laboratório' }).length).toBeGreaterThan(0);
+  });
+
+  it('esconde remover de Gestor, que pode criar e editar mas não excluir', () => {
+    renderCom('Gestor');
+    expect(screen.getByRole('button', { name: /Novo laboratório/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remover laboratório' })).not.toBeInTheDocument();
+  });
+
+  it('esconde o atalho de cadastro do estado vazio para quem não pode criar', () => {
+    useLaboratorios.mockReturnValue({ data: [], isPending: false, isError: false, refetch: vi.fn() });
+    renderCom('Tecnico');
+    expect(screen.queryByRole('button', { name: /Cadastrar primeiro laboratório/i })).not.toBeInTheDocument();
   });
 });
