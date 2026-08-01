@@ -7,12 +7,18 @@ public static class Endpoints
 {
     public static RouteGroupBuilder MapPgrsConfigEndpoints(this RouteGroupBuilder group)
     {
-        // Expõe nome, e-mail e telefone do responsável técnico. Os dois consumidores reais são
-        // FormNovoMtr (MtrScreen, Tecnico+) e FormConfigurarPgrs (RelatoriosScreen, Admin/Gestor) —
-        // nenhuma tela de Visualizador chama useConfigPgrs.
+        // Expõe CNPJ, endereço e os contatos do responsável técnico. Consumidores: FormNovoMtr
+        // (MtrScreen, Tecnico+) e FormConfigurarPgrs (RelatoriosScreen, Admin/Gestor).
         group.MapGet("/", async (IPgrsConfigService svc) =>
             Results.Ok(await svc.ObterAsync()))
             .RequireAuthorization("Tecnico");
+
+        // Recorte só com razão social e unidade, para o cabeçalho do resumo de segurança — que é
+        // um documento de segurança e precisa identificar a instituição para qualquer papel,
+        // inclusive Pesquisador e Visualizador. Por isso exige apenas autenticação.
+        group.MapGet("/identificacao", async (IPgrsConfigService svc) =>
+            Results.Ok(await svc.ObterIdentificacaoAsync()))
+            .RequireAuthorization();
 
         group.MapPut("/", async (AtualizarConfiguracaoPgrsCmd cmd, IPgrsConfigService svc, ClaimsPrincipal user) =>
         {

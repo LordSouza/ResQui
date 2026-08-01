@@ -11,6 +11,12 @@ public class PgrsConfigService(IPgrsConfigRepository repo, IAuditoriaService aud
     public async Task<ConfiguracaoPgrsDto> ObterAsync() =>
         ToDto(await repo.GetAsync() ?? new ConfiguracaoPgrs());
 
+    public async Task<IdentificacaoPgrsDto> ObterIdentificacaoAsync()
+    {
+        var cfg = await repo.GetAsync() ?? new ConfiguracaoPgrs();
+        return new IdentificacaoPgrsDto(cfg.RazaoSocial, cfg.Unidade);
+    }
+
     public async Task<ConfiguracaoPgrsDto> SalvarAsync(AtualizarConfiguracaoPgrsCmd cmd, string usuarioEmail)
     {
         var cnpj = N(cmd.Cnpj);

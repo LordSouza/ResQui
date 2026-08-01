@@ -149,6 +149,17 @@ describe('ResumoSeguranca', () => {
     expect(await screen.findByText(/Instituição Demo · Campus Central/)).toBeInTheDocument();
   });
 
+  // O resumo é aberto por qualquer papel; GET /api/pgrs-config exige Tecnico e devolveria 403
+  // para Pesquisador/Professor/Visualizador. Só o recorte de identificação é aberto.
+  it('busca a instituição no endpoint de identificação, não na configuração completa', async () => {
+    renderCom();
+
+    await screen.findByText(/Instituição Demo · Campus Central/);
+    const urls = fetch.mock.calls.map(c => String(c[0]));
+    expect(urls.some(u => u.includes('/api/pgrs-config/identificacao'))).toBe(true);
+    expect(urls.some(u => u.endsWith('/api/pgrs-config'))).toBe(false);
+  });
+
   it('omite a instituição quando o PGRS não está configurado', async () => {
     vi.unstubAllGlobals();
     stubLocalStorage();

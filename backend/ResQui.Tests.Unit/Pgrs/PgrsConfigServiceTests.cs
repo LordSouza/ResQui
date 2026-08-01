@@ -109,4 +109,41 @@ public class PgrsConfigServiceTests
         dto.RespEmail.Should().BeEmpty();
         await _repo.Received(1).SaveChangesAsync();
     }
+
+    // GET /api/pgrs-config/identificacao é aberto a qualquer autenticado; ele NÃO pode vazar
+    // CNPJ, endereço nem os contatos do responsável técnico, que seguem atrás da policy Tecnico.
+    [Fact]
+    public async Task ObterIdentificacaoAsync_DevolveApenasRazaoSocialEUnidade()
+    {
+        _repo.GetAsync().Returns(new ConfiguracaoPgrs
+        {
+            Id = 1,
+            RazaoSocial = "Instituição Demo de Ensino",
+            Unidade = "Campus Itajubá",
+            Cnpj = "00000000000100",
+            Endereco = "Rua X, 100",
+            RespTecnico = "Fulano",
+            RespEmail = "resp@inst.edu.br",
+            RespTel = "35 99999-0000",
+        });
+
+        var dto = await _sut.ObterIdentificacaoAsync();
+
+        dto.RazaoSocial.Should().Be("Instituição Demo de Ensino");
+        dto.Unidade.Should().Be("Campus Itajubá");
+        // O record tem exatamente dois campos — nada mais atravessa.
+        typeof(IdentificacaoPgrsDto).GetProperties().Select(p => p.Name)
+            .Should().BeEquivalentTo(["RazaoSocial", "Unidade"]);
+    }
+
+    [Fact]
+    public async Task ObterIdentificacaoAsync_SemConfiguracao_DevolveVazio()
+    {
+        _repo.GetAsync().Returns((ConfiguracaoPgrs?)null);
+
+        var dto = await _sut.ObterIdentificacaoAsync();
+
+        dto.RazaoSocial.Should().BeEmpty();
+        dto.Unidade.Should().BeEmpty();
+    }
 }
