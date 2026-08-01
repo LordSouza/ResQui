@@ -4,7 +4,7 @@ import { exportCsv } from '../utils';
 import { useResíduos } from '../residuos/useResíduos';
 import { useAprovarResiduo } from '../residuos/useAprovarResiduo';
 import { useRejeitarResiduo } from '../residuos/useRejeitarResiduo';
-import { useAuth } from '../auth/AuthContext';
+import { usePode } from '../auth/permissoes';
 
 const STATUS_TABS = [
   ['todos', 'Todos'],
@@ -20,11 +20,11 @@ export function ResiduosScreen({ state, dispatch }) {
   const [filter, setFilter] = useState('todos');
   const [q, setQ] = useState('');
   const { data: residuos = [], isPending, isError, refetch } = useResíduos();
-  const { user } = useAuth();
-  const podeAprovar = user?.papel === 'Admin' || user?.papel === 'Gestor' || user?.papel === 'Professor';
+  const podeAprovar = usePode('Aprovador');     // PUT /api/residuos/:id/aprovar|rejeitar (RF06)
+  const podeRegistrar = usePode('Operacional'); // POST /api/residuos
   // PUT /api/residuos/:id exige a policy Tecnico — Pesquisador e Professor criam resíduo
   // (Operacional) mas não o editam, e sem este gate o botão só rendia 403 ao salvar.
-  const podeEditar = ['Admin', 'Gestor', 'Tecnico'].includes(user?.papel);
+  const podeEditar = usePode('Tecnico');
   const aprovar = useAprovarResiduo();
   const rejeitar = useRejeitarResiduo();
 
@@ -48,9 +48,11 @@ export function ResiduosScreen({ state, dispatch }) {
             list.forEach(r => rows.push([r.id, r.tipo, r.lab_id, r.volume, r.unidade, r.status, r.composicao, r.risco, r.mtr_id || '', r.data_registro]));
             exportCsv(rows, `residuos-${new Date().toISOString().slice(0, 10)}.csv`);
           }}><Icon name="download" size={13} /> Exportar lista</button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'novoResiduo' })}>
-            <Icon name="plus" size={13} /> Registrar resíduo
-          </button>
+          {podeRegistrar && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'novoResiduo' })}>
+              <Icon name="plus" size={13} /> Registrar resíduo
+            </button>
+          )}
         </div>
       </div>
 

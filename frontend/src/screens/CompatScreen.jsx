@@ -1,7 +1,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import { Icon, SectionTitle, Picto } from '../components';
 import { REATIVIDADE_CLASSES } from '../data';
-import { useAuth } from '../auth/AuthContext';
+import { usePode } from '../auth/permissoes';
 import { useCompatMatriz } from '../compat/useCompatMatriz';
 import { useCompatOverrides } from '../compat/useCompatOverrides';
 import { useRegistrarParecer } from '../compat/useRegistrarParecer';
@@ -26,8 +26,8 @@ export function CompatScreen({ state, dispatch }) {
   const fonte = matrizData?.fonte;
   const { data: overrides = [] } = useCompatOverrides();
   const { addToast } = useToast();
-  const { user } = useAuth();
-  const podeAgir = ['Admin', 'Gestor', 'Tecnico', 'Pesquisador', 'Professor'].includes(user?.papel);
+  const podeAgir = usePode('Operacional');       // POST /api/compat/parecer e /notificar
+  const podeEditarRegras = usePode('Gestor');    // PUT/DELETE /api/compat/overrides/:a/:b
   const [parecer, setParecer] = useState('');
   const registrarParecer = useRegistrarParecer();
   const notificar = useNotificarResponsaveis();
@@ -70,7 +70,9 @@ export function CompatScreen({ state, dispatch }) {
             exportCsv(rows, `matriz-compatibilidade-${exportDate.toISOString().slice(0,10)}.csv`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar matriz</button>
-          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'editarRegrasCompat'})}><Icon name="settings" size={13}/> Editar regras</button>
+          {podeEditarRegras && (
+            <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'editarRegrasCompat'})}><Icon name="settings" size={13}/> Editar regras</button>
+          )}
         </div>
       </div>
 

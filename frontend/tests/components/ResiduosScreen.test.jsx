@@ -52,6 +52,18 @@ describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
   });
 
+  // POST /api/residuos exige Operacional — todos menos Visualizador.
+  it.each(['Admin', 'Gestor', 'Tecnico', 'Pesquisador', 'Professor'])('mostra "Registrar resíduo" para %s', (papel) => {
+    renderCom(papel);
+    expect(screen.getByRole('button', { name: /Registrar resíduo/i })).toBeInTheDocument();
+  });
+
+  it('esconde "Registrar resíduo" de Visualizador', () => {
+    renderCom('Visualizador');
+    expect(screen.queryByRole('button', { name: /Registrar resíduo/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Exportar lista/i })).toBeInTheDocument();
+  });
+
   it('mantém Aprovar/Rejeitar para Professor, que os tem por policy Aprovador', () => {
     useResíduos.mockReturnValue({
       data: [{ ...residuo, status: 'solicitado' }],

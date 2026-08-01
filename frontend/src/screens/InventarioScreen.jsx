@@ -3,8 +3,10 @@ import { Icon, Badge, Tag } from '../components';
 import { REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
 import { validadeBadge } from '../components';
 import { useReagentes } from '../reagentes/useReagentes';
+import { usePode } from '../auth/permissoes';
 
 export function InventarioScreen({ state, dispatch }) {
+  const podeCadastrar = usePode('Gestor'); // POST /api/reagentes e /importar-lote
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [classe, setClasse] = useState('todas');
@@ -42,10 +44,14 @@ export function InventarioScreen({ state, dispatch }) {
           <p className="page-sub">{total} itens cadastrados · base regulatória ABNT NBR 14725 + GHS</p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'importarCsv'})}><Icon name="upload" size={13}/> Importar CSV</button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'novoReagente'})}>
-            <Icon name="plus" size={13}/> Novo reagente
-          </button>
+          {podeCadastrar && (
+            <>
+              <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'importarCsv'})}><Icon name="upload" size={13}/> Importar CSV</button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'novoReagente'})}>
+                <Icon name="plus" size={13}/> Novo reagente
+              </button>
+            </>
+          )}
         </div>
       </div>
 

@@ -10,7 +10,7 @@ import { useCriarLote } from '../reagentes/useCriarLote';
 import { useBaixaLote } from '../reagentes/useBaixaLote';
 import { useMovimentacoes } from '../reagentes/useMovimentacoes';
 import { downloadRotulo, downloadRotuloLote } from '../reagentes/downloadRotulo';
-import { useAuth } from '../auth/AuthContext';
+import { usePode } from '../auth/permissoes';
 
 function MovimentacoesCard({ reagenteId }) {
   const { data: movs = [], isPending } = useMovimentacoes(reagenteId);
@@ -36,6 +36,7 @@ function MovimentacoesCard({ reagenteId }) {
 }
 
 function LotesCard({ reagente }) {
+  const podeGerirLotes = usePode('Tecnico'); // POST /api/reagentes/:id/lotes e /baixa
   const { data: lotes = [], isPending } = useLotes(reagente.id);
   const criarLote = useCriarLote(reagente.id);
   const baixaLote = useBaixaLote(reagente.id);
@@ -58,9 +59,11 @@ function LotesCard({ reagente }) {
   return (
     <div className="card">
       <SectionTitle title="Lotes / frascos" sub={`${lotes.length} registrado(s)`}
-        right={<button type="button" className="btn btn-sm" onClick={() => setNovo({ codigo: '', estoque: '', validade: '' })}>
-          <Icon name="plus" size={12}/> Novo lote
-        </button>}/>
+        right={podeGerirLotes && (
+          <button type="button" className="btn btn-sm" onClick={() => setNovo({ codigo: '', estoque: '', validade: '' })}>
+            <Icon name="plus" size={12}/> Novo lote
+          </button>
+        )}/>
       <div className="card-body" style={{ padding: 0 }}>
         {isPending && <div style={{ padding: '8px 14px', fontSize: 12 }}>Carregando…</div>}
         {!isPending && lotes.length === 0 && <div className="muted" style={{ padding: '8px 14px', fontSize: 12 }}>Nenhum lote registrado.</div>}
@@ -73,7 +76,9 @@ function LotesCard({ reagente }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="mono tnum">{Number(l.estoque).toFixed(2)} {reagente.unidade}</span>
               <button type="button" className="btn btn-sm" title="Etiqueta com QR" onClick={() => downloadRotuloLote(reagente.id, l.id)}>QR</button>
-              <button type="button" className="btn btn-sm" disabled={baixaLote.isPending || l.estoque <= 0} onClick={() => baixar(l)}>Baixa</button>
+              {podeGerirLotes && (
+                <button type="button" className="btn btn-sm" disabled={baixaLote.isPending || l.estoque <= 0} onClick={() => baixar(l)}>Baixa</button>
+              )}
             </div>
           </div>
         ))}
@@ -97,7 +102,9 @@ export function DetalheScreen({ state, dispatch }) {
   const { data: r, isPending, isError, refetch } = useReagente(state.detailId);
   const { data: listData } = useReagentes({ pageSize: 200 });
   const deletarMutation = useDeletarReagente();
-  const { user } = useAuth();
+  const podeMovimentar = usePode('Operacional'); // POST /:id/baixa e /:id/transferencia
+  const podeEditar = usePode('Gestor');          // PUT /api/reagentes/:id
+  const podeExcluir = usePode('Admin');          // DELETE /api/reagentes/:id
   const { data: matrizData } = useCompatMatriz();
   const compatMatrix = matrizData?.matrix ?? {};
 
@@ -148,10 +155,16 @@ export function DetalheScreen({ state, dispatch }) {
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'resumoSeguranca', reagente: r})}><Icon name="clipboard" size={13}/> Resumo de segurança</button>
-          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'baixa', reagente: r})}><Icon name="trash" size={13}/> Baixar consumo</button>
-          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'transferirReagente', reagente: r})}><Icon name="location" size={13}/> Transferir</button>
-          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'editarReagente', reagente: r})}><Icon name="settings" size={13}/> Editar</button>
-          {user?.papel === 'Admin' && (
+          {podeMovimentar && (
+            <>
+              <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'baixa', reagente: r})}><Icon name="trash" size={13}/> Baixar consumo</button>
+              <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'transferirReagente', reagente: r})}><Icon name="location" size={13}/> Transferir</button>
+            </>
+          )}
+          {podeEditar && (
+            <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'editarReagente', reagente: r})}><Icon name="settings" size={13}/> Editar</button>
+          )}
+          {podeExcluir && (
             <button type="button" className="btn btn-sm" style={{color: 'var(--red)'}} onClick={handleDeletar} disabled={deletarMutation.isPending}>
               <Icon name="trash" size={13}/> Excluir
             </button>

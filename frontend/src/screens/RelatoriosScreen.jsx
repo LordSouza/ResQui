@@ -3,7 +3,7 @@ import { useToast } from '../components/ToastContext';
 import { useRelatorios } from '../relatorios/useRelatorios';
 import { useGerarRelatorio } from '../relatorios/useGerarRelatorio';
 import { downloadRelatorio } from '../relatorios/downloadRelatorio';
-import { useAuth } from '../auth/AuthContext';
+import { usePode } from '../auth/permissoes';
 
 const TIPOS = [
   { slug: 'pgrs',           titulo: 'PGRS Anual',                  desc: 'Exportação completa do PGRS (todos os tipos)' },
@@ -17,8 +17,9 @@ export function RelatoriosScreen({ state, dispatch }) {
   const { data: historico = [], isPending, isError, refetch } = useRelatorios();
   const gerar = useGerarRelatorio();
   const { addToast } = useToast();
-  const { user } = useAuth();
-  const podeConfigurar = user?.papel === 'Admin' || user?.papel === 'Gestor';
+  // PUT /api/pgrs-config e POST /api/relatorios/gerar exigem a policy Gestor.
+  const podeConfigurar = usePode('Gestor');
+  const podeGerar = usePode('Gestor');
 
   async function handleGerar(slug) {
     try {
@@ -57,14 +58,16 @@ export function RelatoriosScreen({ state, dispatch }) {
               <div className="small muted" style={{ marginBottom: 10 }}>{desc}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 8 }}>
                 <span className="mono small muted">CSV</span>
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  disabled={gerar.isPending}
-                  onClick={() => handleGerar(slug)}
-                >
-                  <Icon name="download" size={11} /> {gerar.isPending ? 'Gerando…' : 'Gerar'}
-                </button>
+                {podeGerar && (
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={gerar.isPending}
+                    onClick={() => handleGerar(slug)}
+                  >
+                    <Icon name="download" size={11} /> {gerar.isPending ? 'Gerando…' : 'Gerar'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

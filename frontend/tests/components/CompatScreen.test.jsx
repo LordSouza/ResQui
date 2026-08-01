@@ -191,4 +191,19 @@ describe('CompatScreen — ações reais', () => {
     expect(screen.queryByRole('button', { name: /Registrar parecer/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /Notificar responsáveis/i })).toBeNull();
   });
+
+  // "Editar regras" salva overrides (PUT/DELETE /api/compat/overrides), que exigem Gestor —
+  // policy mais estreita que a Operacional das duas ações acima.
+  it('esconde "Editar regras" de Tecnico, que ainda vê as ações operacionais', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Editar regras/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /Exportar matriz/i })).toBeInTheDocument();
+  });
+
+  it('mostra "Editar regras" para Gestor', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Gestor' } });
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /Editar regras/i })).toBeInTheDocument();
+  });
 });

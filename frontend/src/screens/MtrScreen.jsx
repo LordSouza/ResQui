@@ -4,6 +4,7 @@ import { useMtrs } from '../mtrs/useMtrs';
 import { useResíduos } from '../residuos/useResíduos';
 import { downloadMtrPdf } from '../mtrs/downloadMtr';
 import { FormPreviewMtrPdf } from '../forms/residuos';
+import { usePode } from '../auth/permissoes';
 
 function MtrDetalhe({ mtr }) {
   const { data: residuos = [], isPending } = useResíduos({ mtrId: mtr.id });
@@ -60,6 +61,7 @@ function MtrDetalhe({ mtr }) {
 
 export function MtrScreen({ state, dispatch }) {
   const [selectedId, setSelectedId] = useState(null);
+  const podeEmitir = usePode('Tecnico'); // POST /api/mtrs
   const { data: mtrs = [], isPending, isError, refetch } = useMtrs();
 
   const sel = mtrs.find(m => m.id === selectedId) ?? mtrs[0];
@@ -75,9 +77,11 @@ export function MtrScreen({ state, dispatch }) {
           <p className="page-sub">Manifesto de Transporte de Resíduos · documento interno de rastreabilidade</p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'novoMtr' })}>
-            <Icon name="plus" size={13} /> Novo Pré-MTR
-          </button>
+          {podeEmitir && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'novoMtr' })}>
+              <Icon name="plus" size={13} /> Novo Pré-MTR
+            </button>
+          )}
         </div>
       </div>
 

@@ -133,3 +133,31 @@ describe('UsuariosScreen — só mostra o que a API devolve', () => {
     expect(linhaAna.className).not.toContain('flash');
   });
 });
+
+// Todo o grupo /api/usuarios exige Admin, e POST /api/auth/register também.
+describe('UsuariosScreen — permissões', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      data: {},
+      setItem(k, v) { this.data[k] = String(v); },
+      getItem(k) { return this.data[k] ?? null; },
+      removeItem(k) { delete this.data[k]; },
+      clear() { this.data = {}; },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200, text: async () => JSON.stringify(USUARIOS),
+    }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('mostra "Novo usuário" para Admin', async () => {
+    renderCom({ id: 'admin-1', papel: 'Admin' });
+    expect(await screen.findByRole('button', { name: /Novo usuário/i })).toBeInTheDocument();
+  });
+
+  it('esconde "Novo usuário" de Gestor', async () => {
+    renderCom({ id: 'g-1', papel: 'Gestor' });
+    await screen.findByRole('heading', { name: /Usuários/i });
+    expect(screen.queryByRole('button', { name: /Novo usuário/i })).not.toBeInTheDocument();
+  });
+});

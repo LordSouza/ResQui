@@ -6,9 +6,8 @@ import { initialState } from '../../src/store/reducer';
 
 vi.mock('../../src/components/ToastContext', () => ({ useToast: vi.fn() }));
 import { useToast } from '../../src/components/ToastContext';
-vi.mock('../../src/auth/AuthContext', () => ({
-  useAuth: () => ({ user: { papel: 'Admin' } }),
-}));
+vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
+import { useAuth } from '../../src/auth/AuthContext';
 
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -21,6 +20,7 @@ describe('RelatoriosScreen', () => {
   beforeEach(() => {
     addToast = vi.fn();
     useToast.mockReturnValue({ addToast });
+    useAuth.mockReturnValue({ user: { papel: 'Admin' } });
     global.URL.createObjectURL = vi.fn(() => 'blob:test');
     vi.stubGlobal('localStorage', {
       data: {}, setItem(k, v) { this.data[k] = String(v); },
@@ -76,5 +76,19 @@ describe('RelatoriosScreen', () => {
     expect(typeof addToast.mock.calls[0][0]).toBe('string');
     expect(addToast.mock.calls[0][0]).toMatch(/Falha ao gerar/);
     expect(addToast.mock.calls[0][1]).toBe('error');
+  });
+
+  // POST /api/relatorios/gerar exige Gestor; o histórico e o download seguem legíveis por todos.
+  it.each(['Tecnico', 'Professor', 'Pesquisador', 'Visualizador'])('esconde "Gerar" de %s', (papel) => {
+    useAuth.mockReturnValue({ user: { papel } });
+    render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    expect(screen.queryAllByRole('button', { name: /^Gerar$/i })).toHaveLength(0);
+    expect(screen.queryByRole('button', { name: /Configurar PGRS/i })).not.toBeInTheDocument();
+  });
+
+  it('mostra "Gerar" em todos os tipos para Gestor', () => {
+    useAuth.mockReturnValue({ user: { papel: 'Gestor' } });
+    render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    expect(screen.getAllByRole('button', { name: /Gerar/i }).length).toBeGreaterThan(0);
   });
 });

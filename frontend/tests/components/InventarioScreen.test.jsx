@@ -48,6 +48,9 @@ function makeApiResponse(items) {
   };
 }
 
+vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
+import { useAuth } from '../../src/auth/AuthContext';
+
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
@@ -63,6 +66,7 @@ describe('InventarioScreen', () => {
       clear() { this.data = {}; },
     });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeApiResponse(MOCK_ITEMS)));
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Admin' } });
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -115,5 +119,20 @@ describe('InventarioScreen', () => {
     render(<InventarioScreen state={initialState} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Importar CSV/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: 'openModal', kind: 'importarCsv' });
+  });
+
+  // POST /api/reagentes e POST /api/reagentes/importar-lote exigem a policy Gestor.
+  it.each(['Tecnico', 'Professor', 'Pesquisador', 'Visualizador'])('esconde criar e importar de %s', (papel) => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel } });
+    render(<InventarioScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    expect(screen.queryByRole('button', { name: /Novo reagente/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Importar CSV/i })).not.toBeInTheDocument();
+  });
+
+  it('mostra criar e importar para Gestor', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Gestor' } });
+    render(<InventarioScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    expect(screen.getByRole('button', { name: /Novo reagente/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Importar CSV/i })).toBeInTheDocument();
   });
 });

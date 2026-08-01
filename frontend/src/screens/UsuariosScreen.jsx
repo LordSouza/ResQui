@@ -5,6 +5,7 @@ import { exportCsv } from '../utils';
 import { useUsuarios } from '../usuarios/useUsuarios';
 import { useAlterarPapel } from '../usuarios/useAlterarPapel';
 import { useAuth } from '../auth/AuthContext';
+import { podePor } from '../auth/permissoes';
 
 // ============== Helpers ==============
 
@@ -182,7 +183,7 @@ export function UsuariosScreen({ state, dispatch }) {
   const setMenuOpen    = (value) => screenDispatch({ type: 'setMenuOpen', value });
 
   const { user: usuarioLogado } = useAuth();
-  const souAdmin = usuarioLogado?.papel === 'Admin';
+  const souAdmin = podePor(usuarioLogado?.papel, 'Admin'); // todo o grupo /api/usuarios exige Admin
 
   // Timestamp for export filename (stable per render cycle)
   const exportDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -233,9 +234,11 @@ export function UsuariosScreen({ state, dispatch }) {
             exportCsv(rows, `usuarios-${exportDate}.csv`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar lista</button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'novoUsuario'})}>
-            <Icon name="plus" size={13}/> Novo usuário
-          </button>
+          {souAdmin && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'novoUsuario'})}>
+              <Icon name="plus" size={13}/> Novo usuário
+            </button>
+          )}
         </div>
       </div>
 
