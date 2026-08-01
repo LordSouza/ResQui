@@ -22,6 +22,9 @@ export function ResiduosScreen({ state, dispatch }) {
   const { data: residuos = [], isPending, isError, refetch } = useResíduos();
   const { user } = useAuth();
   const podeAprovar = user?.papel === 'Admin' || user?.papel === 'Gestor' || user?.papel === 'Professor';
+  // PUT /api/residuos/:id exige a policy Tecnico — Pesquisador e Professor criam resíduo
+  // (Operacional) mas não o editam, e sem este gate o botão só rendia 403 ao salvar.
+  const podeEditar = ['Admin', 'Gestor', 'Tecnico'].includes(user?.papel);
   const aprovar = useAprovarResiduo();
   const rejeitar = useRejeitarResiduo();
 
@@ -121,13 +124,15 @@ export function ResiduosScreen({ state, dispatch }) {
                       {' '}
                     </>
                   )}
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    onClick={() => dispatch({ type: 'openModal', kind: 'editarResiduo', residuo: r })}
-                  >
-                    Editar
-                  </button>
+                  {podeEditar && (
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={() => dispatch({ type: 'openModal', kind: 'editarResiduo', residuo: r })}
+                    >
+                      Editar
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
