@@ -23,6 +23,17 @@ export const POLICY_POR_TELA = {
   usuarios: 'Admin',       // grupo /api/usuarios inteiro
 };
 
+// Texto exibido quando o papel não alcança a tela. Derivado do mapa acima para que uma tela nova
+// em POLICY_POR_TELA não herde a explicação de outra.
+export function motivoTelaRestrita(screen) {
+  const policy = POLICY_POR_TELA[screen];
+  if (!policy) return '';
+  const papeis = POLICIES[policy] ?? [];
+  return papeis.length === 1
+    ? `Esta tela é exclusiva de ${papeis[0]}.`
+    : `Esta tela é restrita a ${papeis.slice(0, -1).join(', ')} e ${papeis.at(-1)}.`;
+}
+
 export function podeVerTela(papel, screen) {
   const policy = POLICY_POR_TELA[screen];
   return !policy || podePor(papel, policy);

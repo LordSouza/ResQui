@@ -37,17 +37,14 @@ import { FormNovoChamado } from './forms/chamados';
 import { FormEditarReagente } from './forms/FormEditarReagente';
 
 import { LoginScreen } from './Login';
-import { podeVerTela } from './auth/permissoes';
+import { podeVerTela, motivoTelaRestrita } from './auth/permissoes';
 
 // Renderizada no lugar de uma tela cujo papel do usuário não alcança. Não é segurança — a
 // autorização é do servidor —, é para não mostrar uma tela que só saberia exibir erro de carga.
 function AcessoRestrito({ state }) {
   return (
     <div className="page-error">
-      <b>Acesso restrito.</b>{' '}
-      {state?.screen === 'usuarios'
-        ? 'A gestão de usuários é exclusiva de administradores.'
-        : 'O log de auditoria é restrito a Admin, Gestor e Professor.'}
+      <b>Acesso restrito.</b> {motivoTelaRestrita(state?.screen)}
     </div>
   );
 }

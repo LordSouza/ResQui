@@ -1,6 +1,6 @@
 // frontend/tests/unit/permissoes.test.js
 import { describe, it, expect } from 'vitest';
-import { POLICIES, podePor, podeVerTela } from '../../src/auth/permissoes';
+import { POLICIES, podePor, podeVerTela, motivoTelaRestrita } from '../../src/auth/permissoes';
 
 // Fonte da verdade: backend/ResQui.API/Program.cs:110-115. Se um caso aqui quebrar, o espelho
 // saiu de sincronia com o servidor — corrija o espelho, não o teste, a menos que a policy do
@@ -74,5 +74,16 @@ describe('podeVerTela', () => {
   it('nega telas com policy quando o papel é desconhecido', () => {
     expect(podeVerTela(undefined, 'auditoria')).toBe(false);
     expect(podeVerTela(undefined, 'usuarios')).toBe(false);
+  });
+});
+
+describe('motivoTelaRestrita', () => {
+  it('nomeia os papéis da policy da tela, sem texto herdado de outra', () => {
+    expect(motivoTelaRestrita('usuarios')).toBe('Esta tela é exclusiva de Admin.');
+    expect(motivoTelaRestrita('auditoria')).toBe('Esta tela é restrita a Admin, Gestor e Professor.');
+  });
+
+  it('devolve vazio para tela sem restrição', () => {
+    expect(motivoTelaRestrita('dashboard')).toBe('');
   });
 });
