@@ -49,11 +49,13 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         var pior = await compat.AvaliarMisturaAsync(classes);
         if (pior is not null && pior.Nivel >= 3)
         {
+            var envolvidos = DescreverEnvolvidos(residuos, pior);
             await auditoria.RegistrarAsync(usuarioEmail, "mtr.agrupamento-bloqueado", "MTR",
-                $"Agrupamento bloqueado — classes {pior.ClasseA} e {pior.ClasseB} (Proibido)", RiscoAuditoria.High);
+                $"Agrupamento bloqueado — classes {pior.ClasseA} e {pior.ClasseB} (Proibido): {envolvidos}",
+                RiscoAuditoria.High);
             throw new ValidationException(
-                $"Agrupamento incompatível: classes {pior.ClasseA} e {pior.ClasseB} têm nível \"Proibido\". " +
-                "Emita MTRs separados para esses resíduos.");
+                $"Agrupamento incompatível (nível \"{pior.Descricao}\", classes {pior.ClasseA} e {pior.ClasseB}): " +
+                $"{envolvidos}. Emita MTRs separados para esses resíduos.");
         }
 
         // Numero é gerado pelo banco (DEFAULT da coluna, sequência mtrs_numero_seq) — ver
@@ -93,6 +95,25 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         await auditoria.RegistrarAsync(usuarioEmail, "mtr.pdf", "MTR",
             $"Gerou PDF do MTR {m.Numero}", RiscoAuditoria.Low);
         return (bytes, $"{m.Numero.ToLower()}.pdf");
+    }
+
+    // Lista os resíduos do agrupamento que carregam alguma classe do par bloqueado, cada um com as
+    // classes do par que possui — cobre tanto vários resíduos contribuindo uma classe cada quanto o
+    // resíduo solitário que carrega o par inteiro.
+    private static string DescreverEnvolvidos(IEnumerable<Residuo> residuos, CompatResultDto pior)
+    {
+        var par = new[] { pior.ClasseA, pior.ClasseB };
+        var itens = residuos
+            .Where(r => r.ClassesReatividade.Intersect(par).Any())
+            .OrderBy(r => r.Id)
+            .Select(r =>
+            {
+                var doPar = par.Where(c => r.ClassesReatividade.Contains(c)).ToList();
+                return doPar.Count > 1
+                    ? $"resíduo #{r.Id} (classes {string.Join(", ", doPar)})"
+                    : $"resíduo #{r.Id} (classe {doPar[0]})";
+            });
+        return string.Join(", ", itens);
     }
 
     private static decimal CalcularMassa(IEnumerable<Residuo> residuos)

@@ -157,4 +157,82 @@ public class MtrsServiceTests
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*7*");
         await _repo.DidNotReceive().AddAsync(Arg.Any<Mtr>());
     }
+
+    // O gate de nível 3 não muda; a mensagem passa a dizer QUAL resíduo trouxe as classes do par,
+    // para que descobrir o que reclassificar não seja tentativa e erro.
+    [Fact]
+    public async Task CriarAsync_ResiduoUnicoComParProibido_MensagemNomeiaAsDuasClasses()
+    {
+        var r = FakeResiduo(18);
+        r.ClassesReatividade = [5, 12];
+        _residuosRepo.GetByIdAsync(18).Returns(r);
+        _compat.AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>())
+            .Returns(new CompatResultDto(5, 12, 3, "Proibido"));
+
+        var act = () => _sut.CriarAsync(
+            new CriarMtrCmd("Unifei", "EcoLog", null, null, [18]), "user1", "ana@lab.com");
+
+        var ex = await act.Should().ThrowAsync<ValidationException>();
+        ex.Which.Message.Should().Contain("resíduo #18 (classes 5, 12)");
+    }
+
+    [Fact]
+    public async Task CriarAsync_DoisResiduosComUmaClasseCada_MensagemNomeiaOsDois()
+    {
+        var r1 = FakeResiduo(10);
+        r1.ClassesReatividade = [5];
+        var r2 = FakeResiduo(11);
+        r2.ClassesReatividade = [12];
+        _residuosRepo.GetByIdAsync(10).Returns(r1);
+        _residuosRepo.GetByIdAsync(11).Returns(r2);
+        _compat.AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>())
+            .Returns(new CompatResultDto(5, 12, 3, "Proibido"));
+
+        var act = () => _sut.CriarAsync(
+            new CriarMtrCmd("Unifei", "EcoLog", null, null, [10, 11]), "user1", "ana@lab.com");
+
+        var ex = await act.Should().ThrowAsync<ValidationException>();
+        ex.Which.Message.Should().Contain("resíduo #10 (classe 5)");
+        ex.Which.Message.Should().Contain("resíduo #11 (classe 12)");
+    }
+
+    [Fact]
+    public async Task CriarAsync_ResiduoAlheioAoPar_NaoAparecerNaMensagem()
+    {
+        var r1 = FakeResiduo(10);
+        r1.ClassesReatividade = [5];
+        var r2 = FakeResiduo(11);
+        r2.ClassesReatividade = [12];
+        var r3 = FakeResiduo(12);
+        r3.ClassesReatividade = [1];
+        _residuosRepo.GetByIdAsync(10).Returns(r1);
+        _residuosRepo.GetByIdAsync(11).Returns(r2);
+        _residuosRepo.GetByIdAsync(12).Returns(r3);
+        _compat.AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>())
+            .Returns(new CompatResultDto(5, 12, 3, "Proibido"));
+
+        var act = () => _sut.CriarAsync(
+            new CriarMtrCmd("Unifei", "EcoLog", null, null, [10, 11, 12]), "user1", "ana@lab.com");
+
+        var ex = await act.Should().ThrowAsync<ValidationException>();
+        ex.Which.Message.Should().NotContain("#12");
+    }
+
+    [Fact]
+    public async Task CriarAsync_AgrupamentoBloqueado_AuditoriaTrazOsResiduos()
+    {
+        var r = FakeResiduo(18);
+        r.ClassesReatividade = [5, 12];
+        _residuosRepo.GetByIdAsync(18).Returns(r);
+        _compat.AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>())
+            .Returns(new CompatResultDto(5, 12, 3, "Proibido"));
+
+        var act = () => _sut.CriarAsync(
+            new CriarMtrCmd("Unifei", "EcoLog", null, null, [18]), "user1", "ana@lab.com");
+        await act.Should().ThrowAsync<ValidationException>();
+
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "mtr.agrupamento-bloqueado", "MTR",
+            Arg.Is<string>(d => d.Contains("#18")), RiscoAuditoria.High);
+    }
 }
