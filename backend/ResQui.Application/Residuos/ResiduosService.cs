@@ -74,7 +74,11 @@ public class ResiduosService(
         if (cmd.Volume is <= 0) throw new ValidationException("Volume deve ser maior que zero.");
         if (cmd.Risco is not null && !RiscosValidos.Contains(cmd.Risco)) throw new ValidationException("Risco inválido — use baixo, medio ou alto.");
         if (cmd.Unidade is not null && !UnidadesValidas.Contains(cmd.Unidade)) throw new ValidationException("Unidade inválida — use L, mL, kg, g ou m³.");
-        if (cmd.ClassesReatividade is not null) await ValidarMisturaAsync(cmd.ClassesReatividade, usuarioEmail);
+        // Valida a mudança, não o estado: um resíduo gravado antes de uma revisão da matriz pode
+        // ter par hoje bloqueado, e recusar a edição não o torna seguro — só impede o registro de
+        // ficar correto. Comparação por conjunto: classes não têm ordem semântica.
+        if (cmd.ClassesReatividade is not null && !r.ClassesReatividade.ToHashSet().SetEquals(cmd.ClassesReatividade))
+            await ValidarMisturaAsync(cmd.ClassesReatividade, usuarioEmail);
         if (cmd.Descricao is not null) r.Descricao = cmd.Descricao;
         if (cmd.Tipo is not null) r.Tipo = cmd.Tipo;
         if (cmd.Volume is not null) r.Volume = cmd.Volume.Value;

@@ -37,6 +37,21 @@ public class ResiduosServiceTests
         Risco = "medio",
     };
 
+    // Resíduo "legado": classificação gravada antes das reconciliações da matriz.
+    private static Residuo FakeResiduoComClasses(params int[] classes) => new()
+    {
+        Id = 1,
+        Descricao = "Resíduo legado",
+        LaboratorioId = "Lab-001",
+        Status = "aguardando-coleta",
+        Tipo = "Solventes orgânicos não-halogenados",
+        Volume = 4.2m,
+        Unidade = "L",
+        Composicao = "Acetona + HCl",
+        Risco = "medio",
+        ClassesReatividade = classes.ToList(),
+    };
+
     [Fact]
     public async Task ListarAsync_SemFiltro_RetornaTodos()
     {
@@ -306,5 +321,72 @@ public class ResiduosServiceTests
         var result = await _sut.AnalyticsAsync(6);
 
         result.Mensal.Should().NotContain(m => m.Valor > 0);
+    }
+
+    // Resíduos gravados antes das reconciliações da matriz (2026-07-27/28) podem ter par hoje em
+    // nível >= 2. A validação incide sobre a mudança, não sobre o estado já persistido.
+    [Fact]
+    public async Task AtualizarAsync_ClassesInalteradas_NaoRevalidaMistura()
+    {
+        var r = FakeResiduoComClasses(1, 5); // par legado, hoje nível 2 na matriz
+        _repo.GetByIdAsync(1).Returns(r);
+        _repo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        var result = await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
+            Descricao: null, Tipo: null, Volume: 9.0m, Unidade: null, Composicao: null,
+            Risco: null, Destino: null, Status: null, MtrId: null,
+            ClassesReatividade: [1, 5]), "ana@lab.com");
+
+        result!.Volume.Should().Be(9.0m);
+        await _compat.DidNotReceive().AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>());
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ClassesEmOutraOrdem_NaoRevalidaMistura()
+    {
+        var r = FakeResiduoComClasses(1, 5);
+        _repo.GetByIdAsync(1).Returns(r);
+        _repo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
+            null, null, null, null, "Nova composição", null, null, null, null,
+            ClassesReatividade: [5, 1]), "ana@lab.com");
+
+        await _compat.DidNotReceive().AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>());
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ClassesAlteradasComParBloqueado_LancaEAudita()
+    {
+        var r = FakeResiduoComClasses(1);
+        _repo.GetByIdAsync(1).Returns(r);
+        _compat.AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>())
+            .Returns(new CompatResultDto(1, 3, 3, "Proibido"));
+
+        var act = () => _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
+            null, null, null, null, null, null, null, null, null,
+            ClassesReatividade: [1, 3]), "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _audit.Received(1).RegistrarAsync(
+            "ana@lab.com", "residuo.mistura-bloqueada", "Resíduos",
+            Arg.Any<string>(), RiscoAuditoria.High);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ClassesNulas_NaoRevalidaNemApaga()
+    {
+        var r = FakeResiduoComClasses(1, 5);
+        _repo.GetByIdAsync(1).Returns(r);
+        _repo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        var result = await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
+            null, null, null, null, null, "alto", null, null, null), "ana@lab.com");
+
+        result!.ClassesReatividade.Should().Equal([1, 5]);
+        await _compat.DidNotReceive().AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>());
     }
 }
