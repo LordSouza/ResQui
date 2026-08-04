@@ -26,6 +26,7 @@ describe('DashboardScreen', () => {
       if (u.startsWith('/api/residuos')) return json([
         { status: 'aguardando-coleta', volume: 10, unidade: 'L' },
         { status: 'aguardando-coleta', volume: 5000, unidade: 'mL' },
+        { status: 'aguardando-coleta', volume: 2, unidade: 'kg' },
         { status: 'solicitado', volume: 3, unidade: 'L' },
       ]);
       if (u.startsWith('/api/mtrs')) return json([{}, {}]);
@@ -70,8 +71,7 @@ describe('DashboardScreen', () => {
     // conformidade inventada removida
     expect(screen.queryByText(/Conformidade/i)).toBeNull();
     expect(screen.queryByText(/Rotulagem GHS/i)).toBeNull();
-    // volume real dos aguardando: 10 L + 5000 mL = 15 L
-    expect(await screen.findByText(/\/ 15 L/)).toBeInTheDocument();
+    expect(await screen.findByText(/\/ 15\.00 L · 2\.00 kg/)).toBeInTheDocument();
     // deltas fake e semana fixa removidos
     expect(screen.queryByText(/nos últimos 7d/)).toBeNull();
     expect(screen.queryByText(/dias parados/)).toBeNull();

@@ -1,5 +1,5 @@
 import { Icon, Tag, SectionTitle, riscoBadge } from '../components';
-import { exportCsv, litrosEquivalentes } from '../utils';
+import { exportCsv, quantidadesResiduos, formatarQuantidade } from '../utils';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useResíduos } from '../residuos/useResíduos';
 import { useMtrs } from '../mtrs/useMtrs';
@@ -18,9 +18,8 @@ export function DashboardScreen({ state, dispatch }) {
   const totalReagentes = totalData?.total;
   const expirando = expirData?.total;
   const aguardando = residuosData.filter(r => r.status === 'aguardando-coleta').length;
-  const volumeAguardando = Math.round(
+  const quantidadeAguardando = quantidadesResiduos(
     residuosData.filter(r => r.status === 'aguardando-coleta')
-      .reduce((s, r) => s + litrosEquivalentes(r.volume, r.unidade), 0)
   );
 
   return (
@@ -70,7 +69,7 @@ export function DashboardScreen({ state, dispatch }) {
         <div className={`kpi ${aguardando > 4 ? 'warn' : ''}`}>
           <div className="kpi-stripe"/>
           <div className="label">Resíduos aguardando coleta</div>
-          <div className="value tnum">{aguardando}<span className="unit">/ {volumeAguardando} L</span></div>
+          <div className="value tnum">{aguardando}<span className="unit">/ {formatarQuantidade(quantidadeAguardando)}</span></div>
         </div>
       </div>
 
@@ -78,18 +77,22 @@ export function DashboardScreen({ state, dispatch }) {
         <div className="col">
           {/* Geração de resíduos */}
           <div className="card">
-            <SectionTitle title="Geração de resíduos por mês" sub="Litros equivalentes · 2025" right={<Tag>últimos 7 meses</Tag>}/>
+            <SectionTitle title="Geração de resíduos por mês" sub="líquidos (L) · sólidos (kg)" right={<Tag>últimos 7 meses</Tag>}/>
             <div className="card-body">
-              <div className="spark" style={{height: 80}}>
+              <div className="spark" style={{height: 100}}>
                 {geracaoMensal.map((m, i) => {
-                  const max = Math.max(...geracaoMensal.map(x => x.valor), 1);
-                  const h = (m.valor / max) * 100;
+                  const maxLitros = Math.max(...geracaoMensal.map(x => x.litros), 1);
+                  const maxQuilos = Math.max(...geracaoMensal.map(x => x.quilos), 1);
+                  const ultimo = i === geracaoMensal.length - 1;
                   return (
                     <div key={m.mes} style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4}}>
-                      <div className={`b ${i === geracaoMensal.length - 1 ? 'active' : ''}`}
-                        style={{height: `${h}%`, width: '70%'}}/>
+                      <div style={{flex: 1, width: '70%', display: 'flex', alignItems: 'flex-end', gap: 3}}>
+                        <div className={`b ${ultimo ? 'active' : ''}`} style={{height: `${(m.litros / maxLitros) * 100}%`, flex: 1}}/>
+                        <div className="b" style={{height: `${(m.quilos / maxQuilos) * 100}%`, flex: 1, opacity: 0.5}}/>
+                      </div>
                       <div className="mono" style={{fontSize: 12, color: 'var(--text-3)'}}>{m.mes}</div>
-                      <div className="mono tnum" style={{fontSize: 12}}>{m.valor}L</div>
+                      <div className="mono tnum" style={{fontSize: 11}}>{m.litros.toFixed(1)}L</div>
+                      <div className="mono tnum" style={{fontSize: 11, color: 'var(--text-3)'}}>{m.quilos.toFixed(1)}kg</div>
                     </div>
                   );
                 })}
@@ -99,19 +102,19 @@ export function DashboardScreen({ state, dispatch }) {
 
           {/* Geração por laboratório */}
           <div className="card">
-            <SectionTitle title="Geração por laboratório · este mês" sub="L equivalentes"/>
+            <SectionTitle title="Geração por laboratório · este mês" sub="líquidos (L) · sólidos (kg)"/>
             <div className="card-body">
               <div className="bar-chart">
                 {(() => {
                   const CORES_LAB = ['accent', 'green', 'amber', 'red'];
-                  const max = Math.max(...geracaoPorLab.map(x => x.valor), 1);
+                  const max = Math.max(...geracaoPorLab.map(x => x.litros), 1);
                   return geracaoPorLab.map((b, i) => (
                     <div className="bar-row" key={b.lab}>
                       <div className="name">{b.lab}</div>
                       <div className="bar-bg">
-                        <div className={`bar-fill ${CORES_LAB[i % CORES_LAB.length]}`} style={{width: `${(b.valor / max) * 100}%`}}/>
+                        <div className={`bar-fill ${CORES_LAB[i % CORES_LAB.length]}`} style={{width: `${(b.litros / max) * 100}%`}}/>
                       </div>
-                      <div className="val">{b.valor.toFixed(1)} L</div>
+                      <div className="val">{formatarQuantidade(b, 1)}</div>
                     </div>
                   ));
                 })()}

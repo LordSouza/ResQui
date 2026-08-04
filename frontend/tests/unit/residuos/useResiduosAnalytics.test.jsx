@@ -9,8 +9,8 @@ function wrapper({ children }) {
 }
 
 const fakeAnalytics = {
-  mensal: [{ mes: '2026-01', valor: 120.5 }, { mes: '2026-02', valor: 85.0 }],
-  porLab: [{ lab: 'Lab A', valor: 340.0 }, { lab: 'Lab B', valor: 90.5 }],
+  mensal: [{ mes: '2026-01', litros: 120.5, quilos: 4 }, { mes: '2026-02', litros: 85.0, quilos: 0 }],
+  porLab: [{ lab: 'Lab A', litros: 340.0, quilos: 12 }, { lab: 'Lab B', litros: 90.5, quilos: 0 }],
 };
 
 describe('useResiduosAnalytics', () => {
