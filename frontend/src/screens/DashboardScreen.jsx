@@ -86,7 +86,7 @@ export function DashboardScreen({ state, dispatch }) {
                   const ultimo = i === geracaoMensal.length - 1;
                   return (
                     <div key={m.mes} style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4}}>
-                      <div style={{flex: 1, width: '70%', display: 'flex', alignItems: 'flex-end', gap: 3}}>
+                      <div style={{height: 56, width: '70%', display: 'flex', alignItems: 'flex-end', gap: 3}}>
                         <div className={`b ${ultimo ? 'active' : ''}`} style={{height: `${(m.litros / maxLitros) * 100}%`, flex: 1}}/>
                         <div className="b" style={{height: `${(m.quilos / maxQuilos) * 100}%`, flex: 1, opacity: 0.5}}/>
                       </div>

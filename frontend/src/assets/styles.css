@@ -677,7 +677,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 }
 .bar-row {
   display: grid;
-  grid-template-columns: 140px 1fr 50px;
+  grid-template-columns: 140px 1fr 120px;
   gap: 8px;
   align-items: center;
   font-size: 12px;
@@ -697,7 +697,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .bar-row .bar-fill.amber { background: var(--amber); }
 .bar-row .bar-fill.red { background: var(--red); }
 .bar-row .bar-fill.green { background: var(--green); }
-.bar-row .val { font-family: var(--mono); text-align: right; color: var(--text-2); font-size: 11.5px; }
+.bar-row .val { font-family: var(--mono); text-align: right; color: var(--text-2); font-size: 11.5px; white-space: nowrap; }
 
 /* === Timeline / audit log === */
 .audit-row {
