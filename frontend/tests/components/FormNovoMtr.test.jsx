@@ -88,4 +88,25 @@ describe('FormNovoMtr — entradas inválidas', () => {
     expect(window.alert).toHaveBeenCalledWith('Informe gerador e transportador.');
     expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
   });
+
+  it('somatório dos selecionados separa litros de quilos', async () => {
+    mockFetch.mockImplementation((url) => {
+      if (String(url).includes('/api/pgrs-config')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+      }
+      if (String(url).includes('/api/residuos')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ([
+          { id: 1, tipo: 'Solventes orgânicos não-halogenados', volume: 5, unidade: 'L' },
+          { id: 2, tipo: 'Vidraria contaminada', volume: 2, unidade: 'kg' },
+        ]) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] });
+    });
+
+    render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    for (const checkbox of await screen.findAllByRole('checkbox')) await userEvent.click(checkbox);
+
+    expect(screen.getByText(/5\.00 L · 2\.00 kg/)).toBeInTheDocument();
+  });
 });

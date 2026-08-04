@@ -7,6 +7,7 @@ import { Icon, Badge, Picto } from '../components';
 import { apiFetch } from '../lib/api';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useResíduos } from '../residuos/useResíduos';
+import { quantidadesResiduos, formatarQuantidade } from '../utils';
 
 export function ChatMCP({ state, dispatch }) {
   const open = state.chatOpen;
@@ -237,7 +238,7 @@ function ChatCard({ card, dispatch }) {
         <div className="cc-h"><span className="ttl">Pré-MTR gerado</span><span className="tag">rascunho</span></div>
         <div className="cc-body">
           <div style={{fontSize: 12, fontWeight: 600}}>Pré-MTR (rascunho)</div>
-          <div className="small muted" style={{marginTop: 4}}>{card.count} resíduos consolidados · {card.massa} kg</div>
+          <div className="small muted" style={{marginTop: 4}}>{card.count} resíduos consolidados · {card.quantidade}</div>
         </div>
         <div className="cc-actions">
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'nav', screen: 'mtr'})}>Abrir Pré-MTR</button>
@@ -326,9 +327,8 @@ export async function executeAction(action, params, { reagentes, residuos, addCa
 
   if (action === 'createMtr') {
     const aguardando = residuos.filter(r => r.status === 'aguardando-coleta');
-    const toKg = { kg: 1, g: 0.001, L: 1.0, mL: 0.001, 'm³': 1000 };
-    const massa = aguardando.reduce((s, r) => s + r.volume * (toKg[r.unidade] ?? 1), 0).toFixed(1);
-    addCard({kind: 'mtr', count: aguardando.length, massa});
+    const quantidade = formatarQuantidade(quantidadesResiduos(aguardando));
+    addCard({kind: 'mtr', count: aguardando.length, quantidade});
     setTimeout(() => dispatch({type: 'nav', screen: 'mtr'}), 600);
     return;
   }

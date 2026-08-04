@@ -232,11 +232,9 @@ export function FormNovoMtr({ onClose, dispatch }) {
   }, [cfg]);
 
   const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
-  const toKg = { kg: 1, g: 0.001, L: 1.0, mL: 0.001, 'm³': 1000 };
-  const massa = selected.reduce((s, id) => {
-    const r = residuos.find(x => x.id === id);
-    return s + (r ? r.volume * (toKg[r.unidade] ?? 1.0) : 0);
-  }, 0);
+  const quantidade = quantidadesResiduos(
+    selected.map(id => residuos.find(r => r.id === id)).filter(Boolean)
+  );
 
   const submit = () => {
     if (selected.length === 0) { alert('Selecione ao menos um resíduo.'); return; }
@@ -286,7 +284,7 @@ export function FormNovoMtr({ onClose, dispatch }) {
       </div>
       {selected.length > 0 && (
         <p className="small" style={{ marginTop: 10 }}>
-          Massa estimada: <strong>{massa.toFixed(1)} kg</strong> ({selected.length} resíduos)
+          Quantidade selecionada: <strong>{formatarQuantidade(quantidade)}</strong> ({selected.length} resíduos)
         </p>
       )}
     </Modal>
