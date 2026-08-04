@@ -723,9 +723,15 @@ function NovaRegraInline({ onCancel, onAdd }) {
             </select>
           </div>
         </div>
+        {a === b && (
+          <div className="small muted" style={{marginTop: 6}}>
+            Uma regra precisa de duas classes diferentes.
+          </div>
+        )}
         <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6}}>
           <button type="button" className="btn btn-sm" onClick={onCancel}>Cancelar</button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => onAdd(a, b)}>Adicionar</button>
+          <button type="button" className="btn btn-primary btn-sm" disabled={a === b}
+            onClick={() => onAdd(a, b)}>Adicionar</button>
         </div>
       </div>
     </button>
