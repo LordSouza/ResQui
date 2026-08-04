@@ -38,6 +38,7 @@ test('new resíduo appears in the list after creation', async ({ page, request }
   // senão o change event corre contra o re-render do React
   await page.locator('#residuo-lab option').nth(1).waitFor({ state: 'attached' });
   await page.locator('#residuo-lab').selectOption({ index: 1 });
+  await page.locator('#residuo-classe-5').check();
   await page.locator('.modal-foot').getByRole('button', { name: /Registrar resíduo/ }).click();
   await expect(page.locator('.modal-title')).not.toBeVisible({ timeout: 3000 });
   await expect(page.getByRole('cell', { name: composicao })).toBeVisible({ timeout: 3000 });
@@ -47,4 +48,18 @@ test('search filters the residuos list', async ({ page }) => {
   await loginAndNavigate(page, 'Resíduos');
   await page.getByLabel('Buscar resíduo').fill('xxx-sem-resultado-xxx');
   await expect(page.locator('table.tbl tbody tr')).toHaveCount(0);
+});
+
+test('POST /api/residuos sem classificação é recusado com 400', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const lab = await ensureLab(request, auth);
+  const res = await request.post('/api/residuos', {
+    headers: auth,
+    data: {
+      Descricao: 'sem classificação', LaboratorioId: lab.id, Tipo: 'Solventes orgânicos não-halogenados',
+      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
+    },
+  });
+  expect(res.status()).toBe(400);
+  expect((await res.json()).message).toContain('Classifique a reatividade');
 });

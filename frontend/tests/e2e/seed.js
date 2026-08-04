@@ -86,7 +86,7 @@ export async function criarResiduoAguardandoColeta(request, auth) {
     data: {
       Descricao: 'Resíduo E2E', LaboratorioId: lab.id,
       Tipo: 'Solventes orgânicos não-halogenados', Volume: 2, Unidade: 'L',
-      Composicao: 'Acetona 70%', Risco: 'medio', Destino: null,
+      Composicao: 'Acetona 70%', Risco: 'medio', Destino: null, ClassesReatividade: [5],
     },
   });
   const r = await res.json();

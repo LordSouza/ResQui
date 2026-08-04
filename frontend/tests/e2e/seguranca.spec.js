@@ -19,7 +19,7 @@ test('Visualizador é bloqueado em mutações operacionais', async ({ request })
     headers: visuAuth,
     data: {
       Descricao: 'tentativa visu', LaboratorioId: lab.id, Tipo: 'x',
-      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
+      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [5],
     },
   });
   expect(res.status()).toBe(403);
@@ -102,7 +102,7 @@ test('Pesquisador cria resíduo mas é bloqueado em MTR', async ({ request }) =>
     headers: pesqAuth,
     data: {
       Descricao: 'descarte pesquisador', LaboratorioId: lab.id, Tipo: 'x',
-      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
+      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [5],
     },
   });
   expect(criar.ok()).toBeTruthy();
@@ -132,7 +132,7 @@ test('Professor aprova descarte solicitado', async ({ request }) => {
     headers: auth,
     data: {
       Descricao: 'descarte p/ professor', LaboratorioId: lab.id, Tipo: 'x',
-      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
+      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [5],
     },
   });
   const residuo = await criar.json();
@@ -161,7 +161,7 @@ test('Pesquisador é bloqueado ao aprovar descarte', async ({ request }) => {
     headers: auth,
     data: {
       Descricao: 'descarte p/ bloqueio pesquisador', LaboratorioId: lab.id, Tipo: 'x',
-      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [],
+      Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [5],
     },
   });
   const residuo = await criar.json();
