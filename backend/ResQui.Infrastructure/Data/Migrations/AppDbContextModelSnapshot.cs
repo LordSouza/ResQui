@@ -457,9 +457,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<decimal>("Massa")
-                        .HasColumnType("numeric");
-
                     b.Property<string>("Numero")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

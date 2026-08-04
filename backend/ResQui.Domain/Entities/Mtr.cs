@@ -11,7 +11,6 @@ public class Mtr
 
     public string? Destinador { get; set; }
     public string? CodigoIbama { get; set; }
-    public decimal Massa { get; set; }
 
     // Destinação final: o manifesto é a unidade do gesto — a carga sai e volta junta.
     // DateOnly (não DateTime) segue o padrão de Reagente.Validade: data sem hora e sem fuso.
