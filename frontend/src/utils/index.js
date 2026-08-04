@@ -20,15 +20,22 @@ export function iniciaisUsuario(user) {
   return duas.toUpperCase();
 }
 
-// Normaliza um volume para "litros equivalentes" (mesma aproximação do backend):
-// L=1, mL÷1000, kg≈1, g÷1000, m³×1000; unidade desconhecida usa o valor como está.
-export function litrosEquivalentes(volume, unidade) {
-  const v = Number(volume) || 0;
-  switch ((unidade || '').toLowerCase()) {
-    case 'ml': return v / 1000;
-    case 'g': return v / 1000;
-    case 'm³':
-    case 'm3': return v * 1000;
-    default: return v;
-  }
+const FATOR_LITROS = { l: 1, ml: 0.001, 'm³': 1000 };
+const FATOR_QUILOS = { kg: 1, g: 0.001 };
+
+export function quantidadesResiduos(residuos) {
+  return (residuos ?? []).reduce((acc, r) => {
+    const unidade = String(r?.unidade ?? '').toLowerCase();
+    const volume = Number(r?.volume) || 0;
+    if (unidade in FATOR_LITROS) acc.litros += volume * FATOR_LITROS[unidade];
+    else if (unidade in FATOR_QUILOS) acc.quilos += volume * FATOR_QUILOS[unidade];
+    return acc;
+  }, { litros: 0, quilos: 0 });
+}
+
+export function formatarQuantidade({ litros = 0, quilos = 0 } = {}, casas = 2) {
+  const partes = [];
+  if (litros > 0) partes.push(`${litros.toFixed(casas)} L`);
+  if (quilos > 0) partes.push(`${quilos.toFixed(casas)} kg`);
+  return partes.length > 0 ? partes.join(' · ') : '—';
 }

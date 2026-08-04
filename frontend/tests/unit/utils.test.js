@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { pgrsTs, exportCsv, litrosEquivalentes } from '../../src/utils';
+import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade } from '../../src/utils';
 
 // --- pgrsTs ---
 describe('pgrsTs', () => {
@@ -55,18 +55,53 @@ describe('exportCsv', () => {
   });
 });
 
-// --- litrosEquivalentes ---
-describe('litrosEquivalentes', () => {
-  it('normaliza cada unidade para litros equivalentes', () => {
-    expect(litrosEquivalentes(2, 'L')).toBe(2);
-    expect(litrosEquivalentes(500, 'mL')).toBe(0.5);
-    expect(litrosEquivalentes(3, 'kg')).toBe(3);
-    expect(litrosEquivalentes(250, 'g')).toBe(0.25);
-    expect(litrosEquivalentes(1, 'm³')).toBe(1000);
+// --- quantidadesResiduos ---
+describe('quantidadesResiduos', () => {
+  const r = (volume, unidade) => ({ volume, unidade });
+
+  it('converte volume para litros sem tocar em quilos', () => {
+    expect(quantidadesResiduos([r(2, 'L')])).toEqual({ litros: 2, quilos: 0 });
+    expect(quantidadesResiduos([r(500, 'mL')])).toEqual({ litros: 0.5, quilos: 0 });
+    expect(quantidadesResiduos([r(1, 'm³')])).toEqual({ litros: 1000, quilos: 0 });
   });
-  it('unidade desconhecida usa o valor como está; entrada inválida vira 0', () => {
-    expect(litrosEquivalentes(5, 'xyz')).toBe(5);
-    expect(litrosEquivalentes(undefined, 'L')).toBe(0);
-    expect(litrosEquivalentes(null, 'mL')).toBe(0);
+
+  it('converte massa para quilos sem tocar em litros', () => {
+    expect(quantidadesResiduos([r(3, 'kg')])).toEqual({ litros: 0, quilos: 3 });
+    expect(quantidadesResiduos([r(250, 'g')])).toEqual({ litros: 0, quilos: 0.25 });
+  });
+
+  it('não mistura as duas dimensões', () => {
+    expect(quantidadesResiduos([r(5, 'L'), r(2, 'kg'), r(250, 'mL')]))
+      .toEqual({ litros: 5.25, quilos: 2 });
+  });
+
+  it('ignora unidade fora do conjunto e entrada inválida', () => {
+    expect(quantidadesResiduos([r(5, 'L'), r(999, 'barril'), r(7, 'm3')]))
+      .toEqual({ litros: 5, quilos: 0 });
+    expect(quantidadesResiduos([r(undefined, 'L'), r(null, 'kg')]))
+      .toEqual({ litros: 0, quilos: 0 });
+    expect(quantidadesResiduos([])).toEqual({ litros: 0, quilos: 0 });
+    expect(quantidadesResiduos(undefined)).toEqual({ litros: 0, quilos: 0 });
+  });
+});
+
+// --- formatarQuantidade ---
+describe('formatarQuantidade', () => {
+  it('mostra as duas dimensões com duas casas', () => {
+    expect(formatarQuantidade({ litros: 30, quilos: 12.5 })).toBe('30.00 L · 12.50 kg');
+  });
+
+  it('omite a dimensão zerada', () => {
+    expect(formatarQuantidade({ litros: 30, quilos: 0 })).toBe('30.00 L');
+    expect(formatarQuantidade({ litros: 0, quilos: 2 })).toBe('2.00 kg');
+  });
+
+  it('sem quantidade, devolve travessão', () => {
+    expect(formatarQuantidade({ litros: 0, quilos: 0 })).toBe('—');
+    expect(formatarQuantidade()).toBe('—');
+  });
+
+  it('aceita outro número de casas', () => {
+    expect(formatarQuantidade({ litros: 1.234, quilos: 0 }, 1)).toBe('1.2 L');
   });
 });
