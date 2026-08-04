@@ -9,7 +9,9 @@ public record MtrDto(
     string? Destinador,
     string? CodigoIbama,
     decimal Massa,
-    List<int> ResiduoIds
+    List<int> ResiduoIds,
+    string? DataDestinacao,
+    string? DestinadoPorId
 );
 
 public record CriarMtrCmd(
@@ -19,3 +21,6 @@ public record CriarMtrCmd(
     string? CodigoIbama,
     List<int> ResiduoIds
 );
+
+// Data em "yyyy-MM-dd" — mesmo trânsito de CriarLoteCmd.Validade.
+public record ConfirmarDestinacaoCmd(string Data);

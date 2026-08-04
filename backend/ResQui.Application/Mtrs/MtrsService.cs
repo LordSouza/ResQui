@@ -86,6 +86,50 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         return ToDto(m, residuos);
     }
 
+    public async Task<MtrDto?> ConfirmarDestinacaoAsync(int id, ConfirmarDestinacaoCmd cmd, string? usuarioId, string usuarioEmail)
+    {
+        var m = await repo.GetByIdAsync(id);
+        if (m is null) return null;
+
+        if (m.DataDestinacao is not null)
+            throw new ValidationException(
+                $"Manifesto já destinado em {m.DataDestinacao:dd/MM/yyyy}.");
+
+        if (!DateOnly.TryParse(cmd.Data, out var data))
+            throw new ValidationException("Data de destinação inválida.");
+
+        // Comparações por DIA: DataEmissao é timestamp e a destinação é data sem hora — comparar
+        // instantes recusaria confirmar no mesmo dia em que o manifesto foi emitido.
+        if (data > DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new ValidationException("A data de destinação não pode estar no futuro.");
+        if (data < DateOnly.FromDateTime(m.DataEmissao))
+            throw new ValidationException(
+                $"A destinação não pode ser anterior à emissão do manifesto ({m.DataEmissao:dd/MM/yyyy}).");
+
+        var todos = (await residuosRepo.GetAllAsync()).ToList();
+        // Só os que estão de fato em coleta: AtualizarResiduoCmd aceita Status e MtrId, então um
+        // resíduo pode ter saído do fluxo por outro caminho e não deve ser arrastado de volta.
+        var emColeta = todos.Where(r => r.MtrId == m.Id && r.Status == "em-coleta").ToList();
+        if (emColeta.Count == 0)
+            throw new ValidationException("Nenhum resíduo deste manifesto está em coleta.");
+
+        foreach (var r in emColeta)
+        {
+            r.Status = "destinado";
+            await residuosRepo.UpdateAsync(r);
+        }
+        m.DataDestinacao = data;
+        m.DestinadoPorId = usuarioId;
+        await repo.UpdateAsync(m);
+        await residuosRepo.SaveChangesAsync();
+        await repo.SaveChangesAsync();
+
+        await auditoria.RegistrarAsync(usuarioEmail, "mtr.destinacao", "MTR",
+            $"Destinação do MTR {m.Numero} confirmada em {data:yyyy-MM-dd} — {emColeta.Count} resíduo(s) encerrado(s)",
+            RiscoAuditoria.Medium);
+        return ToDto(m, todos);
+    }
+
     public async Task<(byte[] Pdf, string Filename)?> GerarPdfAsync(int id, string usuarioEmail)
     {
         var m = await repo.GetByIdAsync(id);
@@ -129,6 +173,7 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
     {
         var ids = todosResíduos.Where(r => r.MtrId == m.Id).Select(r => r.Id).ToList();
         return new MtrDto(m.Id, m.Numero, m.Gerador, m.Transportadora,
-            m.DataEmissao, m.Destinador, m.CodigoIbama, m.Massa, ids);
+            m.DataEmissao, m.Destinador, m.CodigoIbama, m.Massa, ids,
+            m.DataDestinacao?.ToString("yyyy-MM-dd"), m.DestinadoPorId);
     }
 }

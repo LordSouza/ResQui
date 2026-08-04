@@ -235,4 +235,128 @@ public class MtrsServiceTests
             "ana@lab.com", "mtr.agrupamento-bloqueado", "MTR",
             Arg.Is<string>(d => d.Contains("#18")), RiscoAuditoria.High);
     }
+
+    // ---------- Destinação final ----------
+
+    private static string Hoje() => DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+
+    [Fact]
+    public async Task ConfirmarDestinacao_MoveSoOsEmColeta_EGravaDataEAutor()
+    {
+        var mtr = FakeMtr(1);
+        var emColeta = FakeResiduo(10, mtrId: 1); emColeta.Status = "em-coleta";
+        var rejeitado = FakeResiduo(11, mtrId: 1); rejeitado.Status = "rejeitado";
+        var deOutroMtr = FakeResiduo(12, mtrId: 2); deOutroMtr.Status = "em-coleta";
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _residuosRepo.GetAllAsync().Returns([emColeta, rejeitado, deOutroMtr]);
+
+        var dto = await _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+
+        emColeta.Status.Should().Be("destinado");
+        rejeitado.Status.Should().Be("rejeitado", "a confirmação não arrasta resíduo que saiu do fluxo por outro caminho");
+        deOutroMtr.Status.Should().Be("em-coleta", "resíduo de outro manifesto não é tocado");
+        mtr.DataDestinacao.Should().Be(DateOnly.FromDateTime(DateTime.UtcNow));
+        mtr.DestinadoPorId.Should().Be("user1");
+        dto!.DataDestinacao.Should().Be(Hoje());
+    }
+
+    [Fact]
+    public async Task ConfirmarDestinacao_MtrInexistente_RetornaNull()
+    {
+        _repo.GetByIdAsync(99).Returns((Mtr?)null);
+
+        var dto = await _sut.ConfirmarDestinacaoAsync(99, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+
+        dto.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ConfirmarDestinacao_JaDestinado_Lanca()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataDestinacao = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        var r = FakeResiduo(10, mtrId: 1); r.Status = "destinado";
+        _residuosRepo.GetAllAsync().Returns([r]);
+
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*já destinado*");
+    }
+
+    [Fact]
+    public async Task ConfirmarDestinacao_DataInvalida_Lanca()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeMtr(1));
+
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd("ontem"), "user1", "user1@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*inválida*");
+    }
+
+    [Fact]
+    public async Task ConfirmarDestinacao_DataNoFuturo_Lanca()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeMtr(1));
+        var amanha = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1).ToString("yyyy-MM-dd");
+
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(amanha), "user1", "user1@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*futuro*");
+    }
+
+    [Fact]
+    public async Task ConfirmarDestinacao_AnteriorAEmissao_Lanca()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataEmissao = DateTime.UtcNow.AddDays(-2);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        var ontem = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-3).ToString("yyyy-MM-dd");
+
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(ontem), "user1", "user1@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*anterior à emissão*");
+    }
+
+    // Trava a comparação por DIA: emitido hoje às 14:32, destinado hoje (meia-noite) deve passar.
+    [Fact]
+    public async Task ConfirmarDestinacao_MesmoDiaDaEmissao_Aceita()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataEmissao = DateTime.UtcNow.Date.AddHours(14).AddMinutes(32);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        var r = FakeResiduo(10, mtrId: 1); r.Status = "em-coleta";
+        _residuosRepo.GetAllAsync().Returns([r]);
+
+        var dto = await _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+
+        dto.Should().NotBeNull();
+        r.Status.Should().Be("destinado");
+    }
+
+    [Fact]
+    public async Task ConfirmarDestinacao_SemResiduoEmColeta_Lanca()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeMtr(1));
+        var r = FakeResiduo(10, mtrId: 1); r.Status = "destinado";
+        _residuosRepo.GetAllAsync().Returns([r]);
+
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*em coleta*");
+    }
+
+    [Fact]
+    public async Task ConfirmarDestinacao_AuditaMedium()
+    {
+        var mtr = FakeMtr(1);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        var r = FakeResiduo(10, mtrId: 1); r.Status = "em-coleta";
+        _residuosRepo.GetAllAsync().Returns([r]);
+
+        await _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+
+        await _audit.Received(1).RegistrarAsync("user1@lab.com", "mtr.destinacao", "MTR",
+            Arg.Is<string>(d => d.Contains(mtr.Numero) && d.Contains("1 resíduo")), RiscoAuditoria.Medium);
+    }
 }
