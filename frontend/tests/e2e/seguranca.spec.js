@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ADMIN, apiAuth, ensureLab, totp } from './seed';
+import { ADMIN, apiAuth, ensureLab, totp, criarResiduoAguardandoColeta } from './seed';
 
 // Visualizador não pode mutar estoque/resíduos/MTRs (item: autorização fina).
 test('Visualizador é bloqueado em mutações operacionais', async ({ request }) => {
@@ -479,4 +479,64 @@ test('pgrs-config/identificacao é aberto a Visualizador e não vaza os campos r
 
   // O mesmo token continua barrado no endpoint completo.
   expect((await request.get('/api/pgrs-config', { headers })).status()).toBe(403);
+});
+
+// Confirmar destinação exige a policy Tecnico (Admin/Gestor/Tecnico) — Pesquisador deve levar 403.
+test('Pesquisador não confirma destinação de MTR', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `pesq3_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Pesq@123', Papel: 'Pesquisador', Nome: 'Pesq3 E2E' },
+  });
+  const loginRes = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Pesq@123' } });
+  const { token } = await loginRes.json();
+
+  const residuo = await criarResiduoAguardandoColeta(request, auth);
+  const mtrRes = await request.post('/api/mtrs', {
+    headers: auth,
+    data: { Gerador: 'Unifei', Transportadora: 'EcoLog', Destinador: 'EcoQ', CodigoIbama: 'A099', ResiduoIds: [residuo.id] },
+  });
+  const mtr = await mtrRes.json();
+
+  const res = await request.post(`/api/mtrs/${mtr.id}/destinacao`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { Data: new Date().toISOString().slice(0, 10) },
+  });
+  expect(res.status()).toBe(403);
+});
+
+// Reabrir exige Gestor — Tecnico confirma mas não desfaz.
+test('Tecnico confirma destinação mas não reabre o manifesto', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `tec_dest_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Tecn@123', Papel: 'Tecnico', Nome: 'Tec Dest E2E' },
+  });
+  const loginRes = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Tecn@123' } });
+  const { token } = await loginRes.json();
+  const tecAuth = { Authorization: `Bearer ${token}` };
+
+  const residuo = await criarResiduoAguardandoColeta(request, auth);
+  const mtrRes = await request.post('/api/mtrs', {
+    headers: auth,
+    data: { Gerador: 'Unifei', Transportadora: 'EcoLog', Destinador: 'EcoQ', CodigoIbama: 'A099', ResiduoIds: [residuo.id] },
+  });
+  const mtr = await mtrRes.json();
+
+  const confirmar = await request.post(`/api/mtrs/${mtr.id}/destinacao`, {
+    headers: tecAuth,
+    data: { Data: new Date().toISOString().slice(0, 10) },
+  });
+  expect(confirmar.ok()).toBeTruthy();
+
+  const reabrir = await request.delete(`/api/mtrs/${mtr.id}/destinacao`, { headers: tecAuth });
+  expect(reabrir.status()).toBe(403);
+
+  // Admin reabre — e o segundo DELETE recusa, porque já não está destinado.
+  const comoAdmin = await request.delete(`/api/mtrs/${mtr.id}/destinacao`, { headers: auth });
+  expect(comoAdmin.status()).toBe(204);
+  const denovo = await request.delete(`/api/mtrs/${mtr.id}/destinacao`, { headers: auth });
+  expect(denovo.status()).toBe(400);
 });
