@@ -43,6 +43,6 @@ public record AtualizarResiduoCmd(
 
 public record RejeitarResiduoCmd(string? Motivo = null);
 
-public record MensalItem(string Mes, decimal Valor);
-public record LabItem(string Lab, decimal Valor);
+public record MensalItem(string Mes, decimal Litros, decimal Quilos);
+public record LabItem(string Lab, decimal Litros, decimal Quilos);
 public record ResiduosAnalyticsDto(IList<MensalItem> Mensal, IList<LabItem> PorLab);

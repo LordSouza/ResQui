@@ -144,26 +144,26 @@ public class ResiduosService(
         var mensal = residuos
             .GroupBy(r => r.DataRegistro.ToString("yyyy-MM"))
             .OrderBy(g => g.Key)
-            .Select(g => new MensalItem(g.Key, g.Sum(r => NormalizarVolume(r.Volume, r.Unidade))))
+            .Select(g =>
+            {
+                var q = QuantidadeResiduos.Somar(g);
+                return new MensalItem(g.Key, q.Litros, q.Quilos);
+            })
             .ToList();
 
         var porLab = residuos
             .GroupBy(r => r.LaboratorioId)
-            .Select(g => new LabItem(
-                nomePorId.TryGetValue(g.Key, out var nome) ? nome : g.Key,
-                g.Sum(r => NormalizarVolume(r.Volume, r.Unidade))))
-            .OrderByDescending(x => x.Valor)
+            .Select(g =>
+            {
+                var q = QuantidadeResiduos.Somar(g);
+                return new LabItem(nomePorId.TryGetValue(g.Key, out var nome) ? nome : g.Key, q.Litros, q.Quilos);
+            })
+            .OrderByDescending(x => x.Litros)
+            .ThenByDescending(x => x.Quilos)
             .ToList();
 
         return new ResiduosAnalyticsDto(mensal, porLab);
     }
-
-    private static decimal NormalizarVolume(decimal volume, string unidade) =>
-        unidade.ToLower() switch
-        {
-            "ml" => volume / 1000,
-            _ => volume,
-        };
 
     private static ResiduoDto ToDto(Residuo r) =>
         new(r.Id, r.Descricao, r.LaboratorioId, r.MtrId, r.Status, r.DataRegistro,

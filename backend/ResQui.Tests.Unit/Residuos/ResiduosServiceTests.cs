@@ -321,7 +321,7 @@ public class ResiduosServiceTests
 
         var result = await _sut.AnalyticsAsync(6);
 
-        result.Mensal.Should().Contain(m => m.Mes == mesEsperado && m.Valor == 15);
+        result.Mensal.Should().Contain(m => m.Mes == mesEsperado && m.Litros == 15);
     }
 
     [Fact]
@@ -334,7 +334,7 @@ public class ResiduosServiceTests
 
         var result = await _sut.AnalyticsAsync(6);
 
-        result.PorLab.Should().Contain(l => l.Lab == "Lab Química" && l.Valor == 10);
+        result.PorLab.Should().Contain(l => l.Lab == "Lab Química" && l.Litros == 10);
     }
 
     [Fact]
@@ -346,7 +346,24 @@ public class ResiduosServiceTests
 
         var result = await _sut.AnalyticsAsync(6);
 
-        result.PorLab.Should().Contain(l => l.Valor == 0.5m);
+        result.PorLab.Should().Contain(l => l.Litros == 0.5m);
+    }
+
+    [Fact]
+    public async Task AnalyticsAsync_SeparaLitrosDeQuilos()
+    {
+        var liquido = FakeResiduo(1); liquido.Volume = 5; liquido.Unidade = "L";
+        var solido = FakeResiduo(2); solido.Volume = 300; solido.Unidade = "g";
+        var cubico = FakeResiduo(3); cubico.Volume = 1; cubico.Unidade = "m³";
+        _repo.GetAllAsync().Returns([liquido, solido, cubico]);
+        _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab Química")]);
+
+        var result = await _sut.AnalyticsAsync(6);
+
+        result.PorLab.Single().Litros.Should().Be(1005m);
+        result.PorLab.Single().Quilos.Should().Be(0.3m);
+        result.Mensal.Sum(m => m.Litros).Should().Be(1005m);
+        result.Mensal.Sum(m => m.Quilos).Should().Be(0.3m);
     }
 
     [Fact]
@@ -359,7 +376,7 @@ public class ResiduosServiceTests
 
         var result = await _sut.AnalyticsAsync(6);
 
-        result.Mensal.Should().NotContain(m => m.Valor > 0);
+        result.Mensal.Should().NotContain(m => m.Litros > 0);
     }
 
     // Resíduos gravados antes das reconciliações da matriz (2026-07-27/28) podem ter par hoje em
