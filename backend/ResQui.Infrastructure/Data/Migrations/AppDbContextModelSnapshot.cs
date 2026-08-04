@@ -305,7 +305,10 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.HasKey("ClasseA", "ClasseB");
 
-                    b.ToTable("compat_overrides", (string)null);
+                    b.ToTable("compat_overrides", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_compat_overrides_par_canonico", "\"ClasseA\" < \"ClasseB\"");
+                        });
                 });
 
             modelBuilder.Entity("ResQui.Domain.Entities.ConfiguracaoPgrs", b =>

@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using ResQui.Domain.Entities;
 using ResQui.Infrastructure.Data;
+using ResQui.Infrastructure.Data.Configurations;
 using ResQui.Infrastructure.Identity;
 
 namespace ResQui.Tests.Unit.Data;
@@ -70,5 +71,19 @@ public class ModeloRelacionalTests
         db.Model.FindEntityType(entidade)!.GetForeignKeys()
             .Where(f => f.Properties.Count == 1 && f.Properties[0].Name == propriedade)
             .Should().BeEmpty($"{entidade.Name}.{propriedade} é isenta de FK por decisão registrada");
+    }
+
+    [Fact]
+    public void Modelo_ExigeParCanonico_EmCompatOverride()
+    {
+        var builder = new ModelBuilder();
+        new CompatOverrideConfiguration().Configure(builder.Entity<CompatOverride>());
+
+        var check = builder.Model.FindEntityType(typeof(CompatOverride))!
+            .GetCheckConstraints()
+            .SingleOrDefault(c => c.Name == "ck_compat_overrides_par_canonico");
+
+        check.Should().NotBeNull("o banco recusa par invertido ou diagonal em compat_overrides");
+        check!.Sql.Should().Be("\"ClasseA\" < \"ClasseB\"");
     }
 }
