@@ -9,7 +9,8 @@ const mtr = {
   transportadora: 'Ecolog Transportes',
   destinador: 'Ecoquímica SA',
   codigo_ibama: 'A099',
-  massa: 8.3,
+  total_litros: 7.5,
+  total_quilos: 0,
   data_emissao: '2026-07-24T00:00:00Z',
   residuo_ids: [451, 452],
 };
@@ -30,7 +31,7 @@ describe('FormPreviewMtrPdf — espelha o MTR real', () => {
     expect(document.body.textContent).toContain('Ecoquímica SA');
     expect(screen.getByText('Solventes orgânicos halogenados')).toBeInTheDocument();
     expect(screen.getByText('Soluções ácidas inorgânicas')).toBeInTheDocument();
-    expect(document.body.textContent).toContain('8.30'); // massa total kg
+    expect(document.body.textContent).toContain('7.50 L');
   });
 
   it('NÃO fabrica dados sem fonte no backend (CNPJ, hash, número fixo)', () => {

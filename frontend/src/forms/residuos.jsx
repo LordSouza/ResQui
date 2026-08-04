@@ -12,6 +12,7 @@ import { useConfigPgrs } from '../pgrs/useConfigPgrs';
 import { useSalvarConfigPgrs } from '../pgrs/useSalvarConfigPgrs';
 import { useConfirmarDestinacao } from '../mtrs/useConfirmarDestinacao';
 import { useReabrirDestinacao } from '../mtrs/useReabrirDestinacao';
+import { quantidadesResiduos, formatarQuantidade } from '../utils';
 
 // Seletor de classes de reatividade da mistura — o backend bloqueia pares Perigo/Proibido na matriz
 function ClassesSelector({ idPrefix, value, onChange, obrigatorio = false }) {
@@ -392,7 +393,7 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
             <RowMtr label="Transportadora" value={mtr.transportadora}/>
             <RowMtr label="Destinador" value={mtr.destinador || '—'}/>
             <RowMtr label="Código IBAMA" value={mtr.codigo_ibama || '—'} mono/>
-            <RowMtr label="Massa total (kg)" value={Number(mtr.massa ?? 0).toFixed(2)} mono/>
+            <RowMtr label="Quantidade total" value={formatarQuantidade({ litros: mtr.total_litros, quilos: mtr.total_quilos })} mono/>
           </SectionMtr>
 
           {/* Seção 2 - Resíduos */}

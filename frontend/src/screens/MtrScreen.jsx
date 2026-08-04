@@ -5,6 +5,7 @@ import { useResíduos } from '../residuos/useResíduos';
 import { downloadMtrPdf } from '../mtrs/downloadMtr';
 import { FormPreviewMtrPdf, FormConfirmarDestinacao, ConfirmReabrirDestinacao } from '../forms/residuos';
 import { usePode } from '../auth/permissoes';
+import { formatarQuantidade } from '../utils';
 
 function MtrDetalhe({ mtr }) {
   const { data: residuos = [], isPending } = useResíduos({ mtrId: mtr.id });
@@ -45,7 +46,7 @@ function MtrDetalhe({ mtr }) {
             <div className="k">Transportadora</div><div className="v">{mtr.transportadora}</div>
             <div className="k">Destinador</div><div className="v">{mtr.destinador ?? '-'}</div>
             <div className="k">Cód. IBAMA</div><div className="v mono">{mtr.codigo_ibama ?? '-'}</div>
-            <div className="k">Massa total</div><div className="v mono">{Number(mtr.massa ?? 0).toFixed(2)} kg</div>
+            <div className="k">Quantidade</div><div className="v mono">{formatarQuantidade({ litros: mtr.total_litros, quilos: mtr.total_quilos })}</div>
             <div className="k">Destinação</div><div className="v mono">{mtr.data_destinacao ?? '—'}</div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14 }}>
@@ -108,7 +109,7 @@ export function MtrScreen({ state, dispatch }) {
           <thead>
             <tr>
               <th>Número</th><th>Emissão</th><th>Resíduos</th>
-              <th className="right">Massa</th><th>Cód. IBAMA</th>
+              <th className="right">Quantidade</th><th>Cód. IBAMA</th>
               <th>Transportador</th><th>Destinador</th><th>Destinação</th><th></th>
             </tr>
           </thead>
@@ -118,7 +119,7 @@ export function MtrScreen({ state, dispatch }) {
                 <td className="num">{m.numero}</td>
                 <td className="mono small">{m.data_emissao?.slice(0, 10)}</td>
                 <td className="small">{(m.residuo_ids ?? []).map((id) => <Tag key={id}>#{id}</Tag>)}</td>
-                <td className="num right">{Number(m.massa ?? 0).toFixed(1)} kg</td>
+                <td className="num right">{formatarQuantidade({ litros: m.total_litros, quilos: m.total_quilos })}</td>
                 <td className="mono">{m.codigo_ibama ?? '-'}</td>
                 <td>{m.transportadora}</td>
                 <td>{m.destinador ?? '-'}</td>

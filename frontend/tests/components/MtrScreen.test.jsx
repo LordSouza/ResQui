@@ -22,7 +22,8 @@ const mtr = {
   data_emissao: '2026-07-20T10:00:00',
   destinador: 'EcoQuímica SA',
   codigo_ibama: 'A099',
-  massa: 12.5,
+  total_litros: 30,
+  total_quilos: 12.5,
   residuo_ids: [7],
 };
 
@@ -51,6 +52,11 @@ describe('MtrScreen', () => {
   it.each(['Professor', 'Pesquisador', 'Visualizador'])('esconde "Novo Pré-MTR" de %s', (papel) => {
     renderCom(papel);
     expect(screen.queryByRole('button', { name: /Novo Pré-MTR/i })).not.toBeInTheDocument();
+  });
+
+  it('mostra litros e quilos do manifesto', () => {
+    renderCom('Admin');
+    expect(screen.getAllByText(/30\.00 L · 12\.50 kg/).length).toBeGreaterThan(0);
   });
 
   it('mantém a lista visível para quem não pode emitir', () => {
