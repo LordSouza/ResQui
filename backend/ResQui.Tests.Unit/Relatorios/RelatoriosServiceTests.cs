@@ -45,7 +45,7 @@ public class RelatoriosServiceTests
     private static Mtr FakeMtr(int id = 1) => new()
     {
         Id = id, Numero = $"MTR-2026-{id:D3}", Gerador = "UniLab",
-        Transportadora = "EcoTrans", Massa = 12.5m,
+        Transportadora = "EcoTrans",
         DataEmissao = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
         CodigoIbama = "001-1",
     };
@@ -111,6 +111,27 @@ public class RelatoriosServiceTests
         csv.Should().Contain("# MANIFESTOS");
         // sem filtro de status: os dois manifestos entram
         csv.Should().Contain("MTR-2026-001").And.Contain("MTR-2026-002");
+    }
+
+    [Fact]
+    public async Task DownloadAsync_Pgrs_ManifestosTrazemAsDuasDimensoes()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeRelatorioPgrs());
+        var liquido = FakeResiduo(10, mtrId: 1);
+        var solido = FakeResiduo(11, mtrId: 1);
+        solido.Volume = 2.5m;
+        solido.Unidade = "kg";
+        _mtrsRepo.GetAllAsync().Returns([FakeMtr(1)]);
+        _residuosRepo.GetAllAsync().Returns([liquido, solido]);
+        _labsRepo.GetAllAsync().Returns([FakeLab()]);
+        _reagentesRepo.GetAllAsync().Returns([]);
+        _pgrsRepo.GetAsync().Returns((ConfiguracaoPgrs?)null);
+
+        var result = await _sut.DownloadAsync(1);
+
+        result.Should().NotBeNull();
+        result!.Value.Csv.Should().Contain("Total (L),Total (kg)");
+        result.Value.Csv.Should().Contain("10.000,2.500");
     }
 
     [Fact]

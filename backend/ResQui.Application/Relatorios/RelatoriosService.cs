@@ -1,5 +1,7 @@
 // backend/ResQui.Application/Relatorios/RelatoriosService.cs
+using System.Globalization;
 using System.Text;
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
@@ -120,11 +122,17 @@ public class RelatoriosService(
         var mtrs = (await mtrsRepo.GetAllAsync())
             .OrderBy(m => m.DataEmissao)
             .ToList();
+        var residuos = (await residuosRepo.GetAllAsync()).ToList();
         var sb = new StringBuilder();
-        sb.AppendLine("Nr MTR,Gerador,Transportadora,Destinador,Cod. IBAMA,Data Emissao,Massa (kg)");
+        sb.AppendLine("Nr MTR,Gerador,Transportadora,Destinador,Cod. IBAMA,Data Emissao,Total (L),Total (kg)");
         foreach (var m in mtrs)
+        {
+            var q = QuantidadeResiduos.Somar(residuos.Where(r => r.MtrId == m.Id));
             sb.AppendLine($"{Esc(m.Numero)},{Esc(m.Gerador)},{Esc(m.Transportadora)},{Esc(m.Destinador)}," +
-                          $"{Esc(m.CodigoIbama)},{m.DataEmissao:yyyy-MM-dd},{m.Massa}");
+                          $"{Esc(m.CodigoIbama)},{m.DataEmissao:yyyy-MM-dd}," +
+                          $"{q.Litros.ToString("F3", CultureInfo.InvariantCulture)}," +
+                          $"{q.Quilos.ToString("F3", CultureInfo.InvariantCulture)}");
+        }
         return (sb.ToString(), mtrs.Count);
     }
 
