@@ -67,6 +67,8 @@ public class CompatService(
             throw new ValidationException("Classes de reatividade devem estar entre 1 e 12.");
         if (cmd.Nivel is < 0 or > 3)
             throw new ValidationException("Nível de compatibilidade deve estar entre 0 (Compatível) e 3 (Proibido).");
+        if (classeA == classeB)
+            throw new ValidationException("Um override precisa de duas classes de reatividade diferentes.");
 
         var (canonicoA, canonicoB) = ParCanonico(classeA, classeB);
         var entry = new CompatOverride

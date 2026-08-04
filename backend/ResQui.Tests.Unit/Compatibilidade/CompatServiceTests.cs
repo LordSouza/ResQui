@@ -160,6 +160,17 @@ public class CompatServiceTests
         result.ClasseB.Should().Be(10);
     }
 
+    [Fact]
+    public async Task SalvarOverrideAsync_MesmaClasseNosDoisLados_LancaValidationException()
+    {
+        var cmd = new SalvarOverrideCmd(2, "x", "Carlos");
+
+        var act = () => _sut.SalvarOverrideAsync(5, 5, cmd);
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*iferentes*");
+        await _overridesRepo.DidNotReceive().UpsertAsync(Arg.Any<CompatOverride>());
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(4)]
