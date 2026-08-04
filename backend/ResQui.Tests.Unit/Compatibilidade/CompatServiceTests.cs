@@ -94,6 +94,25 @@ public class CompatServiceTests
         result.Entries.First(e => e.ClasseA == 1 && e.ClasseB == 2).Nivel.Should().Be(1);
     }
 
+    [Fact]
+    public async Task GetMatrizAsync_AplicaOverride_NasDuasCelulasEspelhadas()
+    {
+        _repo.GetAllAsync().Returns(new[]
+        {
+            new CompatEntry { ClasseA = 5, ClasseB = 10, Nivel = 2 },
+            new CompatEntry { ClasseA = 10, ClasseB = 5, Nivel = 2 },
+        });
+        _overridesRepo.GetAllAsync().Returns(new[]
+        {
+            new CompatOverride { ClasseA = 5, ClasseB = 10, Nivel = 3, Motivo = "Revisado", Autor = "Ana", DataEdicao = DateTime.UtcNow },
+        });
+
+        var result = await _sut.GetMatrizAsync();
+
+        result.Entries.First(e => e.ClasseA == 5 && e.ClasseB == 10).Nivel.Should().Be(3);
+        result.Entries.First(e => e.ClasseA == 10 && e.ClasseB == 5).Nivel.Should().Be(3);
+    }
+
     // --- GetOverridesAsync ---
 
     [Fact]

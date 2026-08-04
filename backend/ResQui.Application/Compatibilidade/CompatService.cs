@@ -42,11 +42,11 @@ public class CompatService(
     {
         var all = await repo.GetAllAsync();
         var overrides = (await overridesRepo.GetAllAsync())
-            .ToDictionary(o => (o.ClasseA, o.ClasseB));
+            .ToDictionary(o => ParCanonico(o.ClasseA, o.ClasseB));
         return new CompatMatrizDto(
             all.Select(e =>
             {
-                var nivel = overrides.TryGetValue((e.ClasseA, e.ClasseB), out var ov)
+                var nivel = overrides.TryGetValue(ParCanonico(e.ClasseA, e.ClasseB), out var ov)
                     ? ov.Nivel
                     : e.Nivel;
                 return new CompatEntryDto(e.ClasseA, e.ClasseB, nivel);
