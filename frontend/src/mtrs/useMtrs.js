@@ -7,6 +7,8 @@ function normalize(m) {
     codigo_ibama: m.codigoIbama,
     data_emissao: m.dataEmissao,
     residuo_ids: m.residuoIds ?? [],
+    data_destinacao: m.dataDestinacao ?? null,
+    destinado_por_id: m.destinadoPorId ?? null,
   };
 }
 

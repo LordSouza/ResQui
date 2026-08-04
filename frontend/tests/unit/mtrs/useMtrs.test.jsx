@@ -33,4 +33,26 @@ describe('useMtrs', () => {
     expect(m.codigo_ibama).toBe('A099');
     expect(m.residuo_ids).toEqual([1, 2]);
   });
+
+  it('normaliza dataDestinacao e destinadoPorId', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => [{ ...fakeMtr, dataDestinacao: '2026-08-04', destinadoPorId: 'u-1' }],
+    });
+
+    const { result } = renderHook(() => useMtrs(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data[0].data_destinacao).toBe('2026-08-04');
+    expect(result.current.data[0].destinado_por_id).toBe('u-1');
+  });
+
+  it('deixa data_destinacao nula em manifesto ainda não destinado', async () => {
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => [fakeMtr] });
+
+    const { result } = renderHook(() => useMtrs(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data[0].data_destinacao).toBeNull();
+  });
 });
