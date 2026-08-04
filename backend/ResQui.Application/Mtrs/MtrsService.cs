@@ -77,7 +77,6 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
             r.Status = "em-coleta";
             await residuosRepo.UpdateAsync(r);
         }
-        m.Massa = CalcularMassa(residuos);
         await repo.UpdateAsync(m);
         await residuosRepo.SaveChangesAsync();
         await repo.SaveChangesAsync();
@@ -187,20 +186,13 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         return string.Join(", ", itens);
     }
 
-    private static decimal CalcularMassa(IEnumerable<Residuo> residuos)
-    {
-        var toKg = new Dictionary<string, decimal>
-        {
-            ["kg"] = 1m, ["g"] = 0.001m, ["L"] = 1.0m, ["mL"] = 0.001m, ["m³"] = 1000m,
-        };
-        return residuos.Sum(r => r.Volume * (toKg.TryGetValue(r.Unidade, out var f) ? f : 1m));
-    }
-
     private static MtrDto ToDto(Mtr m, IEnumerable<Residuo> todosResíduos)
     {
-        var ids = todosResíduos.Where(r => r.MtrId == m.Id).Select(r => r.Id).ToList();
+        var doMtr = todosResíduos.Where(r => r.MtrId == m.Id).ToList();
+        var quantidade = QuantidadeResiduos.Somar(doMtr);
         return new MtrDto(m.Id, m.Numero, m.Gerador, m.Transportadora,
-            m.DataEmissao, m.Destinador, m.CodigoIbama, m.Massa, ids,
+            m.DataEmissao, m.Destinador, m.CodigoIbama, quantidade.Litros, quantidade.Quilos,
+            doMtr.Select(r => r.Id).ToList(),
             m.DataDestinacao?.ToString("yyyy-MM-dd"), m.DestinadoPorId);
     }
 }

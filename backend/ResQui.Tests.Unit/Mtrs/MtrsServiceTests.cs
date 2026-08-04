@@ -54,10 +54,11 @@ public class MtrsServiceTests
     }
 
     [Fact]
-    public async Task CriarAsync_VinculaResiduosECalculaMassa()
+    public async Task CriarAsync_VinculaResiduosESomaPorDimensao()
     {
         var r1 = FakeResiduo(10);
         var r2 = FakeResiduo(11);
+        r2.Unidade = "kg";
         _residuosRepo.GetByIdAsync(10).Returns(r1);
         _residuosRepo.GetByIdAsync(11).Returns(r2);
         _residuosRepo.GetAllAsync().Returns([r1, r2]);
@@ -72,7 +73,8 @@ public class MtrsServiceTests
 
         r1.Status.Should().Be("em-coleta");
         r2.Status.Should().Be("em-coleta");
-        result.Massa.Should().Be(10.0m); // 5L + 5L × fator 1.0
+        result.TotalLitros.Should().Be(5.0m);
+        result.TotalQuilos.Should().Be(5.0m);
         result.ResiduoIds.Should().Contain(10);
         result.ResiduoIds.Should().Contain(11);
     }

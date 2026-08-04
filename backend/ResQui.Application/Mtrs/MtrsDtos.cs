@@ -8,7 +8,8 @@ public record MtrDto(
     DateTime DataEmissao,
     string? Destinador,
     string? CodigoIbama,
-    decimal Massa,
+    decimal TotalLitros,
+    decimal TotalQuilos,
     List<int> ResiduoIds,
     string? DataDestinacao,
     string? DestinadoPorId
