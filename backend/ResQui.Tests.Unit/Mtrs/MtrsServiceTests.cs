@@ -359,4 +359,57 @@ public class MtrsServiceTests
         await _audit.Received(1).RegistrarAsync("user1@lab.com", "mtr.destinacao", "MTR",
             Arg.Is<string>(d => d.Contains(mtr.Numero) && d.Contains("1 resíduo")), RiscoAuditoria.Medium);
     }
+
+    [Fact]
+    public async Task ReabrirDestinacao_VoltaParaEmColeta_ELimpaOsCampos()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataDestinacao = DateOnly.FromDateTime(DateTime.UtcNow);
+        mtr.DestinadoPorId = "user1";
+        _repo.GetByIdAsync(1).Returns(mtr);
+        var destinado = FakeResiduo(10, mtrId: 1); destinado.Status = "destinado";
+        var rejeitado = FakeResiduo(11, mtrId: 1); rejeitado.Status = "rejeitado";
+        _residuosRepo.GetAllAsync().Returns([destinado, rejeitado]);
+
+        var ok = await _sut.ReabrirDestinacaoAsync(1, "gestor@lab.com");
+
+        ok.Should().BeTrue();
+        destinado.Status.Should().Be("em-coleta");
+        rejeitado.Status.Should().Be("rejeitado", "reabrir não ressuscita o que não foi ela quem moveu");
+        mtr.DataDestinacao.Should().BeNull();
+        mtr.DestinadoPorId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ReabrirDestinacao_MtrInexistente_RetornaFalse()
+    {
+        _repo.GetByIdAsync(99).Returns((Mtr?)null);
+
+        (await _sut.ReabrirDestinacaoAsync(99, "gestor@lab.com")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ReabrirDestinacao_NaoDestinado_Lanca()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeMtr(1));
+
+        var act = () => _sut.ReabrirDestinacaoAsync(1, "gestor@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*não está destinado*");
+    }
+
+    [Fact]
+    public async Task ReabrirDestinacao_AuditaHigh()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataDestinacao = DateOnly.FromDateTime(DateTime.UtcNow);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        var r = FakeResiduo(10, mtrId: 1); r.Status = "destinado";
+        _residuosRepo.GetAllAsync().Returns([r]);
+
+        await _sut.ReabrirDestinacaoAsync(1, "gestor@lab.com");
+
+        await _audit.Received(1).RegistrarAsync("gestor@lab.com", "mtr.destinacao-reaberta", "MTR",
+            Arg.Is<string>(d => d.Contains(mtr.Numero)), RiscoAuditoria.High);
+    }
 }

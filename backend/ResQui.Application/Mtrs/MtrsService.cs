@@ -130,6 +130,33 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         return ToDto(m, todos);
     }
 
+    public async Task<bool> ReabrirDestinacaoAsync(int id, string usuarioEmail)
+    {
+        var m = await repo.GetByIdAsync(id);
+        if (m is null) return false;
+        if (m.DataDestinacao is null)
+            throw new ValidationException("Manifesto não está destinado.");
+
+        var destinados = (await residuosRepo.GetAllAsync())
+            .Where(r => r.MtrId == m.Id && r.Status == "destinado").ToList();
+        foreach (var r in destinados)
+        {
+            r.Status = "em-coleta";
+            await residuosRepo.UpdateAsync(r);
+        }
+        m.DataDestinacao = null;
+        m.DestinadoPorId = null;
+        await repo.UpdateAsync(m);
+        await residuosRepo.SaveChangesAsync();
+        await repo.SaveChangesAsync();
+
+        // High: desfazer um registro de rastreabilidade não é operação corriqueira.
+        await auditoria.RegistrarAsync(usuarioEmail, "mtr.destinacao-reaberta", "MTR",
+            $"Reabriu o MTR {m.Numero} — {destinados.Count} resíduo(s) de volta para coleta",
+            RiscoAuditoria.High);
+        return true;
+    }
+
     public async Task<(byte[] Pdf, string Filename)?> GerarPdfAsync(int id, string usuarioEmail)
     {
         var m = await repo.GetByIdAsync(id);
