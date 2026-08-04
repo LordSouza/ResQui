@@ -1,6 +1,7 @@
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 
 namespace ResQui.Application.Pdf;
@@ -165,7 +166,7 @@ public class PdfService : IPdfService
                     Linha("Transportadora", m.Transportadora);
                     Linha("Destinador", m.Destinador ?? "—");
                     Linha("Código IBAMA", m.CodigoIbama ?? "—");
-                    Linha("Massa total (kg)", m.Massa.ToString("F3"));
+                    Linha("Quantidade total", QuantidadeResiduos.Formatar(QuantidadeResiduos.Somar(residuos)));
                 });
 
                 col.Item().PaddingTop(12).Text($"Resíduos ({residuos.Count})").Bold().FontSize(12);
