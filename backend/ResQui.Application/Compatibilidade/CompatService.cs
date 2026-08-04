@@ -10,9 +10,13 @@ public class CompatService(
 {
     private static readonly string[] Descricoes = ["Compatível", "Cautela", "Perigo", "Proibido"];
 
+    private static (int classeA, int classeB) ParCanonico(int classeA, int classeB) =>
+        classeA <= classeB ? (classeA, classeB) : (classeB, classeA);
+
     public async Task<CompatResultDto?> ConsultarParAsync(int classeA, int classeB)
     {
-        var ov = await overridesRepo.GetAsync(classeA, classeB);
+        var (canonicoA, canonicoB) = ParCanonico(classeA, classeB);
+        var ov = await overridesRepo.GetAsync(canonicoA, canonicoB);
         if (ov is not null)
             return new CompatResultDto(classeA, classeB, ov.Nivel, Descricoes[ov.Nivel]);
         var entry = await repo.GetNivelAsync(classeA, classeB);
@@ -64,10 +68,11 @@ public class CompatService(
         if (cmd.Nivel is < 0 or > 3)
             throw new ValidationException("Nível de compatibilidade deve estar entre 0 (Compatível) e 3 (Proibido).");
 
+        var (canonicoA, canonicoB) = ParCanonico(classeA, classeB);
         var entry = new CompatOverride
         {
-            ClasseA = classeA,
-            ClasseB = classeB,
+            ClasseA = canonicoA,
+            ClasseB = canonicoB,
             Nivel = cmd.Nivel,
             Motivo = cmd.Motivo,
             Autor = cmd.Autor,
@@ -77,8 +82,11 @@ public class CompatService(
         return ToDto(entry);
     }
 
-    public async Task RemoverOverrideAsync(int classeA, int classeB) =>
-        await overridesRepo.DeleteAsync(classeA, classeB);
+    public async Task RemoverOverrideAsync(int classeA, int classeB)
+    {
+        var (canonicoA, canonicoB) = ParCanonico(classeA, classeB);
+        await overridesRepo.DeleteAsync(canonicoA, canonicoB);
+    }
 
     private static CompatOverrideDto ToDto(CompatOverride o) =>
         new(o.ClasseA, o.ClasseB, o.Nivel, o.Motivo, o.Autor,

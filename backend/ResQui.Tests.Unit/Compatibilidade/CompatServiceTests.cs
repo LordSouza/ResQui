@@ -57,6 +57,21 @@ public class CompatServiceTests
         result.Should().BeNull();
     }
 
+    [Fact]
+    public async Task ConsultarParAsync_AchaOverride_QuandoClassesVemNaOrdemInversa()
+    {
+        _overridesRepo.GetAsync(5, 10).Returns(new CompatOverride
+            { ClasseA = 5, ClasseB = 10, Nivel = 3, Motivo = "Revisão institucional", Autor = "Ana", DataEdicao = DateTime.UtcNow });
+
+        var result = await _sut.ConsultarParAsync(10, 5);
+
+        result.Should().NotBeNull();
+        result!.Nivel.Should().Be(3);
+        result.ClasseA.Should().Be(10);
+        result.ClasseB.Should().Be(5);
+        await _repo.DidNotReceive().GetNivelAsync(Arg.Any<int>(), Arg.Any<int>());
+    }
+
     // --- GetMatrizAsync ---
 
     [Fact]
@@ -113,6 +128,19 @@ public class CompatServiceTests
         result.Nivel.Should().Be(2);
     }
 
+    [Fact]
+    public async Task SalvarOverrideAsync_GravaParOrdenado_QuandoClassesVemNaOrdemInversa()
+    {
+        var cmd = new SalvarOverrideCmd(3, "Revisão institucional", "Carlos");
+
+        var result = await _sut.SalvarOverrideAsync(10, 5, cmd);
+
+        await _overridesRepo.Received(1).UpsertAsync(Arg.Is<CompatOverride>(e =>
+            e.ClasseA == 5 && e.ClasseB == 10 && e.Nivel == 3));
+        result.ClasseA.Should().Be(5);
+        result.ClasseB.Should().Be(10);
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(4)]
@@ -149,6 +177,14 @@ public class CompatServiceTests
         await _sut.RemoverOverrideAsync(1, 3);
 
         await _overridesRepo.Received(1).DeleteAsync(1, 3);
+    }
+
+    [Fact]
+    public async Task RemoverOverrideAsync_RemoveParOrdenado_QuandoClassesVemNaOrdemInversa()
+    {
+        await _sut.RemoverOverrideAsync(10, 5);
+
+        await _overridesRepo.Received(1).DeleteAsync(5, 10);
     }
 
     // --- Proveniência ---
