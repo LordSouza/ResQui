@@ -26,6 +26,7 @@ public class ModeloRelacionalTests
     [InlineData(typeof(ReagenteLote), "ReagenteId", typeof(Reagente), DeleteBehavior.Cascade)]
     [InlineData(typeof(ReagenteGhs), "ReagenteId", typeof(Reagente), DeleteBehavior.Cascade)]
     [InlineData(typeof(Mtr), "ResponsavelId", typeof(Usuario), DeleteBehavior.SetNull)]
+    [InlineData(typeof(Mtr), "DestinadoPorId", typeof(Usuario), DeleteBehavior.SetNull)]
     [InlineData(typeof(Notificacao), "UsuarioId", typeof(Usuario), DeleteBehavior.Cascade)]
     [InlineData(typeof(SessaoToken), "UsuarioId", typeof(Usuario), DeleteBehavior.Cascade)]
     [InlineData(typeof(RelatorioGerado), "GeradoPorId", typeof(Usuario), DeleteBehavior.SetNull)]

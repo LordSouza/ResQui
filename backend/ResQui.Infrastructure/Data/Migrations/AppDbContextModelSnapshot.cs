@@ -441,8 +441,14 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<string>("CodigoIbama")
                         .HasColumnType("text");
 
+                    b.Property<DateOnly?>("DataDestinacao")
+                        .HasColumnType("date");
+
                     b.Property<DateTime>("DataEmissao")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DestinadoPorId")
+                        .HasColumnType("text");
 
                     b.Property<string>("Destinador")
                         .HasColumnType("text");
@@ -469,6 +475,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DestinadoPorId");
 
                     b.HasIndex("Numero")
                         .IsUnique();
@@ -959,6 +967,11 @@ namespace ResQui.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ResQui.Domain.Entities.Mtr", b =>
                 {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("DestinadoPorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
                         .WithMany()
                         .HasForeignKey("ResponsavelId")

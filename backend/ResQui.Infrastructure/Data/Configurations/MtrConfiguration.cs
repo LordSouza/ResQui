@@ -23,5 +23,13 @@ public class MtrConfiguration : IEntityTypeConfiguration<Mtr>
             .HasForeignKey(m => m.ResponsavelId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // SetNull pela mesma razão do ResponsavelId: o registro de destinação sobrevive à
+        // exclusão de quem o confirmou.
+        builder.HasOne<Usuario>()
+            .WithMany()
+            .HasForeignKey(m => m.DestinadoPorId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
