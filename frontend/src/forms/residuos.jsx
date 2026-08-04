@@ -165,7 +165,7 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
       onClose={onClose} width={560}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={atualizarResiduo.isPending}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={atualizarResiduo.isPending || (f.classes.length === 0 && (residuo.classes?.length ?? 0) > 0)}>
           {atualizarResiduo.isPending ? 'Salvando…' : 'Salvar alterações'}
         </button>
       </>}>
