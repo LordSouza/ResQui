@@ -102,7 +102,8 @@ public class ResiduosServiceTests
             Unidade: "L",
             Composicao: "HCl diluído",
             Risco: "alto",
-            Destino: null
+            Destino: null,
+            ClassesReatividade: [1]
         );
         _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
@@ -149,7 +150,7 @@ public class ResiduosServiceTests
     public async Task CriarAsync_RegistraAuditoria()
     {
         LabExiste();
-        var cmd = new CriarResiduoCmd("Solventes", "Lab-001", "Solventes orgânicos", 4.2m, "L", "Acetona", "medio", null);
+        var cmd = new CriarResiduoCmd("Solventes", "Lab-001", "Solventes orgânicos", 4.2m, "L", "Acetona", "medio", null, [5]);
         _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
@@ -224,8 +225,8 @@ public class ResiduosServiceTests
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*solicitação pendente*");
     }
 
-    private static CriarResiduoCmd FakeResiduoCmd(decimal volume = 1m, string risco = "medio", string unidade = "L", string labId = "Lab-001", string descricao = "Solvente usado") =>
-        new(descricao, labId, "Solventes orgânicos não-halogenados", volume, unidade, "acetona 80%", risco, null);
+    private static CriarResiduoCmd FakeResiduoCmd(decimal volume = 1m, string risco = "medio", string unidade = "L", string labId = "Lab-001", string descricao = "Solvente usado", IList<int>? classes = null) =>
+        new(descricao, labId, "Solventes orgânicos não-halogenados", volume, unidade, "acetona 80%", risco, null, classes ?? [5]);
 
     private void LabExiste(string id = "Lab-001") =>
         _labRepo.GetAllAsync().Returns([new Laboratorio { Id = id, Nome = "Lab" }]);
@@ -253,6 +254,44 @@ public class ResiduosServiceTests
     [Fact]
     public async Task CriarAsync_LaboratorioInexistente_LancaValidationException()
     { _labRepo.GetAllAsync().Returns([]); var act = () => _sut.CriarAsync(FakeResiduoCmd(labId: "Lab-999"), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Laboratório*"); }
+
+    [Fact]
+    public async Task CriarAsync_SemClassificacao_LancaValidationException()
+    {
+        LabExiste();
+        var cmd = new CriarResiduoCmd("Solvente usado", "Lab-001", "Solventes orgânicos não-halogenados", 1m, "L", "acetona 80%", "medio", null, null!);
+        var act = () => _sut.CriarAsync(cmd, "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Classifique a reatividade*");
+    }
+
+    [Fact]
+    public async Task CriarAsync_ClassificacaoVazia_LancaValidationException()
+    {
+        LabExiste();
+        var act = () => _sut.CriarAsync(FakeResiduoCmd(classes: []), "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Classifique a reatividade*");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(13)]
+    [InlineData(-1)]
+    public async Task CriarAsync_ClasseForaDaFaixa_LancaValidationException(int classe)
+    {
+        LabExiste();
+        var act = () => _sut.CriarAsync(FakeResiduoCmd(classes: [classe]), "u@x.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*entre 1 e 12*");
+    }
+
+    [Fact]
+    public async Task CriarAsync_ClassificacaoValida_Persiste()
+    {
+        LabExiste();
+        _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+        var result = await _sut.CriarAsync(FakeResiduoCmd(classes: [1, 12]), "u@x.com");
+        result.ClassesReatividade.Should().Equal(1, 12);
+    }
 
     [Fact]
     public async Task AtualizarAsync_VolumeNaoPositivo_LancaValidationException()

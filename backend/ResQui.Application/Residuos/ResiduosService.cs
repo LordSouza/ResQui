@@ -47,6 +47,10 @@ public class ResiduosService(
         if (!UnidadesValidas.Contains(cmd.Unidade)) throw new ValidationException("Unidade inválida — use L, mL, kg, g ou m³.");
         var labExiste = (await labRepo.GetAllAsync()).Any(l => l.Id == cmd.LaboratorioId);
         if (!labExiste) throw new ValidationException($"Laboratório {cmd.LaboratorioId} não encontrado.");
+        if (cmd.ClassesReatividade is null || cmd.ClassesReatividade.Count == 0)
+            throw new ValidationException("Classifique a reatividade do resíduo — selecione ao menos uma classe.");
+        if (cmd.ClassesReatividade.Any(c => c is < 1 or > 12))
+            throw new ValidationException("Classe de reatividade deve estar entre 1 e 12.");
         await ValidarMisturaAsync(cmd.ClassesReatividade, usuarioEmail);
         var r = new Residuo
         {
@@ -58,7 +62,7 @@ public class ResiduosService(
             Composicao = cmd.Composicao,
             Risco = cmd.Risco,
             Destino = cmd.Destino,
-            ClassesReatividade = cmd.ClassesReatividade?.ToList() ?? [],
+            ClassesReatividade = cmd.ClassesReatividade.ToList(),
         };
         await repo.AddAsync(r);
         await repo.SaveChangesAsync();

@@ -25,7 +25,7 @@ public record CriarResiduoCmd(
     string Composicao,
     string Risco,
     string? Destino,
-    IList<int>? ClassesReatividade = null
+    IList<int> ClassesReatividade
 );
 
 public record AtualizarResiduoCmd(
