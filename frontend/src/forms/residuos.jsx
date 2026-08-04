@@ -14,13 +14,13 @@ import { useConfirmarDestinacao } from '../mtrs/useConfirmarDestinacao';
 import { useReabrirDestinacao } from '../mtrs/useReabrirDestinacao';
 
 // Seletor de classes de reatividade da mistura — o backend bloqueia pares Perigo/Proibido na matriz
-function ClassesSelector({ idPrefix, value, onChange }) {
+function ClassesSelector({ idPrefix, value, onChange, obrigatorio = false }) {
   const toggle = (n) =>
     onChange(value.includes(n) ? value.filter(c => c !== n) : [...value, n]);
   return (
     <div className="form-row full">
       <div className="field">
-        <label>Classes de reatividade da mistura</label>
+        <label>Classes de reatividade da mistura{obrigatorio ? ' *' : ''}</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {Object.entries(REATIVIDADE_CLASSES).map(([n, label]) => (
             <label key={n} htmlFor={`${idPrefix}-classe-${n}`} className="btn btn-sm"
@@ -31,6 +31,11 @@ function ClassesSelector({ idPrefix, value, onChange }) {
             </label>
           ))}
         </div>
+        {obrigatorio && (
+          <div className="small muted" style={{ marginTop: 6 }}>
+            Selecione ao menos uma classe — é a classificação que permite bloquear misturas incompatíveis.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -76,7 +81,7 @@ export function FormNovoResiduo({ onClose, dispatch }) {
       onClose={onClose} width={620}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={criarResiduo.isPending}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={criarResiduo.isPending || f.classes.length === 0}>
           {criarResiduo.isPending ? 'Salvando…' : 'Registrar resíduo'}
         </button>
       </>}>
@@ -125,10 +130,10 @@ export function FormNovoResiduo({ onClose, dispatch }) {
             placeholder="Ex: 60% acetona + 30% etanol + traços de HCl, pH 6" />
         </div>
       </div>
-      <ClassesSelector idPrefix="residuo" value={f.classes} onChange={v => upd('classes', v)} />
+      <ClassesSelector idPrefix="residuo" value={f.classes} onChange={v => upd('classes', v)} obrigatorio />
       <div className="residuo-warning-banner">
         <Icon name="warning" size={14} />
-        <span>Após cadastrar, o sistema rotula automaticamente o recipiente e move para "aguardando coleta".</span>
+        <span>O registro entra como solicitação de descarte e aguarda aprovação antes de ir para a coleta.</span>
       </div>
     </Modal>
   );

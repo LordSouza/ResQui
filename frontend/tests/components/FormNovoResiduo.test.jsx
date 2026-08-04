@@ -31,6 +31,7 @@ describe('FormNovoResiduo — entradas inválidas', () => {
 
   it('bloqueia submissão com campos obrigatórios vazios', async () => {
     render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
     await userEvent.click(screen.getByRole('button', { name: /Registrar resíduo/i }));
     expect(window.alert).toHaveBeenCalledWith('Volume, composição e laboratório são obrigatórios.');
     expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
@@ -49,9 +50,29 @@ describe('FormNovoResiduo — entradas inválidas', () => {
     await userEvent.selectOptions(screen.getByLabelText(/Laboratório/i), 'Lab-001');
     await userEvent.type(screen.getByLabelText('Volume'), '2');
     await userEvent.type(screen.getByLabelText(/Composição declarada/i), 'Acetona 70%');
+    await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
     await userEvent.click(screen.getByRole('button', { name: /Registrar resíduo/i }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     const postCall = mockFetch.mock.calls.find(c => c[1]?.method === 'POST');
     expect(JSON.parse(postCall[1].body)).toMatchObject({ LaboratorioId: 'Lab-001' });
+  });
+
+  it('mantém o botão desabilitado enquanto nenhuma classe estiver marcada', async () => {
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    const botao = screen.getByRole('button', { name: /Registrar resíduo/i });
+    expect(botao).toBeDisabled();
+    await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
+    expect(botao).toBeEnabled();
+  });
+
+  it('avisa que a classificação alimenta o bloqueio de mistura', () => {
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    expect(screen.getByText(/permite bloquear misturas incompatíveis/i)).toBeInTheDocument();
+  });
+
+  it('diz que o registro aguarda aprovação, sem prometer rotulagem automática', () => {
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    expect(screen.getByText(/aguarda aprovação antes de ir para a coleta/i)).toBeInTheDocument();
+    expect(screen.queryByText(/rotula automaticamente/i)).not.toBeInTheDocument();
   });
 });
