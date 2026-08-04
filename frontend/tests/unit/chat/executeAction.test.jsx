@@ -66,13 +66,14 @@ describe('executeAction (ChatMCP)', () => {
     }));
   });
 
-  it('registerWaste faz POST /api/residuos e invalida a query de resíduos', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 7, tipo: 'Solventes', volume: 2, unidade: 'L', laboratorioId: 'Lab-002' }) });
+  it('registerWaste abre o formulário pré-preenchido em vez de criar o resíduo', async () => {
     await executeAction('registerWaste', { tipo: 'Solventes', volume: 2, unidade: 'L', gerador: 'Lab-002', composicao: 'acetona', risco: 'medio' }, deps);
-    expect(mockFetch.mock.calls[0][0]).toBe('/api/residuos');
-    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toMatchObject({ LaboratorioId: 'Lab-002', Volume: 2, Risco: 'medio' });
-    expect(deps.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['residuos'] });
-    expect(deps.addCard).toHaveBeenCalledWith(expect.objectContaining({ kind: 'waste' }));
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(deps.dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'openModal',
+      kind: 'novoResiduo',
+      residuoInicial: expect.objectContaining({ tipo: 'Solventes', volume: 2, unidade: 'L', laboratorioId: 'Lab-002', composicao: 'acetona', risco: 'medio' }),
+    }));
   });
 
   it('createMtr usa resíduos aguardando-coleta da API (sem fetch extra)', async () => {

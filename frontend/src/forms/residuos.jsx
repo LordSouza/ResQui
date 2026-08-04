@@ -42,13 +42,13 @@ function ClassesSelector({ idPrefix, value, onChange, obrigatorio = false }) {
 }
 
 // ---------- Novo Resíduo ----------
-export function FormNovoResiduo({ onClose, dispatch }) {
+export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
   const criarResiduo = useCriarResiduo();
   const { data: labs = [] } = useLaboratorios();
   const [f, setF] = useState({
-    tipo: 'Solventes orgânicos não-halogenados',
-    volume: '', unidade: 'L',
-    laboratorioId: '', composicao: '', risco: 'medio',
+    tipo: inicial?.tipo || 'Solventes orgânicos não-halogenados',
+    volume: inicial?.volume ?? '', unidade: inicial?.unidade || 'L',
+    laboratorioId: inicial?.laboratorioId || '', composicao: inicial?.composicao || '', risco: inicial?.risco || 'medio',
     classes: [],
   });
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));

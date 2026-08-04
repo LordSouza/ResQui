@@ -57,6 +57,16 @@ describe('openModal', () => {
     expect(s.modalLab).toBeNull();
     expect(s.modalUsuario).toBeNull();
   });
+
+  it('sets modalResiduoInicial when provided', () => {
+    const s = reducer(initialState, { type: 'openModal', kind: 'novoResiduo', residuoInicial: { tipo: 'Solventes', volume: 2 } });
+    expect(s.modalResiduoInicial).toEqual({ tipo: 'Solventes', volume: 2 });
+  });
+
+  it('clears modalResiduoInicial on closeModal', () => {
+    const aberto = reducer(initialState, { type: 'openModal', kind: 'novoResiduo', residuoInicial: { tipo: 'Solventes' } });
+    expect(reducer(aberto, { type: 'closeModal' }).modalResiduoInicial).toBeNull();
+  });
 });
 
 describe('closeModal', () => {

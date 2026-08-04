@@ -61,7 +61,7 @@ AÇÕES disponíveis (use exatamente esses nomes):
 - detail: abre o detalhe de um reagente. params: { id: "R-..." }
 - consume: registra baixa de consumo. params: { id: "R-...", quantidade: número, unidade: "L"|"kg" }
 - generateLabel: gera rótulo GHS. params: { id: "R-..." }
-- registerWaste: registra novo resíduo. params: { tipo, volume, unidade, gerador, composicao, risco: "baixo"|"medio"|"alto" }
+- registerWaste: abre o formulário de registro de resíduo já preenchido; a classificação de reatividade é escolhida pelo usuário. params: { tipo, volume, unidade, gerador, composicao, risco: "baixo"|"medio"|"alto" }
 - createMtr: cria Pré-MTR a partir dos resíduos aguardando coleta. params: { residuos?: ["W-..."] }
 - listExpiring: lista itens vencendo em ≤ 90 dias. sem params.
 - explain: apenas explicação/resposta sem ação. sem params.
@@ -245,20 +245,6 @@ function ChatCard({ card, dispatch }) {
       </div>
     );
   }
-  if (card.kind === 'waste') {
-    return (
-      <div className="chat-card">
-        <div className="cc-h"><span className="ttl">Resíduo registrado</span><span className="tag">{card.r.id}</span></div>
-        <div className="cc-body">
-          <div style={{fontSize: 12}}>{card.r.tipo} · {card.r.volume} {card.r.unidade}</div>
-          <div className="small muted" style={{marginTop: 4}}>Gerador {card.r.gerador} · status: aguardando coleta</div>
-        </div>
-        <div className="cc-actions">
-          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'nav', screen: 'residuos', flashId: card.r.id})}>Abrir resíduos</button>
-        </div>
-      </div>
-    );
-  }
   if (card.kind === 'consume') {
     return (
       <div className="chat-card">
@@ -322,26 +308,19 @@ export async function executeAction(action, params, { reagentes, residuos, addCa
   }
 
   if (action === 'registerWaste') {
-    const labId = params.gerador || residuos[0]?.lab_id || 'Lab-001';
-    try {
-      const res = await apiFetch('/api/residuos', {
-        method: 'POST',
-        body: JSON.stringify({
-          Descricao: (params.composicao || params.tipo || 'Resíduo químico').slice(0, 80),
-          LaboratorioId: labId,
-          Tipo: params.tipo || 'Resíduo químico',
-          Volume: Number(params.volume) || 1,
-          Unidade: params.unidade || 'L',
-          Composicao: params.composicao || '—',
-          Risco: params.risco || 'medio',
-          Destino: null,
-        }),
-      });
-      const novo = await res.json();
-      addCard({kind: 'waste', r: {id: novo.id, tipo: novo.tipo, volume: novo.volume, unidade: novo.unidade, gerador: novo.laboratorioId}});
-      queryClient.invalidateQueries({ queryKey: ['residuos'] });
-      dispatch({type: 'refresh', flashId: novo.id});
-    } catch (err) { erro(err.message); }
+    dispatch({
+      type: 'openModal',
+      kind: 'novoResiduo',
+      residuoInicial: {
+        tipo: params.tipo || '',
+        volume: params.volume ?? '',
+        unidade: params.unidade || 'L',
+        laboratorioId: params.gerador || residuos[0]?.lab_id || '',
+        composicao: params.composicao || '',
+        risco: params.risco || 'medio',
+      },
+    });
+    addCard({kind: 'list', title: 'Registro aberto', items: [{nome: 'Escolha as classes de reatividade e confirme o registro.', meta: ''}]});
     return;
   }
 
