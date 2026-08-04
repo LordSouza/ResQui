@@ -3,12 +3,16 @@ import { Icon, Tag, SectionTitle, riscoBadge } from '../components';
 import { useMtrs } from '../mtrs/useMtrs';
 import { useResíduos } from '../residuos/useResíduos';
 import { downloadMtrPdf } from '../mtrs/downloadMtr';
-import { FormPreviewMtrPdf } from '../forms/residuos';
+import { FormPreviewMtrPdf, FormConfirmarDestinacao, ConfirmReabrirDestinacao } from '../forms/residuos';
 import { usePode } from '../auth/permissoes';
 
 function MtrDetalhe({ mtr }) {
   const { data: residuos = [], isPending } = useResíduos({ mtrId: mtr.id });
   const [preview, setPreview] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [reabrindo, setReabrindo] = useState(false);
+  const podeDestinar = usePode('Tecnico');   // POST /api/mtrs/:id/destinacao
+  const podeReabrir = usePode('Gestor');     // DELETE /api/mtrs/:id/destinacao
   return (
     <>
     <div className="detail-grid">
@@ -42,6 +46,7 @@ function MtrDetalhe({ mtr }) {
             <div className="k">Destinador</div><div className="v">{mtr.destinador ?? '-'}</div>
             <div className="k">Cód. IBAMA</div><div className="v mono">{mtr.codigo_ibama ?? '-'}</div>
             <div className="k">Massa total</div><div className="v mono">{Number(mtr.massa ?? 0).toFixed(2)} kg</div>
+            <div className="k">Destinação</div><div className="v mono">{mtr.data_destinacao ?? '—'}</div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14 }}>
             <button type="button" className="btn btn-sm" onClick={() => setPreview(true)}>
@@ -50,11 +55,23 @@ function MtrDetalhe({ mtr }) {
             <button type="button" className="btn btn-sm" onClick={() => downloadMtrPdf(mtr.id, mtr.numero)}>
               <Icon name="download" size={12} /> PDF
             </button>
+            {podeDestinar && !mtr.data_destinacao && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setConfirmando(true)}>
+                <Icon name="check" size={12} /> Confirmar destinação
+              </button>
+            )}
+            {podeReabrir && mtr.data_destinacao && (
+              <button type="button" className="btn btn-sm" onClick={() => setReabrindo(true)}>
+                <Icon name="refresh" size={12} /> Reabrir manifesto
+              </button>
+            )}
           </div>
         </div>
       </div>
     </div>
     {preview && <FormPreviewMtrPdf mtr={mtr} residuos={residuos} onClose={() => setPreview(false)} />}
+    {confirmando && <FormConfirmarDestinacao mtr={mtr} residuos={residuos} onClose={() => setConfirmando(false)} />}
+    {reabrindo && <ConfirmReabrirDestinacao mtr={mtr} residuos={residuos} onClose={() => setReabrindo(false)} />}
     </>
   );
 }
@@ -92,7 +109,7 @@ export function MtrScreen({ state, dispatch }) {
             <tr>
               <th>Número</th><th>Emissão</th><th>Resíduos</th>
               <th className="right">Massa</th><th>Cód. IBAMA</th>
-              <th>Transportador</th><th>Destinador</th><th></th>
+              <th>Transportador</th><th>Destinador</th><th>Destinação</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -105,6 +122,7 @@ export function MtrScreen({ state, dispatch }) {
                 <td className="mono">{m.codigo_ibama ?? '-'}</td>
                 <td>{m.transportadora}</td>
                 <td>{m.destinador ?? '-'}</td>
+                <td className="mono small">{m.data_destinacao ?? '—'}</td>
                 <td style={{ whiteSpace: 'nowrap' }}>
                   <button type="button" className="btn btn-sm" title="Gerar manifesto em PDF"
                     onClick={(e) => { e.stopPropagation(); downloadMtrPdf(m.id, m.numero); }}>

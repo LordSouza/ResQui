@@ -10,6 +10,8 @@ import { useResíduos } from '../residuos/useResíduos';
 import { downloadMtrPdf } from '../mtrs/downloadMtr';
 import { useConfigPgrs } from '../pgrs/useConfigPgrs';
 import { useSalvarConfigPgrs } from '../pgrs/useSalvarConfigPgrs';
+import { useConfirmarDestinacao } from '../mtrs/useConfirmarDestinacao';
+import { useReabrirDestinacao } from '../mtrs/useReabrirDestinacao';
 
 // Seletor de classes de reatividade da mistura — o backend bloqueia pares Perigo/Proibido na matriz
 function ClassesSelector({ idPrefix, value, onChange }) {
@@ -436,6 +438,57 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
           </div>
         </div>
       </div>
+    </Modal>
+  );
+}
+
+// ---------- Confirmar destinação ----------
+export function FormConfirmarDestinacao({ mtr, residuos, onClose }) {
+  const confirmar = useConfirmarDestinacao();
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const emColeta = (residuos ?? []).filter(r => r.status === 'em-coleta');
+
+  const submit = () => confirmar.mutate({ id: mtr.id, data }, { onSuccess: onClose });
+
+  return (
+    <Modal title="Confirmar destinação" sub={`${mtr.numero} · encerra os resíduos deste manifesto`}
+      onClose={onClose} width={460}
+      footer={<>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={confirmar.isPending}>
+          {confirmar.isPending ? 'Salvando…' : 'Confirmar'}
+        </button>
+      </>}>
+      <div className="field">
+        <label htmlFor="destinacao-data">Data da destinação</label>
+        <input id="destinacao-data" type="date" value={data} onChange={e => setData(e.target.value)} />
+      </div>
+      <p className="small muted" style={{ marginTop: 10 }}>
+        {emColeta.length} resíduo(s) em coleta serão marcados como destinados.
+      </p>
+    </Modal>
+  );
+}
+
+// ---------- Reabrir manifesto destinado ----------
+export function ConfirmReabrirDestinacao({ mtr, residuos, onClose }) {
+  const reabrir = useReabrirDestinacao();
+  const destinados = (residuos ?? []).filter(r => r.status === 'destinado').length;
+
+  return (
+    <Modal title={`Reabrir ${mtr.numero}?`} sub="Desfaz o registro de destinação deste manifesto."
+      onClose={onClose} width={460}
+      footer={<>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn-sm" disabled={reabrir.isPending}
+          onClick={() => reabrir.mutate(mtr.id, { onSuccess: onClose })}>
+          {reabrir.isPending ? 'Reabrindo…' : 'Reabrir'}
+        </button>
+      </>}>
+      <p className="small">
+        {destinados} resíduo(s) voltam para &quot;em coleta&quot; e a data de destinação
+        ({mtr.data_destinacao}) é apagada. A reabertura fica registrada na auditoria.
+      </p>
     </Modal>
   );
 }

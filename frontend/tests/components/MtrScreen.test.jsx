@@ -7,6 +7,8 @@ import { initialState } from '../../src/store/reducer';
 vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../../src/mtrs/useMtrs', () => ({ useMtrs: vi.fn() }));
 vi.mock('../../src/residuos/useResíduos', () => ({ useResíduos: vi.fn() }));
+vi.mock('../../src/mtrs/useConfirmarDestinacao', () => ({ useConfirmarDestinacao: () => ({ mutate: vi.fn(), isPending: false }) }));
+vi.mock('../../src/mtrs/useReabrirDestinacao', () => ({ useReabrirDestinacao: () => ({ mutate: vi.fn(), isPending: false }) }));
 
 import { useAuth } from '../../src/auth/AuthContext';
 import { useMtrs } from '../../src/mtrs/useMtrs';
@@ -54,5 +56,52 @@ describe('MtrScreen', () => {
   it('mantém a lista visível para quem não pode emitir', () => {
     renderCom('Visualizador');
     expect(screen.getAllByText('MTR-2026-0001').length).toBeGreaterThan(0);
+  });
+});
+
+const destinado = { ...mtr, id: 2, numero: 'MTR-2026-0002', data_destinacao: '2026-08-01' };
+const comDestinado = () =>
+  useMtrs.mockReturnValue({ data: [destinado], isPending: false, isError: false, refetch: vi.fn() });
+
+describe('MtrScreen · destinação', () => {
+  // POST /api/mtrs/:id/destinacao exige a policy Tecnico.
+  it.each(['Admin', 'Gestor', 'Tecnico'])('mostra "Confirmar destinação" para %s', (papel) => {
+    renderCom(papel);
+    expect(screen.getByRole('button', { name: /Confirmar destinação/i })).toBeInTheDocument();
+  });
+
+  it.each(['Professor', 'Pesquisador', 'Visualizador'])('esconde "Confirmar destinação" de %s', (papel) => {
+    renderCom(papel);
+    expect(screen.queryByRole('button', { name: /Confirmar destinação/i })).not.toBeInTheDocument();
+  });
+
+  it('esconde "Confirmar destinação" de manifesto já destinado', () => {
+    comDestinado();
+    renderCom('Admin');
+    expect(screen.queryByRole('button', { name: /Confirmar destinação/i })).not.toBeInTheDocument();
+  });
+
+  // DELETE exige Gestor: Tecnico confirma, mas não reabre.
+  it('mostra "Reabrir manifesto" para Gestor em manifesto destinado', () => {
+    comDestinado();
+    renderCom('Gestor');
+    expect(screen.getByRole('button', { name: /Reabrir manifesto/i })).toBeInTheDocument();
+  });
+
+  it('esconde "Reabrir manifesto" de Tecnico', () => {
+    comDestinado();
+    renderCom('Tecnico');
+    expect(screen.queryByRole('button', { name: /Reabrir manifesto/i })).not.toBeInTheDocument();
+  });
+
+  it('não mostra "Reabrir manifesto" em manifesto não destinado', () => {
+    renderCom('Gestor');
+    expect(screen.queryByRole('button', { name: /Reabrir manifesto/i })).not.toBeInTheDocument();
+  });
+
+  it('mostra a data de destinação na tabela', () => {
+    comDestinado();
+    renderCom('Admin');
+    expect(screen.getAllByText('2026-08-01').length).toBeGreaterThan(0);
   });
 });
