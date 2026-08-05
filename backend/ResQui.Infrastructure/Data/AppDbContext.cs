@@ -33,5 +33,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         // duas baixas simultâneas não podem perder atualização
         builder.Entity<Reagente>().Property<uint>("xmin").IsRowVersion();
         builder.Entity<ReagenteLote>().Property<uint>("xmin").IsRowVersion();
+        builder.Entity<Mtr>().Property<uint>("xmin").IsRowVersion();
+        builder.Entity<Residuo>().Property<uint>("xmin").IsRowVersion();
     }
 }
