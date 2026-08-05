@@ -67,16 +67,24 @@ export const PGRS_CONFIG_E2E = {
   CodigoIbamaPadrao: 'E2E01',
 };
 
-export async function seedPgrsConfig(request, auth, overrides = {}) {
-  return request.put('/api/pgrs-config', {
-    headers: auth,
-    data: {
-      RazaoSocial: '', Cnpj: '', Endereco: '', Unidade: '',
-      RespTecnico: '', RespCrq: '', RespEmail: '', RespTel: '',
-      ...PGRS_CONFIG_E2E,
-      ...overrides,
-    },
-  });
+// O PUT exige a versão corrente (AtualizadoEmEsperado); com workers em paralelo, outro spec pode
+// gravar entre a leitura e a escrita, então uma recusa por conflito é relida e repetida.
+export async function seedPgrsConfig(request, auth, overrides = {}, tentativas = 3) {
+  for (let i = 0; i < tentativas; i++) {
+    const atual = await (await request.get('/api/pgrs-config', { headers: auth })).json();
+    const res = await request.put('/api/pgrs-config', {
+      headers: auth,
+      data: {
+        RazaoSocial: '', Cnpj: '', Endereco: '', Unidade: '',
+        RespTecnico: '', RespCrq: '', RespEmail: '', RespTel: '',
+        ...PGRS_CONFIG_E2E,
+        ...overrides,
+        AtualizadoEmEsperado: atual.atualizadoEm,
+      },
+    });
+    if (res.status() !== 409) return res;
+  }
+  throw new Error('seedPgrsConfig: conflito de versão persistente após 3 tentativas');
 }
 
 export async function criarResiduoAguardandoColeta(request, auth) {

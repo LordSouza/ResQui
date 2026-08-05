@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ADMIN, apiAuth, ensureLab, totp, criarResiduoAguardandoColeta } from './seed';
+import { ADMIN, apiAuth, ensureLab, totp, criarResiduoAguardandoColeta, seedPgrsConfig } from './seed';
 
 // Visualizador não pode mutar estoque/resíduos/MTRs (item: autorização fina).
 test('Visualizador é bloqueado em mutações operacionais', async ({ request }) => {
@@ -451,13 +451,10 @@ test('pgrs-config/identificacao é aberto a Visualizador e não vaza os campos r
   const auth = await apiAuth(request);
   const stamp = Date.now();
 
-  await request.put('/api/pgrs-config', {
-    headers: auth,
-    data: {
-      RazaoSocial: 'Instituição E2E', Unidade: 'Campus E2E',
-      Cnpj: '00000000000100', Endereco: 'Rua E2E, 1',
-      RespTecnico: 'RT E2E', RespEmail: 'rt@e2e.local', RespTel: '35 90000-0000',
-    },
+  await seedPgrsConfig(request, auth, {
+    RazaoSocial: 'Instituição E2E', Unidade: 'Campus E2E',
+    Cnpj: '00000000000100', Endereco: 'Rua E2E, 1',
+    RespTecnico: 'RT E2E', RespEmail: 'rt@e2e.local', RespTel: '35 90000-0000',
   });
 
   const visu = `idvisu_${stamp}@resqui.local`;
