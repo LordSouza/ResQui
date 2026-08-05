@@ -166,6 +166,9 @@ public class PdfService : IPdfService
                     Linha("Transportadora", m.Transportadora);
                     Linha("Destinador", m.Destinador ?? "—");
                     Linha("Código IBAMA", m.CodigoIbama ?? "—");
+                    Linha("Destinação", m.DataDestinacao is null
+                        ? "Pendente"
+                        : m.DataDestinacao.Value.ToString("dd/MM/yyyy"));
                     Linha("Quantidade total", QuantidadeResiduos.Formatar(QuantidadeResiduos.Somar(residuos)));
                 });
 
@@ -198,6 +201,14 @@ public class PdfService : IPdfService
                     }
                 });
 
+                if (m.DataDestinacao is not null)
+                {
+                    var porQuem = string.IsNullOrWhiteSpace(destinadoPor) ? "" : $" · {destinadoPor}";
+                    col.Item().PaddingTop(16)
+                        .Text($"Destinação confirmada em {m.DataDestinacao.Value:dd/MM/yyyy}{porQuem}")
+                        .Bold().FontSize(10);
+                }
+
                 col.Item().PaddingTop(30).Row(row =>
                 {
                     row.RelativeItem().Column(c =>
@@ -211,6 +222,15 @@ public class PdfService : IPdfService
                         c.Item().PaddingTop(20).LineHorizontal(0.5f);
                         c.Item().AlignCenter().Text("Responsável pelo transporte").FontSize(8);
                     });
+                    if (m.DataDestinacao is not null)
+                    {
+                        row.ConstantItem(40);
+                        row.RelativeItem().Column(c =>
+                        {
+                            c.Item().PaddingTop(20).LineHorizontal(0.5f);
+                            c.Item().AlignCenter().Text("Responsável pelo destinador").FontSize(8);
+                        });
+                    }
                 });
             });
 
