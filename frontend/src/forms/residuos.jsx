@@ -487,18 +487,18 @@ export function FormConfigurarPgrs({ onClose }) {
   const { data: cfgApi, isPending, isError, refetch } = useConfigPgrs();
   const salvar = useSalvarConfigPgrs();
   const [f, setF] = useState(null);
+  const [conflito, setConflito] = useState(null);
 
-  useEffect(() => {
-    if (!cfgApi) return;
-    setF({
-      razaoSocial: cfgApi.razaoSocial ?? '', cnpj: cfgApi.cnpj ?? '',
-      endereco: cfgApi.endereco ?? '', unidade: cfgApi.unidade ?? '',
-      respTecnico: cfgApi.respTecnico ?? '', respCrq: cfgApi.respCrq ?? '',
-      respEmail: cfgApi.respEmail ?? '', respTel: cfgApi.respTel ?? '',
-      geradorPadrao: cfgApi.geradorPadrao ?? '', transportadorPadrao: cfgApi.transportadorPadrao ?? '',
-      destinadorPadrao: cfgApi.destinadorPadrao ?? '', codigoIbamaPadrao: cfgApi.codigoIbamaPadrao ?? '',
-    });
-  }, [cfgApi]);
+  const povoar = cfg => setF({
+    razaoSocial: cfg.razaoSocial ?? '', cnpj: cfg.cnpj ?? '',
+    endereco: cfg.endereco ?? '', unidade: cfg.unidade ?? '',
+    respTecnico: cfg.respTecnico ?? '', respCrq: cfg.respCrq ?? '',
+    respEmail: cfg.respEmail ?? '', respTel: cfg.respTel ?? '',
+    geradorPadrao: cfg.geradorPadrao ?? '', transportadorPadrao: cfg.transportadorPadrao ?? '',
+    destinadorPadrao: cfg.destinadorPadrao ?? '', codigoIbamaPadrao: cfg.codigoIbamaPadrao ?? '',
+  });
+
+  useEffect(() => { if (cfgApi) povoar(cfgApi); }, [cfgApi]);
 
   const set = (k, v) => setF(s => ({ ...s, [k]: v }));
 
@@ -508,7 +508,11 @@ export function FormConfigurarPgrs({ onClose }) {
       RespTecnico: f.respTecnico, RespCrq: f.respCrq, RespEmail: f.respEmail, RespTel: f.respTel,
       GeradorPadrao: f.geradorPadrao, TransportadorPadrao: f.transportadorPadrao,
       DestinadorPadrao: f.destinadorPadrao, CodigoIbamaPadrao: f.codigoIbamaPadrao,
-    }, { onSuccess: onClose });
+      AtualizadoEmEsperado: cfgApi?.atualizadoEm ?? null,
+    }, {
+      onSuccess: onClose,
+      onError: e => { if (e.status === 409) setConflito(e.message); },
+    });
   };
 
   return (
@@ -524,6 +528,17 @@ export function FormConfigurarPgrs({ onClose }) {
       {isError && <div className="page-error">Erro ao carregar dados. <button onClick={refetch}>Tentar novamente</button></div>}
       {f && (
         <>
+          {conflito && (
+            <div className="page-error" style={{marginBottom: 12}}>
+              <Icon name="warning" size={14}/> {conflito}
+              <button type="button" className="btn btn-sm" style={{marginLeft: 8}}
+                onClick={async () => {
+                  const { data } = await refetch();
+                  if (data) povoar(data);
+                  setConflito(null);
+                }}>Recarregar</button>
+            </div>
+          )}
           <div style={pgrsHint}>Identificação do empreendimento (Lei 12.305/10, art. 21, inc. I). Campos em branco são omitidos do relatório.</div>
           <div className="form-row full">
             <div className="field"><label htmlFor="pgrs-razao-social">Razão social</label>
