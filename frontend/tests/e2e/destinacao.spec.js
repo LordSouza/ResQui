@@ -37,6 +37,10 @@ test('confirmar destinação encerra o resíduo do manifesto', async ({ page, re
   const lista = await depois.json();
   expect(lista[0].status).toBe('destinado');
 
+  const pdf = await request.get(`/api/mtrs/${mtr.id}/pdf`, { headers: auth });
+  expect(pdf.status()).toBe(200);
+  expect((await pdf.body()).byteLength).toBeGreaterThan(1000);
+
   // Reabrir devolve para "em-coleta".
   const reabrir = await request.delete(`/api/mtrs/${mtr.id}/destinacao`, { headers: auth });
   expect(reabrir.status()).toBe(204);
