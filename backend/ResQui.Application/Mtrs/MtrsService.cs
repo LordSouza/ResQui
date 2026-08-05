@@ -7,7 +7,7 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Mtrs;
 
-public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo, IAuditoriaService auditoria, ICompatService compat, Pdf.IPdfService pdf) : IMtrsService
+public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo, IAuditoriaService auditoria, ICompatService compat, Pdf.IPdfService pdf, IAuthRepository auth) : IMtrsService
 {
     public async Task<IEnumerable<MtrDto>> ListarAsync()
     {
@@ -161,7 +161,15 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         var m = await repo.GetByIdAsync(id);
         if (m is null) return null;
         var residuos = (await residuosRepo.GetAllAsync()).Where(r => r.MtrId == m.Id).ToList();
-        var bytes = pdf.ManifestoMtr(m, residuos);
+
+        string? destinadoPor = null;
+        if (m.DestinadoPorId is not null)
+        {
+            var u = await auth.FindByIdIncluindoArquivadosAsync(m.DestinadoPorId);
+            destinadoPor = u?.Nome ?? u?.Email;
+        }
+
+        var bytes = pdf.ManifestoMtr(m, residuos, destinadoPor);
         await auditoria.RegistrarAsync(usuarioEmail, "mtr.pdf", "MTR",
             $"Gerou PDF do MTR {m.Numero}", RiscoAuditoria.Low);
         return (bytes, $"{m.Numero.ToLower()}.pdf");

@@ -137,7 +137,7 @@ public class PdfService : IPdfService
         })).GeneratePdf();
     }
 
-    public byte[] ManifestoMtr(Mtr m, IList<Residuo> residuos)
+    public byte[] ManifestoMtr(Mtr m, IList<Residuo> residuos, string? destinadoPor)
     {
         return Document.Create(doc => doc.Page(page =>
         {

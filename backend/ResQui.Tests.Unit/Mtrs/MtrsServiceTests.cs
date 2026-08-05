@@ -18,11 +18,12 @@ public class MtrsServiceTests
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly ICompatService _compat = Substitute.For<ICompatService>();
     private readonly IPdfService _pdf = Substitute.For<IPdfService>();
+    private readonly IAuthRepository _auth = Substitute.For<IAuthRepository>();
     private readonly MtrsService _sut;
 
     public MtrsServiceTests()
     {
-        _sut = new MtrsService(_repo, _residuosRepo, _audit, _compat, _pdf);
+        _sut = new MtrsService(_repo, _residuosRepo, _audit, _compat, _pdf, _auth);
     }
 
     private static Mtr FakeMtr(int id = 1) => new()
@@ -413,5 +414,54 @@ public class MtrsServiceTests
 
         await _audit.Received(1).RegistrarAsync("gestor@lab.com", "mtr.destinacao-reaberta", "MTR",
             Arg.Is<string>(d => d.Contains(mtr.Numero)), RiscoAuditoria.High);
+    }
+
+    [Fact]
+    public async Task GerarPdfAsync_ManifestoDestinado_PassaNomeDeQuemConfirmou()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataDestinacao = new DateOnly(2026, 8, 5);
+        mtr.DestinadoPorId = "user9";
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _residuosRepo.GetAllAsync().Returns([FakeResiduo(10, mtrId: 1)]);
+        _auth.FindByIdIncluindoArquivadosAsync("user9").Returns(
+            new UsuarioInfo("user9", "maria@resqui.local", "Maria Souza", null, "Tecnico", [], false));
+        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
+
+        await _sut.GerarPdfAsync(1, "admin@resqui.local");
+
+        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), "Maria Souza");
+    }
+
+    [Fact]
+    public async Task GerarPdfAsync_QuemDestinouFoiArquivado_AindaResolveONome()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataDestinacao = new DateOnly(2026, 8, 5);
+        mtr.DestinadoPorId = "user9";
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _residuosRepo.GetAllAsync().Returns([FakeResiduo(10, mtrId: 1)]);
+        _auth.FindByIdIncluindoArquivadosAsync("user9").Returns(
+            new UsuarioInfo("user9", "joao@resqui.local", null, null, "Tecnico", [], true));
+        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
+
+        await _sut.GerarPdfAsync(1, "admin@resqui.local");
+
+        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), "joao@resqui.local");
+        await _auth.DidNotReceive().FindByIdAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task GerarPdfAsync_ManifestoPendente_NaoConsultaUsuario()
+    {
+        var mtr = FakeMtr(1);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _residuosRepo.GetAllAsync().Returns([FakeResiduo(10, mtrId: 1)]);
+        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
+
+        await _sut.GerarPdfAsync(1, "admin@resqui.local");
+
+        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), null);
+        await _auth.DidNotReceive().FindByIdIncluindoArquivadosAsync(Arg.Any<string>());
     }
 }

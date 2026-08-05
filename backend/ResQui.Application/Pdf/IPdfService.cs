@@ -6,5 +6,5 @@ public interface IPdfService
 {
     byte[] RotuloReagente(Reagente reagente);
     byte[] RotuloLote(Reagente reagente, ReagenteLote lote);
-    byte[] ManifestoMtr(Mtr mtr, IList<Residuo> residuos);
+    byte[] ManifestoMtr(Mtr mtr, IList<Residuo> residuos, string? destinadoPor);
 }
