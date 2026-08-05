@@ -16,6 +16,19 @@ export let REATIVIDADE_CLASSES = {
   12: 'Reativos com água',
 };
 
+export const TIPOS_RESIDUO = [
+  'Solventes orgânicos não-halogenados',
+  'Solventes halogenados',
+  'Ácidos inorgânicos',
+  'Ácidos orgânicos',
+  'Bases inorgânicas',
+  'Metais pesados',
+  'Oxidantes',
+  'Compostos cianetos',
+  'Vidraria contaminada',
+  'Material biológico contaminado',
+];
+
 export let PICTOS_GHS = {
   flame: { code: 'GHS02', label: 'Inflamável' },
   flame_circle: { code: 'GHS03', label: 'Oxidante' },

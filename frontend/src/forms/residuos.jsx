@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Icon, Badge, riscoBadge } from '../components';
-import { REATIVIDADE_CLASSES } from '../data';
+import { REATIVIDADE_CLASSES, TIPOS_RESIDUO } from '../data';
 import Modal from './Modal';
 import { useCriarResiduo } from '../residuos/useCriarResiduo';
 import { useAtualizarResiduo } from '../residuos/useAtualizarResiduo';
@@ -47,7 +47,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
   const criarResiduo = useCriarResiduo();
   const { data: labs = [] } = useLaboratorios();
   const [f, setF] = useState({
-    tipo: inicial?.tipo || 'Solventes orgânicos não-halogenados',
+    tipo: inicial?.tipo || TIPOS_RESIDUO[0],
     volume: inicial?.volume ?? '', unidade: inicial?.unidade || 'L',
     laboratorioId: inicial?.laboratorioId || '', composicao: inicial?.composicao || '', risco: inicial?.risco || 'medio',
     classes: [],
@@ -89,16 +89,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
       <div className="form-row">
         <div className="field"><label htmlFor="residuo-tipo">Tipo de resíduo *</label>
           <select id="residuo-tipo" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
-            <option>Solventes orgânicos não-halogenados</option>
-            <option>Solventes halogenados</option>
-            <option>Ácidos inorgânicos</option>
-            <option>Ácidos orgânicos</option>
-            <option>Bases inorgânicas</option>
-            <option>Metais pesados</option>
-            <option>Oxidantes</option>
-            <option>Compostos cianetos</option>
-            <option>Vidraria contaminada</option>
-            <option>Material biológico contaminado</option>
+            {TIPOS_RESIDUO.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
         <div className="field"><label htmlFor="residuo-risco">Risco</label>
@@ -173,16 +164,7 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
       <div className="form-row">
         <div className="field"><label htmlFor="edit-tipo">Tipo</label>
           <select id="edit-tipo" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
-            <option>Solventes orgânicos não-halogenados</option>
-            <option>Solventes halogenados</option>
-            <option>Ácidos inorgânicos</option>
-            <option>Ácidos orgânicos</option>
-            <option>Bases inorgânicas</option>
-            <option>Metais pesados</option>
-            <option>Oxidantes</option>
-            <option>Compostos cianetos</option>
-            <option>Vidraria contaminada</option>
-            <option>Material biológico contaminado</option>
+            {TIPOS_RESIDUO.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
         <div className="field"><label htmlFor="edit-risco">Risco</label>
