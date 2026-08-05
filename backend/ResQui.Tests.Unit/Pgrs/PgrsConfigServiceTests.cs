@@ -63,6 +63,75 @@ public class PgrsConfigServiceTests
     }
 
     [Fact]
+    public async Task SalvarAsync_VersaoEsperadaDiferenteDaPersistida_LancaConflito()
+    {
+        var existente = new ConfiguracaoPgrs
+        {
+            Id = 1,
+            RazaoSocial = "Antiga",
+            AtualizadoEm = new DateTime(2026, 8, 5, 12, 31, 4, DateTimeKind.Utc),
+            AtualizadoPor = "gestor2@resqui.local",
+        };
+        _repo.GetAsync().Returns(existente);
+
+        var cmd = Cmd() with { AtualizadoEmEsperado = new DateTime(2026, 8, 5, 9, 0, 0, DateTimeKind.Utc) };
+
+        var acao = async () => await _sut.SalvarAsync(cmd, "gestor@lab.com");
+
+        (await acao.Should().ThrowAsync<ConflitoConcorrenciaException>())
+            .WithMessage("*gestor2@resqui.local*");
+        existente.RazaoSocial.Should().Be("Antiga");
+        await _repo.DidNotReceive().SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task SalvarAsync_VersaoEsperadaOmitidaComLinhaVersionada_LancaConflito()
+    {
+        _repo.GetAsync().Returns(new ConfiguracaoPgrs
+        {
+            Id = 1,
+            AtualizadoEm = new DateTime(2026, 8, 5, 12, 31, 4, DateTimeKind.Utc),
+        });
+
+        var acao = async () => await _sut.SalvarAsync(Cmd(), "gestor@lab.com");
+
+        await acao.Should().ThrowAsync<ConflitoConcorrenciaException>();
+    }
+
+    [Fact]
+    public async Task SalvarAsync_VersaoEsperadaIgualAPersistida_Grava()
+    {
+        var versao = new DateTime(2026, 8, 5, 12, 31, 4, DateTimeKind.Utc);
+        _repo.GetAsync().Returns(new ConfiguracaoPgrs { Id = 1, RazaoSocial = "Antiga", AtualizadoEm = versao });
+
+        var dto = await _sut.SalvarAsync(Cmd() with { AtualizadoEmEsperado = versao }, "gestor@lab.com");
+
+        dto.RazaoSocial.Should().Be("Instituição Teste");
+        await _repo.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task SalvarAsync_LinhaSemVersaoComEsperadoNulo_Grava()
+    {
+        _repo.GetAsync().Returns(new ConfiguracaoPgrs { Id = 1, RazaoSocial = "Semeada pelo demo" });
+
+        await _sut.SalvarAsync(Cmd(), "gestor@lab.com");
+
+        await _repo.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task SalvarAsync_GravaVersaoTruncadaEmMilissegundos()
+    {
+        _repo.GetAsync().Returns((ConfiguracaoPgrs?)null);
+
+        var dto = await _sut.SalvarAsync(Cmd(), "gestor@lab.com");
+
+        dto.AtualizadoEm!.Value.Ticks.Should().Be(
+            dto.AtualizadoEm.Value.Ticks / TimeSpan.TicksPerMillisecond * TimeSpan.TicksPerMillisecond);
+    }
+
+    [Fact]
     public async Task SalvarAsync_RegistraAuditoria()
     {
         _repo.GetAsync().Returns((ConfiguracaoPgrs?)null);

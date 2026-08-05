@@ -137,6 +137,11 @@ app.Use(async (ctx, next) =>
         ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
         await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
     }
+    catch (ConflitoConcorrenciaException ex)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status409Conflict;
+        await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
+    }
     catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
     {
         ctx.Response.StatusCode = StatusCodes.Status409Conflict;

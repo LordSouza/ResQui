@@ -14,4 +14,5 @@ public record IdentificacaoPgrsDto(string RazaoSocial, string Unidade);
 public record AtualizarConfiguracaoPgrsCmd(
     string? RazaoSocial, string? Cnpj, string? Endereco, string? Unidade,
     string? RespTecnico, string? RespCrq, string? RespEmail, string? RespTel,
-    string? GeradorPadrao, string? TransportadorPadrao, string? DestinadorPadrao, string? CodigoIbamaPadrao);
+    string? GeradorPadrao, string? TransportadorPadrao, string? DestinadorPadrao, string? CodigoIbamaPadrao,
+    DateTime? AtualizadoEmEsperado = null);

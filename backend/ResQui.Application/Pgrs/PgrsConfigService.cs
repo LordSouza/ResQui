@@ -1,3 +1,4 @@
+using System.Globalization;
 using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
 using ResQui.Domain.Entities;
@@ -28,6 +29,9 @@ public class PgrsConfigService(IPgrsConfigRepository repo, IAuditoriaService aud
             throw new ValidationException("E-mail do responsável técnico é inválido.");
 
         var cfg = await repo.GetAsync();
+        if (cfg is not null && cfg.AtualizadoEm != cmd.AtualizadoEmEsperado)
+            throw new ConflitoConcorrenciaException(DescreverConflito(cfg));
+
         if (cfg is null)
         {
             cfg = new ConfiguracaoPgrs { Id = 1 };
@@ -46,7 +50,7 @@ public class PgrsConfigService(IPgrsConfigRepository repo, IAuditoriaService aud
         cfg.TransportadorPadrao = N(cmd.TransportadorPadrao);
         cfg.DestinadorPadrao = N(cmd.DestinadorPadrao);
         cfg.CodigoIbamaPadrao = N(cmd.CodigoIbamaPadrao);
-        cfg.AtualizadoEm = DateTime.UtcNow;
+        cfg.AtualizadoEm = Truncar(DateTime.UtcNow);
         cfg.AtualizadoPor = usuarioEmail;
 
         await repo.SaveChangesAsync();
@@ -57,6 +61,20 @@ public class PgrsConfigService(IPgrsConfigRepository repo, IAuditoriaService aud
     }
 
     private static string N(string? s) => (s ?? "").Trim();
+
+    private static DateTime Truncar(DateTime t) =>
+        new(t.Ticks / TimeSpan.TicksPerMillisecond * TimeSpan.TicksPerMillisecond, t.Kind);
+
+    private static string DescreverConflito(ConfiguracaoPgrs cfg)
+    {
+        if (cfg.AtualizadoEm is null)
+            return "A configuração foi alterada por outra pessoa. Recarregue antes de salvar.";
+
+        var quando = cfg.AtualizadoEm.Value.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+        return string.IsNullOrWhiteSpace(cfg.AtualizadoPor)
+            ? $"A configuração foi alterada em {quando} (UTC). Recarregue antes de salvar."
+            : $"A configuração foi alterada por {cfg.AtualizadoPor} em {quando} (UTC). Recarregue antes de salvar.";
+    }
 
     private static ConfiguracaoPgrsDto ToDto(ConfiguracaoPgrs c) => new(
         c.RazaoSocial, c.Cnpj, c.Endereco, c.Unidade,
