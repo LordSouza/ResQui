@@ -18,6 +18,8 @@ public class ConcorrenciaOtimistaTests
     [InlineData(typeof(ReagenteLote))]
     [InlineData(typeof(Mtr))]
     [InlineData(typeof(Residuo))]
+    [InlineData(typeof(ConfiguracaoPgrs))]
+    [InlineData(typeof(CompatOverride))]
     public void Modelo_DeclaraXmin_ComoTokenDeConcorrencia(Type entidade)
     {
         using var db = NovoContexto();

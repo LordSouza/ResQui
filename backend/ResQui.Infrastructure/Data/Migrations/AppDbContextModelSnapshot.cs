@@ -303,6 +303,12 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<int>("Nivel")
                         .HasColumnType("integer");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("ClasseA", "ClasseB");
 
                     b.ToTable("compat_overrides", null, t =>
@@ -369,6 +375,12 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<string>("Unidade")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 

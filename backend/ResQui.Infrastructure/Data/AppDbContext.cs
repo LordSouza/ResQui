@@ -35,5 +35,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<ReagenteLote>().Property<uint>("xmin").IsRowVersion();
         builder.Entity<Mtr>().Property<uint>("xmin").IsRowVersion();
         builder.Entity<Residuo>().Property<uint>("xmin").IsRowVersion();
+        builder.Entity<ConfiguracaoPgrs>().Property<uint>("xmin").IsRowVersion();
+        builder.Entity<CompatOverride>().Property<uint>("xmin").IsRowVersion();
     }
 }

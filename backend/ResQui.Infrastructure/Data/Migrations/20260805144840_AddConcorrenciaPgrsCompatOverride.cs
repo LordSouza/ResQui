@@ -1,0 +1,20 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace ResQui.Infrastructure.Data.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddConcorrenciaPgrsCompatOverride : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+        }
+    }
+}
