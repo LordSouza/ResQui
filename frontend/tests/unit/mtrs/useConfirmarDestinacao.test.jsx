@@ -45,4 +45,22 @@ describe('useConfirmarDestinacao', () => {
 
     expect(result.current.error.message).toMatch(/já destinado/);
   });
+
+  it('revalida mtrs e residuos quando a gravação é recusada', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false, status: 409,
+      text: async () => JSON.stringify({ message: 'O registro foi alterado por outro usuário. Recarregue e tente novamente.' }),
+    });
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const spy = vi.spyOn(qc, 'invalidateQueries');
+
+    const { result } = renderHook(() => useConfirmarDestinacao(), {
+      wrapper: ({ children }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>,
+    });
+    act(() => result.current.mutate({ id: 1, data: '2026-08-04' }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(spy).toHaveBeenCalledWith({ queryKey: ['mtrs'] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ['residuos'] });
+  });
 });

@@ -10,5 +10,9 @@ export function useReabrirDestinacao() {
       queryClient.invalidateQueries({ queryKey: ['mtrs'] });
       queryClient.invalidateQueries({ queryKey: ['residuos'] });
     },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['mtrs'] });
+      queryClient.invalidateQueries({ queryKey: ['residuos'] });
+    },
   });
 }
