@@ -31,8 +31,10 @@ using ResQui.API.Features.Usuarios;
 using ResQui.API.Features.Compatibilidade;
 using ResQui.API.Features.Relatorios;
 using ResQui.API.Features.Pgrs;
+using ResQui.API.Features.Assistente;
 using ResQui.Infrastructure.Jobs;
 using ResQui.Application.Common;
+using ResQui.Application.Assistente;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,6 +64,14 @@ builder.Services.AddScoped<IUsuariosService, UsuariosService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRelatoriosService, RelatoriosService>();
 builder.Services.AddScoped<IPgrsConfigService, PgrsConfigService>();
+builder.Services.AddScoped<IAssistenteService, AssistenteService>();
+builder.Services.AddHttpClient<IAssistenteProvider, DeepSeekProvider>(http =>
+{
+    http.BaseAddress = new Uri(builder.Configuration["Assistente:BaseUrl"] ?? "https://api.deepseek.com");
+    var chave = builder.Configuration["Assistente:ApiKey"];
+    if (!string.IsNullOrWhiteSpace(chave))
+        http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", chave);
+});
 // Singleton: o estado do throttle vive em memória e precisa sobreviver entre requisições.
 builder.Services.AddSingleton<ILoginThrottle, LoginThrottle>();
 builder.Services.AddSingleton<ResQui.Application.Pdf.IPdfService, ResQui.Application.Pdf.PdfService>();
@@ -132,6 +142,11 @@ var app = builder.Build();
 app.Use(async (ctx, next) =>
 {
     try { await next(); }
+    catch (AssistenteIndisponivelException ex)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
+    }
     catch (ValidationException ex)
     {
         ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -190,6 +205,7 @@ app.MapGroup("/api/compat").RequireAuthorization().MapCompatEndpoints();
 app.MapGroup("/api/notificacoes").RequireAuthorization().MapNotificacoesEndpoints();
 app.MapGroup("/api/relatorios").RequireAuthorization().MapRelatoriosEndpoints();
 app.MapGroup("/api/pgrs-config").RequireAuthorization().MapPgrsConfigEndpoints();
+app.MapGroup("/api/assistente").RequireAuthorization().MapAssistenteEndpoints();
 
 app.Run();
 
