@@ -36,6 +36,12 @@ services:
       Seed__DemoData: "true"
       Assistente__Enabled: ${ASSISTENTE_ENABLED:-false}
       Assistente__ApiKey: ${DEEPSEEK_API_KEY:-}
+      Email__Enabled: ${EMAIL_ENABLED:-false}
+      Email__Host: ${EMAIL_HOST:-}
+      Email__Port: ${EMAIL_PORT:-587}
+      Email__User: ${EMAIL_USER:-}
+      Email__Password: ${EMAIL_PASSWORD:-}
+      Email__From: ${EMAIL_FROM:-resqui@resqui.local}
 
   frontend:
     build:
