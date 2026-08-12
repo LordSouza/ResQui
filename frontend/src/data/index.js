@@ -48,7 +48,7 @@ export const PERMISSION_GROUPS = [
   { id: 'compat', label: 'Compatibilidade', icon: 'shield', items: [['compat.view','Consultar matriz'],['compat.override','Sobrepor bloqueio (c/ justificativa)']] },
   { id: 'labs', label: 'Laboratórios', icon: 'location', items: [['lab.view','Visualizar laboratórios'],['lab.create','Cadastrar laboratório'],['lab.edit','Editar laboratório'],['lab.archive','Arquivar laboratório']] },
   { id: 'rel', label: 'Auditoria & Relatórios', icon: 'audit', items: [['audit.view','Visualizar log de auditoria'],['audit.export','Exportar log em CSV'],['rel.view','Visualizar relatórios'],['rel.pgrs','Gerar / publicar PGRS']] },
-  { id: 'sistema', label: 'Sistema', icon: 'settings', items: [['sys.users','Gerenciar usuários e permissões'],['sys.config','Configurações gerais'],['sys.mcp','Habilitar MCP Assistant / IA']] },
+  { id: 'sistema', label: 'Sistema', icon: 'settings', items: [['sys.users','Gerenciar usuários e permissões'],['sys.config','Configurações gerais'],['sys.assistente','Habilitar o assistente / IA']] },
   { id: 'suporte', label: 'Suporte · Chamados', icon: 'warning', items: [['support.view','Visualizar chamados reportados'],['support.assign','Atribuir responsável'],['support.respond','Responder e atualizar status'],['support.resolve','Resolver / fechar chamado'],['support.delete','Excluir chamado']] },
 ];
 

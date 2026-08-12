@@ -727,7 +727,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   box-sizing: border-box;
 }
 
-/* === Chat MCP === */
+/* === Chat do assistente === */
 .chat-fab {
   position: fixed;
   bottom: 22px;
@@ -1191,7 +1191,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   letter-spacing: 0.02em;
 }
 
-/* highlight when item touched by MCP */
+/* highlight when item touched by the assistant */
 @keyframes flash {
   0% { background: var(--accent-soft); }
   100% { background: transparent; }
@@ -1904,7 +1904,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .busca-dropdown {
   /* right: 0 (não left: 0) — o painel (420px) é mais largo que o campo (320px); alinhado
      pela direita ele cresce para a esquerda em vez de cobrir o sino de notificações e o
-     botão MCP, que ficam logo à direita do campo na topbar */
+     botão do assistente, que ficam logo à direita do campo na topbar */
   position: absolute; top: calc(100% + 6px); right: 0;
   background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.08);
@@ -1959,7 +1959,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   padding: 0; font: inherit;
 }
 
-/* ── ChatMCP.jsx extracted styles ───────────────────────────────────────── */
+/* ── AssistenteChat.jsx extracted styles ───────────────────────────────────────── */
 .chat-list-item {
   padding: 6px 12px; font-size: 12px; cursor: pointer;
   display: block; width: 100%; text-align: left;

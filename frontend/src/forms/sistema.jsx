@@ -460,7 +460,7 @@ export function FormAtalhos({ onClose }) {
     {
       titulo: 'Assistente e modais',
       atalhos: [
-        [['⌘/ ou Ctrl+/'], 'Abrir/fechar chat MCP'],
+        [['⌘/ ou Ctrl+/'], 'Abrir/fechar o assistente'],
         [['Enter'], 'Enviar mensagem no chat'],
         [['Shift', 'Enter'], 'Nova linha na mensagem'],
         [['Esc'], 'Fechar modal / cancelar'],
@@ -518,7 +518,7 @@ export function FormDocs({ onClose }) {
       ['Papéis, políticas de autorização e sessões', '8 min', 'guia'],
       ['API REST do ResQui · OAuth 2.0', '20 min', 'referência'],
     ]},
-    { sec: 'Assistente MCP', items: [
+    { sec: 'Assistente', items: [
       ['Comandos suportados pelo chat', '4 min', 'referência'],
       ['Exemplos de prompts úteis', '3 min', 'guia'],
     ]},

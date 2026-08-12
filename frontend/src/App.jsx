@@ -25,7 +25,7 @@ import { LaboratoriosScreen } from './screens/LaboratoriosScreen';
 import { UsuariosScreen } from './screens/UsuariosScreen';
 import { ChamadosScreen } from './screens/ChamadosScreen';
 
-import { ChatMCP } from './chat/ChatMCP';
+import { AssistenteChat } from './chat/AssistenteChat';
 
 import { FormNovoReagente, FormImportarCSV, FormEditarRegrasCompat, FormBaixa, FormTransferirReagente } from './forms/reagentes';
 import { ResumoSeguranca } from './forms/ResumoSeguranca';
@@ -398,7 +398,7 @@ export default function App() {
         <nav className="nav">
           <button type="button" className="nav-item" onClick={() => dispatch({type: 'openChat'})}>
             <span className="nav-icon"><Icon name="sparkle" size={15}/></span>
-            MCP Assistant
+            Assistente
             <span className="badge-count" style={{background: '#1465c0'}}>IA</span>
           </button>
         </nav>
@@ -424,7 +424,7 @@ export default function App() {
           <BuscaGlobal dispatch={dispatch} inputRef={buscaRef}/>
           <NotifBell dispatch={dispatch} papel={user?.papel}/>
           <button type="button" className="topbar-btn" onClick={() => dispatch({type: 'openChat'})}>
-            <Icon name="sparkle" size={13}/> MCP
+            <Icon name="sparkle" size={13}/> IA
           </button>
         </header>
 
@@ -433,7 +433,7 @@ export default function App() {
         </main>
       </div>
 
-      <ChatMCP state={state} dispatch={dispatch}/>
+      <AssistenteChat state={state} dispatch={dispatch}/>
 
       {state.modal === 'novoReagente' && <FormNovoReagente onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'importarCsv' && <FormImportarCSV onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}

@@ -6,12 +6,12 @@ import { useResíduos } from '../residuos/useResíduos';
 import { useAssistente } from './useAssistente';
 import { quantidadesResiduos, formatarQuantidade } from '../utils';
 
-export function ChatMCP({ state, dispatch }) {
+export function AssistenteChat({ state, dispatch }) {
   const open = state.chatOpen;
   const [messages, setMessages] = useState(() => [
     {
       role: 'bot',
-      content: 'Olá, eu sou o assistente MCP do ResQui. Posso cadastrar reagentes, verificar compatibilidade entre substâncias, gerar rótulos GHS, abrir o Pré-MTR e navegar entre as telas. Como posso ajudar?'
+      content: 'Olá, eu sou o assistente do ResQui. Posso cadastrar reagentes, verificar compatibilidade entre substâncias, gerar rótulos GHS, abrir o Pré-MTR e navegar entre as telas. Como posso ajudar?'
     },
   ]);
   const [input, setInput] = useState('');
@@ -70,7 +70,7 @@ export function ChatMCP({ state, dispatch }) {
 
   if (!open) {
     return (
-      <button type="button" className="chat-fab" onClick={() => dispatch({type: 'openChat'})} title="Assistente MCP">
+      <button type="button" className="chat-fab" onClick={() => dispatch({type: 'openChat'})} title="Assistente ResQui">
         <span className="pulse"/>
         <Icon name="sparkle" size={22}/>
       </button>
@@ -80,9 +80,9 @@ export function ChatMCP({ state, dispatch }) {
   return (
     <div className="chat-panel">
       <div className="chat-h">
-        <div className="av">M<sub style={{fontSize: '12px'}}>CP</sub></div>
+        <div className="av">R<sub style={{fontSize: '12px'}}>Q</sub></div>
         <div>
-          <div className="title">Assistente MCP</div>
+          <div className="title">Assistente ResQui</div>
           <div className="sub">
             {indisponivel
               ? 'assistente não configurado'
@@ -116,7 +116,7 @@ export function ChatMCP({ state, dispatch }) {
       <div className="chat-input-wrap">
         <div className="chat-input">
           <textarea
-            aria-label="Mensagem para o assistente MCP"
+            aria-label="Mensagem para o assistente ResQui"
             placeholder="Peça algo… (ex: posso misturar HCl e NaOH?)"
             value={effectiveInput}
             onChange={e => setInput(e.target.value)}
@@ -130,7 +130,7 @@ export function ChatMCP({ state, dispatch }) {
             <Icon name="send" size={14}/>
           </button>
         </div>
-        <div className="chat-foot">MCP · acesso a inventário, resíduos, compat. matrix e manifestos</div>
+        <div className="chat-foot">Acesso a inventário, resíduos, compatibilidade e manifestos</div>
       </div>
     </div>
   );

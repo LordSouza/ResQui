@@ -175,7 +175,7 @@ export function DashboardScreen({ state, dispatch }) {
                 <Icon name="truck" size={13}/> Novo MTR
               </button>
               <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openChat'})}>
-                <Icon name="sparkle" size={13}/> Pedir ao MCP
+                <Icon name="sparkle" size={13}/> Pedir ao assistente
               </button>
             </div>
           </div>

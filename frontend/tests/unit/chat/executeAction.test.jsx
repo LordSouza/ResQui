@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { executeAction } from '../../../src/chat/ChatMCP';
+import { executeAction } from '../../../src/chat/AssistenteChat';
 
 const REAGS = [
   { id: 'R-001', nome: 'HCl', classe: 1, estoque: 2.4, unidade: 'L' },
@@ -10,7 +10,7 @@ const RESIDS = [
   { id: 2, tipo: 'Ácidos', volume: 2, unidade: 'kg', status: 'em-coleta', lab_id: 'Lab-001' },
 ];
 
-describe('executeAction (ChatMCP)', () => {
+describe('executeAction (AssistenteChat)', () => {
   let deps, mockFetch;
 
   beforeEach(() => {

@@ -9,7 +9,7 @@ describe('FormAtalhos', () => {
     expect(screen.getByText(/abrir busca global/i)).toBeInTheDocument();
     expect(screen.getByText(/fechar busca/i)).toBeInTheDocument();
     expect(screen.getByText(/mostrar este painel/i)).toBeInTheDocument();
-    expect(screen.getByText(/abrir\/fechar chat mcp/i)).toBeInTheDocument();
+    expect(screen.getByText(/abrir\/fechar o assistente/i)).toBeInTheDocument();
     expect(screen.getByText(/enviar mensagem/i)).toBeInTheDocument();
     expect(screen.getByText(/nova linha na mensagem/i)).toBeInTheDocument();
     expect(screen.getByText(/fechar modal/i)).toBeInTheDocument();
@@ -30,7 +30,7 @@ describe('FormAtalhos', () => {
     expect(buscaLinha.textContent).toMatch(/⌘/);
     expect(buscaLinha.textContent).toMatch(/ctrl/i);
 
-    const chatLinha = screen.getByText(/abrir\/fechar chat mcp/i).closest('div');
+    const chatLinha = screen.getByText(/abrir\/fechar o assistente/i).closest('div');
     expect(chatLinha.textContent).toMatch(/⌘/);
     expect(chatLinha.textContent).toMatch(/ctrl/i);
   });
