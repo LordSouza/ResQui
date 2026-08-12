@@ -1,12 +1,10 @@
-// Chat MCP — bolha flutuante com automações reais no site
-// Usa window.claude.complete para interpretar comandos e disparar ações no app.
-
 import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon, Badge, Picto } from '../components';
 import { apiFetch } from '../lib/api';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useResíduos } from '../residuos/useResíduos';
+import { useAssistente } from './useAssistente';
 import { quantidadesResiduos, formatarQuantidade } from '../utils';
 
 export function ChatMCP({ state, dispatch }) {
@@ -41,70 +39,32 @@ export function ChatMCP({ state, dispatch }) {
     'Abrir Pré-MTR dos resíduos parados',
   ];
 
+  const assistente = useAssistente();
+  const indisponivel = assistente.error?.status === 503;
+
   const send = async (text) => {
     const t = (text ?? effectiveInput).trim();
-    if (!t || busy) return;
+    if (!t || busy || indisponivel) return;
     setInput('');
     if (state.pendingPrompt) dispatch({type: 'clearPrompt'});
     setMessages(m => [...m, {role: 'user', content: t}]);
     setBusy(true);
 
-    // catálogo simplificado para o LLM
-    const reagsCat = reagentes.map(r => `${r.id} ${r.nome} (CAS ${r.cas}) classe ${r.classe}`).join('\n');
-    const residCat = residuos.flatMap(r => r.status === 'aguardando-coleta' ? [`W-${r.id} ${r.tipo} ${r.volume}${r.unidade} ${r.lab_id}`] : []).join('\n');
-
-    const sys = `Você é o assistente MCP (Model Context Protocol) do ResQui, sistema de gestão de resíduos químicos da UNIFEI.
-Responda em português brasileiro, conciso e técnico, sem usar markdown.
-
-AÇÕES disponíveis (use exatamente esses nomes):
-- nav: navega para uma tela. params: { screen: "dashboard"|"inventario"|"detalhe"|"compat"|"residuos"|"mtr"|"auditoria"|"relatorios", id? }
-- compat: abre o motor de compatibilidade com dois reagentes. params: { a: "R-...", b: "R-..." }
-- detail: abre o detalhe de um reagente. params: { id: "R-..." }
-- consume: registra baixa de consumo. params: { id: "R-...", quantidade: número, unidade: "L"|"kg" }
-- generateLabel: gera rótulo GHS. params: { id: "R-..." }
-- registerWaste: abre o formulário de registro de resíduo já preenchido; a classificação de reatividade é escolhida pelo usuário. params: { tipo, volume, unidade, gerador, composicao, risco: "baixo"|"medio"|"alto" }
-- createMtr: cria Pré-MTR a partir dos resíduos aguardando coleta. params: { residuos?: ["W-..."] }
-- listExpiring: lista itens vencendo em ≤ 90 dias. sem params.
-- explain: apenas explicação/resposta sem ação. sem params.
-
-CATÁLOGO de reagentes:
-${reagsCat}
-
-RESÍDUOS aguardando coleta:
-${residCat}
-
-FORMATO de resposta obrigatório (JSON puro, sem cercas, sem texto fora):
-{
-  "say": "mensagem curta para o usuário em pt-BR",
-  "action": "nav|compat|detail|consume|generateLabel|registerWaste|createMtr|listExpiring|explain",
-  "params": { ... }
-}
-Se o usuário pedir algo perigoso (mistura proibida), você deve mesmo assim chamar 'compat' para mostrar o resultado, e em 'say' alertar do risco.
-Se não souber qual reagente, peça esclarecimento usando action="explain".`;
+    const historico = messages
+      .filter(m => m.role === 'user' || m.role === 'bot')
+      .slice(-6)
+      .map(m => ({ Papel: m.role, Texto: m.content }));
 
     try {
-      const reply = await window.claude.complete({
-        messages: [
-          { role: 'user', content: sys + '\n\nUsuário: ' + t }
-        ]
+      const resposta = await assistente.mutateAsync({ mensagem: t, historico });
+      setMessages(m => [...m, {role: 'bot', content: resposta.say || 'Pronto.'}]);
+      await executeAction(resposta.action, resposta.params || {}, {
+        reagentes, residuos,
+        addCard: (card) => setMessages(m => [...m, {role: 'card', card}]),
+        dispatch, queryClient,
       });
-
-      let parsed = null;
-      try {
-        const cleaned = reply.replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
-        parsed = JSON.parse(cleaned);
-      } catch (e) {
-        parsed = { say: reply, action: 'explain', params: {} };
-      }
-
-      // mensagem do bot
-      setMessages(m => [...m, {role: 'bot', content: parsed.say || 'Pronto.'}]);
-
-      // executar ação
-      await executeAction(parsed.action, parsed.params || {}, { reagentes, residuos, addCard: (card) => setMessages(m => [...m, {role: 'card', card}]), dispatch, queryClient });
-
     } catch (err) {
-      setMessages(m => [...m, {role: 'bot', content: 'Não consegui processar agora. Tente reformular ou use um dos atalhos abaixo.'}]);
+      setMessages(m => [...m, {role: 'bot', content: err.message || 'Não consegui processar agora.'}]);
     } finally {
       setBusy(false);
     }
