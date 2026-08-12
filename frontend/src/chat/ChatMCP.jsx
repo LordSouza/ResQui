@@ -83,7 +83,11 @@ export function ChatMCP({ state, dispatch }) {
         <div className="av">M<sub style={{fontSize: '12px'}}>CP</sub></div>
         <div>
           <div className="title">Assistente MCP</div>
-          <div className="sub"><span className="status-dot"/> conectado · resqui v0.7</div>
+          <div className="sub">
+            {indisponivel
+              ? 'assistente não configurado'
+              : <><span className="status-dot"/> conectado</>}
+          </div>
         </div>
         <button type="button" className="close" onClick={() => dispatch({type: 'closeChat'})}>
           <Icon name="close" size={16}/>
@@ -120,8 +124,9 @@ export function ChatMCP({ state, dispatch }) {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
             }}
             rows={1}
+            disabled={indisponivel}
           />
-          <button type="button" className="send" aria-label="Enviar mensagem" onClick={() => send()} disabled={!effectiveInput.trim() || busy}>
+          <button type="button" className="send" aria-label="Enviar mensagem" onClick={() => send()} disabled={!effectiveInput.trim() || busy || indisponivel}>
             <Icon name="send" size={14}/>
           </button>
         </div>
