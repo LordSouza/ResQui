@@ -32,15 +32,6 @@ describe('useAtalhosGlobais', () => {
     expect(onBuscar).toHaveBeenCalledTimes(1);
   });
 
-  it('? chama onAtalhos', () => {
-    const onAtalhos = vi.fn();
-    montar({ onAtalhos });
-
-    fireEvent.keyDown(window, { key: '?' });
-
-    expect(onAtalhos).toHaveBeenCalledTimes(1);
-  });
-
   it('⌘/ chama onChat', () => {
     const onChat = vi.fn();
     montar({ onChat });
@@ -50,14 +41,15 @@ describe('useAtalhosGlobais', () => {
     expect(onChat).toHaveBeenCalledTimes(1);
   });
 
-  it('? dentro de um campo de texto não dispara', () => {
-    const onAtalhos = vi.fn();
-    const { getByLabelText } = montar({ onAtalhos });
-    getByLabelText('campo').focus();
+  it('? não dispara nada — a tela que ele abria não existe mais', () => {
+    const onBuscar = vi.fn();
+    const onChat = vi.fn();
+    montar({ onBuscar, onChat });
 
     fireEvent.keyDown(window, { key: '?' });
 
-    expect(onAtalhos).not.toHaveBeenCalled();
+    expect(onBuscar).not.toHaveBeenCalled();
+    expect(onChat).not.toHaveBeenCalled();
   });
 
   it('⌘K dentro de um campo de texto dispara', () => {
@@ -81,12 +73,12 @@ describe('useAtalhosGlobais', () => {
   });
 
   it('remove o listener ao desmontar', () => {
-    const onAtalhos = vi.fn();
-    const { unmount } = montar({ onAtalhos });
+    const onBuscar = vi.fn();
+    const { unmount } = montar({ onBuscar });
     unmount();
 
-    fireEvent.keyDown(window, { key: '?' });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
-    expect(onAtalhos).not.toHaveBeenCalled();
+    expect(onBuscar).not.toHaveBeenCalled();
   });
 });

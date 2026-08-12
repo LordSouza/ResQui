@@ -45,4 +45,15 @@ describe('UserMenu — identidade real', () => {
 
     expect(screen.queryByText('2FA ativo')).toBeNull();
   });
+
+  it('no grupo Ajuda oferece só o que é real — sem documentação nem tela de atalhos', async () => {
+    const user = { nome: 'Ana Lima', email: 'ana@x.com', papel: 'Gestor' };
+    render(<UserMenu user={user} onLogout={vi.fn()} dispatch={vi.fn()}/>, { wrapper });
+
+    await userEvent.click(screen.getByLabelText('Conta e preferências'));
+
+    expect(screen.getByText('Reportar problema')).toBeInTheDocument();
+    expect(screen.queryByText('Documentação')).toBeNull();
+    expect(screen.queryByText('Atalhos de teclado')).toBeNull();
+  });
 });

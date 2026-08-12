@@ -32,7 +32,7 @@ import { ResumoSeguranca } from './forms/ResumoSeguranca';
 import { FormNovoResiduo, FormEditarResiduo, FormNovoMtr, FormConfigurarPgrs } from './forms/residuos';
 import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/laboratorios';
 import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario, ConfirmResetar2fa } from './forms/usuarios';
-import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes, FormAtalhos, FormDocs, FormReportar } from './forms/sistema';
+import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes, FormReportar } from './forms/sistema';
 import { FormNovoChamado } from './forms/chamados';
 import { FormEditarReagente } from './forms/FormEditarReagente';
 
@@ -122,8 +122,6 @@ export function UserMenu({ user, onLogout, dispatch }) {
 
           {/* Ajuda */}
           <UmGroup label="Ajuda">
-            <UmItem icon="sparkle" label="Atalhos de teclado" hint="?" onClick={() => openModal('atalhos')}/>
-            <UmItem icon="book" label="Documentação" onClick={() => openModal('docs')}/>
             <UmItem icon="warning" label="Reportar problema" onClick={() => openModal('reportar')}/>
             <div style={{padding: '6px 12px', fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--mono)'}}>
               ResQui v{__APP_VERSION__}
@@ -310,7 +308,6 @@ export default function App() {
 
   useAtalhosGlobais({
     onBuscar: () => buscaRef.current?.focus(),
-    onAtalhos: () => dispatch({ type: 'openModal', kind: 'atalhos' }),
     onChat: () => dispatch({ type: state.chatOpen ? 'closeChat' : 'openChat' }),
   });
 
@@ -444,8 +441,6 @@ export default function App() {
       {state.modal === 'senha2fa' && <FormSenha2FA onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'sessoes' && <FormSessoes onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'notificacoes' && <FormNotificacoes onClose={() => dispatch({type: 'closeModal'})}/>}
-      {state.modal === 'atalhos' && <FormAtalhos onClose={() => dispatch({type: 'closeModal'})}/>}
-      {state.modal === 'docs' && <FormDocs onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'reportar' && <FormReportar onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoChamado' && <FormNovoChamado onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoResiduo' && <FormNovoResiduo inicial={state.modalResiduoInicial} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
