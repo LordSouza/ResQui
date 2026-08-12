@@ -172,7 +172,7 @@ export function FormNovoReagente({ onClose, dispatch }) {
 }
 
 // ---------- Baixa de consumo ----------
-export function FormBaixa({ reagente, onClose, dispatch }) {
+export function FormBaixa({ reagente, onClose, dispatch, quantidadeInicial }) {
   const uid = useId();
   const ids = {
     quantidade: `${uid}-quantidade`,
@@ -180,7 +180,7 @@ export function FormBaixa({ reagente, onClose, dispatch }) {
     motivo: `${uid}-motivo`,
   };
   const baixaMutation = useBaixaReagente(reagente.id);
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(quantidadeInicial ?? '');
   const [motivo, setMotivo] = useState('Uso em prática didática');
   const submit = () => {
     const n = Number(q);

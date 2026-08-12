@@ -29,7 +29,6 @@ describe('executeAction (ChatMCP)', () => {
       residuos: RESIDS,
       addCard: vi.fn(),
       dispatch: vi.fn(),
-      queryClient: { invalidateQueries: vi.fn() },
     };
   });
 
@@ -48,22 +47,21 @@ describe('executeAction (ChatMCP)', () => {
     expect(deps.addCard).toHaveBeenCalledWith(expect.objectContaining({ title: 'Erro' }));
   });
 
-  it('consume faz POST de baixa e invalida a query de reagentes', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ estoque: 1.9 }) });
+  it('consume abre o formulário de baixa pré-preenchido em vez de gravar', async () => {
     await executeAction('consume', { id: 'R-001', quantidade: 0.5 }, deps);
-    expect(mockFetch.mock.calls[0][0]).toBe('/api/reagentes/R-001/baixa');
-    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ Quantidade: 0.5 });
-    expect(deps.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['reagentes'] });
-    expect(deps.addCard).toHaveBeenCalledWith(expect.objectContaining({ kind: 'consume', novo: 1.9 }));
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(deps.dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'openModal',
+      kind: 'baixa',
+      reagente: expect.objectContaining({ id: 'R-001' }),
+      baixaInicial: { quantidade: 0.5 },
+    }));
   });
 
-  it('consume com erro 400 mostra a mensagem do servidor no card de erro', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, text: async () => JSON.stringify({ message: 'Estoque insuficiente: 2.4 L disponíveis.' }) });
-    await executeAction('consume', { id: 'R-001', quantidade: 99 }, deps);
-    expect(deps.addCard).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Erro',
-      items: [expect.objectContaining({ nome: 'Estoque insuficiente: 2.4 L disponíveis.' })],
-    }));
+  it('consume com reagente desconhecido mostra card de erro sem abrir modal', async () => {
+    await executeAction('consume', { id: 'R-999', quantidade: 1 }, deps);
+    expect(deps.dispatch).not.toHaveBeenCalled();
+    expect(deps.addCard).toHaveBeenCalledWith(expect.objectContaining({ title: 'Erro' }));
   });
 
   it('registerWaste abre o formulário pré-preenchido em vez de criar o resíduo', async () => {

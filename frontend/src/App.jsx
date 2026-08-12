@@ -451,7 +451,7 @@ export default function App() {
       {state.modal === 'novoResiduo' && <FormNovoResiduo inicial={state.modalResiduoInicial} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'editarResiduo' && state.modalResiduo && <FormEditarResiduo residuo={state.modalResiduo} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoMtr' && <FormNovoMtr onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
-      {state.modal === 'baixa' && state.modalReagente && <FormBaixa reagente={state.modalReagente} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'baixa' && state.modalReagente && <FormBaixa reagente={state.modalReagente} quantidadeInicial={state.modalBaixaInicial?.quantidade} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'transferirReagente' && state.modalReagente && <FormTransferirReagente reagente={state.modalReagente} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'editarReagente' && state.modalReagente && (
         <FormEditarReagente

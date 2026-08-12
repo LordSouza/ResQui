@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { Icon, Badge, Picto } from '../components';
 import { apiFetch } from '../lib/api';
 import { useReagentes } from '../reagentes/useReagentes';
@@ -19,7 +18,6 @@ export function ChatMCP({ state, dispatch }) {
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef(null);
 
-  const queryClient = useQueryClient();
   const { data: reagsData } = useReagentes({ pageSize: 200 });
   const reagentes = reagsData?.items ?? [];
   const { data: residuos = [] } = useResíduos();
@@ -61,7 +59,7 @@ export function ChatMCP({ state, dispatch }) {
       await executeAction(resposta.action, resposta.params || {}, {
         reagentes, residuos,
         addCard: (card) => setMessages(m => [...m, {role: 'card', card}]),
-        dispatch, queryClient,
+        dispatch,
       });
     } catch (err) {
       setMessages(m => [...m, {role: 'bot', content: err.message || 'Não consegui processar agora.'}]);
@@ -206,24 +204,10 @@ function ChatCard({ card, dispatch }) {
       </div>
     );
   }
-  if (card.kind === 'consume') {
-    return (
-      <div className="chat-card">
-        <div className="cc-h"><span className="ttl">Baixa de consumo</span><span className="tag">{card.r.id}</span></div>
-        <div className="cc-body">
-          <div style={{fontSize: 12}}>{card.r.nome}</div>
-          <div className="small muted" style={{marginTop: 4}}>−{card.q} {card.u} · estoque atual: {card.novo} {card.u}</div>
-        </div>
-        <div className="cc-actions">
-          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'detail', id: card.r.id})}>Ver reagente</button>
-        </div>
-      </div>
-    );
-  }
   return null;
 }
 
-export async function executeAction(action, params, { reagentes, residuos, addCard, dispatch, queryClient }) {
+export async function executeAction(action, params, { reagentes, residuos, addCard, dispatch }) {
   const erro = (msg) => addCard({kind: 'list', title: 'Erro', items: [{nome: msg, meta: ''}]});
 
   if (action === 'nav' && params.screen) {
@@ -255,16 +239,13 @@ export async function executeAction(action, params, { reagentes, residuos, addCa
   if (action === 'consume' && params.id) {
     const r = reagentes.find(x => x.id === params.id);
     if (!r) { erro('Reagente não encontrado.'); return; }
-    const q = Number(params.quantidade) || 0;
-    try {
-      const res = await apiFetch(`/api/reagentes/${r.id}/baixa`, {
-        method: 'POST', body: JSON.stringify({ Quantidade: q }),
-      });
-      const atualizado = await res.json();
-      addCard({kind: 'consume', r, q, u: params.unidade || r.unidade, novo: atualizado.estoque});
-      queryClient.invalidateQueries({ queryKey: ['reagentes'] });
-      dispatch({type: 'refresh', flashId: r.id});
-    } catch (err) { erro(err.message); }
+    dispatch({
+      type: 'openModal',
+      kind: 'baixa',
+      reagente: r,
+      baixaInicial: { quantidade: Number(params.quantidade) || '' },
+    });
+    addCard({kind: 'list', title: 'Baixa aberta', items: [{nome: 'Confira a quantidade e confirme a baixa.', meta: ''}]});
     return;
   }
 

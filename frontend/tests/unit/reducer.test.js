@@ -146,3 +146,17 @@ describe('default', () => {
     expect(s).toBe(initialState);
   });
 });
+
+// --- baixa pré-preenchida pelo assistente ---
+describe('openModal com baixaInicial', () => {
+  it('guarda a quantidade sugerida para a baixa', () => {
+    const s = reducer(initialState, { type: 'openModal', kind: 'baixa', reagente: { id: 'R-001' }, baixaInicial: { quantidade: 0.5 } });
+    expect(s.modal).toBe('baixa');
+    expect(s.modalBaixaInicial).toEqual({ quantidade: 0.5 });
+  });
+
+  it('closeModal limpa a quantidade sugerida', () => {
+    const aberto = reducer(initialState, { type: 'openModal', kind: 'baixa', reagente: { id: 'R-001' }, baixaInicial: { quantidade: 0.5 } });
+    expect(reducer(aberto, { type: 'closeModal' }).modalBaixaInicial).toBeNull();
+  });
+});

@@ -13,6 +13,7 @@ export const initialState = {
   modalUsuario: null,
   modalResiduo: null,
   modalResiduoInicial: null,
+  modalBaixaInicial: null,
 };
 
 export function reducer(state, action) {
@@ -42,9 +43,10 @@ export function reducer(state, action) {
         modalUsuario: action.usuario || null,
         modalResiduo: action.residuo || null,
         modalResiduoInicial: action.residuoInicial || null,
+        modalBaixaInicial: action.baixaInicial || null,
       };
     case 'closeModal':
-      return { ...state, modal: null, modalReagente: null, modalLab: null, modalUsuario: null, modalResiduo: null, modalResiduoInicial: null };
+      return { ...state, modal: null, modalReagente: null, modalLab: null, modalUsuario: null, modalResiduo: null, modalResiduoInicial: null, modalBaixaInicial: null };
     default:
       return state;
   }
