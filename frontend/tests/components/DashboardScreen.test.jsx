@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DashboardScreen } from '../../src/screens/DashboardScreen';
 import { initialState } from '../../src/store/reducer';
+
+vi.mock('../../src/auth/permissoes', () => ({ usePode: () => true }));
 
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -43,7 +45,7 @@ describe('DashboardScreen', () => {
 
   it('renders the page title', () => {
     render(<DashboardScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
-    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Início' })).toBeInTheDocument();
   });
 
   it('shows inventory KPI section', () => {
@@ -78,5 +80,19 @@ describe('DashboardScreen', () => {
     expect(screen.queryByText(/p\.p\. vs trimestre/)).toBeNull();
     expect(screen.queryByText(/semana de 17/)).toBeNull();
     expect(screen.queryByText(/\/ 56 L/)).toBeNull();
+  });
+
+  it('aprovador vê a pendência de solicitações e navega com filtro', async () => {
+    const dispatch = vi.fn();
+    render(<DashboardScreen state={initialState} dispatch={dispatch} />, { wrapper });
+    await waitFor(() => expect(screen.getByText(/aguardando aprovação/)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/aguardando aprovação/));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'nav', screen: 'residuos', residuosStatus: 'solicitado' });
+  });
+
+  it('não oferece exportar CSV de métricas', async () => {
+    render(<DashboardScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Início' })).toBeInTheDocument());
+    expect(screen.queryByText(/Exportar relatório/)).not.toBeInTheDocument();
   });
 });

@@ -1,10 +1,12 @@
 import { Icon, Tag, SectionTitle, riscoBadge } from '../components';
-import { exportCsv, quantidadesResiduos, formatarQuantidade } from '../utils';
+import { quantidadesResiduos, formatarQuantidade } from '../utils';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useResíduos } from '../residuos/useResíduos';
 import { useMtrs } from '../mtrs/useMtrs';
 import { useNotificacoes } from '../notificacoes/useNotificacoes';
 import { useResiduosAnalytics } from '../residuos/useResiduosAnalytics';
+import { useIdentificacaoPgrs } from '../pgrs/useIdentificacaoPgrs';
+import { usePode } from '../auth/permissoes';
 
 export function DashboardScreen({ state, dispatch }) {
   const { data: totalData, isError: totalError, refetch: refetchTotal } = useReagentes({ pageSize: 1 });
@@ -13,6 +15,7 @@ export function DashboardScreen({ state, dispatch }) {
   const { data: mtrsData = [] } = useMtrs();
   const { data: notifData = [] } = useNotificacoes();
   const { data: analytics } = useResiduosAnalytics({ meses: 6 });
+  const { data: identificacao } = useIdentificacaoPgrs();
   const geracaoMensal = analytics?.mensal ?? [];
   const geracaoPorLab = analytics?.porLab ?? [];
   const totalReagentes = totalData?.total;
@@ -22,27 +25,38 @@ export function DashboardScreen({ state, dispatch }) {
     residuosData.filter(r => r.status === 'aguardando-coleta')
   );
 
+  const podeAprovarDescarte = usePode('Aprovador');
+  const podeOperarColeta = usePode('Tecnico');
+  const solicitados = residuosData.filter(r => r.status === 'solicitado').length;
+  const manifestosPendentes = mtrsData.filter(m => !m.data_destinacao).length;
+
+  const pendencias = [
+    podeAprovarDescarte && solicitados > 0 && {
+      chave: 'aprovar', texto: `${solicitados} solicitaç${solicitados > 1 ? 'ões' : 'ão'} de descarte aguardando aprovação`,
+      acao: () => dispatch({ type: 'nav', screen: 'residuos', residuosStatus: 'solicitado' }),
+    },
+    podeOperarColeta && aguardando > 0 && {
+      chave: 'coleta', texto: `${aguardando} resíduo${aguardando > 1 ? 's' : ''} aguardando coleta`,
+      acao: () => dispatch({ type: 'nav', screen: 'residuos', residuosStatus: 'aguardando-coleta' }),
+    },
+    podeOperarColeta && manifestosPendentes > 0 && {
+      chave: 'destinar', texto: `${manifestosPendentes} manifesto${manifestosPendentes > 1 ? 's' : ''} sem destinação confirmada`,
+      acao: () => dispatch({ type: 'nav', screen: 'mtr' }),
+    },
+    expirando > 0 && {
+      chave: 'vencendo', texto: `${expirando} reagente${expirando > 1 ? 's' : ''} vencendo em até 90 dias`,
+      acao: () => dispatch({ type: 'nav', screen: 'inventario', inventarioVencendo: true }),
+    },
+  ].filter(Boolean);
+
   return (
     <>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-sub">Visão consolidada · UNIFEI · IMC · Laboratórios de Química</p>
+          <h1 className="page-title">Início</h1>
+          <p className="page-sub">{[identificacao?.razaoSocial, identificacao?.unidade].filter(Boolean).join(' · ') || 'Visão geral do laboratório'}</p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn btn-sm" onClick={() => {
-            const rows = [
-              ['Métrica', 'Valor'],
-              ['Reagentes ativos', totalReagentes ?? 0],
-              ['Resíduos aguardando coleta', aguardando],
-              ['MTRs ativos', mtrsData.length],
-              ['Alertas pendentes', notifData.filter(n => !n.lida).length],
-              ['Lab com mais geração', geracaoPorLab.length > 0 ? geracaoPorLab[0].lab : '—'],
-              ['Gerado em', new Date().toLocaleString('pt-BR')],
-            ];
-            exportCsv(rows, `dashboard-${new Date().toISOString().slice(0,10)}.csv`);
-            dispatch({type: 'refresh'});
-          }}><Icon name="download" size={13}/> Exportar relatório</button>
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'refresh'})}><Icon name="refresh" size={13}/> Atualizar</button>
         </div>
       </div>
@@ -51,6 +65,20 @@ export function DashboardScreen({ state, dispatch }) {
         <div className="page-error">
           Erro ao carregar dados de reagentes.{' '}
           <button type="button" onClick={() => { refetchTotal(); refetchExpir(); }}>Tentar novamente</button>
+        </div>
+      )}
+
+      {pendencias.length > 0 && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <SectionTitle title="Precisa de você" sub={`${pendencias.length} pendência${pendencias.length > 1 ? 's' : ''}`}/>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {pendencias.map(p => (
+              <button type="button" key={p.chave} className="pendencia-row" onClick={p.acao}>
+                <span>{p.texto}</span>
+                <Icon name="chevron_right" size={13}/>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
