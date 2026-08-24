@@ -29,7 +29,7 @@ import { AssistenteChat } from './chat/AssistenteChat';
 
 import { FormNovoReagente, FormImportarCSV, FormEditarRegrasCompat, FormBaixa, FormTransferirReagente } from './forms/reagentes';
 import { ResumoSeguranca } from './forms/ResumoSeguranca';
-import { FormNovoResiduo, FormEditarResiduo, FormNovoMtr, FormConfigurarPgrs } from './forms/residuos';
+import { FormNovoResiduo, FormEditarResiduo, ConfirmRejeitarResiduo, FormNovoMtr, FormConfigurarPgrs } from './forms/residuos';
 import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/laboratorios';
 import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario, ConfirmResetar2fa } from './forms/usuarios';
 import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes, FormReportar } from './forms/sistema';
@@ -449,6 +449,7 @@ export default function App() {
       {state.modal === 'novoChamado' && <FormNovoChamado onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoResiduo' && <FormNovoResiduo inicial={state.modalResiduoInicial} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'editarResiduo' && state.modalResiduo && <FormEditarResiduo residuo={state.modalResiduo} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'rejeitarResiduo' && state.modalResiduo && <ConfirmRejeitarResiduo residuo={state.modalResiduo} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoMtr' && <FormNovoMtr onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'baixa' && state.modalReagente && <FormBaixa reagente={state.modalReagente} quantidadeInicial={state.modalBaixaInicial?.quantidade} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'transferirReagente' && state.modalReagente && <FormTransferirReagente reagente={state.modalReagente} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}

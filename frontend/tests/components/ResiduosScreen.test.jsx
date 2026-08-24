@@ -7,12 +7,10 @@ import { initialState } from '../../src/store/reducer';
 vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../../src/residuos/useResíduos', () => ({ useResíduos: vi.fn() }));
 vi.mock('../../src/residuos/useAprovarResiduo', () => ({ useAprovarResiduo: vi.fn() }));
-vi.mock('../../src/residuos/useRejeitarResiduo', () => ({ useRejeitarResiduo: vi.fn() }));
 
 import { useAuth } from '../../src/auth/AuthContext';
 import { useResíduos } from '../../src/residuos/useResíduos';
 import { useAprovarResiduo } from '../../src/residuos/useAprovarResiduo';
-import { useRejeitarResiduo } from '../../src/residuos/useRejeitarResiduo';
 
 const residuo = {
   id: 7,
@@ -35,7 +33,6 @@ const renderCom = (papel) => {
 beforeEach(() => {
   useResíduos.mockReturnValue({ data: [residuo], isPending: false, isError: false, refetch: vi.fn() });
   useAprovarResiduo.mockReturnValue({ mutate: vi.fn(), isPending: false });
-  useRejeitarResiduo.mockReturnValue({ mutate: vi.fn(), isPending: false });
 });
 
 describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
@@ -73,6 +70,22 @@ describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
     expect(screen.getByRole('button', { name: 'Aprovar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Rejeitar' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
+  });
+
+  it('rejeitar abre modal em vez de window.prompt', () => {
+    useResíduos.mockReturnValue({
+      data: [{ ...residuo, status: 'solicitado' }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Admin' } });
+    const dispatch = vi.fn();
+    render(<ResiduosScreen state={initialState} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Rejeitar' }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'openModal',
+      kind: 'rejeitarResiduo',
+      residuo: expect.objectContaining({ id: residuo.id }),
+    });
   });
 
   it('não oferece a aba Rotulagem — status que não existe na API', () => {

@@ -3,7 +3,6 @@ import { Icon, Tag, SectionTitle, Badge, riscoBadge, residuoStatusBadge } from '
 import { exportCsv } from '../utils';
 import { useResíduos } from '../residuos/useResíduos';
 import { useAprovarResiduo } from '../residuos/useAprovarResiduo';
-import { useRejeitarResiduo } from '../residuos/useRejeitarResiduo';
 import { usePode } from '../auth/permissoes';
 
 const CICLO = [
@@ -25,7 +24,6 @@ export function ResiduosScreen({ state, dispatch }) {
   // (Operacional) mas não o editam, e sem este gate o botão só rendia 403 ao salvar.
   const podeEditar = usePode('Tecnico');
   const aprovar = useAprovarResiduo();
-  const rejeitar = useRejeitarResiduo();
 
   const list = residuos
     .filter((r) => filter === 'todos' || r.status === filter)
@@ -134,12 +132,7 @@ export function ResiduosScreen({ state, dispatch }) {
                       <button
                         type="button"
                         className="btn btn-sm"
-                        disabled={rejeitar.isPending}
-                        onClick={() => {
-                          const motivo = window.prompt('Motivo da rejeição (opcional):', '');
-                          if (motivo === null) return;
-                          rejeitar.mutate({ id: r.id, motivo: motivo || null });
-                        }}
+                        onClick={() => dispatch({ type: 'openModal', kind: 'rejeitarResiduo', residuo: r })}
                       >
                         Rejeitar
                       </button>
