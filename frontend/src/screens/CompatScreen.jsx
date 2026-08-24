@@ -128,10 +128,12 @@ export function CompatScreen({ state, dispatch }) {
 
             {podeAgir && (
               <div style={{marginTop: 12}}>
-                <label className="lbl" htmlFor="compat-parecer">Parecer técnico (opcional)</label>
-                <textarea id="compat-parecer" className="inp" rows={3} maxLength={1000}
-                  placeholder="Ex.: armazenados em bandejas de contenção separadas, conforme decisão do responsável."
-                  value={parecer} onChange={(e) => setParecer(e.target.value)}/>
+                <div className="field">
+                  <label htmlFor="compat-parecer">Parecer técnico (opcional)</label>
+                  <textarea id="compat-parecer" rows={3} maxLength={1000}
+                    placeholder="Ex.: armazenados em bandejas de contenção separadas, conforme decisão do responsável."
+                    value={parecer} onChange={(e) => setParecer(e.target.value)}/>
+                </div>
 
                 <div className="row" style={{marginTop: 8, gap: 8}}>
                   <button type="button" className="btn btn-sm" disabled={!a || !b || registrarParecer.isPending}
