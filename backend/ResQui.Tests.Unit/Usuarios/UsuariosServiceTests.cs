@@ -140,4 +140,38 @@ public class UsuariosServiceTests
         lista.Single(u => u.Id == "u-1").TwoFactorEnabled.Should().BeTrue();
         lista.Single(u => u.Id == "u-2").TwoFactorEnabled.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task ListarNomesAsync_OmiteArquivados()
+    {
+        _repo.GetAllAsync().Returns(new List<UsuarioInfo>
+        {
+            new("u-1", "ativa@lab.com", "Ana Lima", null, "Tecnico", new List<string>(), false, false),
+            new("u-2", "saiu@lab.com", "Renan Costa", null, "Tecnico", new List<string>(), true, false),
+        });
+
+        var nomes = (await _sut.ListarNomesAsync()).ToList();
+
+        nomes.Should().ContainSingle().Which.Nome.Should().Be("Ana Lima");
+    }
+
+    [Fact]
+    public async Task ListarNomesAsync_UsaEmailQuandoNomeEstaVazio()
+    {
+        _repo.GetAllAsync().Returns(new List<UsuarioInfo>
+        {
+            new("u-1", "sem.nome@lab.com", null, null, "Tecnico", new List<string>(), false, false),
+        });
+
+        var nomes = (await _sut.ListarNomesAsync()).ToList();
+
+        nomes.Single().Nome.Should().Be("sem.nome@lab.com");
+    }
+
+    [Fact]
+    public void UsuarioNomeDto_NaoExpoePapelNem2fa()
+    {
+        typeof(UsuarioNomeDto).GetProperties().Select(p => p.Name)
+            .Should().BeEquivalentTo("Id", "Nome", "Email");
+    }
 }

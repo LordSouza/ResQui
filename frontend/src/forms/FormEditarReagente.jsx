@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Modal from './Modal';
 import { useAtualizarReagente } from '../reagentes/useAtualizarReagente';
 import { useLocais } from '../laboratorios/useLocais';
-import { useUsuarios } from '../usuarios/useUsuarios';
+import { useNomesUsuarios } from '../usuarios/useNomesUsuarios';
 
 export function FormEditarReagente({ reagente, onClose, dispatch }) {
   const [f, setF] = useState({
@@ -15,8 +15,7 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
   });
   const mutation = useAtualizarReagente();
   const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
-  const { data: usuarios = [], isPending: usuariosPending, isError: usuariosError } = useUsuarios();
-  const responsaveis = usuarios.filter(u => u.status === 'ativo').sort((a, b) => a.nome.localeCompare(b.nome));
+  const { data: responsaveis = [], isPending: usuariosPending, isError: usuariosError } = useNomesUsuarios();
   const respNomes = responsaveis.map(u => u.nome);
   // preserva valor legado (fora da lista derivada) como opção selecionável
   const localOptions = f.Local && !locais.includes(f.Local) ? [f.Local, ...locais] : locais;

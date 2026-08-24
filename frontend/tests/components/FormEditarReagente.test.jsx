@@ -23,10 +23,13 @@ describe('FormEditarReagente', () => {
           { nome: 'Química Orgânica', armarios: ['Inflamáveis'] },
         ] });
       }
-      if (String(url).startsWith('/api/usuarios')) {
+      if (String(url) === '/api/usuarios/nomes') {
         return Promise.resolve({ ok: true, status: 200, json: async () => [
-          { nome: 'Ana Lima', email: 'ana@x.com', papel: 'Gestor', arquivado: false },
+          { id: 'u-1', nome: 'Ana Lima', email: 'ana@x.com' },
         ] });
+      }
+      if (String(url).startsWith('/api/usuarios')) {
+        return Promise.resolve({ ok: false, status: 403, text: async () => '' });
       }
       return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
     }));

@@ -5,7 +5,7 @@ import { useCriarReagente } from '../reagentes/useCriarReagente';
 import { useBaixaReagente } from '../reagentes/useBaixaReagente';
 import { useTransferirReagente } from '../reagentes/useTransferirReagente';
 import { useLocais } from '../laboratorios/useLocais';
-import { useUsuarios } from '../usuarios/useUsuarios';
+import { useNomesUsuarios } from '../usuarios/useNomesUsuarios';
 import Modal from './Modal';
 import { useCompatOverrides } from '../compat/useCompatOverrides';
 import { useSalvarCompatOverride } from '../compat/useSalvarCompatOverride';
@@ -30,8 +30,7 @@ export function FormNovoReagente({ onClose, dispatch }) {
   };
   const criarMutation = useCriarReagente();
   const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
-  const { data: usuarios = [], isPending: usuariosPending, isError: usuariosError } = useUsuarios();
-  const responsaveis = usuarios.filter(u => u.status === 'ativo').sort((a, b) => a.nome.localeCompare(b.nome));
+  const { data: responsaveis = [], isPending: usuariosPending, isError: usuariosError } = useNomesUsuarios();
   const [f, setF] = useState({
     nome: '', sinonimo: '', cas: '', formula: '', classe: 1,
     estoque: '', unidade: 'L', validade: '', local: '',

@@ -199,6 +199,8 @@ app.MapGroup("/api/laboratorios").RequireAuthorization().MapLaboratoriosEndpoint
 app.MapGroup("/api/residuos").RequireAuthorization().MapResiduosEndpoints();
 app.MapGroup("/api/mtrs").RequireAuthorization().MapMtrsEndpoints();
 app.MapGroup("/api/auditoria").RequireAuthorization("Supervisao").MapAuditoriaEndpoints();
+app.MapGet("/api/usuarios/nomes", async (IUsuariosService svc) =>
+    Results.Ok(await svc.ListarNomesAsync())).RequireAuthorization("Gestor");
 app.MapGroup("/api/usuarios").RequireAuthorization("Admin").MapUsuariosEndpoints();
 app.MapGroup("/api/chamados").RequireAuthorization().MapChamadosEndpoints();
 app.MapGroup("/api/compat").RequireAuthorization().MapCompatEndpoints();
