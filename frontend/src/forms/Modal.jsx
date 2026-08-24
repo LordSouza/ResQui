@@ -17,7 +17,7 @@ export default function Modal({ title, sub, onClose, children, width = 560, foot
             <div className="modal-title">{title}</div>
             {sub && <div className="modal-sub">{sub}</div>}
           </div>
-          <button type="button" className="close" onClick={onClose}><Icon name="close" size={16}/></button>
+          <button type="button" className="close" aria-label="Fechar janela" onClick={onClose}><Icon name="close" size={16}/></button>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}

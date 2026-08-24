@@ -360,8 +360,8 @@ export default function App() {
           </div>
         </div>
 
-        <div className="sidebar-section">Dia a dia</div>
-        <nav className="nav">
+        <div className="sidebar-section" id="nav-secao-dia-a-dia">Dia a dia</div>
+        <nav className="nav" aria-labelledby="nav-secao-dia-a-dia">
           {NAV.filter(n => !n.section).filter(n => podeVerTela(user?.papel, n.key)).map(n => (
             <button type="button" key={n.key} className={`nav-item ${state.screen === n.key || (n.key === 'inventario' && state.screen === 'detalhe') ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
@@ -372,8 +372,8 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="sidebar-section">Gestão</div>
-        <nav className="nav">
+        <div className="sidebar-section" id="nav-secao-gestao">Gestão</div>
+        <nav className="nav" aria-labelledby="nav-secao-gestao">
           {NAV.filter(n => n.section === 'gestao').filter(n => podeVerTela(user?.papel, n.key)).map(n => (
             <button type="button" key={n.key} className={`nav-item ${state.screen === n.key ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
@@ -384,8 +384,8 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="sidebar-section">Sistema</div>
-        <nav className="nav">
+        <div className="sidebar-section" id="nav-secao-sistema">Sistema</div>
+        <nav className="nav" aria-labelledby="nav-secao-sistema">
           {NAV.filter(n => n.section === 'sistema').filter(n => podeVerTela(user?.papel, n.key)).map(n => (
             <button type="button" key={n.key} className={`nav-item ${state.screen === n.key ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
@@ -395,8 +395,8 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="sidebar-section" style={{marginTop: 16}}>Assistente</div>
-        <nav className="nav">
+        <div className="sidebar-section" style={{marginTop: 16}} id="nav-secao-assistente">Assistente</div>
+        <nav className="nav" aria-labelledby="nav-secao-assistente">
           <button type="button" className="nav-item" onClick={() => dispatch({type: 'openChat'})}>
             <span className="nav-icon"><Icon name="sparkle" size={15}/></span>
             Assistente

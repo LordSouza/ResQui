@@ -90,7 +90,7 @@ function LotesCard({ reagente }) {
             <button type="button" className="btn btn-primary btn-sm" disabled={criarLote.isPending} onClick={salvar}>
               {criarLote.isPending ? 'Salvando…' : 'Salvar'}
             </button>
-            <button type="button" className="btn btn-sm" onClick={() => setNovo(null)}>×</button>
+            <button type="button" className="btn btn-sm" aria-label="Cancelar novo lote" onClick={() => setNovo(null)}>×</button>
           </div>
         )}
       </div>

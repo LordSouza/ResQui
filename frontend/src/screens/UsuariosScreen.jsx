@@ -42,6 +42,12 @@ export function PermissoesDrawer({ usuario, onClose, dispatch }) {
 
   const onPapelChange = (p) => drawerDispatch({ type: 'setPapel', papel: p });
 
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const salvar = () => {
     alterarPapel.mutate(
       { id: usuario.id, NovoPapel: papel },
@@ -55,13 +61,13 @@ export function PermissoesDrawer({ usuario, onClose, dispatch }) {
   };
 
   return (
-    <button type="button" className="drawer-backdrop" onClick={onClose} aria-label="Fechar painel de permissões">
-      <div className="drawer" role="dialog" tabIndex={-1} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+    <div className="drawer-backdrop" role="presentation" onClick={onClose}>
+      <div className="drawer" role="dialog" aria-labelledby="permissoes-drawer-titulo" tabIndex={-1} onClick={e => e.stopPropagation()}>
         <div className="drawer-h">
           <div className="row" style={{gap: 12, alignItems: 'center'}}>
             <span className="avatar avatar-lg" style={{background: usuario.cor}}>{usuario.iniciais}</span>
             <div>
-              <div className="drawer-title">{usuario.nome}</div>
+              <div className="drawer-title" id="permissoes-drawer-titulo">{usuario.nome}</div>
               <div className="drawer-sub mono">{usuario.email}</div>
               <div style={{marginTop: 4, display: 'flex', gap: 6, alignItems: 'center'}}>
                 {statusUsuarioBadge(usuario.status)}
@@ -69,7 +75,7 @@ export function PermissoesDrawer({ usuario, onClose, dispatch }) {
               </div>
             </div>
           </div>
-          <button type="button" className="close" onClick={onClose}><Icon name="close" size={16}/></button>
+          <button type="button" className="close" aria-label="Fechar painel de permissões" onClick={onClose}><Icon name="close" size={16}/></button>
         </div>
 
         <div className="drawer-body">
@@ -150,7 +156,7 @@ export function PermissoesDrawer({ usuario, onClose, dispatch }) {
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -300,7 +306,8 @@ export function UsuariosScreen({ state, dispatch }) {
               </thead>
               <tbody>
                 {list.map(u => (
-                  <tr key={u.id} className={`${selecionado === u.id ? 'selected' : ''} ${state.flashId === u.id ? 'flash' : ''}`.trim()}
+                  <tr key={u.id} className={`${selecionado === u.id ? 'selected' : ''} ${state.flashId === u.id ? 'flash' : ''}`.trim()} tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelecionado(u.id); } }}
                     onClick={() => setSelecionado(u.id)}>
                     <td>
                       <div className="user-cell">

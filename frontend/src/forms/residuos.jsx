@@ -22,8 +22,8 @@ function ClassesSelector({ idPrefix, value, onChange, obrigatorio = false }) {
   return (
     <div className="form-row full">
       <div className="field">
-        <label>Classes de reatividade da mistura{obrigatorio ? ' *' : ''}</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <span className="field-label" id={`${idPrefix}-classes-legenda`}>Classes de reatividade da mistura{obrigatorio ? ' *' : ''}</span>
+        <div role="group" aria-labelledby={`${idPrefix}-classes-legenda`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {Object.entries(REATIVIDADE_CLASSES).map(([n, label]) => (
             <label key={n} htmlFor={`${idPrefix}-classe-${n}`} className="btn btn-sm"
               style={{ cursor: 'pointer', opacity: value.includes(Number(n)) ? 1 : 0.55 }}>
@@ -186,7 +186,7 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
         <div className="field"><label htmlFor="edit-volume">Volume / massa</label>
           <div style={{ display: 'flex', gap: 6 }}>
             <input id="edit-volume" style={{ flex: 1 }} type="number" step="0.1" value={f.volume} onChange={e => upd('volume', e.target.value)} />
-            <select style={{ width: 80 }} value={f.unidade} onChange={e => upd('unidade', e.target.value)}>
+            <select style={{ width: 80 }} aria-label="Unidade" value={f.unidade} onChange={e => upd('unidade', e.target.value)}>
               <option>L</option><option>mL</option><option>kg</option><option>g</option><option>m³</option>
             </select>
           </div>

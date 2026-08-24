@@ -61,11 +61,11 @@ export function InventarioScreen({ state, dispatch }) {
             <Icon name="search" size={14}/>
             <input aria-label="Buscar reagentes" placeholder="Buscar por nome, CAS, ID ou fórmula…" value={q} onChange={handleQChange}/>
           </div>
-          <select value={classe} onChange={handleClasseChange}>
+          <select aria-label="Filtrar por classe de reatividade" value={classe} onChange={handleClasseChange}>
             <option value="todas">Todas as classes</option>
             {Object.entries(REATIVIDADE_CLASSES).map(([k, v]) => <option key={k} value={k}>{k}. {v}</option>)}
           </select>
-          <select value={vencimento} onChange={handleVencimentoChange}>
+          <select aria-label="Filtrar por vencimento" value={vencimento} onChange={handleVencimentoChange}>
             <option value="todos">Vencimento: todos</option>
             <option value="em-breve">≤ 90 dias</option>
           </select>
@@ -106,6 +106,8 @@ export function InventarioScreen({ state, dispatch }) {
               {pageItems.map(r => (
                 <tr key={r.id}
                   className={state.flashId === r.id ? 'flash selected' : ''}
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({type: 'detail', id: r.id}); } }}
                   onClick={() => dispatch({type: 'detail', id: r.id})}>
                   <td className="num">{r.id}</td>
                   <td>
@@ -140,8 +142,8 @@ export function InventarioScreen({ state, dispatch }) {
         <div style={{padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', background: 'var(--surface-2)'}}>
           <span className="small muted">{total} resultados · página {safePage + 1} de {totalPages}</span>
           <div className="row">
-            <button type="button" className="btn btn-sm" disabled={safePage === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>‹</button>
-            <button type="button" className="btn btn-sm" disabled={safePage >= totalPages - 1} onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}>›</button>
+            <button type="button" className="btn btn-sm" aria-label="Página anterior" disabled={safePage === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>‹</button>
+            <button type="button" className="btn btn-sm" aria-label="Próxima página" disabled={safePage >= totalPages - 1} onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}>›</button>
           </div>
         </div>
       </div>

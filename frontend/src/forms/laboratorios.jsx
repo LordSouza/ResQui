@@ -5,7 +5,7 @@ import { useCriarLaboratorio } from '../laboratorios/useCriarLaboratorio';
 import { useAtualizarLaboratorio } from '../laboratorios/useAtualizarLaboratorio';
 import { useDeletarLaboratorio } from '../laboratorios/useDeletarLaboratorio';
 
-const CORES = ['#1465c0', '#0d4a8c', '#1f7a3e', '#b76e00', '#5b3c8c', '#b3261e'];
+const CORES = [['#1465c0', 'Azul'], ['#0d4a8c', 'Azul-escuro'], ['#1f7a3e', 'Verde'], ['#b76e00', 'Âmbar'], ['#5b3c8c', 'Roxo'], ['#b3261e', 'Vermelho']];
 
 export function FormNovoLab({ onClose, dispatch }) {
   const [f, setF] = useState({
@@ -71,8 +71,8 @@ export function FormNovoLab({ onClose, dispatch }) {
         </div>
         <div className="field"><label htmlFor="lab-cor">Cor identificadora</label>
           <div id="lab-cor" className="lab-cor-swatches">
-            {CORES.map(c => (
-              <button type="button" key={c} onClick={() => upd('cor', c)}
+            {CORES.map(([c, nomeCor]) => (
+              <button type="button" key={c} aria-label={`Cor ${nomeCor}`} onClick={() => upd('cor', c)}
                 style={{ width: 26, height: 26, borderRadius: 6, background: c, cursor: 'pointer', padding: 0,
                   border: f.cor === c ? '2px solid var(--text)' : '1px solid var(--border)' }} />
             ))}
@@ -192,8 +192,8 @@ export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
         </div>
         <div className="field"><label htmlFor="edit-lab-cor">Cor</label>
           <div className="lab-cor-swatches">
-            {CORES.map(c => (
-              <button type="button" key={c} onClick={() => upd('cor', c)}
+            {CORES.map(([c, nomeCor]) => (
+              <button type="button" key={c} aria-label={`Cor ${nomeCor}`} onClick={() => upd('cor', c)}
                 style={{ width: 26, height: 26, borderRadius: 6, background: c, cursor: 'pointer', padding: 0,
                   border: f.cor === c ? '2px solid var(--text)' : '1px solid var(--border)' }} />
             ))}

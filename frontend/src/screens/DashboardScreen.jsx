@@ -158,7 +158,9 @@ export function DashboardScreen({ state, dispatch }) {
               <thead><tr><th>ID</th><th>Tipo</th><th>Gerador</th><th>Volume</th><th>Risco</th><th>Registrado</th></tr></thead>
               <tbody>
                 {residuosData.filter(r => r.status === 'aguardando-coleta').slice(0, 5).map(r => (
-                  <tr key={r.id} onClick={() => dispatch({type: 'nav', screen: 'residuos'})}>
+                  <tr key={r.id} tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({type: 'nav', screen: 'residuos'}); } }}
+                    onClick={() => dispatch({type: 'nav', screen: 'residuos'})}>
                     <td className="num">{r.id}</td>
                     <td>{r.tipo}</td>
                     <td><Tag>{r.lab_id}</Tag></td>

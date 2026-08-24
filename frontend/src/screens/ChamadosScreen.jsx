@@ -67,12 +67,12 @@ function ChamadoDetail({ chamado, onClose, dispatch }) {
   };
 
   return (
-    <button type="button" className="drawer-backdrop" onClick={onClose} aria-label="Fechar painel do chamado">
-      <div className="drawer" role="dialog" tabIndex={-1} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()} style={{width: 560}}>
+    <div className="drawer-backdrop" role="presentation" onClick={onClose}>
+      <div className="drawer" role="dialog" aria-labelledby="chamado-drawer-titulo" tabIndex={-1} onClick={e => e.stopPropagation()} style={{width: 560}}>
         <div className="drawer-h">
           <div style={{flex: 1, minWidth: 0}}>
             <div style={{fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-3)', marginBottom: 4}}>{c.id} · {tipoChamado(c.tipo)}</div>
-            <div className="drawer-title" style={{lineHeight: 1.3}}>{c.titulo}</div>
+            <div className="drawer-title" id="chamado-drawer-titulo" style={{lineHeight: 1.3}}>{c.titulo}</div>
             <div style={{display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap'}}>
               {statusChamado(c.status)}
               {sevChamado(c.severidade)}
@@ -178,7 +178,7 @@ function ChamadoDetail({ chamado, onClose, dispatch }) {
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -294,7 +294,7 @@ export function ChamadosScreen({ state, dispatch }) {
         {/* Lista de chamados */}
         <div className="card card-tight">
           <div className="toolbar">
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <select aria-label="Filtrar por status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="abertos">Abertos + em análise</option>
               <option value="aberto">Apenas abertos</option>
               <option value="em-analise">Apenas em análise</option>
@@ -303,7 +303,7 @@ export function ChamadosScreen({ state, dispatch }) {
               <option value="fechados">Resolvidos + fechados</option>
               <option value="todos">Todos os status</option>
             </select>
-            <select value={tipoFilter} onChange={e => setTipoFilter(e.target.value)}>
+            <select aria-label="Filtrar por tipo" value={tipoFilter} onChange={e => setTipoFilter(e.target.value)}>
               <option value="todos">Todos os tipos</option>
               <option value="bug">🐛 Bug</option>
               <option value="feature">💡 Sugestão</option>
@@ -311,7 +311,7 @@ export function ChamadosScreen({ state, dispatch }) {
               <option value="performance">⚡ Performance</option>
               <option value="conformidade">📋 Conformidade</option>
             </select>
-            <select value={sevFilter} onChange={e => setSevFilter(e.target.value)}>
+            <select aria-label="Filtrar por severidade" value={sevFilter} onChange={e => setSevFilter(e.target.value)}>
               <option value="todas">Todas severidades</option>
               <option value="critica">Crítica</option>
               <option value="alta">Alta</option>
@@ -338,7 +338,9 @@ export function ChamadosScreen({ state, dispatch }) {
                   Nenhum chamado encontrado com os filtros atuais.
                 </td></tr>
               ) : list.map(c => (
-                <tr key={c.id} className={c.id === selecionado ? 'selected' : ''} onClick={() => setSelecionado(c.id)}>
+                <tr key={c.id} className={c.id === selecionado ? 'selected' : ''} tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelecionado(c.id); } }}
+                  onClick={() => setSelecionado(c.id)}>
                   <td className="num">{c.id}</td>
                   <td>
                     <div style={{fontSize: 12.5}}>{c.titulo}</div>

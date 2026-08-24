@@ -89,7 +89,7 @@ export function AssistenteChat({ state, dispatch }) {
               : <><span className="status-dot"/> conectado</>}
           </div>
         </div>
-        <button type="button" className="close" onClick={() => dispatch({type: 'closeChat'})}>
+        <button type="button" className="close" aria-label="Fechar assistente" onClick={() => dispatch({type: 'closeChat'})}>
           <Icon name="close" size={16}/>
         </button>
       </div>

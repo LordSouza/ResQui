@@ -1,4 +1,4 @@
-import { useState, useRef, useId } from 'react';
+import { useState, useRef, useId, useEffect } from 'react';
 import { Icon, Badge, Tag, Picto } from '../components';
 import { REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
 import { useCriarReagente } from '../reagentes/useCriarReagente';
@@ -510,6 +510,7 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
     severidade: `${uid}-severidade`,
     justificativa: `${uid}-justificativa`,
     definidoPor: `${uid}-definido-por`,
+    ultimaEdicao: `${uid}-ultima-edicao`,
   };
 
   const { data: overrides = [], isPending } = useCompatOverrides();
@@ -685,8 +686,8 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
               </div>
               {selected.data && (
                 <div className="field">
-                  <label>Última edição</label>
-                  <input readOnly value={selected.data} style={{color: 'var(--text-3)'}}/>
+                  <label htmlFor={ids.ultimaEdicao}>Última edição</label>
+                  <input id={ids.ultimaEdicao} readOnly value={selected.data} style={{color: 'var(--text-3)'}}/>
                 </div>
               )}
             </div>
@@ -713,13 +714,15 @@ function NovaRegraInline({ onCancel, onAdd }) {
   const ids = { classeA: `${uid}-classe-a`, classeB: `${uid}-classe-b` };
   const [a, setA] = useState(1);
   const [b, setB] = useState(3);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); onCancel(); } };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
   return (
-    <button
-      type="button"
-      aria-label="Fechar diálogo de nova regra"
-      onClick={onCancel}
-      onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); onCancel(); } }}
-      className="compat-rule-backdrop">
+    <div className="compat-rule-backdrop" role="presentation" onClick={onCancel}>
       <div onClick={e => e.stopPropagation()} style={{
         background: 'var(--surface)', borderRadius: 10, padding: 18, width: 420,
         boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
@@ -754,6 +757,6 @@ function NovaRegraInline({ onCancel, onAdd }) {
             onClick={() => onAdd(a, b)}>Adicionar</button>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
