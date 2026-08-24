@@ -16,7 +16,7 @@ const STATUS_TABS = [
 ];
 
 export function ResiduosScreen({ state, dispatch }) {
-  const [filter, setFilter] = useState('todos');
+  const [filter, setFilter] = useState(state.residuosStatusInicial || 'todos');
   const [q, setQ] = useState('');
   const { data: residuos = [], isPending, isError, refetch } = useResíduos();
   const podeAprovar = usePode('Aprovador');     // PUT /api/residuos/:id/aprovar|rejeitar (RF06)

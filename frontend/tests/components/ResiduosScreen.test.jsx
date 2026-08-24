@@ -81,3 +81,19 @@ describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
     expect(screen.queryByText('Rotulagem')).not.toBeInTheDocument();
   });
 });
+
+describe('ResiduosScreen — filtro inicial da navegação', () => {
+  it('abre com o filtro vindo da navegação', () => {
+    useResíduos.mockReturnValue({
+      data: [
+        { id: 1, tipo: 'Solventes', status: 'solicitado', composicao: 'x', lab_id: 'Lab-001', volume: 1, unidade: 'L', risco: 'baixo', data_registro: '2026-08-24T10:00:00', mtr_id: null },
+        { id: 2, tipo: 'Ácidos', status: 'destinado', composicao: 'y', lab_id: 'Lab-001', volume: 1, unidade: 'L', risco: 'baixo', data_registro: '2026-08-24T10:00:00', mtr_id: null },
+      ],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Admin' } });
+    render(<ResiduosScreen state={{ residuosStatusInicial: 'solicitado' }} dispatch={vi.fn()} />);
+    expect(screen.getByText('Solventes')).toBeInTheDocument();
+    expect(screen.queryByText('Ácidos')).not.toBeInTheDocument();
+  });
+});

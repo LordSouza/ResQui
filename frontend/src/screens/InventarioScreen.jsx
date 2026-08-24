@@ -10,7 +10,7 @@ export function InventarioScreen({ state, dispatch }) {
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [classe, setClasse] = useState('todas');
-  const [vencimento, setVencimento] = useState('todos');
+  const [vencimento, setVencimento] = useState(state.inventarioVencendoInicial ? 'em-breve' : 'todos');
   const [page, setPage] = useState(0);
   const perPage = 20;
 

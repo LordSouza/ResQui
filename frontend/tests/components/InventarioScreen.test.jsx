@@ -135,4 +135,14 @@ describe('InventarioScreen', () => {
     expect(screen.getByRole('button', { name: /Novo reagente/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Importar CSV/i })).toBeInTheDocument();
   });
+
+  it('abre já filtrado por vencimento quando a navegação pede', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(makeApiResponse([]));
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<InventarioScreen state={{ inventarioVencendoInicial: true }} dispatch={vi.fn()} />, { wrapper });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('vencendo=true'))).toBe(true);
+  });
 });
