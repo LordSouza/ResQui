@@ -1,4 +1,5 @@
 // backend/ResQui.Tests.Unit/Relatorios/RelatoriosServiceTests.cs
+using System.Globalization;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Relatorios;
@@ -268,5 +269,31 @@ public class RelatoriosServiceTests
 
         result.Should().NotBeNull();
         result!.Value.Csv.Should().NotContain("# IDENTIFICACAO");
+    }
+
+    [Theory]
+    [InlineData("pt-BR")]
+    [InlineData("en-US")]
+    [InlineData("")]
+    public async Task DownloadAsync_Inventario_DataEmIsoENumeroComPontoIndependenteDaCultura(string cultura)
+    {
+        var anterior = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultura);
+        try
+        {
+            _repo.GetByIdAsync(1).Returns(FakeRelatorio());
+            _reagentesRepo.GetAllAsync().Returns([FakeReagente()]);
+
+            var result = await _sut.DownloadAsync(1);
+
+            var linha = result!.Value.Csv.Split('\n').First(l => l.StartsWith("R-00001"));
+            linha.Should().Contain("2027-06-01");
+            linha.Should().Contain("500.000");
+            linha.Should().Contain("100.000");
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = anterior;
+        }
     }
 }

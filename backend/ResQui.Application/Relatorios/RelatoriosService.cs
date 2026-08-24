@@ -78,7 +78,9 @@ public class RelatoriosService(
         sb.AppendLine("Id,Nome,Local,Responsavel,Estoque,EstoqueMin,Validade,Classe,Status");
         foreach (var r in reagentes)
             sb.AppendLine($"{r.Id},{Esc(r.Nome)},{Esc(r.Local)},{Esc(r.Responsavel)}," +
-                          $"{r.Estoque},{r.EstoqueMin},{r.Validade},{r.ClasseReatividade},{r.ValidadeStatus}");
+                          $"{r.Estoque.ToString("F3", CultureInfo.InvariantCulture)}," +
+                          $"{r.EstoqueMin?.ToString("F3", CultureInfo.InvariantCulture)}," +
+                          $"{r.Validade:yyyy-MM-dd},{r.ClasseReatividade},{r.ValidadeStatus}");
         return (sb.ToString(), reagentes.Count);
     }
 
@@ -92,7 +94,8 @@ public class RelatoriosService(
         {
             var signal = r.Ghs?.Signal ?? "";
             var pictos = r.Ghs?.Pictos is { Count: > 0 } p ? string.Join("|", p) : "";
-            sb.AppendLine($"{r.ClasseReatividade},{Esc(r.Nome)},{Esc(signal)},{Esc(pictos)},{r.Estoque},{Esc(r.Local)}");
+            sb.AppendLine($"{r.ClasseReatividade},{Esc(r.Nome)},{Esc(signal)},{Esc(pictos)}," +
+                          $"{r.Estoque.ToString("F3", CultureInfo.InvariantCulture)},{Esc(r.Local)}");
         }
         return (sb.ToString(), reagentes.Count);
     }
@@ -111,7 +114,8 @@ public class RelatoriosService(
             var ibama = mtr?.CodigoIbama ?? "";
             var nrMtr = mtr?.Numero ?? "";
             var lab = labs.TryGetValue(r.LaboratorioId, out var nome) ? nome : r.LaboratorioId;
-            sb.AppendLine($"{Esc(ibama)},{Esc(r.Descricao)},{Esc(r.Tipo)},{r.Volume},{Esc(r.Unidade)}," +
+            sb.AppendLine($"{Esc(ibama)},{Esc(r.Descricao)},{Esc(r.Tipo)}," +
+                          $"{r.Volume.ToString("F3", CultureInfo.InvariantCulture)},{Esc(r.Unidade)}," +
                           $"{Esc(lab)},{r.DataRegistro:yyyy-MM-dd},{Esc(r.Status)},{Esc(nrMtr)}");
         }
         return (sb.ToString(), residuos.Count);
