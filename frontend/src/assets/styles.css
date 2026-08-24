@@ -468,6 +468,8 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   border-color: var(--accent-soft-2);
   color: var(--accent);
 }
+.ciclo-sep { color: var(--text-3); padding: 0 2px; }
+.ciclo-desc { padding: 6px 14px 10px; font-size: 12.5px; color: var(--text-2); border-bottom: 1px solid var(--border); }
 
 .toolbar select, .toolbar .select {
   background: var(--surface-2);

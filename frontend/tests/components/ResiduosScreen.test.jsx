@@ -1,6 +1,6 @@
 // frontend/tests/components/ResiduosScreen.test.jsx
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ResiduosScreen } from '../../src/screens/ResiduosScreen';
 import { initialState } from '../../src/store/reducer';
 
@@ -79,6 +79,16 @@ describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
     renderCom('Admin');
     expect(screen.getByText(/Resíduos químicos/)).toBeInTheDocument();
     expect(screen.queryByText('Rotulagem')).not.toBeInTheDocument();
+  });
+});
+
+describe('ResiduosScreen — ciclo como stepper', () => {
+  it('mostra o ciclo em ordem e explica a etapa ativa', () => {
+    useResíduos.mockReturnValue({ data: [], isPending: false, isError: false, refetch: vi.fn() });
+    renderCom('Admin');
+    expect(screen.getByText('Aguardando coleta')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Solicitado'));
+    expect(screen.getByText(/Aguardando aprovação de um professor ou gestor/)).toBeInTheDocument();
   });
 });
 

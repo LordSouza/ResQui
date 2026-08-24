@@ -6,14 +6,14 @@ import { useAprovarResiduo } from '../residuos/useAprovarResiduo';
 import { useRejeitarResiduo } from '../residuos/useRejeitarResiduo';
 import { usePode } from '../auth/permissoes';
 
-const STATUS_TABS = [
-  ['todos', 'Todos'],
-  ['solicitado', 'Solicitados'],
-  ['aguardando-coleta', 'Aguardando coleta'],
-  ['em-coleta', 'Em coleta'],
-  ['destinado', 'Destinados'],
-  ['rejeitado', 'Rejeitados'],
+const CICLO = [
+  ['solicitado', 'Solicitado', 'Aguardando aprovação de um professor ou gestor.'],
+  ['aguardando-coleta', 'Aguardando coleta', 'Descarte aprovado — pronto para entrar num manifesto de coleta.'],
+  ['em-coleta', 'Em coleta', 'Vinculado a um manifesto de transporte, a caminho da destinação.'],
+  ['destinado', 'Destinado', 'Ciclo encerrado — a destinação foi confirmada pelo manifesto.'],
 ];
+
+const pillBtn = { cursor: 'pointer', background: 'none', border: 'none', font: 'inherit' };
 
 export function ResiduosScreen({ state, dispatch }) {
   const [filter, setFilter] = useState(state.residuosStatusInicial || 'todos');
@@ -56,18 +56,23 @@ export function ResiduosScreen({ state, dispatch }) {
       </div>
 
       <div className="card card-tight">
-        <div className="toolbar">
-          {STATUS_TABS.map(([k, l]) => (
-            <button
-              key={k}
-              type="button"
-              className={`filter-pill ${filter === k ? 'active' : ''}`}
-              onClick={() => setFilter(k)}
-              style={{ cursor: 'pointer', background: 'none', border: 'none', font: 'inherit' }}
-            >
-              {l} <span className="mono small">{k === 'todos' ? residuos.length : residuos.filter(r => r.status === k).length}</span>
-            </button>
+        <div className="toolbar" style={{ flexWrap: 'wrap' }}>
+          <button type="button" className={`filter-pill ${filter === 'todos' ? 'active' : ''}`} onClick={() => setFilter('todos')} style={pillBtn}>
+            Todos <span className="mono small">{residuos.length}</span>
+          </button>
+          <span className="ciclo-sep">·</span>
+          {CICLO.map(([k, rotulo], i) => (
+            <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {i > 0 && <Icon name="chevron_right" size={11}/>}
+              <button type="button" className={`filter-pill ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)} style={pillBtn}>
+                {rotulo} <span className="mono small">{residuos.filter(r => r.status === k).length}</span>
+              </button>
+            </span>
           ))}
+          <span className="ciclo-sep">·</span>
+          <button type="button" className={`filter-pill ${filter === 'rejeitado' ? 'active' : ''}`} onClick={() => setFilter('rejeitado')} style={pillBtn}>
+            Rejeitados <span className="mono small">{residuos.filter(r => r.status === 'rejeitado').length}</span>
+          </button>
           <div className="input" style={{ marginLeft: 'auto' }}>
             <Icon name="search" size={14} />
             <input
@@ -78,6 +83,9 @@ export function ResiduosScreen({ state, dispatch }) {
             />
           </div>
         </div>
+        {CICLO.find(([k]) => k === filter) && (
+          <div className="ciclo-desc">{CICLO.find(([k]) => k === filter)[2]}</div>
+        )}
         <table className="tbl">
           <thead>
             <tr>
