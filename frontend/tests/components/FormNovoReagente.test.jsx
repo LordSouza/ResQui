@@ -51,10 +51,25 @@ describe('FormNovoReagente', () => {
     expect(screen.getByText('Novo reagente')).toBeInTheDocument();
   });
 
-  it('shows alert and does not call onClose when nome is empty', async () => {
+  it('submeter sem nome e CAS mostra erros inline, sem alert', async () => {
+    const alertSpy = vi.spyOn(window, 'alert');
     render(<FormNovoReagente onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Cadastrar reagente/i }));
-    expect(window.alert).toHaveBeenCalledWith('Nome e CAS são obrigatórios.');
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(screen.getByText('Informe o nome do reagente.')).toBeInTheDocument();
+    expect(screen.getByText('Informe o número CAS.')).toBeInTheDocument();
+  });
+
+  it('agrupa o formulário em seções nomeadas', () => {
+    render(<FormNovoReagente onClose={onClose} dispatch={dispatch} />, { wrapper });
+    expect(screen.getByText('Identificação')).toBeInTheDocument();
+    expect(screen.getByText('Estoque e localização')).toBeInTheDocument();
+    expect(screen.getByText(/Classificação GHS/)).toBeInTheDocument();
+  });
+
+  it('não fecha o modal quando a validação falha', async () => {
+    render(<FormNovoReagente onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await userEvent.click(screen.getByRole('button', { name: /Cadastrar reagente/i }));
     expect(onClose).not.toHaveBeenCalled();
   });
 

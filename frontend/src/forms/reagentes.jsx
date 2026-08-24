@@ -39,11 +39,16 @@ export function FormNovoReagente({ onClose, dispatch }) {
     pictos: [], signal: 'Atenção',
     h: '', p: '',
   });
+  const [erros, setErros] = useState({});
   const upd = (k, v) => setF(s => ({...s, [k]: v}));
   const togglePicto = (p) => setF(s => ({...s, pictos: s.pictos.includes(p) ? s.pictos.filter(x => x !== p) : [...s.pictos, p]}));
 
   const submit = () => {
-    if (!f.nome || !f.cas) { alert('Nome e CAS são obrigatórios.'); return; }
+    const pendentes = {};
+    if (!f.nome) pendentes.nome = 'Informe o nome do reagente.';
+    if (!f.cas) pendentes.cas = 'Informe o número CAS.';
+    setErros(pendentes);
+    if (Object.keys(pendentes).length > 0) return;
     const cmd = {
       Nome: f.nome,
       Cas: f.cas,
@@ -85,22 +90,21 @@ export function FormNovoReagente({ onClose, dispatch }) {
       {criarMutation.isError && (
         <div className="login-err" style={{marginBottom: 12}}>{criarMutation.error?.message ?? 'Erro ao cadastrar reagente.'}</div>
       )}
+      <div className="form-section-title">Identificação</div>
       <div className="form-row">
-        <div className="field"><label htmlFor={ids.nome}>Nome *</label><input id={ids.nome} aria-label="Nome do reagente" value={f.nome} onChange={e => upd('nome', e.target.value)} placeholder="ex: Ácido Acético"/></div>
+        <div className="field"><label htmlFor={ids.nome}>Nome *</label><input id={ids.nome} aria-label="Nome do reagente" value={f.nome} onChange={e => upd('nome', e.target.value)} placeholder="ex: Ácido Acético"/>
+          {erros.nome && <div className="field-error">{erros.nome}</div>}
+        </div>
         <div className="field"><label htmlFor={ids.sinonimo}>Sinônimo / nome comercial</label><input id={ids.sinonimo} aria-label="Sinônimo ou nome comercial do reagente" value={f.sinonimo} onChange={e => upd('sinonimo', e.target.value)} placeholder="ex: CH3COOH glacial"/></div>
       </div>
       <div className="form-row">
-        <div className="field"><label htmlFor={ids.cas}>CAS *</label><input id={ids.cas} aria-label="Número CAS do reagente" value={f.cas} onChange={e => upd('cas', e.target.value)} placeholder="64-19-7"/></div>
+        <div className="field"><label htmlFor={ids.cas}>CAS *</label><input id={ids.cas} aria-label="Número CAS do reagente" value={f.cas} onChange={e => upd('cas', e.target.value)} placeholder="64-19-7"/>
+          {erros.cas && <div className="field-error">{erros.cas}</div>}
+        </div>
         <div className="field"><label htmlFor={ids.formula}>Fórmula</label><input id={ids.formula} aria-label="Fórmula molecular do reagente" value={f.formula} onChange={e => upd('formula', e.target.value)} placeholder="C2H4O2"/></div>
       </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor={ids.classe}>Classe de reatividade</label>
-          <select id={ids.classe} value={f.classe} onChange={e => upd('classe', e.target.value)}>
-            {Object.entries(REATIVIDADE_CLASSES).map(([k, v]) => <option key={k} value={k}>{k}. {v}</option>)}
-          </select>
-        </div>
-        <div className="field"><label htmlFor={ids.lote}>Lote</label><input id={ids.lote} aria-label="Número do lote do reagente" value={f.lote} onChange={e => upd('lote', e.target.value)} placeholder="L-1234-A"/></div>
-      </div>
+
+      <div className="form-section-title">Estoque e localização</div>
       <div className="form-row">
         <div className="field"><label htmlFor={ids.estoque}>Estoque inicial</label>
           <div style={{display: 'flex', gap: 6}}>
@@ -126,12 +130,17 @@ export function FormNovoReagente({ onClose, dispatch }) {
           </select>
         </div>
       </div>
-
       <div className="form-row">
-        <div className="field"><label htmlFor={ids.signal}>Palavra-sinal</label>
-          <select id={ids.signal} value={f.signal} onChange={e => upd('signal', e.target.value)}>
-            <option>Perigo</option><option>Atenção</option>
+        <div className="field"><label htmlFor={ids.lote}>Lote</label><input id={ids.lote} aria-label="Número do lote do reagente" value={f.lote} onChange={e => upd('lote', e.target.value)} placeholder="L-1234-A"/></div>
+      </div>
+
+      <div className="form-section-title">Segurança</div>
+      <div className="form-row">
+        <div className="field"><label htmlFor={ids.classe}>Classe de reatividade</label>
+          <select id={ids.classe} value={f.classe} onChange={e => upd('classe', e.target.value)}>
+            {Object.entries(REATIVIDADE_CLASSES).map(([k, v]) => <option key={k} value={k}>{k}. {v}</option>)}
           </select>
+          <div className="small muted" style={{ marginTop: 4 }}>Determina quais misturas o sistema bloqueia.</div>
         </div>
         <div className="field" style={{display: 'flex', alignItems: 'flex-end'}}>
           <label htmlFor={ids.controlado} style={{display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer'}}>
@@ -141,32 +150,43 @@ export function FormNovoReagente({ onClose, dispatch }) {
         </div>
       </div>
 
-      <div className="field" style={{marginBottom: 12}}>
-        <label htmlFor={ids.pictos}>Pictogramas GHS</label>
-        <div id={ids.pictos} style={{display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4}}>
-          {Object.entries(PICTOS_GHS).map(([k, v]) => (
-            <button key={k} type="button"
-              onClick={() => togglePicto(k)}
-              className="picto-toggle-btn"
-              style={{
-                background: f.pictos.includes(k) ? 'var(--accent-soft)' : 'var(--surface-2)',
-                border: f.pictos.includes(k) ? '1px solid var(--accent)' : '1px solid var(--border)',
-              }}>
-              <Picto kind={k} small/>
-              <span>{v.label}</span>
-            </button>
-          ))}
+      <details className="ghs-details">
+        <summary>Classificação GHS (opcional)</summary>
+        <div className="form-row">
+          <div className="field"><label htmlFor={ids.signal}>Palavra-sinal</label>
+            <select id={ids.signal} value={f.signal} onChange={e => upd('signal', e.target.value)}>
+              <option>Perigo</option><option>Atenção</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div className="form-row">
-        <div className="field"><label htmlFor={ids.h}>Frases H (uma por linha)</label>
-          <textarea id={ids.h} aria-label="Frases de perigo H, uma por linha" rows={3} value={f.h} onChange={e => upd('h', e.target.value)} placeholder="H225 Líquido e vapores inflamáveis&#10;H319 Provoca irritação ocular"/>
+        <div className="field" style={{marginBottom: 12}}>
+          <label htmlFor={ids.pictos}>Pictogramas GHS</label>
+          <div id={ids.pictos} style={{display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4}}>
+            {Object.entries(PICTOS_GHS).map(([k, v]) => (
+              <button key={k} type="button"
+                onClick={() => togglePicto(k)}
+                className="picto-toggle-btn"
+                style={{
+                  background: f.pictos.includes(k) ? 'var(--accent-soft)' : 'var(--surface-2)',
+                  border: f.pictos.includes(k) ? '1px solid var(--accent)' : '1px solid var(--border)',
+                }}>
+                <Picto kind={k} small/>
+                <span>{v.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="field"><label htmlFor={ids.p}>Frases P (uma por linha)</label>
-          <textarea id={ids.p} aria-label="Frases de precaução P, uma por linha" rows={3} value={f.p} onChange={e => upd('p', e.target.value)} placeholder="P210 Manter afastado do calor&#10;P280 Usar EPI"/>
+
+        <div className="form-row">
+          <div className="field"><label htmlFor={ids.h}>Frases H (uma por linha)</label>
+            <textarea id={ids.h} aria-label="Frases de perigo H, uma por linha" rows={3} value={f.h} onChange={e => upd('h', e.target.value)} placeholder="H225 Líquido e vapores inflamáveis&#10;H319 Provoca irritação ocular"/>
+          </div>
+          <div className="field"><label htmlFor={ids.p}>Frases P (uma por linha)</label>
+            <textarea id={ids.p} aria-label="Frases de precaução P, uma por linha" rows={3} value={f.p} onChange={e => upd('p', e.target.value)} placeholder="P210 Manter afastado do calor&#10;P280 Usar EPI"/>
+          </div>
         </div>
-      </div>
+      </details>
     </Modal>
   );
 }
