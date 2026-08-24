@@ -135,6 +135,35 @@ public class RelatoriosServiceTests
     }
 
     [Fact]
+    public async Task DownloadAsync_Indicadores_SeparaLitrosDeQuilosSemSomarDimensoes()
+    {
+        _repo.GetByIdAsync(1).Returns(new RelatorioGerado
+        {
+            Id = 1, Tipo = "indicadores", Titulo = "Indicadores de geração",
+            GeradoPorId = "u1", TotalLinhas = 0, Formato = "csv",
+        });
+        var metroCubico = FakeResiduo(10);
+        metroCubico.Volume = 2m;
+        metroCubico.Unidade = "m³";
+        var solido = FakeResiduo(11);
+        solido.Volume = 5m;
+        solido.Unidade = "kg";
+        var mililitros = FakeResiduo(12);
+        mililitros.Volume = 500m;
+        mililitros.Unidade = "mL";
+        _residuosRepo.GetAllAsync().Returns([metroCubico, solido, mililitros]);
+        _labsRepo.GetAllAsync().Returns([FakeLab()]);
+
+        var result = await _sut.DownloadAsync(1);
+
+        var csv = result!.Value.Csv;
+        csv.Should().Contain("Total (L),Total (kg)");
+        csv.Should().Contain("2026-03,2000.500,5.000");
+        csv.Should().Contain("Lab Química,2000.500,5.000");
+        csv.Should().NotContain("7.500");
+    }
+
+    [Fact]
     public async Task DownloadAsync_TipoQueNaoExisteMais_RetornaNull()
     {
         _repo.GetByIdAsync(7).Returns(new RelatorioGerado

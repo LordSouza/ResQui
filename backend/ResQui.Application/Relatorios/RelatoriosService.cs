@@ -146,23 +146,26 @@ public class RelatoriosService(
         var mensal = residuos
             .GroupBy(r => r.DataRegistro.ToString("yyyy-MM"))
             .OrderBy(g => g.Key)
-            .Select(g => (Mes: g.Key, Volume: g.Sum(r => Normalizar(r.Volume, r.Unidade))))
+            .Select(g => (Mes: g.Key, Quantidade: QuantidadeResiduos.Somar(g)))
             .ToList();
 
         var porLab = residuos
             .GroupBy(r => r.LaboratorioId)
             .Select(g => (
                 Lab: labs.TryGetValue(g.Key, out var n) ? n : g.Key,
-                Volume: g.Sum(r => Normalizar(r.Volume, r.Unidade))))
-            .OrderByDescending(x => x.Volume)
+                Quantidade: QuantidadeResiduos.Somar(g)))
+            .OrderByDescending(x => x.Quantidade.Litros)
+            .ThenByDescending(x => x.Quantidade.Quilos)
             .ToList();
 
         var sb = new StringBuilder();
-        sb.AppendLine("Mes,Volume L");
-        foreach (var (mes, vol) in mensal) sb.AppendLine($"{mes},{vol:F3}");
+        sb.AppendLine("Mes,Total (L),Total (kg)");
+        foreach (var (mes, q) in mensal)
+            sb.AppendLine($"{mes},{q.Litros.ToString("F3", CultureInfo.InvariantCulture)},{q.Quilos.ToString("F3", CultureInfo.InvariantCulture)}");
         sb.AppendLine();
-        sb.AppendLine("Laboratorio,Volume L");
-        foreach (var (lab, vol) in porLab) sb.AppendLine($"{Esc(lab)},{vol:F3}");
+        sb.AppendLine("Laboratorio,Total (L),Total (kg)");
+        foreach (var (lab, q) in porLab)
+            sb.AppendLine($"{Esc(lab)},{q.Litros.ToString("F3", CultureInfo.InvariantCulture)},{q.Quilos.ToString("F3", CultureInfo.InvariantCulture)}");
 
         return (sb.ToString(), mensal.Count + porLab.Count);
     }
@@ -232,9 +235,6 @@ public class RelatoriosService(
         var labs = await laboratoriosRepo.GetAllAsync();
         return labs.ToDictionary(l => l.Id, l => l.Nome);
     }
-
-    private static decimal Normalizar(decimal volume, string unidade) =>
-        unidade.ToLower() == "ml" ? volume / 1000 : volume;
 
     private static string Esc(string? s)
     {
