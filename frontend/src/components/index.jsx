@@ -50,7 +50,7 @@ export const Tag = ({ children }) => <span className="tag">{children}</span>;
 
 // Status helpers
 export const validadeBadge = (s) => {
-  if (s === 'expira-breve') return <Badge kind="amber" dot>Expira ≤ 90d</Badge>;
+  if (s === 'vencendo') return <Badge kind="amber" dot>Expira ≤ 90d</Badge>;
   if (s === 'vencido') return <Badge kind="red" dot>Vencido</Badge>;
   return <Badge kind="green" dot>OK</Badge>;
 };

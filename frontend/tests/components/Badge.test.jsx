@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Badge } from '../../src/components';
+import { Badge, validadeBadge } from '../../src/components';
 
 describe('Badge', () => {
   it('renders children text', () => {
@@ -31,5 +31,22 @@ describe('Badge', () => {
   it('does not render a .dot span without the dot prop', () => {
     const { container } = render(<Badge>text</Badge>);
     expect(container.querySelector('.dot')).not.toBeInTheDocument();
+  });
+});
+
+describe('validadeBadge', () => {
+  it('vencendo (status real da API) rende o badge âmbar de expiração', () => {
+    render(validadeBadge('vencendo'));
+    expect(screen.getByText(/Expira/)).toBeInTheDocument();
+  });
+
+  it('vencido rende o badge vermelho', () => {
+    render(validadeBadge('vencido'));
+    expect(screen.getByText('Vencido')).toBeInTheDocument();
+  });
+
+  it('ok rende o badge verde', () => {
+    render(validadeBadge('ok'));
+    expect(screen.getByText('OK')).toBeInTheDocument();
   });
 });

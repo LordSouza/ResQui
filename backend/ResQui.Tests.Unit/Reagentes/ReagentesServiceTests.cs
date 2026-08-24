@@ -282,4 +282,23 @@ public class ReagentesServiceTests
         await _audit.Received().RegistrarAsync("u@x.com", "reagente.bulk-import", "Inventário",
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
+
+    [Fact]
+    public async Task ListarAsync_ItensTrazemOsCamposQueATelaDeInventarioRende()
+    {
+        var r = FakeReagente("R-001");
+        r.Sinonimo = "HCl concentrado";
+        r.EstoqueMin = 5m;
+        r.Ghs = new ReagenteGhs { Pictos = ["GHS05"], Signal = "Perigo" };
+        _repo.GetAllAsync().Returns([r]);
+
+        var (items, _) = await _sut.ListarAsync(new ReagentesFiltroDto());
+
+        var item = items.Single();
+        item.Sinonimo.Should().Be("HCl concentrado");
+        item.EstoqueMin.Should().Be(5m);
+        item.Validade.Should().Be(r.Validade.ToString("yyyy-MM-dd"));
+        item.Ghs!.Pictos.Should().Equal("GHS05");
+        item.Ghs.Signal.Should().Be("Perigo");
+    }
 }

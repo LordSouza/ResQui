@@ -4,12 +4,16 @@ public record ReagenteListItemDto(
     string Id,
     string Nome,
     string Cas,
+    string? Sinonimo,
     int ClasseReatividade,
     decimal Estoque,
+    decimal? EstoqueMin,
     string Unidade,
+    string Validade,
     string ValidadeStatus,
     string Local,
-    bool Controlado
+    bool Controlado,
+    GhsDto? Ghs
 );
 
 public record ReagenteDetalheDto(

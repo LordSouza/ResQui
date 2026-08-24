@@ -64,7 +64,7 @@ describe('useReagentes', () => {
       json: async () => ({
         items: [{
           id: 'R-001', nome: 'Etanol',
-          classeReatividade: 5, validadeStatus: 'expira-breve', estoqueMin: 0.5,
+          classeReatividade: 5, validadeStatus: 'vencendo', estoqueMin: 0.5,
           ghs: { pictos: ['flame', 'exclam'], signal: 'Perigo', frasesH: [], frasesP: [] },
         }],
         total: 1, page: 1, pageSize: 20,
@@ -76,7 +76,7 @@ describe('useReagentes', () => {
 
     const item = result.current.data.items[0];
     expect(item.classe).toBe(5);
-    expect(item.validade_status).toBe('expira-breve');
+    expect(item.validade_status).toBe('vencendo');
     expect(item.estoque_min).toBe(0.5);
     expect(item.pictos).toEqual(['flame', 'exclam']);
     expect(item.signal).toBe('Perigo');

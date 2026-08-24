@@ -263,8 +263,9 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
     }
 
     private static ReagenteListItemDto ToListItem(Reagente r) => new(
-        r.Id, r.Nome, r.Cas, r.ClasseReatividade, r.Estoque, r.Unidade,
-        r.ValidadeStatus, r.Local, r.Controlado);
+        r.Id, r.Nome, r.Cas, r.Sinonimo, r.ClasseReatividade, r.Estoque, r.EstoqueMin, r.Unidade,
+        r.Validade.ToString("yyyy-MM-dd"), r.ValidadeStatus, r.Local, r.Controlado,
+        r.Ghs is null ? null : new GhsDto(r.Ghs.Pictos, r.Ghs.Signal, r.Ghs.FrasesH, r.Ghs.FrasesP));
 
     private static ReagenteDetalheDto ToDetalhe(Reagente r) => new(
         r.Id, r.Nome, r.Cas, r.Formula, r.Sinonimo, r.ClasseReatividade,
