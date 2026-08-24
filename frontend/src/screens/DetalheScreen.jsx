@@ -83,10 +83,10 @@ function LotesCard({ reagente }) {
           </div>
         ))}
         {novo && (
-          <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <input placeholder="Código" aria-label="Código do lote" style={{ width: 90 }} value={novo.codigo} onChange={e => setNovo(s => ({ ...s, codigo: e.target.value }))}/>
             <input placeholder="Qtd." aria-label="Estoque do lote" type="number" style={{ width: 70 }} value={novo.estoque} onChange={e => setNovo(s => ({ ...s, estoque: e.target.value }))}/>
-            <input aria-label="Validade do lote" type="date" value={novo.validade} onChange={e => setNovo(s => ({ ...s, validade: e.target.value }))}/>
+            <input aria-label="Validade do lote" type="date" style={{ width: 130 }} value={novo.validade} onChange={e => setNovo(s => ({ ...s, validade: e.target.value }))}/>
             <button type="button" className="btn btn-primary btn-sm" disabled={criarLote.isPending} onClick={salvar}>
               {criarLote.isPending ? 'Salvando…' : 'Salvar'}
             </button>
