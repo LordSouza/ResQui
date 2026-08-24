@@ -24,7 +24,7 @@ test('redirects to dashboard after successful login', async ({ page }) => {
   await page.goto('/');
   await page.getByLabel('Senha', { exact: true }).fill('Admin@123');
   await page.getByRole('button', { name: /Entrar/ }).click();
-  await expect(page.getByRole('button', { name: 'Dashboard' })).toBeVisible({ timeout: 2000 });
+  await expect(page.getByRole('button', { name: 'Início' })).toBeVisible({ timeout: 2000 });
 });
 
 test('shows the sidebar navigation after login', async ({ page }) => {

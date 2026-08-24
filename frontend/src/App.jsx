@@ -38,6 +38,7 @@ import { FormEditarReagente } from './forms/FormEditarReagente';
 
 import { LoginScreen } from './Login';
 import { podeVerTela, motivoTelaRestrita } from './auth/permissoes';
+import { useIdentificacaoPgrs } from './pgrs/useIdentificacaoPgrs';
 
 // Renderizada no lugar de uma tela cujo papel do usuário não alcança. Não é segurança — a
 // autorização é do servidor —, é para não mostrar uma tela que só saberia exibir erro de carga.
@@ -50,15 +51,15 @@ function AcessoRestrito({ state }) {
 }
 
 const NAV = [
-  { key: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { key: 'laboratorios', label: 'Laboratórios', icon: 'location' },
+  { key: 'dashboard', label: 'Início', icon: 'dashboard' },
   { key: 'inventario', label: 'Inventário', icon: 'flask' },
-  { key: 'compat', label: 'Compatibilidade', icon: 'shield' },
   { key: 'residuos', label: 'Resíduos', icon: 'trash' },
-  { key: 'mtr', label: 'Pré-MTR', icon: 'truck' },
-  { key: 'auditoria', label: 'Auditoria', icon: 'audit' },
-  { key: 'relatorios', label: 'Relatórios · PGRS', icon: 'file_chart' },
-  { key: 'usuarios', label: 'Usuários', icon: 'clipboard', section: 'sistema' },
+  { key: 'compat', label: 'Compatibilidade', icon: 'shield' },
+  { key: 'mtr', label: 'Manifestos', icon: 'truck', section: 'gestao' },
+  { key: 'laboratorios', label: 'Laboratórios', icon: 'location', section: 'gestao' },
+  { key: 'relatorios', label: 'Relatórios', icon: 'file_chart', section: 'gestao' },
+  { key: 'auditoria', label: 'Auditoria', icon: 'audit', section: 'gestao' },
+  { key: 'usuarios', label: 'Usuários', icon: 'clipboard', section: 'gestao' },
   { key: 'chamados', label: 'Chamados', icon: 'warning', section: 'sistema' },
 ];
 
@@ -302,6 +303,7 @@ export default function App() {
   const buscaRef = useRef(null);
   const { user, token, logout } = useAuth();
   const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
+  const { data: identificacao } = useIdentificacaoPgrs();
   const navBadges = {
     residuos: residuosNav.filter(r => r.status === 'aguardando-coleta').length,
   };
@@ -352,13 +354,15 @@ export default function App() {
           <div className="logo">Rq</div>
           <div>
             <div className="brand-name">ResQui</div>
-            <div className="brand-sub">UNIFEI · IMC</div>
+            {(identificacao?.unidade || identificacao?.razaoSocial) && (
+              <div className="brand-sub">{identificacao.unidade || identificacao.razaoSocial}</div>
+            )}
           </div>
         </div>
 
-        <div className="sidebar-section">Operação</div>
+        <div className="sidebar-section">Dia a dia</div>
         <nav className="nav">
-          {NAV.slice(0, 5).filter(n => podeVerTela(user?.papel, n.key)).map(n => (
+          {NAV.filter(n => !n.section).filter(n => podeVerTela(user?.papel, n.key)).map(n => (
             <button type="button" key={n.key} className={`nav-item ${state.screen === n.key || (n.key === 'inventario' && state.screen === 'detalhe') ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
@@ -368,9 +372,9 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="sidebar-section">Conformidade</div>
+        <div className="sidebar-section">Gestão</div>
         <nav className="nav">
-          {NAV.slice(5, 8).filter(n => podeVerTela(user?.papel, n.key)).map(n => (
+          {NAV.filter(n => n.section === 'gestao').filter(n => podeVerTela(user?.papel, n.key)).map(n => (
             <button type="button" key={n.key} className={`nav-item ${state.screen === n.key ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
@@ -382,13 +386,13 @@ export default function App() {
 
         <div className="sidebar-section">Sistema</div>
         <nav className="nav">
-          {NAV.reduce((acc, n) => n.section === 'sistema' && podeVerTela(user?.papel, n.key) ? [...acc, (
+          {NAV.filter(n => n.section === 'sistema').filter(n => podeVerTela(user?.papel, n.key)).map(n => (
             <button type="button" key={n.key} className={`nav-item ${state.screen === n.key ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
               {n.label}
             </button>
-          )] : acc, [])}
+          ))}
         </nav>
 
         <div className="sidebar-section" style={{marginTop: 16}}>Assistente</div>

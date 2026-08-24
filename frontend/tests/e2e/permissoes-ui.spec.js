@@ -49,7 +49,7 @@ test('Visualizador não recebe nenhuma ação de escrita, mas mantém leitura e 
   await expect(page.getByRole('button', { name: /Novo laboratório/i })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Exportar planta/i })).toBeVisible();
 
-  await irPara(page, 'Pré-MTR');
+  await irPara(page, 'Manifestos');
   await expect(page.getByRole('button', { name: /Novo Pré-MTR/i })).toHaveCount(0);
 
   await irPara(page, 'Relatórios · PGRS');
@@ -63,7 +63,7 @@ test('Pesquisador registra resíduo mas não emite MTR nem cadastra reagente', a
   await irPara(page, 'Resíduos');
   await expect(page.getByRole('button', { name: /Registrar resíduo/i })).toBeVisible();
 
-  await irPara(page, 'Pré-MTR');
+  await irPara(page, 'Manifestos');
   await expect(page.getByRole('button', { name: /Novo Pré-MTR/i })).toHaveCount(0);
 
   await irPara(page, 'Inventário');
@@ -80,7 +80,7 @@ test('Professor vê Auditoria mas não Usuários — policies diferentes', async
 test('Tecnico emite MTR e edita resíduo, mas não cadastra reagente nem gera relatório', async ({ page, request }) => {
   await login(page, await usuarioCom(request, 'Tecnico'));
 
-  await irPara(page, 'Pré-MTR');
+  await irPara(page, 'Manifestos');
   await expect(page.getByRole('button', { name: /Novo Pré-MTR/i })).toBeVisible();
 
   await irPara(page, 'Inventário');

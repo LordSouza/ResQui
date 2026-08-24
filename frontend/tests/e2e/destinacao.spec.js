@@ -5,7 +5,7 @@ async function login(page) {
   await page.goto('/');
   await page.getByLabel('Senha', { exact: true }).fill('Admin@123');
   await page.getByRole('button', { name: /Entrar/ }).click();
-  await page.getByRole('button', { name: 'Dashboard' }).waitFor({ timeout: 2000 });
+  await page.getByRole('button', { name: 'Início' }).waitFor({ timeout: 2000 });
 }
 
 // Ciclo inteiro: resíduo aprovado → manifesto → destinação confirmada pela UI → some de "Em coleta"
@@ -23,7 +23,7 @@ test('confirmar destinação encerra o resíduo do manifesto', async ({ page, re
   const mtr = await mtrRes.json();
 
   await login(page);
-  await page.getByRole('button', { name: /Pré-MTR/ }).click();
+  await page.getByRole('button', { name: /Manifestos/ }).click();
   await page.getByText(mtr.numero).first().click();
   await page.getByRole('button', { name: /Confirmar destinação/ }).click();
   await expect(page.locator('.modal-title', { hasText: 'Confirmar destinação' })).toBeVisible();
