@@ -218,7 +218,7 @@ export function FormSenha2FA({ onClose, dispatch }) {
           <div style={{padding: 10, background: 'var(--surface-2)', borderRadius: 'var(--radius)', fontSize: 12, lineHeight: 1.6, marginTop: 8}}>
             <strong>Requisitos:</strong>
             <ul style={{margin: '4px 0 0 18px', padding: 0}}>
-              <li>Mínimo 6 caracteres (recomendado 12+)</li>
+              <li>Mínimo 8 caracteres (recomendado 12+)</li>
               <li>Combinar letras maiúsculas, minúsculas e números</li>
               <li>Pelo menos 1 caractere especial</li>
             </ul>

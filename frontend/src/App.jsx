@@ -111,7 +111,7 @@ export function UserMenu({ user, onLogout, dispatch }) {
 
           {/* Conta */}
           <UmGroup label="Conta">
-            <UmItem icon="clipboard" label="Perfil" hint="Editar nome e foto" onClick={() => openModal('perfil')}/>
+            <UmItem icon="clipboard" label="Perfil" hint="Editar nome e e-mail" onClick={() => openModal('perfil')}/>
             <UmItem icon="shield" label="Senha e 2FA" onClick={() => openModal('senha2fa')}/>
             <UmItem icon="audit" label="Sessões ativas" hint={`${numSessoes} ${numSessoes === 1 ? 'dispositivo' : 'dispositivos'}`} badge={String(numSessoes)} onClick={() => openModal('sessoes')}/>
           </UmGroup>
