@@ -12,8 +12,8 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
         (await repo.GetByUsuarioAsync(usuarioId))
             .Select(n => new NotificacaoDto(n.Id, n.Mensagem, n.Lida, n.CriadaEm, n.Tipo, n.ReferenciaId, n.Severidade));
 
-    public async Task MarcarComoLidaAsync(int id) =>
-        await repo.MarkAsReadAsync(id);
+    public async Task MarcarComoLidaAsync(int id, string usuarioId) =>
+        await repo.MarkAsReadAsync(id, usuarioId);
 
     public async Task MarcarTodasLidasAsync(string usuarioId) =>
         await repo.MarcarTodasLidasAsync(usuarioId);
@@ -34,7 +34,17 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
     public async Task<NotificacaoPrefsDto> GetPrefsAsync(string usuarioId)
     {
         var json = await auth.GetNotificacaoPrefsJsonAsync(usuarioId);
-        var dict = JsonSerializer.Deserialize<Dictionary<string, bool>>(json, JsonOpts) ?? [];
+        Dictionary<string, bool> dict;
+        try
+        {
+            dict = string.IsNullOrWhiteSpace(json)
+                ? []
+                : JsonSerializer.Deserialize<Dictionary<string, bool>>(json, JsonOpts) ?? [];
+        }
+        catch (JsonException)
+        {
+            dict = [];
+        }
         return new NotificacaoPrefsDto(
             dict.GetValueOrDefault("expiry"),
             dict.GetValueOrDefault("low-stock"),

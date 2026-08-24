@@ -13,9 +13,10 @@ public static class Endpoints
             return Results.Ok(await svc.ListarPorUsuarioAsync(userId));
         });
 
-        group.MapPatch("/{id:int}/lida", async (int id, INotificacoesService svc) =>
+        group.MapPatch("/{id:int}/lida", async (int id, INotificacoesService svc, ClaimsPrincipal user) =>
         {
-            await svc.MarcarComoLidaAsync(id);
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            await svc.MarcarComoLidaAsync(id, userId);
             return Results.NoContent();
         });
 

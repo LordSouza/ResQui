@@ -32,4 +32,32 @@ public class NotificacoesServiceTests
         capturada.Lida.Should().BeFalse();
         await _repo.Received(1).SaveChangesAsync();
     }
+
+    [Fact]
+    public async Task MarcarComoLidaAsync_RepassaDonoAoRepositorio()
+    {
+        await _sut.MarcarComoLidaAsync(5, "u-1");
+
+        await _repo.Received(1).MarkAsReadAsync(5, "u-1");
+    }
+
+    [Fact]
+    public async Task GetPrefsAsync_JsonVazio_RetornaTudoDesligado()
+    {
+        _auth.GetNotificacaoPrefsJsonAsync("u-1").Returns("");
+
+        var prefs = await _sut.GetPrefsAsync("u-1");
+
+        prefs.Should().Be(new NotificacaoPrefsDto(false, false, false, false));
+    }
+
+    [Fact]
+    public async Task GetPrefsAsync_JsonInvalido_RetornaTudoDesligado()
+    {
+        _auth.GetNotificacaoPrefsJsonAsync("u-1").Returns("{corrompido");
+
+        var prefs = await _sut.GetPrefsAsync("u-1");
+
+        prefs.Should().Be(new NotificacaoPrefsDto(false, false, false, false));
+    }
 }

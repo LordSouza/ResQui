@@ -10,9 +10,9 @@ public class EfNotificacoesRepository(AppDbContext db) : INotificacoesRepository
     public async Task<IEnumerable<Notificacao>> GetByUsuarioAsync(string usuarioId) =>
         await db.Notificacoes.Where(n => n.UsuarioId == usuarioId).ToListAsync();
 
-    public async Task MarkAsReadAsync(int id)
+    public async Task MarkAsReadAsync(int id, string usuarioId)
     {
-        var n = await db.Notificacoes.FindAsync(id);
+        var n = await db.Notificacoes.FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == usuarioId);
         if (n is not null) { n.Lida = true; await db.SaveChangesAsync(); }
     }
 
