@@ -530,15 +530,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .ghs-name { font-size: 18px; font-weight: 700; margin: 4px 0 2px; }
 .ghs-syn { font-size: 12px; color: var(--text-2); margin-bottom: 10px; }
 .ghs-pictos { display: flex; gap: 6px; margin-bottom: 10px; }
-.ghs-picto {
-  width: 56px; height: 56px;
-  border: 2px solid #c00;
-  transform: rotate(45deg);
-  display: grid; place-items: center;
-  background: #fff;
-  position: relative;
-}
-.ghs-picto svg { transform: rotate(-45deg); }
+.ghs-picto { display: block; }
 .ghs-signal {
   display: inline-block;
   background: #c00;

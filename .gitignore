@@ -61,3 +61,5 @@ frontend/test-results-e2e/
 
 # Cache do Python (scripts de auditoria em docs/fontes/)
 __pycache__/
+
+.playwright-mcp/

@@ -21,6 +21,18 @@ public class PdfService : IPdfService
         ["envir"] = ("GHS09", "Perigoso ao ambiente"),
     };
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string?> PictogramasSvg = new();
+
+    private static string? PictogramaSvg(string kind)
+        => PictogramasSvg.GetOrAdd(kind, k =>
+        {
+            using var recurso = typeof(PdfService).Assembly
+                .GetManifestResourceStream($"ResQui.Application.Assets.ghs.{k}.svg");
+            if (recurso is null) return null;
+            using var leitor = new StreamReader(recurso);
+            return leitor.ReadToEnd();
+        });
+
     private static byte[] QrPng(string conteudo)
     {
         using var gen = new QRCoder.QRCodeGenerator();
@@ -103,13 +115,16 @@ public class PdfService : IPdfService
                             foreach (var p in ghs.Pictos.Take(4))
                             {
                                 var (code, label) = PictosGhs.GetValueOrDefault(p, (p, p));
-                                pictos.ConstantItem(38).Padding(2).Rotate(0)
-                                    .Border(1.5f).BorderColor(Colors.Red.Darken2)
-                                    .Padding(3).Column(c =>
-                                    {
-                                        c.Item().AlignCenter().Text(code).Bold().FontSize(7);
-                                        c.Item().AlignCenter().Text(label).FontSize(5);
-                                    });
+                                var svg = PictogramaSvg(p);
+                                pictos.ConstantItem(38).Padding(2).Column(c =>
+                                {
+                                    if (svg is not null)
+                                        c.Item().Svg(svg);
+                                    else
+                                        c.Item().Border(1.5f).BorderColor(Colors.Red.Darken2)
+                                            .Padding(3).AlignCenter().Text(code).Bold().FontSize(7);
+                                    c.Item().AlignCenter().Text(label).FontSize(5);
+                                });
                             }
                         });
                 });

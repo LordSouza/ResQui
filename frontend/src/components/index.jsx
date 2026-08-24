@@ -1,4 +1,16 @@
 // Componentes compartilhados e ícones SVG
+import { PICTOS_GHS } from '../data';
+import explosion from '../assets/ghs/explosion.svg';
+import flame from '../assets/ghs/flame.svg';
+import flame_circle from '../assets/ghs/flame_circle.svg';
+import bottle from '../assets/ghs/bottle.svg';
+import corrosion from '../assets/ghs/corrosion.svg';
+import skull from '../assets/ghs/skull.svg';
+import exclam from '../assets/ghs/exclam.svg';
+import health from '../assets/ghs/health.svg';
+import envir from '../assets/ghs/envir.svg';
+
+export const PICTOGRAMAS_GHS = { explosion, flame, flame_circle, bottle, corrosion, skull, exclam, health, envir };
 
 export const Icon = ({ name, size = 16, stroke = 1.6 }) => {
   const paths = {
@@ -73,25 +85,13 @@ export const residuoStatusBadge = (s) => {
   return <Badge kind={k}>{l}</Badge>;
 };
 
-// Pictograma GHS (losango vermelho + ícone)
+// Pictograma GHS — arte oficial da UNECE (domínio público), ver docs/fontes/ghs-pictogramas.md
 export const Picto = ({ kind, small }) => {
-  const sym = {
-    flame: <path d="M12 3c1 4 5 5 5 10a5 5 0 1 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z" fill="#000"/>,
-    flame_circle: <><circle cx="12" cy="14" r="3" fill="none" stroke="#000" strokeWidth="1.5"/><path d="M12 4l1.5 3L17 7l-2 3 1 3-4-1-4 1 1-3-2-3 3.5 0z" fill="#000"/></>,
-    bottle: <><rect x="9" y="3" width="6" height="18" rx="1" fill="none" stroke="#000" strokeWidth="1.5"/><path d="M9 8h6" stroke="#000" strokeWidth="1.5"/></>,
-    corrosion: <><path d="M3 14l5-3v2l4-2v2l5-2v3l-5 2v-2l-4 2v-2z" fill="#000"/><path d="M14 16l2 4M16 16l2 3" stroke="#000" strokeWidth="1.5"/></>,
-    skull: <><circle cx="12" cy="10" r="5" fill="#000"/><rect x="9" y="14" width="6" height="3" fill="#000"/><circle cx="10" cy="10" r="1" fill="#fff"/><circle cx="14" cy="10" r="1" fill="#fff"/></>,
-    exclam: <><path d="M12 4L22 20H2z" fill="none" stroke="#000" strokeWidth="2"/><path d="M12 10v5M12 17v.5" stroke="#000" strokeWidth="2"/></>,
-    health: <><path d="M12 4c-2 3-5 4-5 8a5 5 0 0 0 10 0c0-4-3-5-5-8z" fill="none" stroke="#000" strokeWidth="1.5"/><path d="M9 12l4 4M13 12l-4 4" stroke="#000" strokeWidth="1.5"/></>,
-    envir: <><path d="M4 19c2-3 5-4 7-4M4 19c4-1 6-3 8-7M4 19l8-7-2-2-5 4z" fill="#000"/><path d="M14 5c1 2 3 3 5 3-1 2-3 4-5 4z" fill="#000"/></>,
-    explosion: <><path d="M12 3l2 5 5-1-3 4 3 4-5-1-2 5-2-5-5 1 3-4-3-4 5 1z" fill="#000"/></>,
-  }[kind];
+  const fonte = PICTOGRAMAS_GHS[kind];
+  if (!fonte) return null;
   const sz = small ? 36 : 56;
-  return (
-    <div className="ghs-picto" style={{width: sz, height: sz}}>
-      <svg width={sz*0.65} height={sz*0.65} viewBox="0 0 24 24">{sym}</svg>
-    </div>
-  );
+  const { code, label } = PICTOS_GHS[kind] ?? { code: kind, label: kind };
+  return <img className="ghs-picto" src={fonte} width={sz} height={sz} alt={`${code} · ${label}`} title={`${code} · ${label}`}/>;
 };
 
 export const SectionTitle = ({ title, sub, right }) => (
