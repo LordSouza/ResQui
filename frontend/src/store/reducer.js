@@ -14,12 +14,18 @@ export const initialState = {
   modalResiduo: null,
   modalResiduoInicial: null,
   modalBaixaInicial: null,
+  residuosStatusInicial: null,
+  inventarioVencendoInicial: false,
 };
 
 export function reducer(state, action) {
   switch (action.type) {
     case 'nav':
-      return { ...state, screen: action.screen, detailId: action.id || state.detailId, flashId: action.flashId || null };
+      return {
+        ...state, screen: action.screen, detailId: action.id || state.detailId, flashId: action.flashId || null,
+        residuosStatusInicial: action.residuosStatus || null,
+        inventarioVencendoInicial: action.inventarioVencendo || false,
+      };
     case 'detail':
       return { ...state, screen: 'detalhe', detailId: action.id, flashId: action.id };
     case 'openChat':

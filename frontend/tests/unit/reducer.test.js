@@ -24,6 +24,19 @@ describe('nav', () => {
     const s = reducer(base, { type: 'nav', screen: 'dashboard' });
     expect(s.flashId).toBeNull();
   });
+
+  it('nav carrega filtro inicial de resíduos e o zera na navegação seguinte', () => {
+    const s1 = reducer(initialState, { type: 'nav', screen: 'residuos', residuosStatus: 'solicitado' });
+    expect(s1.residuosStatusInicial).toBe('solicitado');
+    const s2 = reducer(s1, { type: 'nav', screen: 'dashboard' });
+    expect(s2.residuosStatusInicial).toBeNull();
+  });
+
+  it('nav carrega o filtro de vencimento do inventário', () => {
+    const s1 = reducer(initialState, { type: 'nav', screen: 'inventario', inventarioVencendo: true });
+    expect(s1.inventarioVencendoInicial).toBe(true);
+    expect(reducer(s1, { type: 'nav', screen: 'inventario' }).inventarioVencendoInicial).toBe(false);
+  });
 });
 
 // --- detail ---
