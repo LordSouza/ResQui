@@ -107,3 +107,46 @@ describe('ResiduosScreen — filtro inicial da navegação', () => {
     expect(screen.queryByText('Ácidos')).not.toBeInTheDocument();
   });
 });
+
+describe('ResiduosScreen — próximo passo do ciclo como botão', () => {
+  it('na etapa aguardando-coleta oferece criar o manifesto', () => {
+    useResíduos.mockReturnValue({
+      data: [{ ...residuo, status: 'aguardando-coleta' }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+    const dispatch = vi.fn();
+    render(<ResiduosScreen state={{ residuosStatusInicial: 'aguardando-coleta' }} dispatch={dispatch} />);
+    fireEvent.click(screen.getByText(/Criar manifesto de coleta/));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'openModal', kind: 'novoMtr' });
+  });
+
+  it('na etapa em-coleta oferece confirmar destinação nos manifestos', () => {
+    useResíduos.mockReturnValue({
+      data: [{ ...residuo, status: 'em-coleta' }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+    const dispatch = vi.fn();
+    render(<ResiduosScreen state={{ residuosStatusInicial: 'em-coleta' }} dispatch={dispatch} />);
+    fireEvent.click(screen.getByText(/Confirmar destinação nos manifestos/));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'nav', screen: 'mtr' });
+  });
+
+  it('esconde o CTA de Visualizador, que não tem a policy Tecnico', () => {
+    useResíduos.mockReturnValue({
+      data: [{ ...residuo, status: 'aguardando-coleta' }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Visualizador' } });
+    render(<ResiduosScreen state={{ residuosStatusInicial: 'aguardando-coleta' }} dispatch={vi.fn()} />);
+    expect(screen.queryByText(/Criar manifesto de coleta/)).not.toBeInTheDocument();
+  });
+
+  it('não oferece CTA quando não há resíduo na etapa', () => {
+    useResíduos.mockReturnValue({ data: [], isPending: false, isError: false, refetch: vi.fn() });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+    render(<ResiduosScreen state={{ residuosStatusInicial: 'aguardando-coleta' }} dispatch={vi.fn()} />);
+    expect(screen.queryByText(/Criar manifesto de coleta/)).not.toBeInTheDocument();
+  });
+});

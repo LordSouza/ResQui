@@ -30,6 +30,7 @@ export function ResiduosScreen({ state, dispatch }) {
   const list = residuos
     .filter((r) => filter === 'todos' || r.status === filter)
     .filter((r) => !q || r.tipo?.toLowerCase().includes(q.toLowerCase()) || r.composicao?.toLowerCase().includes(q.toLowerCase()));
+  const etapaAtiva = CICLO.find(([k]) => k === filter);
 
   if (isPending) return <div className="page-loading"><Icon name="refresh" size={16} /> Carregando...</div>;
   if (isError) return <div className="page-error">Erro ao carregar resíduos. <button onClick={refetch}>Tentar novamente</button></div>;
@@ -83,8 +84,20 @@ export function ResiduosScreen({ state, dispatch }) {
             />
           </div>
         </div>
-        {CICLO.find(([k]) => k === filter) && (
-          <div className="ciclo-desc">{CICLO.find(([k]) => k === filter)[2]}</div>
+        {etapaAtiva && (
+          <div className="ciclo-desc" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span>{etapaAtiva[2]}</span>
+            {filter === 'aguardando-coleta' && podeEditar && residuos.some(r => r.status === 'aguardando-coleta') && (
+              <button type="button" className="btn btn-sm btn-primary" onClick={() => dispatch({ type: 'openModal', kind: 'novoMtr' })}>
+                <Icon name="truck" size={12}/> Criar manifesto de coleta
+              </button>
+            )}
+            {filter === 'em-coleta' && podeEditar && residuos.some(r => r.status === 'em-coleta') && (
+              <button type="button" className="btn btn-sm" onClick={() => dispatch({ type: 'nav', screen: 'mtr' })}>
+                Confirmar destinação nos manifestos <Icon name="chevron_right" size={12}/>
+              </button>
+            )}
+          </div>
         )}
         <table className="tbl">
           <thead>
