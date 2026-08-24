@@ -23,7 +23,7 @@ test('confirmar destinação encerra o resíduo do manifesto', async ({ page, re
   const mtr = await mtrRes.json();
 
   await login(page);
-  await page.getByRole('button', { name: /Manifestos/ }).click();
+  await page.getByRole('complementary').getByRole('button', { name: /Manifestos/ }).click();
   await page.getByText(mtr.numero).first().click();
   await page.getByRole('button', { name: /Confirmar destinação/ }).click();
   await expect(page.locator('.modal-title', { hasText: 'Confirmar destinação' })).toBeVisible();

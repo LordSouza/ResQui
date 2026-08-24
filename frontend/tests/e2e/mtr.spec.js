@@ -6,8 +6,10 @@ async function loginAndNavigate(page, navLabel) {
   await page.getByLabel('Senha', { exact: true }).fill('Admin@123');
   await page.getByRole('button', { name: /Entrar/ }).click();
   await page.getByRole('button', { name: 'Início' }).waitFor({ timeout: 2000 });
-  // Use regex to match nav buttons that may include a badge count
-  await page.getByRole('button', { name: new RegExp(navLabel.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&')) }).click();
+  // Escopado à sidebar: o mesmo rótulo aparece nos atalhos do Início.
+  // Regex porque o item de nav pode trazer o contador do badge.
+  await page.getByRole('complementary')
+    .getByRole('button', { name: new RegExp(navLabel.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&')) }).click();
 }
 
 test('shows MTR list on the Manifestos screen', async ({ page }) => {
