@@ -52,7 +52,7 @@ test('Visualizador não recebe nenhuma ação de escrita, mas mantém leitura e 
   await irPara(page, 'Manifestos');
   await expect(page.getByRole('button', { name: /Novo Pré-MTR/i })).toHaveCount(0);
 
-  await irPara(page, 'Relatórios · PGRS');
+  await irPara(page, 'Relatórios');
   await expect(page.getByRole('button', { name: /^Gerar$/i })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Configurar PGRS/i })).toHaveCount(0);
 });
@@ -86,7 +86,7 @@ test('Tecnico emite MTR e edita resíduo, mas não cadastra reagente nem gera re
   await irPara(page, 'Inventário');
   await expect(page.getByRole('button', { name: /Novo reagente/i })).toHaveCount(0);
 
-  await irPara(page, 'Relatórios · PGRS');
+  await irPara(page, 'Relatórios');
   await expect(page.getByRole('button', { name: /^Gerar$/i })).toHaveCount(0);
 
   await expect(sidebar(page).getByRole('button', { name: 'Auditoria' })).toHaveCount(0);

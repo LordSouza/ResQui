@@ -10,7 +10,7 @@ async function loginAndNavigate(page, navLabel) {
 }
 
 test('shows the relatorios screen with the five report cards', async ({ page }) => {
-  await loginAndNavigate(page, 'Relatórios · PGRS');
+  await loginAndNavigate(page, 'Relatórios');
   await expect(page.getByText('Relatórios e PGRS')).toBeVisible();
   // .first() — os títulos também aparecem nas linhas do histórico de relatórios
   await expect(page.getByText('PGRS Anual').first()).toBeVisible();
@@ -20,12 +20,12 @@ test('shows the relatorios screen with the five report cards', async ({ page }) 
 });
 
 test('shows the report history section', async ({ page }) => {
-  await loginAndNavigate(page, 'Relatórios · PGRS');
+  await loginAndNavigate(page, 'Relatórios');
   await expect(page.getByText('Histórico de relatórios gerados')).toBeVisible();
 });
 
 test('generating a report downloads a CSV and adds it to the history', async ({ page }) => {
-  await loginAndNavigate(page, 'Relatórios · PGRS');
+  await loginAndNavigate(page, 'Relatórios');
   const card = page.locator('.card').filter({ hasText: 'Inventário de reagentes' });
   const downloadPromise = page.waitForEvent('download', { timeout: 10_000 });
   await card.getByRole('button', { name: /Gerar/ }).click();
@@ -38,7 +38,7 @@ test('generating a report downloads a CSV and adds it to the history', async ({ 
 });
 
 test('downloading from the history works', async ({ page }) => {
-  await loginAndNavigate(page, 'Relatórios · PGRS');
+  await loginAndNavigate(page, 'Relatórios');
   const historico = page.locator('.card').filter({ hasText: 'Histórico de relatórios gerados' });
   const baixar = historico.getByRole('button', { name: /Baixar/ }).first();
   await baixar.waitFor({ timeout: 5000 });
