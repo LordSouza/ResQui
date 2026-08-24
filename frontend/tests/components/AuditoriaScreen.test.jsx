@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuditoriaScreen } from '../../src/screens/AuditoriaScreen';
 
@@ -66,5 +66,52 @@ describe('AuditoriaScreen', () => {
     wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
 
     await waitFor(() => expect(screen.getByText(/Exportar CSV/i)).toBeInTheDocument());
+  });
+
+  const agora = new Date().toISOString();
+  const entradaLow = { ...fakeEntry, timestamp: agora, ts: agora };
+  const entradaMedium = {
+    ...fakeEntry, id: 'ccc-ddd', who: 'bruno@lab.com', what: 'residuo.aprovar',
+    where: 'Resíduos', detail: 'Aprovou resíduo 7', risk: 'medium', timestamp: agora, ts: agora,
+  };
+
+  async function abrirFiltrosAvancados() {
+    fetch.mockResolvedValue({ ok: true, json: async () => [entradaLow, entradaMedium] });
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+    await waitFor(() => expect(screen.getByText('bruno@lab.com')).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Filtros avançados/i));
+  }
+
+  it('filtrar por risco Médio mantém os eventos medium da API', async () => {
+    await abrirFiltrosAvancados();
+
+    fireEvent.click(screen.getByLabelText('Médio (atenção)'));
+    fireEvent.click(screen.getByText('Aplicar'));
+
+    await waitFor(() => expect(screen.getByText('bruno@lab.com')).toBeInTheDocument());
+    expect(screen.queryByText('ana@lab.com')).not.toBeInTheDocument();
+  });
+
+  it('com dois usuários selecionados não restringe a consulta ao primeiro', async () => {
+    await abrirFiltrosAvancados();
+
+    fireEvent.click(screen.getByLabelText('Filtrar por usuário ana@lab.com'));
+    fireEvent.click(screen.getByLabelText('Filtrar por usuário bruno@lab.com'));
+    fireEvent.click(screen.getByText('Aplicar'));
+
+    await waitFor(() => expect(screen.getByText('bruno@lab.com')).toBeInTheDocument());
+    expect(screen.getByText('ana@lab.com')).toBeInTheDocument();
+    const ultimaUrl = fetch.mock.calls.at(-1)[0];
+    expect(ultimaUrl).not.toContain('who=');
+  });
+
+  it('categoria Resíduos casa com os eventos residuo.* reais', async () => {
+    await abrirFiltrosAvancados();
+
+    fireEvent.click(screen.getByLabelText('Resíduos'));
+    fireEvent.click(screen.getByText('Aplicar'));
+
+    await waitFor(() => expect(screen.getByText('bruno@lab.com')).toBeInTheDocument());
+    expect(screen.queryByText('ana@lab.com')).not.toBeInTheDocument();
   });
 });

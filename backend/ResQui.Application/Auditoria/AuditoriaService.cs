@@ -28,7 +28,7 @@ public class AuditoriaService(IAuditoriaRepository repo) : IAuditoriaService
         if (filtro.From.HasValue)
             entries = entries.Where(e => e.Timestamp >= filtro.From.Value);
         if (filtro.To.HasValue)
-            entries = entries.Where(e => e.Timestamp <= filtro.To.Value);
+            entries = entries.Where(e => e.Timestamp < filtro.To.Value.Date.AddDays(1));
         if (!string.IsNullOrEmpty(filtro.Risk) &&
             Enum.TryParse<RiscoAuditoria>(filtro.Risk, ignoreCase: true, out var r))
             entries = entries.Where(e => e.Risk == r);

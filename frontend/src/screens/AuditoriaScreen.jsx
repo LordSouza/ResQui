@@ -10,17 +10,12 @@ function FiltrosAvancadosAuditoria({ adv, setAdv, onClose, allData }) {
   const usuariosOpts = useMemo(() => [...new Set(allData.map(a => a.who))].toSorted(), [allData]);
   const locaisOpts = useMemo(() => [...new Set(allData.map(a => a.where))].filter(w => w && w !== '-').toSorted(), [allData]);
   const categoriasOpts = [
-    ['mtr.', 'MTR'],
-    ['user.', 'Usuários e sessões'],
+    ['reagente.', 'Reagentes e inventário'],
+    ['residuo.', 'Resíduos'],
+    ['mtr.', 'Manifestos'],
     ['compat.', 'Compatibilidade química'],
-    ['item.', 'Movimentação de inventário'],
-    ['waste.', 'Resíduos'],
-    ['report.', 'Relatórios'],
-    ['audit.', 'Auditoria (exports etc)'],
-    ['support.', 'Chamados de suporte'],
     ['lab.', 'Laboratórios'],
-    ['alert.', 'Alertas do sistema'],
-    ['label.', 'Rótulos GHS'],
+    ['user.', 'Usuários e sessões'],
     ['pgrs.', 'PGRS'],
   ];
 
@@ -64,7 +59,7 @@ function FiltrosAvancadosAuditoria({ adv, setAdv, onClose, allData }) {
           <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
             {[
               ['low', 'Baixo (informativo)', 'var(--text-3)'],
-              ['med', 'Médio (atenção)', 'var(--amber)'],
+              ['medium', 'Médio (atenção)', 'var(--amber)'],
               ['high', 'Alto (crítico)', 'var(--red)'],
             ].map(([k, label, color]) => (
               <label key={k} style={faqCheck}>
@@ -162,10 +157,10 @@ export function AuditoriaScreen({ state, dispatch }) {
   const { query, actionFilter, range, advOpen, adv } = filters;
 
   const apiFiltro = {
-    ...(adv.users[0] ? { who: adv.users[0] } : {}),
-    ...(adv.categories[0] ? { what: adv.categories[0] } : {}),
-    ...(adv.locations[0] ? { where: adv.locations[0] } : {}),
-    ...(adv.risks[0] ? { risk: adv.risks[0] } : {}),
+    ...(adv.users.length === 1 ? { who: adv.users[0] } : {}),
+    ...(adv.categories.length === 1 ? { what: adv.categories[0] } : {}),
+    ...(adv.locations.length === 1 ? { where: adv.locations[0] } : {}),
+    ...(adv.risks.length === 1 ? { risk: adv.risks[0] } : {}),
     ...(adv.dateFrom ? { from: adv.dateFrom } : {}),
     ...(adv.dateTo ? { to: adv.dateTo } : {}),
   };
@@ -278,7 +273,7 @@ export function AuditoriaScreen({ state, dispatch }) {
             Nenhum evento encontrado com os filtros atuais.
           </div> :
         filtered.map((a) =>
-        <div key={`${a.ts}|${a.who}|${a.what}`} className="audit-row" style={a.risk === 'high' ? { background: 'var(--red-soft)' } : a.risk === 'med' ? { background: 'var(--amber-soft)' } : {}}>
+        <div key={`${a.ts}|${a.who}|${a.what}`} className="audit-row" style={a.risk === 'high' ? { background: 'var(--red-soft)' } : a.risk === 'medium' ? { background: 'var(--amber-soft)' } : {}}>
             <span className="ts">{a.ts}</span>
             <span className="who">
               {a.who === 'sistema' ? <Badge kind="blue"><Icon name="bot" size={10} /> sistema</Badge> : a.who}

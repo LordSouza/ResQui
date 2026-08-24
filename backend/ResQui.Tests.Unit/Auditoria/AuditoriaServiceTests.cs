@@ -63,6 +63,25 @@ public class AuditoriaServiceTests
     }
 
     [Fact]
+    public async Task ListarAsync_FiltroTo_IncluiODiaInteiroDoLimite()
+    {
+        var entries = new List<AuditoriaEntry>
+        {
+            new() { Who = "A", What = "x", Where = "y", Detail = "z", Risk = RiscoAuditoria.Low,
+                    Timestamp = new DateTime(2026, 8, 24, 15, 30, 0, DateTimeKind.Utc) },
+            new() { Who = "B", What = "x", Where = "y", Detail = "z", Risk = RiscoAuditoria.Low,
+                    Timestamp = new DateTime(2026, 8, 25, 0, 30, 0, DateTimeKind.Utc) },
+        };
+        _repo.GetAllAsync().Returns(entries);
+
+        var result = (await _sut.ListarAsync(new AuditoriaFiltroDto(
+            To: new DateTime(2026, 8, 24, 0, 0, 0, DateTimeKind.Utc)))).ToList();
+
+        result.Should().HaveCount(1);
+        result[0].Who.Should().Be("A");
+    }
+
+    [Fact]
     public async Task ListarAsync_FiltroWhat_RetornaApenasCombinantes()
     {
         var entries = new List<AuditoriaEntry>
