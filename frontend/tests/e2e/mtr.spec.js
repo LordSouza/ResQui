@@ -10,7 +10,7 @@ async function loginAndNavigate(page, navLabel) {
   await page.getByRole('button', { name: new RegExp(navLabel.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&')) }).click();
 }
 
-test('shows MTR list on the Pré-MTR screen', async ({ page }) => {
+test('shows MTR list on the Manifestos screen', async ({ page }) => {
   await loginAndNavigate(page, 'Manifestos');
   await expect(page.getByText('MTRs emitidos')).toBeVisible();
 });

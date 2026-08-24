@@ -304,7 +304,7 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
   // Preview espelha o PDF real do backend (PdfService.ManifestoMtr) — só dados reais do MTR.
   const emissao = mtr.data_emissao ? mtr.data_emissao.slice(0, 10).split('-').reverse().join('/') : '—';
   return (
-    <Modal title={`Pré-visualização · ${mtr.numero}`} sub="Pré-MTR · uso interno — não substitui o MTR oficial emitido pelo órgão ambiental"
+    <Modal title={`Pré-visualização · ${mtr.numero}`} sub="Manifesto de uso interno — não substitui o MTR oficial emitido pelo órgão ambiental"
       onClose={onClose} width={920}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
@@ -349,7 +349,7 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
           <div style={{display: 'grid', gridTemplateColumns: '1fr 120px', gap: 14, alignItems: 'center', borderBottom: '2px solid #111', paddingBottom: 12}}>
             <div>
               <div style={{fontSize: 15, fontWeight: 700}}>
-                Manifesto de Transporte de Resíduos (Pré-MTR)
+                Manifesto de Transporte de Resíduos (uso interno)
               </div>
               <div style={{fontSize: 12, color: '#444', marginTop: 2}}>
                 Sistema de gestão ResQui · Resolução ANTT 5947/21
@@ -419,7 +419,7 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
 
           {/* Rodapé honesto */}
           <div style={{marginTop: 22, paddingTop: 12, borderTop: '1px solid #111', fontSize: 12, color: '#444', lineHeight: 1.5}}>
-            ResQui · Pré-MTR de uso interno — não substitui o MTR oficial. Emita o manifesto
+            ResQui · manifesto de uso interno — não substitui o MTR oficial. Emita o manifesto
             oficial no sistema do órgão ambiental competente.
           </div>
         </div>
@@ -516,7 +516,7 @@ export function FormConfigurarPgrs({ onClose }) {
   };
 
   return (
-    <Modal title="Configurar PGRS" sub="Dados institucionais usados no relatório PGRS e como padrão do Pré-MTR"
+    <Modal title="Configurar PGRS" sub="Dados institucionais usados no relatório PGRS e como padrão do novo manifesto"
       onClose={onClose} width={680}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -569,8 +569,8 @@ export function FormConfigurarPgrs({ onClose }) {
               <input id="pgrs-resp-tel" aria-label="Telefone do responsável técnico" value={f.respTel} onChange={e => set('respTel', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
           </div>
 
-          <div style={pgrsSub}>Padrões do Pré-MTR</div>
-          <div style={pgrsHint}>Preenchem os campos do novo Pré-MTR; seguem editáveis a cada emissão.</div>
+          <div style={pgrsSub}>Padrões do manifesto</div>
+          <div style={pgrsHint}>Preenchem os campos do novo manifesto; seguem editáveis a cada emissão.</div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-gerador">Gerador padrão</label>
               <input id="pgrs-gerador" aria-label="Gerador padrão" value={f.geradorPadrao} onChange={e => set('geradorPadrao', e.target.value)}/></div>

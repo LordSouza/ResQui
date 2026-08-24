@@ -11,7 +11,7 @@ export function AssistenteChat({ state, dispatch }) {
   const [messages, setMessages] = useState(() => [
     {
       role: 'bot',
-      content: 'Olá, eu sou o assistente do ResQui. Posso cadastrar reagentes, verificar compatibilidade entre substâncias, gerar rótulos GHS, abrir o Pré-MTR e navegar entre as telas. Como posso ajudar?'
+      content: 'Olá, eu sou o assistente do ResQui. Posso cadastrar reagentes, verificar compatibilidade entre substâncias, gerar rótulos GHS, abrir os manifestos de coleta e navegar entre as telas. Como posso ajudar?'
     },
   ]);
   const [input, setInput] = useState('');
@@ -34,7 +34,7 @@ export function AssistenteChat({ state, dispatch }) {
     'O que está vencendo nas próximas semanas?',
     'Gerar rótulo do Metanol',
     'Registrar 2L de acetona usada no Lab-203',
-    'Abrir Pré-MTR dos resíduos parados',
+    'Abrir manifestos dos resíduos parados',
   ];
 
   const assistente = useAssistente();
@@ -198,13 +198,13 @@ function ChatCard({ card, dispatch }) {
   if (card.kind === 'mtr') {
     return (
       <div className="chat-card">
-        <div className="cc-h"><span className="ttl">Pré-MTR gerado</span><span className="tag">rascunho</span></div>
+        <div className="cc-h"><span className="ttl">Manifesto gerado</span><span className="tag">rascunho</span></div>
         <div className="cc-body">
-          <div style={{fontSize: 12, fontWeight: 600}}>Pré-MTR (rascunho)</div>
+          <div style={{fontSize: 12, fontWeight: 600}}>Manifesto (rascunho)</div>
           <div className="small muted" style={{marginTop: 4}}>{card.count} resíduos consolidados · {card.quantidade}</div>
         </div>
         <div className="cc-actions">
-          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'nav', screen: 'mtr'})}>Abrir Pré-MTR</button>
+          <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'nav', screen: 'mtr'})}>Abrir manifestos</button>
         </div>
       </div>
     );
