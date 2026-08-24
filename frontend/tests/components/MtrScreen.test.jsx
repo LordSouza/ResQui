@@ -44,14 +44,14 @@ describe('MtrScreen', () => {
   });
 
   // POST /api/mtrs exige a policy Tecnico.
-  it.each(['Admin', 'Gestor', 'Tecnico'])('mostra "Novo Pré-MTR" para %s', (papel) => {
+  it.each(['Admin', 'Gestor', 'Tecnico'])('mostra "Novo manifesto" para %s', (papel) => {
     renderCom(papel);
-    expect(screen.getByRole('button', { name: /Novo Pré-MTR/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Novo manifesto/i })).toBeInTheDocument();
   });
 
-  it.each(['Professor', 'Pesquisador', 'Visualizador'])('esconde "Novo Pré-MTR" de %s', (papel) => {
+  it.each(['Professor', 'Pesquisador', 'Visualizador'])('esconde "Novo manifesto" de %s', (papel) => {
     renderCom(papel);
-    expect(screen.queryByRole('button', { name: /Novo Pré-MTR/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Novo manifesto/i })).not.toBeInTheDocument();
   });
 
   it('mostra litros e quilos do manifesto', () => {

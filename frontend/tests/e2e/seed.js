@@ -58,7 +58,7 @@ export async function aprovarResiduo(request, auth, id) {
   return request.put(`/api/residuos/${id}/aprovar`, { headers: auth });
 }
 
-// Config institucional do PGRS (singleton) usada como padrão do Novo Pré-MTR.
+// Config institucional do PGRS (singleton) usada como padrão do Novo manifesto.
 // Valor de teste explícito — nunca depender do que o seed demo (DemoDataSeeder) preencheu.
 export const PGRS_CONFIG_E2E = {
   GeradorPadrao: 'Gerador E2E Ltda',

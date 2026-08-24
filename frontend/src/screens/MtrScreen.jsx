@@ -91,20 +91,20 @@ export function MtrScreen({ state, dispatch }) {
     <>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Pré-MTR</h1>
-          <p className="page-sub">Manifesto de Transporte de Resíduos · documento interno de rastreabilidade</p>
+          <h1 className="page-title">Manifestos</h1>
+          <p className="page-sub">Manifestos de transporte de resíduos · documento interno de rastreabilidade</p>
         </div>
         <div className="page-actions">
           {podeEmitir && (
             <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'novoMtr' })}>
-              <Icon name="plus" size={13} /> Novo Pré-MTR
+              <Icon name="plus" size={13} /> Novo manifesto
             </button>
           )}
         </div>
       </div>
 
       <div className="card card-tight" style={{ marginBottom: 16 }}>
-        <SectionTitle title="MTRs emitidos" sub={`${mtrs.length} no período · clique para ver detalhes`} />
+        <SectionTitle title="Manifestos emitidos" sub={`${mtrs.length} no período · clique para ver detalhes`} />
         <table className="tbl">
           <thead>
             <tr>

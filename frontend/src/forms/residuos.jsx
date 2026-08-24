@@ -195,7 +195,7 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
   );
 }
 
-// ---------- Novo Pré-MTR ----------
+// ---------- Novo manifesto ----------
 export function FormNovoMtr({ onClose, dispatch }) {
   const criarMtr = useCriarMtr();
   const { data: cfg } = useConfigPgrs();
@@ -228,12 +228,12 @@ export function FormNovoMtr({ onClose, dispatch }) {
   };
 
   return (
-    <Modal title="Novo Pré-MTR" sub="Consolida resíduos para transporte e destinação · base ANTT 5947/21"
+    <Modal title="Novo manifesto" sub="Consolida resíduos aprovados para transporte e destinação"
       onClose={onClose} width={680}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
         <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={criarMtr.isPending}>
-          {criarMtr.isPending ? 'Criando…' : `Criar Pré-MTR (${selected.length})`}
+          {criarMtr.isPending ? 'Criando…' : `Emitir manifesto (${selected.length})`}
         </button>
       </>}>
       <div className="form-row">

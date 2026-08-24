@@ -50,7 +50,7 @@ test('Visualizador não recebe nenhuma ação de escrita, mas mantém leitura e 
   await expect(page.getByRole('button', { name: /Exportar planta/i })).toBeVisible();
 
   await irPara(page, 'Manifestos');
-  await expect(page.getByRole('button', { name: /Novo Pré-MTR/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Novo manifesto/i })).toHaveCount(0);
 
   await irPara(page, 'Relatórios');
   await expect(page.getByRole('button', { name: /^Gerar$/i })).toHaveCount(0);
@@ -64,7 +64,7 @@ test('Pesquisador registra resíduo mas não emite MTR nem cadastra reagente', a
   await expect(page.getByRole('button', { name: /Registrar resíduo/i })).toBeVisible();
 
   await irPara(page, 'Manifestos');
-  await expect(page.getByRole('button', { name: /Novo Pré-MTR/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Novo manifesto/i })).toHaveCount(0);
 
   await irPara(page, 'Inventário');
   await expect(page.getByRole('button', { name: /Novo reagente/i })).toHaveCount(0);
@@ -81,7 +81,7 @@ test('Tecnico emite MTR e edita resíduo, mas não cadastra reagente nem gera re
   await login(page, await usuarioCom(request, 'Tecnico'));
 
   await irPara(page, 'Manifestos');
-  await expect(page.getByRole('button', { name: /Novo Pré-MTR/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Novo manifesto/i })).toBeVisible();
 
   await irPara(page, 'Inventário');
   await expect(page.getByRole('button', { name: /Novo reagente/i })).toHaveCount(0);
