@@ -12,7 +12,7 @@ async function loginAndNavigate(page, navLabel) {
 
 test('shows MTR list on the Manifestos screen', async ({ page }) => {
   await loginAndNavigate(page, 'Manifestos');
-  await expect(page.getByText('MTRs emitidos')).toBeVisible();
+  await expect(page.getByText('Manifestos emitidos')).toBeVisible();
 });
 
 test('Novo manifesto modal opens with default values', async ({ page, request }) => {
@@ -36,7 +36,7 @@ test('new MTR appears in the list after creating with a selected resíduo', asyn
   await seedPgrsConfig(request, auth);
 
   await loginAndNavigate(page, 'Manifestos');
-  const mtrTable = page.locator('.card').filter({ hasText: 'MTRs emitidos' }).locator('tbody tr');
+  const mtrTable = page.locator('.card').filter({ hasText: 'Manifestos emitidos' }).locator('tbody tr');
   const countBefore = await mtrTable.count();
 
   await page.getByRole('button', { name: /Novo manifesto/i }).click();
