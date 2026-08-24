@@ -1030,29 +1030,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   text-transform: uppercase;
 }
 .login-side-body { padding: 40px 0; max-width: 460px; }
-.login-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  margin-top: 28px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(255,255,255,0.08);
-}
-.login-stats .num {
-  font-size: 22px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: #fff;
-  letter-spacing: -0.02em;
-}
-.login-stats .lbl {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #7a8fae;
-  margin-top: 4px;
-}
 .login-side-foot {
   font-size: 10.5px;
   color: #5a6d8a;
@@ -1971,12 +1948,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 
 .login-submit-btn {
   width: 100%; justify-content: center; padding: 10px; font-size: 13.5px;
-}
-
-.login-forgot-btn {
-  text-transform: none; letter-spacing: 0; color: var(--accent);
-  cursor: pointer; font-size: 12px; background: none; border: none;
-  padding: 0; font: inherit;
 }
 
 /* ── AssistenteChat.jsx extracted styles ───────────────────────────────────────── */

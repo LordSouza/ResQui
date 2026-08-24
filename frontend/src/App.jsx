@@ -303,7 +303,7 @@ export default function App() {
   const buscaRef = useRef(null);
   const { user, token, logout } = useAuth();
   const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
-  const { data: identificacao } = useIdentificacaoPgrs();
+  const { data: identificacao } = useIdentificacaoPgrs({ enabled: !!token });
   const navBadges = {
     residuos: residuosNav.filter(r => r.status === 'aguardando-coleta').length,
   };

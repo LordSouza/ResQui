@@ -67,14 +67,11 @@ export function LoginScreen() {
               <label htmlFor="login-email">E-mail institucional</label>
               <input id="login-email" type="email" aria-label="E-mail institucional" value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="seunome@instituto.example"/>
+                placeholder="nome@instituicao.br"/>
             </div>
 
             <div className="field" style={{marginBottom: 8}}>
-              <label htmlFor="login-senha" style={{display: 'flex', justifyContent: 'space-between'}}>
-                <span>Senha</span>
-                <button type="button" className="login-forgot-btn">Esqueci minha senha</button>
-              </label>
+              <label htmlFor="login-senha">Senha</label>
               <input id="login-senha" type="password" aria-label="Senha" value={senha} onChange={e => setSenha(e.target.value)} placeholder="••••••••" disabled={precisa2fa}/>
             </div>
 
