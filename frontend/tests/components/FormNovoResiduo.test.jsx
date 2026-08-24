@@ -29,11 +29,15 @@ describe('FormNovoResiduo — entradas inválidas', () => {
 
   afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-  it('bloqueia submissão com campos obrigatórios vazios', async () => {
+  it('submeter vazio mostra erros sob os campos, sem alert', async () => {
+    const alertSpy = vi.spyOn(window, 'alert');
     render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
-    await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
+    await userEvent.click(screen.getByLabelText(/^1\./));
     await userEvent.click(screen.getByRole('button', { name: /Registrar resíduo/i }));
-    expect(window.alert).toHaveBeenCalledWith('Volume, composição e laboratório são obrigatórios.');
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(screen.getByText('Informe o volume.')).toBeInTheDocument();
+    expect(screen.getByText('Descreva a composição.')).toBeInTheDocument();
+    expect(screen.getByText('Selecione o laboratório.')).toBeInTheDocument();
     expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -67,7 +71,7 @@ describe('FormNovoResiduo — entradas inválidas', () => {
 
   it('avisa que a classificação alimenta o bloqueio de mistura', () => {
     render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
-    expect(screen.getByText(/permite bloquear misturas incompatíveis/i)).toBeInTheDocument();
+    expect(screen.getByText(/determina quais misturas o sistema bloqueia/i)).toBeInTheDocument();
   });
 
   it('diz que o registro aguarda aprovação, sem prometer rotulagem automática', () => {

@@ -501,6 +501,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   background: #fff;
 }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field-error { color: var(--red); font-size: 12px; margin-top: 4px; }
 
 /* === GHS label === */
 .ghs-label {

@@ -35,7 +35,7 @@ function ClassesSelector({ idPrefix, value, onChange, obrigatorio = false }) {
         </div>
         {obrigatorio && (
           <div className="small muted" style={{ marginTop: 6 }}>
-            Selecione ao menos uma classe — é a classificação que permite bloquear misturas incompatíveis.
+            Selecione ao menos uma classe — é ela que determina quais misturas o sistema bloqueia.
           </div>
         )}
       </div>
@@ -53,13 +53,16 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
     laboratorioId: inicial?.laboratorioId || '', composicao: inicial?.composicao || '', risco: inicial?.risco || 'medio',
     classes: [],
   });
+  const [erros, setErros] = useState({});
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
-    if (!f.volume || !f.composicao || !f.laboratorioId) {
-      alert('Volume, composição e laboratório são obrigatórios.');
-      return;
-    }
+    const pendentes = {};
+    if (!f.volume) pendentes.volume = 'Informe o volume.';
+    if (!f.composicao) pendentes.composicao = 'Descreva a composição.';
+    if (!f.laboratorioId) pendentes.laboratorioId = 'Selecione o laboratório.';
+    setErros(pendentes);
+    if (Object.keys(pendentes).length > 0) return;
     criarResiduo.mutate(
       {
         Descricao: f.composicao.slice(0, 80),
@@ -109,18 +112,21 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
               <option>L</option><option>mL</option><option>kg</option><option>g</option><option>m³</option>
             </select>
           </div>
+          {erros.volume && <div className="field-error">{erros.volume}</div>}
         </div>
         <div className="field"><label htmlFor="residuo-lab">Laboratório *</label>
           <select id="residuo-lab" value={f.laboratorioId} onChange={e => upd('laboratorioId', e.target.value)}>
             <option value="">Selecione…</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
           </select>
+          {erros.laboratorioId && <div className="field-error">{erros.laboratorioId}</div>}
         </div>
       </div>
       <div className="form-row full">
         <div className="field"><label htmlFor="residuo-composicao">Composição declarada *</label>
           <textarea id="residuo-composicao" rows={3} value={f.composicao} onChange={e => upd('composicao', e.target.value)}
             placeholder="Ex: 60% acetona + 30% etanol + traços de HCl, pH 6" />
+          {erros.composicao && <div className="field-error">{erros.composicao}</div>}
         </div>
       </div>
       <ClassesSelector idPrefix="residuo" value={f.classes} onChange={v => upd('classes', v)} obrigatorio />
