@@ -41,7 +41,7 @@ export function InventarioScreen({ state, dispatch }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Inventário de reagentes</h1>
-          <p className="page-sub">{total} itens cadastrados · base regulatória ABNT NBR 14725 + GHS</p>
+          <p className="page-sub">{total} itens cadastrados</p>
         </div>
         <div className="page-actions">
           {podeCadastrar && (

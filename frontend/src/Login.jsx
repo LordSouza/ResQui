@@ -30,7 +30,6 @@ export function LoginScreen() {
           <div className="logo">Rq</div>
           <div>
             <div className="brand-name">ResQui</div>
-            <div className="brand-sub">UNIFEI · IMC</div>
           </div>
         </div>
 
@@ -42,23 +41,12 @@ export function LoginScreen() {
             Rastreabilidade do berço ao destino para laboratórios de pesquisa e ensino.
           </h1>
           <p style={{fontSize: 13, opacity: 0.75, lineHeight: 1.5, margin: 0}}>
-            Conformidade com PNRS (Lei 12.305/2010), ABNT NBR 14725 e Resolução ANTT 5947/21. Inventário, motor de compatibilidade química, geração assistida de Pré-MTR e log de auditoria imutável.
+            Inventário de reagentes, compatibilidade química, descarte rastreado e manifestos de coleta — num só lugar.
           </p>
-
-          <div className="login-stats">
-            <div>
-              <div className="num">847</div>
-              <div className="lbl">itens em inventário</div>
-            </div>
-            <div>
-              <div className="num">12</div>
-              <div className="lbl">classes de reatividade</div>
-            </div>
-          </div>
         </div>
 
         <div className="login-side-foot mono">
-          © 2025 · UNIFEI · Bacharelado em Sistemas de Informação · v0.7
+          © 2026 ResQui
         </div>
       </aside>
 
@@ -101,11 +89,6 @@ export function LoginScreen() {
               </div>
             )}
 
-            <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-2)', marginBottom: 18, cursor: 'pointer'}}>
-              <input type="checkbox" aria-label="Manter conectado neste dispositivo" defaultChecked/>
-              Manter conectado neste dispositivo
-            </label>
-
             {err && (
               <div className="login-err">
                 <Icon name="warning" size={13}/> {err}
@@ -120,9 +103,6 @@ export function LoginScreen() {
 
           <div className="login-foot">
             <span>Não tem acesso? Solicite ao responsável do seu laboratório.</span>
-            <div style={{marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-3)', letterSpacing: '0.04em'}}>
-              Gerenciamento de usuários: controle interno UNIFEI · IMC
-            </div>
           </div>
         </div>
       </main>

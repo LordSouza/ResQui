@@ -66,7 +66,6 @@ export const residuoStatusBadge = (s) => {
     'solicitado': ['purple', 'Solicitado'],
     'aguardando-coleta': ['amber', 'Aguardando coleta'],
     'em-coleta': ['blue', 'Em coleta'],
-    'rotulagem': ['gray', 'Rotulagem'],
     'destinado': ['green', 'Destinado'],
     'rejeitado': ['red', 'Rejeitado'],
   };

@@ -78,7 +78,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
   };
 
   return (
-    <Modal title="Registrar resíduo" sub="Identificação na fonte conforme PNRS · Lei 12.305/2010"
+    <Modal title="Registrar resíduo" sub="A solicitação segue para aprovação antes da coleta"
       onClose={onClose} width={620}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -352,7 +352,7 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
                 Manifesto de Transporte de Resíduos (uso interno)
               </div>
               <div style={{fontSize: 12, color: '#444', marginTop: 2}}>
-                Sistema de gestão ResQui · Resolução ANTT 5947/21
+                Sistema de gestão ResQui
               </div>
             </div>
             <div style={{textAlign: 'right'}}>

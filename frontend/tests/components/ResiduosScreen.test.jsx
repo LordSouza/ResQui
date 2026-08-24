@@ -74,4 +74,10 @@ describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
     expect(screen.getByRole('button', { name: 'Rejeitar' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
   });
+
+  it('não oferece a aba Rotulagem — status que não existe na API', () => {
+    renderCom('Admin');
+    expect(screen.getByText(/Resíduos químicos/)).toBeInTheDocument();
+    expect(screen.queryByText('Rotulagem')).not.toBeInTheDocument();
+  });
 });

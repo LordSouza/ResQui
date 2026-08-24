@@ -240,11 +240,11 @@ export function DetalheScreen({ state, dispatch }) {
 
         <div className="col">
           <div className="card">
-            <SectionTitle title="Rótulo GHS" sub="ABNT NBR 14725-3"/>
+            <SectionTitle title="Rótulo GHS"/>
             <div className="card-body" style={{background: 'var(--surface-2)'}}>
               <div className="ghs-label">
                 <div className="ghs-h">
-                  <span>UNIFEI · IMC</span>
+                  <span>ResQui</span>
                   <span>{r.id} · {r.lote}</span>
                 </div>
                 <div className="ghs-name">{r.nome}</div>

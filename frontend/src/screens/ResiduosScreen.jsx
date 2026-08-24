@@ -11,7 +11,6 @@ const STATUS_TABS = [
   ['solicitado', 'Solicitados'],
   ['aguardando-coleta', 'Aguardando coleta'],
   ['em-coleta', 'Em coleta'],
-  ['rotulagem', 'Rotulagem'],
   ['destinado', 'Destinados'],
   ['rejeitado', 'Rejeitados'],
 ];
@@ -40,7 +39,7 @@ export function ResiduosScreen({ state, dispatch }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Resíduos químicos</h1>
-          <p className="page-sub">Rastreabilidade do berço ao destino · base PNRS Lei 12.305/2010 · {residuos.length} registros</p>
+          <p className="page-sub">{`Do registro ao destino final · ${residuos.length} registros`}</p>
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => {
