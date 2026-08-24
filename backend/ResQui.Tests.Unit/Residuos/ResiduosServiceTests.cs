@@ -123,7 +123,7 @@ public class ResiduosServiceTests
     {
         _repo.GetByIdAsync(999).Returns((Residuo?)null);
 
-        var result = await _sut.AtualizarAsync(999, new AtualizarResiduoCmd(null, null, null, null, null, null, null, null, null), "test@lab.com");
+        var result = await _sut.AtualizarAsync(999, new AtualizarResiduoCmd(null, null, null, null, null, null, null), "test@lab.com");
 
         result.Should().BeNull();
     }
@@ -138,7 +138,7 @@ public class ResiduosServiceTests
         var result = await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
             Descricao: null, Tipo: "Metais pesados", Volume: 0.8m,
             Unidade: null, Composicao: null, Risco: "alto",
-            Destino: null, Status: null, MtrId: null), "test@lab.com");
+            Destino: null), "test@lab.com");
 
         result!.Tipo.Should().Be("Metais pesados");
         result.Volume.Should().Be(0.8m);
@@ -169,7 +169,7 @@ public class ResiduosServiceTests
         _repo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, "alto", null, null, null), "ana@lab.com");
+        await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, "alto", null), "ana@lab.com");
 
         await _audit.Received(1).RegistrarAsync(
             "ana@lab.com", "residuo.atualizar", "Resíduos",
@@ -297,7 +297,7 @@ public class ResiduosServiceTests
     public async Task AtualizarAsync_VolumeNaoPositivo_LancaValidationException()
     {
         _repo.GetByIdAsync(1).Returns(new Residuo { Id = 1 });
-        var cmd = new AtualizarResiduoCmd(null, null, -1m, null, null, null, null, null, null);
+        var cmd = new AtualizarResiduoCmd(null, null, -1m, null, null, null, null);
         var act = () => _sut.AtualizarAsync(1, cmd, "u@x.com");
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*");
     }
@@ -391,7 +391,7 @@ public class ResiduosServiceTests
 
         var result = await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
             Descricao: null, Tipo: null, Volume: 9.0m, Unidade: null, Composicao: null,
-            Risco: null, Destino: null, Status: null, MtrId: null,
+            Risco: null, Destino: null,
             ClassesReatividade: [1, 5]), "ana@lab.com");
 
         result!.Volume.Should().Be(9.0m);
@@ -407,7 +407,7 @@ public class ResiduosServiceTests
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
         await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
-            null, null, null, null, "Nova composição", null, null, null, null,
+            null, null, null, null, "Nova composição", null, null,
             ClassesReatividade: [5, 1]), "ana@lab.com");
 
         await _compat.DidNotReceive().AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>());
@@ -421,8 +421,7 @@ public class ResiduosServiceTests
         _compat.AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>())
             .Returns(new CompatResultDto(1, 3, 3, "Proibido"));
 
-        var act = () => _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
-            null, null, null, null, null, null, null, null, null,
+        var act = () => _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, null, null,
             ClassesReatividade: [1, 3]), "ana@lab.com");
 
         await act.Should().ThrowAsync<ValidationException>();
@@ -440,9 +439,43 @@ public class ResiduosServiceTests
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
         var result = await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
-            null, null, null, null, null, "alto", null, null, null), "ana@lab.com");
+            null, null, null, null, null, "alto", null), "ana@lab.com");
 
         result!.ClassesReatividade.Should().Equal([1, 5]);
         await _compat.DidNotReceive().AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>());
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ClassesVaziasExplicitas_LancaValidationException()
+    {
+        var r = FakeResiduoComClasses(1, 5);
+        _repo.GetByIdAsync(1).Returns(r);
+
+        var act = () => _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, null, null,
+            ClassesReatividade: []), "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(13)]
+    [InlineData(99)]
+    public async Task AtualizarAsync_ClasseForaDaFaixa_LancaValidationException(int classe)
+    {
+        var r = FakeResiduoComClasses(1, 5);
+        _repo.GetByIdAsync(1).Returns(r);
+
+        var act = () => _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, null, null,
+            ClassesReatividade: [classe]), "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public void AtualizarResiduoCmd_NaoExpoeStatusNemMtr()
+    {
+        typeof(AtualizarResiduoCmd).GetProperties().Select(p => p.Name).Should().BeEquivalentTo(
+            "Descricao", "Tipo", "Volume", "Unidade", "Composicao", "Risco", "Destino", "ClassesReatividade");
     }
 }

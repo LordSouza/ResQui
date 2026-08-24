@@ -36,8 +36,6 @@ public record AtualizarResiduoCmd(
     string? Composicao,
     string? Risco,
     string? Destino,
-    string? Status,
-    int? MtrId,
     IList<int>? ClassesReatividade = null
 );
 

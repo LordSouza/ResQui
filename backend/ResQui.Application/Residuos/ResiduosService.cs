@@ -78,6 +78,10 @@ public class ResiduosService(
         if (cmd.Volume is <= 0) throw new ValidationException("Volume deve ser maior que zero.");
         if (cmd.Risco is not null && !RiscosValidos.Contains(cmd.Risco)) throw new ValidationException("Risco inválido — use baixo, medio ou alto.");
         if (cmd.Unidade is not null && !UnidadesValidas.Contains(cmd.Unidade)) throw new ValidationException("Unidade inválida — use L, mL, kg, g ou m³.");
+        if (cmd.ClassesReatividade is { Count: 0 })
+            throw new ValidationException("Classifique a reatividade do resíduo — selecione ao menos uma classe.");
+        if (cmd.ClassesReatividade is not null && cmd.ClassesReatividade.Any(c => c is < 1 or > 12))
+            throw new ValidationException("Classe de reatividade deve estar entre 1 e 12.");
         // Valida a mudança, não o estado: um resíduo gravado antes de uma revisão da matriz pode
         // ter par hoje bloqueado, e recusar a edição não o torna seguro — só impede o registro de
         // ficar correto. Comparação por conjunto: classes não têm ordem semântica.
@@ -90,8 +94,6 @@ public class ResiduosService(
         if (cmd.Composicao is not null) r.Composicao = cmd.Composicao;
         if (cmd.Risco is not null) r.Risco = cmd.Risco;
         if (cmd.Destino is not null) r.Destino = cmd.Destino;
-        if (cmd.Status is not null) r.Status = cmd.Status;
-        if (cmd.MtrId is not null) r.MtrId = cmd.MtrId;
         if (cmd.ClassesReatividade is not null) r.ClassesReatividade = cmd.ClassesReatividade.ToList();
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();

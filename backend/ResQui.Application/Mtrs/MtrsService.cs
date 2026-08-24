@@ -106,8 +106,8 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
                 $"A destinação não pode ser anterior à emissão do manifesto ({m.DataEmissao:dd/MM/yyyy}).");
 
         var todos = (await residuosRepo.GetAllAsync()).ToList();
-        // Só os que estão de fato em coleta: AtualizarResiduoCmd aceita Status e MtrId, então um
-        // resíduo pode ter saído do fluxo por outro caminho e não deve ser arrastado de volta.
+        // Só os que estão de fato em coleta: um resíduo pode ter saído do fluxo por outro
+        // caminho e não deve ser arrastado de volta.
         var emColeta = todos.Where(r => r.MtrId == m.Id && r.Status == "em-coleta").ToList();
         if (emColeta.Count == 0)
             throw new ValidationException("Nenhum resíduo deste manifesto está em coleta.");
