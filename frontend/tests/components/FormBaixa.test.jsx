@@ -63,19 +63,37 @@ describe('FormBaixa', () => {
     expect(screen.getByDisplayValue('3.00 L')).toBeInTheDocument();
   });
 
-  it('shows alert when quantity exceeds stock', async () => {
+  it('recusa quantidade acima do estoque com erro inline, sem alert', async () => {
     render(<FormBaixa reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
     const quantityInput = screen.getAllByRole('spinbutton')[0];
     await userEvent.type(quantityInput, '10');
     await userEvent.click(screen.getByRole('button', { name: /Confirmar baixa/i }));
-    expect(window.alert).toHaveBeenCalledWith('Quantidade maior que o estoque disponível.');
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(screen.getByText('Quantidade maior que o estoque disponível (5 L).')).toBeInTheDocument();
     expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it('shows alert when quantity is zero or empty', async () => {
+  it('recusa quantidade vazia com erro inline, sem alert', async () => {
     render(<FormBaixa reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Confirmar baixa/i }));
-    expect(window.alert).toHaveBeenCalledWith('Informe uma quantidade válida.');
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(screen.getByText('Informe uma quantidade válida.')).toBeInTheDocument();
+  });
+
+  it('mostra o estoque restante negativo em vez de zerar no clamp', async () => {
+    render(<FormBaixa reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
+    const quantityInput = screen.getAllByRole('spinbutton')[0];
+    await userEvent.type(quantityInput, '10');
+    expect(screen.getByDisplayValue('-5.00 L')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('0.00 L')).toBeNull();
+  });
+
+  it('limpa o erro quando a quantidade muda', async () => {
+    render(<FormBaixa reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await userEvent.click(screen.getByRole('button', { name: /Confirmar baixa/i }));
+    expect(screen.getByText('Informe uma quantidade válida.')).toBeInTheDocument();
+    await userEvent.type(screen.getAllByRole('spinbutton')[0], '1');
+    expect(screen.queryByText('Informe uma quantidade válida.')).toBeNull();
   });
 
   it('calls dispatch with refresh and flashId on valid submit', async () => {

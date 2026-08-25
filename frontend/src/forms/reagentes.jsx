@@ -200,11 +200,17 @@ export function FormBaixa({ reagente, onClose, dispatch, quantidadeInicial }) {
   };
   const baixaMutation = useBaixaReagente(reagente.id);
   const [q, setQ] = useState(quantidadeInicial ?? '');
+  const [erro, setErro] = useState('');
   const [motivo, setMotivo] = useState('Uso em prática didática');
+  const restante = q === '' ? null : reagente.estoque - Number(q);
   const submit = () => {
     const n = Number(q);
-    if (!n || n <= 0) { alert('Informe uma quantidade válida.'); return; }
-    if (n > reagente.estoque) { alert('Quantidade maior que o estoque disponível.'); return; }
+    if (!n || n <= 0) { setErro('Informe uma quantidade válida.'); return; }
+    if (n > reagente.estoque) {
+      setErro(`Quantidade maior que o estoque disponível (${reagente.estoque} ${reagente.unidade}).`);
+      return;
+    }
+    setErro('');
     baixaMutation.mutate({ quantidade: n }, {
       onSuccess: () => {
         dispatch({ type: 'refresh', flashId: reagente.id });
@@ -227,12 +233,15 @@ export function FormBaixa({ reagente, onClose, dispatch, quantidadeInicial }) {
       <div className="form-row">
         <div className="field"><label htmlFor={ids.quantidade}>Quantidade *</label>
           <div style={{display: 'flex', gap: 6}}>
-            <input id={ids.quantidade} aria-label="Quantidade a dar baixa" style={{flex: 1}} type="number" step="0.01" value={q} onChange={e => setQ(e.target.value)}/>
+            <input id={ids.quantidade} aria-label="Quantidade a dar baixa" style={{flex: 1}} type="number" step="0.01" value={q} onChange={e => { setQ(e.target.value); setErro(''); }}/>
             <span style={{padding: '7px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: 12}}>{reagente.unidade}</span>
           </div>
+          {erro && <div className="field-error">{erro}</div>}
         </div>
         <div className="field"><label htmlFor={ids.restara}>Restará</label>
-          <input id={ids.restara} aria-label="Estoque restante após a baixa" value={q ? Math.max(0, reagente.estoque - Number(q)).toFixed(2) + ' ' + reagente.unidade : '—'} readOnly/>
+          <input id={ids.restara} aria-label="Estoque restante após a baixa"
+            style={restante != null && restante < 0 ? {color: 'var(--red)'} : undefined}
+            value={restante == null || Number.isNaN(restante) ? '—' : `${restante.toFixed(2)} ${reagente.unidade}`} readOnly/>
         </div>
       </div>
       <div className="form-row full">
@@ -435,21 +444,26 @@ export function FormImportarCSV({ onClose, dispatch }) {
               </tr>
             </thead>
             <tbody>
-              {itens.slice(0, 20).map(it => (
-                <tr key={it.linhaCsv} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '5px 10px' }} className="muted">{it.linhaCsv}</td>
-                  <td style={{ padding: '5px 10px', whiteSpace: 'nowrap' }}>{it.cmd?.Nome || '—'}</td>
-                  <td style={{ padding: '5px 10px' }}>{it.cmd?.Cas || '—'}</td>
-                  <td style={{ padding: '5px 10px' }}>{it.cmd ? `${it.cmd.Estoque} ${it.cmd.Unidade}` : '—'}</td>
-                  <td style={{ padding: '5px 10px' }}>
-                    {it.bloqueada
-                      ? <Badge kind="gray">{it.motivos.join(', ')}</Badge>
-                      : it.avisos.length
-                        ? <Badge kind="amber">{it.avisos.join(', ')}</Badge>
-                        : <Badge kind="green">OK</Badge>}
-                  </td>
-                </tr>
-              ))}
+              {itens.slice(0, 20).map(it => {
+                const estoque = it.cmd
+                  ? `${it.cmd.Estoque} ${it.cmd.Unidade}`
+                  : [it.bruto.Estoque, it.bruto.Unidade].filter(Boolean).join(' ');
+                return (
+                  <tr key={it.linhaCsv} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '5px 10px' }} className="muted">{it.linhaCsv}</td>
+                    <td style={{ padding: '5px 10px', whiteSpace: 'nowrap' }}>{it.bruto.Nome || '—'}</td>
+                    <td style={{ padding: '5px 10px' }}>{it.bruto.Cas || '—'}</td>
+                    <td style={{ padding: '5px 10px' }}>{estoque || '—'}</td>
+                    <td style={{ padding: '5px 10px' }}>
+                      {it.bloqueada
+                        ? <Badge kind="gray">{it.motivos.join(', ')}</Badge>
+                        : it.avisos.length
+                          ? <Badge kind="amber">{it.avisos.join(', ')}</Badge>
+                          : <Badge kind="green">OK</Badge>}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
