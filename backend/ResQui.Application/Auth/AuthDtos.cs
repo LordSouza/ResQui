@@ -10,5 +10,5 @@ public record LoginResultDto(bool Requires2fa, TokenDto? Token);
 public record AlterarSenhaCmd(string SenhaAtual, string NovaSenha);
 public record Codigo2faCmd(string Codigo);
 public record Setup2faCmd(string Senha);
-public record Setup2faDto(string Secret, string OtpauthUri);
+public record Setup2faDto(string Secret, string OtpauthUri, string QrPngBase64);
 public record SessaoDto(string Jti, DateTime CriadaEm, DateTime ExpiraEm, string? UserAgent, bool Atual);

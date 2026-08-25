@@ -33,13 +33,6 @@ public class PdfService : IPdfService
             return leitor.ReadToEnd();
         });
 
-    private static byte[] QrPng(string conteudo)
-    {
-        using var gen = new QRCoder.QRCodeGenerator();
-        using var data = gen.CreateQrCode(conteudo, QRCoder.QRCodeGenerator.ECCLevel.Q);
-        return new QRCoder.PngByteQRCode(data).GetGraphic(8);
-    }
-
     public byte[] RotuloLote(Reagente r, ReagenteLote lote)
     {
         return Document.Create(doc => doc.Page(page =>
@@ -64,7 +57,7 @@ public class PdfService : IPdfService
                 });
                 row.ConstantItem(80).AlignMiddle().Column(c =>
                 {
-                    c.Item().Image(QrPng($"{r.Id}|{lote.Codigo}"));
+                    c.Item().Image(QrCode.Png($"{r.Id}|{lote.Codigo}"));
                     c.Item().AlignCenter().Text($"{r.Id}|{lote.Codigo}").FontSize(6);
                 });
             });
@@ -147,7 +140,7 @@ public class PdfService : IPdfService
             {
                 row.RelativeItem().AlignBottom().Text($"ResQui · rótulo gerado em {DateTime.UtcNow:dd/MM/yyyy HH:mm} UTC")
                     .FontSize(6).FontColor(Colors.Grey.Darken1);
-                row.ConstantItem(42).Image(QrPng(r.Id));
+                row.ConstantItem(42).Image(QrCode.Png(r.Id));
             });
         })).GeneratePdf();
     }

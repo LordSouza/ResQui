@@ -119,7 +119,7 @@ export function FormSenha2FA({ onClose, dispatch }) {
   const desativar2fa = useDesativar2fa();
   const gerarCodigos = useGerarCodigosRecuperacao();
 
-  const [setup, setSetup] = useState(null); // { secret, otpauthUri }
+  const [setup, setSetup] = useState(null); // { secret, otpauthUri, qrPngBase64 }
   const [codigo, setCodigo] = useState('');
   const [codigosRecuperacao, setCodigosRecuperacao] = useState(null);
   const [senhaSetup, setSenhaSetup] = useState('');
@@ -271,12 +271,21 @@ export function FormSenha2FA({ onClose, dispatch }) {
 
           {!mfaEnabled && setup && (
             <div style={{padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--radius)'}}>
-              <div style={pgrsSub}>1. Adicione esta chave ao seu app autenticador</div>
-              <div className="mono" style={{fontSize: 13, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', wordBreak: 'break-all', marginBottom: 10}}>
-                {setup.secret}
-              </div>
-              <div style={{fontSize: 12, color: 'var(--text-3)', marginBottom: 10, wordBreak: 'break-all'}}>
-                Ou use a URI otpauth: <span className="mono">{setup.otpauthUri}</span>
+              <div style={pgrsSub}>1. Leia este QR code no seu app autenticador</div>
+              <div style={{display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 10}}>
+                {setup.qrPngBase64 && (
+                  <img src={`data:image/png;base64,${setup.qrPngBase64}`} width={148} height={148}
+                    alt="QR code de configuração do autenticador"
+                    style={{border: '1px solid var(--border)', borderRadius: 'var(--radius)', flexShrink: 0}}/>
+                )}
+                <div style={{flex: 1, minWidth: 0}}>
+                  <div style={{fontSize: 12, color: 'var(--text-3)', marginBottom: 6}}>
+                    Sem câmera? Digite esta chave no app:
+                  </div>
+                  <div className="mono" style={{fontSize: 13, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', wordBreak: 'break-all'}}>
+                    {setup.secret}
+                  </div>
+                </div>
               </div>
               <div style={pgrsSub}>2. Informe o código gerado para confirmar</div>
               <div style={{display: 'flex', gap: 8}}>

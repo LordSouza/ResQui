@@ -588,6 +588,20 @@ public class AuthServiceTests
     }
 
     [Fact]
+    public async Task Setup2faAsync_DevolveQrPngDaMesmaOtpauthUri()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.ResetAuthenticatorKeyAsync("user-1").Returns("CHAVENOVA123");
+
+        var dto = await _sut.Setup2faAsync("user-1", "senha123");
+
+        var png = Convert.FromBase64String(dto!.QrPngBase64);
+        png.Take(8).Should().Equal(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A);
+        png.Should().Equal(QrCode.Png(dto.OtpauthUri, 6));
+    }
+
+    [Fact]
     public async Task Setup2faAsync_UsuarioInexistente_RetornaNull()
     {
         _repo.FindByIdAsync("fantasma").Returns((UsuarioInfo?)null);

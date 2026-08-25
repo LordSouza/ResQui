@@ -156,4 +156,20 @@ describe('FormSenha2FA — senha exigida no setup do 2FA', () => {
     expect(url).toContain('/api/auth/2fa/setup');
     expect(JSON.parse(opts.body)).toEqual({ Senha: 'Senha@123' });
   });
+
+  it('mostra o QR code do setup e mantém a chave para digitação manual', async () => {
+    fetch.mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ secret: 'ABC123', otpauthUri: 'otpauth://totp/ResQui:ana', qrPngBase64: 'aGVsbG8=' }),
+    });
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor', twoFactorEnabled: false });
+    abrirAbaMfa();
+
+    fireEvent.change(screen.getByLabelText('Senha atual para ativar o 2FA'), { target: { value: 'Senha@123' } });
+    fireEvent.click(screen.getByRole('button', { name: /ativar 2fa/i }));
+
+    const qr = await screen.findByAltText('QR code de configuração do autenticador');
+    expect(qr).toHaveAttribute('src', 'data:image/png;base64,aGVsbG8=');
+    expect(screen.getByText('ABC123')).toBeInTheDocument();
+  });
 });

@@ -111,7 +111,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         var key = await repo.ResetAuthenticatorKeyAsync(userId);
         if (key is null) return null;
         var uri = $"otpauth://totp/ResQui:{Uri.EscapeDataString(user.Email)}?secret={key}&issuer=ResQui";
-        return new Setup2faDto(key, uri);
+        return new Setup2faDto(key, uri, Convert.ToBase64String(QrCode.Png(uri, 6)));
     }
 
     public async Task<IEnumerable<string>> Ativar2faAsync(string userId, string codigo, string usuarioEmail)
