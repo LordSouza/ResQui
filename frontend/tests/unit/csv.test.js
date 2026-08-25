@@ -55,6 +55,14 @@ describe('analisarImportacao', () => {
     expect(item.motivos).toContain('Nome ausente');
   });
 
+  it('preserva os valores crus da linha bloqueada para identificá-la', () => {
+    const rows = [['Tolueno', '108-88-3', '2', 'L', 'Lab-203', '', '']];
+    const [item] = analisarImportacao(headers, rows, {});
+    expect(item.bloqueada).toBe(true);
+    expect(item.cmd).toBeNull();
+    expect(item.bruto).toEqual({ Nome: 'Tolueno', Cas: '108-88-3', Estoque: '2', Unidade: 'L' });
+  });
+
   it('marca aviso quando a validade já expirou', () => {
     const rows = [['Etanol', '64-17-5', '1', 'L', 'Lab-201', '2000-01-01', '5']];
     const [item] = analisarImportacao(headers, rows, {});

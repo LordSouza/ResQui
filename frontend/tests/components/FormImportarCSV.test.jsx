@@ -12,6 +12,7 @@ vi.mock('../../src/components/ToastContext', () => ({ useToast: () => ({ addToas
 
 const CSV = 'Nome,CAS,Quantidade,Unid.,Local,Classe\nEtanol,64-17-5,2.5,L,Lab-201,5\n,,,,,\n';
 const CSV_SEM_CLASSE = 'Nome,CAS,Quantidade,Unid.,Local\nEtanol,64-17-5,2.5,L,Lab-201\n';
+const CSV_BLOQUEADA = 'Nome,CAS,Quantidade,Unid.,Local,Classe\nTolueno,108-88-3,2,L,Lab-203,\n';
 
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -50,6 +51,19 @@ describe('FormImportarCSV', () => {
     // 1 linha pronta + 1 linha bloqueada (tudo vazio)
     await waitFor(() => expect(screen.getByText(/Etanol/)).toBeInTheDocument());
     expect(screen.getByText(/1 bloqueada/i)).toBeInTheDocument();
+  });
+
+  it('identifica a linha bloqueada pelos valores crus do arquivo', async () => {
+    render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    const file = new File([CSV_BLOQUEADA], 'inv.csv', { type: 'text/csv' });
+    await userEvent.upload(screen.getByLabelText(/Selecionar arquivo/i), file);
+
+    await waitFor(() => expect(screen.getByText(/1 bloqueada/i)).toBeInTheDocument());
+    expect(screen.getByText('Tolueno')).toBeInTheDocument();
+    expect(screen.getByText('108-88-3')).toBeInTheDocument();
+    expect(screen.getByText('2 L')).toBeInTheDocument();
+    expect(screen.getByText(/Classe de reatividade ausente/)).toBeInTheDocument();
   });
 
   it('importa as linhas prontas via API e mostra o resultado', async () => {

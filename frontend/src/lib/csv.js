@@ -105,6 +105,8 @@ export function analisarImportacao(headers, rows, { responsavelDefault = '' } = 
       Ghs: null,
     };
 
-    return { linhaCsv: idx + 2, cmd, avisos, bloqueada: motivos.length > 0, motivos };
+    const bruto = { Nome: nome, Cas: cas, Estoque: estoqueRaw, Unidade: unidade };
+
+    return { linhaCsv: idx + 2, cmd, bruto, avisos, bloqueada: motivos.length > 0, motivos };
   });
 }
