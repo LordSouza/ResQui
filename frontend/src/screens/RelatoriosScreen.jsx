@@ -89,7 +89,7 @@ export function RelatoriosScreen({ state, dispatch }) {
           </div>
         )}
         {!isPending && !isError && historico.length === 0 && (
-          <Empty msg="Nenhum relatório gerado ainda." />
+          <Empty>Nenhum relatório gerado ainda.</Empty>
         )}
         {historico.length > 0 && (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

@@ -50,6 +50,11 @@ describe('RelatoriosScreen', () => {
     expect(screen.getByText(/Histórico de relatórios gerados/i)).toBeInTheDocument();
   });
 
+  it('mostra o estado vazio quando não há histórico', async () => {
+    render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    expect(await screen.findByText('Nenhum relatório gerado ainda.')).toBeInTheDocument();
+  });
+
   it('shows no hardcoded data', () => {
     render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(screen.queryByText(/PDF · 38 pág/)).not.toBeInTheDocument();
