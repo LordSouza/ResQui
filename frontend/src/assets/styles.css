@@ -246,7 +246,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   color: var(--text-2);
   margin: 0;
 }
-.page-actions { display: flex; gap: 8px; }
+.page-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
 /* === Buttons === */
 .btn {
