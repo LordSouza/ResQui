@@ -85,13 +85,17 @@ jobs:
           ConnectionStrings__Default: 'Host=localhost;Port=5432;Database=resqui;Username=resqui;Password=resqui'
           Seed__DemoData: 'true'
           ASPNETCORE_URLS: 'http://localhost:5000'
+          ASPNETCORE_ENVIRONMENT: 'Development'
         run: |
-          dotnet run --project ResQui.API --configuration Release &
+          dotnet run --project ResQui.API --configuration Release --no-launch-profile &
           for i in $(seq 1 30); do
-            curl -sf http://localhost:5000/api/auth/login -X POST -H 'Content-Type: application/json' \
-              -d '{"Email":"admin@resqui.local","Senha":"Admin@123"}' && break
+            if curl -sf http://localhost:5000/api/auth/login -X POST -H 'Content-Type: application/json' \
+                 -d '{"Email":"admin@resqui.local","Senha":"Admin@123"}'; then
+              echo "backend no ar"; exit 0
+            fi
             echo "aguardando backend ($i)..."; sleep 3
           done
+          echo "backend não respondeu na porta 5000 em 90s"; exit 1
 
       - name: Install frontend deps
         run: npm ci
