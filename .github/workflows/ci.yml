@@ -147,6 +147,10 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
+          if [ -z "$VPS_HOST" ]; then
+            echo "Secrets da VPS ausentes; imagens publicadas, deploy ignorado."
+            exit 0
+          fi
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
