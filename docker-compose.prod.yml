@@ -1,0 +1,31 @@
+services:
+  postgres:
+    restart: unless-stopped
+    ports: !reset []
+
+  backend:
+    image: ghcr.io/lordsouza/resqui-backend:latest
+    restart: unless-stopped
+    ports: !reset []
+
+  frontend:
+    image: ghcr.io/lordsouza/resqui-frontend:latest
+    restart: unless-stopped
+    ports: !reset []
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
+volumes:
+  caddy_data:
+  caddy_config:

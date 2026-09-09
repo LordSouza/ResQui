@@ -1,0 +1,3 @@
+resqui.com.br, www.resqui.com.br {
+    reverse_proxy frontend:80
+}
