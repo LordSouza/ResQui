@@ -41,7 +41,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMtrsRepository, EfMtrsRepository>();
         services.AddScoped<IAuditoriaRepository, EfAuditoriaRepository>();
         services.AddScoped<INotificacoesRepository, EfNotificacoesRepository>();
-        services.AddScoped<IChamadosRepository, EfChamadosRepository>();
         services.AddScoped<IRelatoriosRepository, EfRelatoriosRepository>();
         services.AddScoped<ICompatibilidadeRepository, EfCompatibilidadeRepository>();
         services.AddScoped<ICompatOverridesRepository, EfCompatOverridesRepository>();

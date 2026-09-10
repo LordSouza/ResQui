@@ -9,8 +9,7 @@ namespace ResQui.Application.Laboratorios;
 public class LaboratoriosService(
     ILaboratoriosRepository repo,
     IAuditoriaService auditoria,
-    IResiduosRepository residuosRepo,
-    IChamadosRepository chamadosRepo) : ILaboratoriosService
+    IResiduosRepository residuosRepo) : ILaboratoriosService
 {
     public async Task<IEnumerable<LaboratorioDto>> ListarAsync() =>
         (await repo.GetAllAsync()).Select(ToDto);
@@ -65,10 +64,9 @@ public class LaboratoriosService(
         // Com a FK Restrict, apagar um laboratório vinculado estouraria no banco (500).
         // A checagem antecipada devolve 400 com o que o usuário precisa fazer.
         var residuos = (await residuosRepo.GetAllAsync()).Count(r => r.LaboratorioId == id);
-        var chamados = (await chamadosRepo.GetAllWithComentariosAsync()).Count(c => c.LaboratorioId == id);
-        if (residuos > 0 || chamados > 0)
+        if (residuos > 0)
             throw new ValidationException(
-                $"Laboratório {id} tem {residuos} resíduo(s) e {chamados} chamado(s) vinculados; "
+                $"Laboratório {id} tem {residuos} resíduo(s) vinculado(s); "
                 + "transfira ou remova esses registros antes de excluir.");
 
         await repo.DeleteAsync(id);

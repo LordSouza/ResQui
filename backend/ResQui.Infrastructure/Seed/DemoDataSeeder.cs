@@ -94,15 +94,6 @@ public static class DemoDataSeeder
             await db.SaveChangesAsync();
         }
 
-        if (!await db.Chamados.AnyAsync())
-        {
-            db.Chamados.AddRange(
-                new Chamado { Titulo = "Capela do Lab-201 com exaustão fraca", Descricao = "A capela principal não está puxando vapores adequadamente desde a última manutenção.", LaboratorioId = lab1, AbertoPorId = adminId, Tipo = ChamadoTipo.Conformidade, Severidade = ChamadoSeveridade.Alta, Status = ChamadoStatus.Aberto, Comentarios = [new ChamadoComentario { Texto = "Manutenção agendada para a próxima semana.", AutorId = adminId }] },
-                new Chamado { Titulo = "Erro ao exportar CSV do inventário", Descricao = "O arquivo exportado vem sem o cabeçalho de colunas.", LaboratorioId = lab2, AbertoPorId = adminId, Tipo = ChamadoTipo.Bug, Severidade = ChamadoSeveridade.Media, Status = ChamadoStatus.EmAnalise, Comentarios = [] },
-                new Chamado { Titulo = "Sugestão: filtro por responsável", Descricao = "Seria útil filtrar reagentes por responsável na tela de inventário.", LaboratorioId = lab3, AbertoPorId = adminId, Tipo = ChamadoTipo.Feature, Severidade = ChamadoSeveridade.Baixa, Status = ChamadoStatus.Aberto, Comentarios = [] });
-            await db.SaveChangesAsync();
-        }
-
         if (!await db.ConfiguracaoPgrs.AnyAsync())
         {
             // Valores deliberadamente fictícios — não usar dados de instituição ou pessoa reais.

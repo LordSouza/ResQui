@@ -16,8 +16,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Mtr> Mtrs => Set<Mtr>();
     public DbSet<AuditoriaEntry> Auditoria => Set<AuditoriaEntry>();
     public DbSet<Notificacao> Notificacoes => Set<Notificacao>();
-    public DbSet<Chamado> Chamados => Set<Chamado>();
-    public DbSet<ChamadoComentario> ChamadoComentarios => Set<ChamadoComentario>();
     public DbSet<CompatEntry> CompatEntries => Set<CompatEntry>();
     public DbSet<CompatOverride> CompatOverrides => Set<CompatOverride>();
     public DbSet<RelatorioGerado> RelatoriosGerados => Set<RelatorioGerado>();

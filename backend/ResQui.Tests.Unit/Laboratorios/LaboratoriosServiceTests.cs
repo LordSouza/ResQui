@@ -14,14 +14,12 @@ public class LaboratoriosServiceTests
     private readonly ILaboratoriosRepository _repo = Substitute.For<ILaboratoriosRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly IResiduosRepository _residuosRepo = Substitute.For<IResiduosRepository>();
-    private readonly IChamadosRepository _chamadosRepo = Substitute.For<IChamadosRepository>();
     private readonly LaboratoriosService _sut;
 
     public LaboratoriosServiceTests()
     {
         _residuosRepo.GetAllAsync().Returns([]);
-        _chamadosRepo.GetAllWithComentariosAsync().Returns([]);
-        _sut = new LaboratoriosService(_repo, _audit, _residuosRepo, _chamadosRepo);
+        _sut = new LaboratoriosService(_repo, _audit, _residuosRepo);
     }
 
     private static Laboratorio FakeLab(string id = "Lab-001") => new()
@@ -150,9 +148,7 @@ public class LaboratoriosServiceTests
             new Residuo { Id = 1, LaboratorioId = "Lab-001" },
             new Residuo { Id = 2, LaboratorioId = "Lab-002" },
         ]);
-        var chamadosRepo = Substitute.For<IChamadosRepository>();
-        chamadosRepo.GetAllWithComentariosAsync().Returns([]);
-        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, chamadosRepo);
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo);
 
         var act = () => svc.DeletarAsync("Lab-001", "gestor@resqui.local");
 
@@ -168,9 +164,7 @@ public class LaboratoriosServiceTests
         labRepo.GetByIdAsync("Lab-003").Returns(new Laboratorio { Id = "Lab-003", Nome = "Vazio" });
         var residuosRepo = Substitute.For<IResiduosRepository>();
         residuosRepo.GetAllAsync().Returns([new Residuo { Id = 1, LaboratorioId = "Lab-001" }]);
-        var chamadosRepo = Substitute.For<IChamadosRepository>();
-        chamadosRepo.GetAllWithComentariosAsync().Returns([new Chamado { Id = 1, LaboratorioId = "Lab-002" }]);
-        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, chamadosRepo);
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo);
 
         var ok = await svc.DeletarAsync("Lab-003", "gestor@resqui.local");
 

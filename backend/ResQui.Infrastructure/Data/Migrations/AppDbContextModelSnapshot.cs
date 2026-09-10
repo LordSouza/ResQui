@@ -192,79 +192,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.ToTable("Auditoria");
                 });
 
-            modelBuilder.Entity("ResQui.Domain.Entities.Chamado", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AbertoPorId")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Descricao")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("LaboratorioId")
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<int>("Severidade")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Tipo")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Titulo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AbertoPorId");
-
-                    b.HasIndex("LaboratorioId");
-
-                    b.ToTable("Chamados");
-                });
-
-            modelBuilder.Entity("ResQui.Domain.Entities.ChamadoComentario", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AutorId")
-                        .HasColumnType("text");
-
-                    b.Property<int>("ChamadoId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Texto")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AutorId");
-
-                    b.HasIndex("ChamadoId");
-
-                    b.ToTable("ChamadoComentarios");
-                });
-
             modelBuilder.Entity("ResQui.Domain.Entities.CompatEntry", b =>
                 {
                     b.Property<int>("ClasseA")
@@ -960,35 +887,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ResQui.Domain.Entities.Chamado", b =>
-                {
-                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
-                        .WithMany()
-                        .HasForeignKey("AbertoPorId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("ResQui.Domain.Entities.Laboratorio", null)
-                        .WithMany()
-                        .HasForeignKey("LaboratorioId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("ResQui.Domain.Entities.ChamadoComentario", b =>
-                {
-                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
-                        .WithMany()
-                        .HasForeignKey("AutorId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("ResQui.Domain.Entities.Chamado", "Chamado")
-                        .WithMany("Comentarios")
-                        .HasForeignKey("ChamadoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Chamado");
-                });
-
             modelBuilder.Entity("ResQui.Domain.Entities.Mtr", b =>
                 {
                     b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
@@ -1058,11 +956,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("ResQui.Domain.Entities.Chamado", b =>
-                {
-                    b.Navigation("Comentarios");
                 });
 
             modelBuilder.Entity("ResQui.Domain.Entities.Reagente", b =>
