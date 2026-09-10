@@ -2,30 +2,37 @@ import { test, expect } from '@playwright/test';
 import { ADMIN, apiAuth, ensureLab, totp, criarResiduoAguardandoColeta, seedPgrsConfig } from './seed';
 
 // Visualizador não pode mutar estoque/resíduos/MTRs (item: autorização fina).
-test('Visualizador é bloqueado em mutações operacionais', async ({ request }) => {
+test('Aluno cria resíduo mas é bloqueado ao editá-lo', async ({ request }) => {
   const auth = await apiAuth(request); // admin cria o usuário
-  const email = `visu_${Date.now()}@resqui.local`;
+  const email = `aluno_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Visu@123', Papel: 'Visualizador', Nome: 'Visu E2E' },
+    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno E2E' },
   });
 
-  const loginRes = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Visu@123' } });
+  const loginRes = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Alun@123' } });
   const { token } = await loginRes.json();
-  const visuAuth = { Authorization: `Bearer ${token}` };
+  const alunoAuth = { Authorization: `Bearer ${token}` };
 
   const lab = await ensureLab(request, auth);
   const res = await request.post('/api/residuos', {
-    headers: visuAuth,
+    headers: alunoAuth,
     data: {
-      Descricao: 'tentativa visu', LaboratorioId: lab.id, Tipo: 'x',
+      Descricao: 'solicitação do aluno', LaboratorioId: lab.id, Tipo: 'x',
       Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [5],
     },
   });
-  expect(res.status()).toBe(403);
+  expect(res.ok()).toBeTruthy(); // POST /api/residuos exige Operacional, que o Aluno tem
+  const residuo = await res.json();
 
-  // Mas pode ler
-  const lista = await request.get('/api/residuos', { headers: visuAuth });
+  // PUT exige Operacao, que ele não tem
+  const edicao = await request.put(`/api/residuos/${residuo.id}`, {
+    headers: alunoAuth,
+    data: { Descricao: 'tentativa de edição' },
+  });
+  expect(edicao.status()).toBe(403);
+
+  const lista = await request.get('/api/residuos', { headers: alunoAuth });
   expect(lista.ok()).toBeTruthy();
 });
 
@@ -70,7 +77,7 @@ test('sessões lista a sessão atual e revogar-outras não derruba ela', async (
   const email = `sess_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: adminAuth,
-    data: { Email: email, Senha: 'Sess@123', Papel: 'Tecnico', Nome: 'Sessao E2E' },
+    data: { Email: email, Senha: 'Sess@123', Papel: 'Professor', Nome: 'Sessao E2E' },
   });
   const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: 'Sess@123' } })).json();
   const auth = { Authorization: `Bearer ${token}` };
@@ -86,12 +93,12 @@ test('sessões lista a sessão atual e revogar-outras não derruba ela', async (
 });
 
 // RF06 / atores do artigo: Pesquisador solicita descarte + baixa, mas não cria MTR.
-test('Pesquisador cria resíduo mas é bloqueado em MTR', async ({ request }) => {
+test('Aluno cria resíduo mas é bloqueado em MTR', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `pesq_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Pesq@123', Papel: 'Pesquisador', Nome: 'Pesq E2E' },
+    data: { Email: email, Senha: 'Pesq@123', Papel: 'Aluno', Nome: 'Pesq E2E' },
   });
   const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Pesq@123' } });
   const { token } = await login.json();
@@ -144,12 +151,12 @@ test('Professor aprova descarte solicitado', async ({ request }) => {
 });
 
 // Pesquisador não está na policy Aprovador (Admin/Gestor/Professor) — aprovar deve ser 403.
-test('Pesquisador é bloqueado ao aprovar descarte', async ({ request }) => {
+test('Aluno é bloqueado ao aprovar descarte', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `pesq2_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Pesq@123', Papel: 'Pesquisador', Nome: 'Pesq2 E2E' },
+    data: { Email: email, Senha: 'Pesq@123', Papel: 'Aluno', Nome: 'Pesq2 E2E' },
   });
   const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Pesq@123' } });
   const { token } = await login.json();
@@ -171,19 +178,19 @@ test('Pesquisador é bloqueado ao aprovar descarte', async ({ request }) => {
 });
 
 // Professor não está na policy Tecnico (Admin/Gestor/Tecnico) — criar MTR deve ser 403.
-test('Professor é bloqueado ao criar MTR', async ({ request }) => {
+test('Aluno é bloqueado ao criar MTR', async ({ request }) => {
   const auth = await apiAuth(request);
-  const email = `prof2_${Date.now()}@resqui.local`;
+  const email = `aluno_mtr_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof2 E2E' },
+    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno MTR E2E' },
   });
-  const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Prof@123' } });
+  const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Alun@123' } });
   const { token } = await login.json();
-  const profAuth = { Authorization: `Bearer ${token}` };
+  const alunoAuth = { Authorization: `Bearer ${token}` };
 
   const mtr = await request.post('/api/mtrs', {
-    headers: profAuth,
+    headers: alunoAuth,
     data: { Gerador: 'g', Transportadora: 't', ResiduoIds: [1] },
   });
   expect(mtr.status()).toBe(403);
@@ -197,7 +204,7 @@ test('hard-delete remove usuário arquivado e some da listagem', async ({ reques
   const email = `del_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Del@1234', Papel: 'Tecnico', Nome: 'Del E2E' },
+    data: { Email: email, Senha: 'Del@1234', Papel: 'Professor', Nome: 'Del E2E' },
   });
 
   const achar = async () =>
@@ -229,7 +236,7 @@ test('códigos de recuperação: ativa 2FA, entra com um código e a contagem ca
   const senha = 'Recup@123';
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: senha, Papel: 'Tecnico', Nome: 'Recuperação E2E' },
+    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Recuperação E2E' },
   });
 
   const login1 = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
@@ -268,13 +275,13 @@ test('códigos de recuperação: ativa 2FA, entra com um código e a contagem ca
   expect(repetido.status()).toBe(401);
 });
 
-test('Admin reseta o 2FA: derruba a sessão antiga e a própria rotação (não um setup subsequente) invalida o segredo antigo', async ({ request }) => {
+test('Professor reseta o 2FA: derruba a sessão antiga e a própria rotação (não um setup subsequente) invalida o segredo antigo', async ({ request }) => {
   const adminAuth = await apiAuth(request);
   const email = `reset_${Date.now()}@resqui.local`;
   const senha = 'Reset@123';
   const criado = await request.post('/api/auth/register', {
     headers: adminAuth,
-    data: { Email: email, Senha: senha, Papel: 'Tecnico', Nome: 'Reset E2E' },
+    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Reset E2E' },
   });
   const { id } = await criado.json();
 
@@ -339,7 +346,7 @@ test('conta bloqueia após 5 senhas erradas e recusa até a senha correta', asyn
   const senha = 'Lock@123';
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: senha, Papel: 'Visualizador', Nome: 'Lockout E2E' },
+    data: { Email: email, Senha: senha, Papel: 'Aluno', Nome: 'Lockout E2E' },
   });
 
   // As cinco primeiras falhas ainda respondem 401: a checagem de bloqueio roda antes da senha,
@@ -369,7 +376,7 @@ test('política de senha: rejeita fraca com 400 e aceita a que atende', async ({
   // 7 caracteres, mas com as quatro classes — barrada só pelo comprimento.
   const curta = await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: `${base}a@resqui.local`, Senha: 'Ab@1234', Papel: 'Visualizador', Nome: 'Pol A' },
+    data: { Email: `${base}a@resqui.local`, Senha: 'Ab@1234', Papel: 'Aluno', Nome: 'Pol A' },
   });
   // 400, não 500: o CreateAsync passou a lançar ValidationException.
   expect(curta.status()).toBe(400);
@@ -378,14 +385,14 @@ test('política de senha: rejeita fraca com 400 e aceita a que atende', async ({
   // 8 caracteres, sem caractere não-alfanumérico.
   const semEspecial = await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: `${base}b@resqui.local`, Senha: 'Abcd1234', Papel: 'Visualizador', Nome: 'Pol B' },
+    data: { Email: `${base}b@resqui.local`, Senha: 'Abcd1234', Papel: 'Aluno', Nome: 'Pol B' },
   });
   expect(semEspecial.status()).toBe(400);
 
   // 8 caracteres com dígito, minúscula, maiúscula e especial.
   const ok = await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: `${base}c@resqui.local`, Senha: 'Abcd@123', Papel: 'Visualizador', Nome: 'Pol C' },
+    data: { Email: `${base}c@resqui.local`, Senha: 'Abcd@123', Papel: 'Aluno', Nome: 'Pol C' },
   });
   expect(ok.ok()).toBeTruthy();
 });
@@ -396,7 +403,7 @@ test('hard-delete do usuário derruba o token dele na hora', async ({ request })
   const senha = 'Token@123';
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: senha, Papel: 'Tecnico', Nome: 'Token E2E' },
+    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Token E2E' },
   });
 
   const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: senha } })).json();
@@ -414,14 +421,14 @@ test('hard-delete do usuário derruba o token dele na hora', async ({ request })
   expect(depois.status()).toBe(401);
 });
 
-test('pgrs-config exige Tecnico: Visualizador 403, Tecnico 200', async ({ request }) => {
+test('pgrs-config exige Operacao: Aluno 403, Professor 200', async ({ request }) => {
   const auth = await apiAuth(request);
   const stamp = Date.now();
 
   const visu = `pgvisu_${stamp}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: visu, Senha: 'Visu@123', Papel: 'Visualizador', Nome: 'PG Visu' },
+    data: { Email: visu, Senha: 'Visu@123', Papel: 'Aluno', Nome: 'PG Visu' },
   });
   const { token: tokenVisu } = await (await request.post('/api/auth/login', {
     data: { Email: visu, Senha: 'Visu@123' },
@@ -434,7 +441,7 @@ test('pgrs-config exige Tecnico: Visualizador 403, Tecnico 200', async ({ reques
   const tec = `pgtec_${stamp}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: tec, Senha: 'Tecn@123', Papel: 'Tecnico', Nome: 'PG Tec' },
+    data: { Email: tec, Senha: 'Tecn@123', Papel: 'Professor', Nome: 'PG Tec' },
   });
   const { token: tokenTec } = await (await request.post('/api/auth/login', {
     data: { Email: tec, Senha: 'Tecn@123' },
@@ -447,7 +454,7 @@ test('pgrs-config exige Tecnico: Visualizador 403, Tecnico 200', async ({ reques
 
 // O recorte de identificação existe para o resumo de segurança, aberto por qualquer papel: ele
 // libera razão social e unidade sem afrouxar o GET completo (CNPJ, endereço, contatos do RT).
-test('pgrs-config/identificacao é aberto a Visualizador e não vaza os campos restritos', async ({ request }) => {
+test('pgrs-config/identificacao é aberto a Aluno e não vaza os campos restritos', async ({ request }) => {
   const auth = await apiAuth(request);
   const stamp = Date.now();
 
@@ -460,7 +467,7 @@ test('pgrs-config/identificacao é aberto a Visualizador e não vaza os campos r
   const visu = `idvisu_${stamp}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: visu, Senha: 'Visu@123', Papel: 'Visualizador', Nome: 'Id Visu' },
+    data: { Email: visu, Senha: 'Visu@123', Papel: 'Aluno', Nome: 'Id Visu' },
   });
   const { token } = await (await request.post('/api/auth/login', {
     data: { Email: visu, Senha: 'Visu@123' },
@@ -479,12 +486,12 @@ test('pgrs-config/identificacao é aberto a Visualizador e não vaza os campos r
 });
 
 // Confirmar destinação exige a policy Tecnico (Admin/Gestor/Tecnico) — Pesquisador deve levar 403.
-test('Pesquisador não confirma destinação de MTR', async ({ request }) => {
+test('Aluno não confirma destinação de MTR', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `pesq3_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Pesq@123', Papel: 'Pesquisador', Nome: 'Pesq3 E2E' },
+    data: { Email: email, Senha: 'Pesq@123', Papel: 'Aluno', Nome: 'Pesq3 E2E' },
   });
   const loginRes = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Pesq@123' } });
   const { token } = await loginRes.json();
@@ -504,12 +511,12 @@ test('Pesquisador não confirma destinação de MTR', async ({ request }) => {
 });
 
 // Reabrir exige Gestor — Tecnico confirma mas não desfaz.
-test('Tecnico confirma destinação mas não reabre o manifesto', async ({ request }) => {
+test('Professor confirma e reabre a destinação do manifesto', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `tec_dest_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Tecn@123', Papel: 'Tecnico', Nome: 'Tec Dest E2E' },
+    data: { Email: email, Senha: 'Tecn@123', Papel: 'Professor', Nome: 'Tec Dest E2E' },
   });
   const loginRes = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Tecn@123' } });
   const { token } = await loginRes.json();
@@ -529,11 +536,9 @@ test('Tecnico confirma destinação mas não reabre o manifesto', async ({ reque
   expect(confirmar.ok()).toBeTruthy();
 
   const reabrir = await request.delete(`/api/mtrs/${mtr.id}/destinacao`, { headers: tecAuth });
-  expect(reabrir.status()).toBe(403);
+  expect(reabrir.status()).toBe(204);
 
-  // Admin reabre — e o segundo DELETE recusa, porque já não está destinado.
-  const comoAdmin = await request.delete(`/api/mtrs/${mtr.id}/destinacao`, { headers: auth });
-  expect(comoAdmin.status()).toBe(204);
+  // O segundo DELETE recusa, porque já não está destinado.
   const denovo = await request.delete(`/api/mtrs/${mtr.id}/destinacao`, { headers: auth });
   expect(denovo.status()).toBe(400);
 });
