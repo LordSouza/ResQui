@@ -21,8 +21,8 @@ public class UsuariosServiceTests
     }
 
     private static UsuarioInfo FakeUser(string id = "user-1") => new(
-        id, "ana@lab.com", "Ana", "M001", "Tecnico",
-        new List<string> { "Tecnico" }, false);
+        id, "ana@lab.com", "Ana", "M001", "Professor",
+        new List<string> { "Professor" }, false);
 
     [Fact]
     public async Task AlterarPapelAsync_UsuarioExistente_RegistraAuditoria()
@@ -30,7 +30,7 @@ public class UsuariosServiceTests
         _repo.FindByIdAsync("user-1").Returns(FakeUser());
         _repo.UpdateRoleAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(Task.CompletedTask);
 
-        await _sut.AlterarPapelAsync("user-1", new AlterarPapelCmd("Gestor"), "admin@lab.com");
+        await _sut.AlterarPapelAsync("user-1", new AlterarPapelCmd("Professor"), "admin@lab.com");
 
         await _audit.Received(1).RegistrarAsync(
             "admin@lab.com", "user.papel", "Usuários",
@@ -42,7 +42,7 @@ public class UsuariosServiceTests
     {
         _repo.FindByIdAsync("user-999").Returns((UsuarioInfo?)null);
 
-        await _sut.AlterarPapelAsync("user-999", new AlterarPapelCmd("Gestor"), "admin@lab.com");
+        await _sut.AlterarPapelAsync("user-999", new AlterarPapelCmd("Professor"), "admin@lab.com");
 
         await _audit.DidNotReceive().RegistrarAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
@@ -131,8 +131,8 @@ public class UsuariosServiceTests
     {
         _repo.GetAllAsync().Returns(new List<UsuarioInfo>
         {
-            new("u-1", "com@lab.com", "Com MFA", null, "Tecnico", new List<string>(), false, true),
-            new("u-2", "sem@lab.com", "Sem MFA", null, "Tecnico", new List<string>(), false, false),
+            new("u-1", "com@lab.com", "Com MFA", null, "Professor", new List<string>(), false, true),
+            new("u-2", "sem@lab.com", "Sem MFA", null, "Professor", new List<string>(), false, false),
         });
 
         var lista = (await _sut.ListarAsync()).ToList();
@@ -146,8 +146,8 @@ public class UsuariosServiceTests
     {
         _repo.GetAllAsync().Returns(new List<UsuarioInfo>
         {
-            new("u-1", "ativa@lab.com", "Ana Lima", null, "Tecnico", new List<string>(), false, false),
-            new("u-2", "saiu@lab.com", "Renan Costa", null, "Tecnico", new List<string>(), true, false),
+            new("u-1", "ativa@lab.com", "Ana Lima", null, "Professor", new List<string>(), false, false),
+            new("u-2", "saiu@lab.com", "Renan Costa", null, "Professor", new List<string>(), true, false),
         });
 
         var nomes = (await _sut.ListarNomesAsync()).ToList();
@@ -160,7 +160,7 @@ public class UsuariosServiceTests
     {
         _repo.GetAllAsync().Returns(new List<UsuarioInfo>
         {
-            new("u-1", "sem.nome@lab.com", null, null, "Tecnico", new List<string>(), false, false),
+            new("u-1", "sem.nome@lab.com", null, null, "Professor", new List<string>(), false, false),
         });
 
         var nomes = (await _sut.ListarNomesAsync()).ToList();

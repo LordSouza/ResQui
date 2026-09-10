@@ -29,7 +29,7 @@ public class AuthSegurancaTests
     }
 
     private static UsuarioInfo User2fa(bool twoFactor) =>
-        new("u1", "ana@lab.com", "Ana", "M1", "Gestor", ["Gestor"], false, twoFactor);
+        new("u1", "ana@lab.com", "Ana", "M1", "Professor", ["Professor"], false, twoFactor);
 
     [Fact]
     public async Task Login_Com2faSemCodigo_RetornaRequires2fa()

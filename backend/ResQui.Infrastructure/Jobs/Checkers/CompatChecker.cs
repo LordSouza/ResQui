@@ -14,7 +14,7 @@ public class CompatChecker(
     IEmailService email,
     ILogger<CompatChecker> logger)
 {
-    private static readonly string[] PapeisElegiveis = ["Admin", "Gestor"];
+    private static readonly string[] PapeisElegiveis = ["Professor"];
     private static readonly string[] Descricoes = ["Compatível", "Cautela", "Perigo", "Proibido"];
 
     public async Task RunAsync(CancellationToken ct = default)

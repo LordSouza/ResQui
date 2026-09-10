@@ -15,7 +15,7 @@ public class ColetaCheckerTests
     private readonly IEmailService _email = Substitute.For<IEmailService>();
     private readonly ColetaChecker _sut;
 
-    private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Admin", null, "Admin", ["Admin"], false);
+    private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Professor", null, "Professor", ["Professor"], false);
 
     public ColetaCheckerTests() => _sut = new ColetaChecker(_residuos, _notifs, _auth, _email, NullLogger<ColetaChecker>.Instance);
 

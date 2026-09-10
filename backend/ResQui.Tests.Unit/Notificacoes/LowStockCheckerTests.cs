@@ -15,7 +15,7 @@ public class LowStockCheckerTests
     private readonly IEmailService _email = Substitute.For<IEmailService>();
     private readonly LowStockChecker _sut;
 
-    private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Admin", null, "Admin", ["Admin"], false);
+    private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Professor", null, "Professor", ["Professor"], false);
 
     public LowStockCheckerTests() => _sut = new LowStockChecker(_reagentes, _notifs, _auth, _email, NullLogger<LowStockChecker>.Instance);
 

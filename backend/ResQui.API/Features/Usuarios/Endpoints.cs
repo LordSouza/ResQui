@@ -17,7 +17,7 @@ public static class Endpoints
             var profile = await authSvc.RegisterAsync(cmd, email);
             return Results.Created($"/api/usuarios/{profile.Id}", profile);
         })
-        .RequireAuthorization("Admin");
+        .RequireAuthorization("Administracao");
 
         group.MapPut("/{id}/papel", async (string id, AlterarPapelCmd cmd, IUsuariosService svc, ClaimsPrincipal user) =>
         {
@@ -50,7 +50,7 @@ public static class Endpoints
             var ok = await authSvc.ResetarSegundoFatorAsync(id, requesterId, email);
             return ok ? Results.NoContent() : Results.NotFound();
         })
-        .RequireAuthorization("Admin");
+        .RequireAuthorization("Administracao");
 
         return group;
     }

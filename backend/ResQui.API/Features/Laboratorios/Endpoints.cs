@@ -22,7 +22,7 @@ public static class Endpoints
             var l = await svc.CriarAsync(cmd, email);
             return Results.Created($"/api/laboratorios/{l.Id}", l);
         })
-        .RequireAuthorization("Gestor");
+        .RequireAuthorization("Cadastro");
 
         group.MapPut("/{id}", async (string id, AtualizarLaboratorioCmd cmd, ILaboratoriosService svc, ClaimsPrincipal user) =>
         {
@@ -30,7 +30,7 @@ public static class Endpoints
             var l = await svc.AtualizarAsync(id, cmd, email);
             return l is null ? Results.NotFound() : Results.Ok(l);
         })
-        .RequireAuthorization("Gestor");
+        .RequireAuthorization("Cadastro");
 
         group.MapDelete("/{id}", async (string id, ILaboratoriosService svc, ClaimsPrincipal user) =>
         {
@@ -38,7 +38,7 @@ public static class Endpoints
             var ok = await svc.DeletarAsync(id, email);
             return ok ? Results.NoContent() : Results.NotFound();
         })
-        .RequireAuthorization("Admin");
+        .RequireAuthorization("Administracao");
 
         return group;
     }

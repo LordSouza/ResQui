@@ -239,7 +239,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
             throw new ValidationException("E-mail inválido.");
         if (string.IsNullOrWhiteSpace(cmd.Senha))
             throw new ValidationException("Senha é obrigatória.");
-        string[] papeisValidos = ["Admin", "Gestor", "Professor", "Tecnico", "Pesquisador", "Visualizador"];
+        string[] papeisValidos = ["Professor", "Aluno"];
         if (!papeisValidos.Contains(cmd.Papel))
             throw new ValidationException($"Papel inválido: {cmd.Papel}.");
 

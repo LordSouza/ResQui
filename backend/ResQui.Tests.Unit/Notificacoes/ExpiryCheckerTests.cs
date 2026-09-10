@@ -16,8 +16,8 @@ public class ExpiryCheckerTests
     private readonly IEmailService _email = Substitute.For<IEmailService>();
     private readonly ExpiryChecker _sut;
 
-    private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Admin", null, "Admin", ["Admin"], false);
-    private static readonly UsuarioInfo Viewer = new("u-view", "view@x.com", "View", null, "Visualizador", ["Visualizador"], false);
+    private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Professor", null, "Professor", ["Professor"], false);
+    private static readonly UsuarioInfo Viewer = new("u-view", "view@x.com", "View", null, "Aluno", ["Aluno"], false);
 
     public ExpiryCheckerTests() => _sut = new ExpiryChecker(_reagentes, _notifs, _auth, _email, NullLogger<ExpiryChecker>.Instance);
 

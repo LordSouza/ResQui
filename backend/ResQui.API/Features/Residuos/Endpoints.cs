@@ -28,7 +28,7 @@ public static class Endpoints
             var r = await svc.AtualizarAsync(id, cmd, email);
             return r is null ? Results.NotFound() : Results.Ok(r);
         })
-        .RequireAuthorization("Tecnico");
+        .RequireAuthorization("Operacao");
 
         // RF06 — aprovar/rejeitar solicitação de descarte. Aprovador: Admin, Gestor ou Professor.
         group.MapPut("/{id:int}/aprovar", async (int id, IResiduosService svc, ClaimsPrincipal user) =>

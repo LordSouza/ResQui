@@ -32,8 +32,8 @@ public class LoginLockoutTests
     }
 
     private static UsuarioInfo User(bool doisFatores = false) => new(
-        "user-1", "ana@lab.com", "Ana Silva", "M-001", "Gestor",
-        new List<string> { "Gestor" }, false, doisFatores);
+        "user-1", "ana@lab.com", "Ana Silva", "M-001", "Professor",
+        new List<string> { "Professor" }, false, doisFatores);
 
     [Fact]
     public async Task Login_ThrottleEsgotado_RecusaSemConsultarUsuario()

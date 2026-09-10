@@ -113,7 +113,7 @@ public class CompatAcoesServiceTests
         _auth.GetAllAsync().Returns(usuarios.AsEnumerable());
 
     private static UsuarioInfo Usuario(string id, string email, string? nome, bool arquivado = false) =>
-        new(id, email, nome, null, "Tecnico", new List<string> { "Tecnico" }, arquivado, false);
+        new(id, email, nome, null, "Professor", new List<string> { "Professor" }, arquivado, false);
 
     [Fact]
     public async Task Notificar_CriaUmaNotificacaoParaCadaResponsavelResolvidoPeloNome()

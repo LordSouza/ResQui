@@ -23,7 +23,7 @@ public static class Endpoints
             var m = await svc.CriarAsync(cmd, userId, email);
             return Results.Created($"/api/mtrs/{m.Id}", m);
         })
-        .RequireAuthorization("Tecnico");
+        .RequireAuthorization("Operacao");
 
         group.MapGet("/{id:int}/pdf", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
         {
@@ -42,7 +42,7 @@ public static class Endpoints
             var m = await svc.ConfirmarDestinacaoAsync(id, cmd, userId, email);
             return m is null ? Results.NotFound() : Results.Ok(m);
         })
-        .RequireAuthorization("Tecnico");
+        .RequireAuthorization("Operacao");
 
         group.MapDelete("/{id:int}/destinacao", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
         {
@@ -51,7 +51,7 @@ public static class Endpoints
                 ? Results.NoContent()
                 : Results.NotFound();
         })
-        .RequireAuthorization("Gestor");
+        .RequireAuthorization("Cadastro");
 
         return group;
     }

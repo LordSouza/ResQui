@@ -425,7 +425,7 @@ public class MtrsServiceTests
         _repo.GetByIdAsync(1).Returns(mtr);
         _residuosRepo.GetAllAsync().Returns([FakeResiduo(10, mtrId: 1)]);
         _auth.FindByIdIncluindoArquivadosAsync("user9").Returns(
-            new UsuarioInfo("user9", "maria@resqui.local", "Maria Souza", null, "Tecnico", [], false));
+            new UsuarioInfo("user9", "maria@resqui.local", "Maria Souza", null, "Professor", [], false));
         _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
 
         await _sut.GerarPdfAsync(1, "admin@resqui.local");
@@ -442,7 +442,7 @@ public class MtrsServiceTests
         _repo.GetByIdAsync(1).Returns(mtr);
         _residuosRepo.GetAllAsync().Returns([FakeResiduo(10, mtrId: 1)]);
         _auth.FindByIdIncluindoArquivadosAsync("user9").Returns(
-            new UsuarioInfo("user9", "joao@resqui.local", null, null, "Tecnico", [], true));
+            new UsuarioInfo("user9", "joao@resqui.local", null, null, "Professor", [], true));
         _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
 
         await _sut.GerarPdfAsync(1, "admin@resqui.local");

@@ -11,7 +11,7 @@ public static class Endpoints
         // (MtrScreen, Tecnico+) e FormConfigurarPgrs (RelatoriosScreen, Admin/Gestor).
         group.MapGet("/", async (IPgrsConfigService svc) =>
             Results.Ok(await svc.ObterAsync()))
-            .RequireAuthorization("Tecnico");
+            .RequireAuthorization("Operacao");
 
         // Recorte só com razão social e unidade, para o cabeçalho do resumo de segurança — que é
         // um documento de segurança e precisa identificar a instituição para qualquer papel,
@@ -25,7 +25,7 @@ public static class Endpoints
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             return Results.Ok(await svc.SalvarAsync(cmd, email));
         })
-        .RequireAuthorization("Gestor");
+        .RequireAuthorization("Cadastro");
 
         return group;
     }

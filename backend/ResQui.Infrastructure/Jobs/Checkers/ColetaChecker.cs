@@ -12,7 +12,7 @@ public class ColetaChecker(
     IEmailService email,
     ILogger<ColetaChecker> logger)
 {
-    private static readonly string[] PapeisElegiveis = ["Admin", "Gestor"];
+    private static readonly string[] PapeisElegiveis = ["Professor"];
 
     public async Task RunAsync(CancellationToken ct = default)
     {

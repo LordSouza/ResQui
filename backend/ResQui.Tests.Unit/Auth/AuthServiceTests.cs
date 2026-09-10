@@ -34,15 +34,15 @@ public class AuthServiceTests
     }
 
     private static UsuarioInfo FakeUser() => new(
-        "user-1", "ana@lab.com", "Ana Silva", "M-001", "Gestor",
-        new List<string> { "Gestor" }, false);
+        "user-1", "ana@lab.com", "Ana Silva", "M-001", "Professor",
+        new List<string> { "Professor" }, false);
 
     [Fact]
     public async Task LoginAsync_CredenciaisValidas_RegistraAuditoria()
     {
         _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser());
         _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
-        _repo.GetRolesAsync("user-1").Returns(new List<string> { "Gestor" });
+        _repo.GetRolesAsync("user-1").Returns(new List<string> { "Professor" });
 
         await _sut.LoginAsync(new LoginCmd("ana@lab.com", "senha123"));
 
@@ -82,9 +82,9 @@ public class AuthServiceTests
         _repo.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
             Arg.Any<string>(), Arg.Any<string?>()).Returns("new-user-id");
         _repo.AddToRoleAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(Task.CompletedTask);
-        _repo.GetRolesAsync("new-user-id").Returns(new List<string> { "Tecnico" });
+        _repo.GetRolesAsync("new-user-id").Returns(new List<string> { "Professor" });
 
-        var cmd = new RegisterCmd("novo@lab.com", "senha123", null, "Tecnico", "Novo User");
+        var cmd = new RegisterCmd("novo@lab.com", "senha123", null, "Professor", "Novo User");
         await _sut.RegisterAsync(cmd, "admin@lab.com");
 
         await _audit.Received(1).RegistrarAsync(
@@ -96,7 +96,7 @@ public class AuthServiceTests
     [Fact]
     public async Task LoginAsync_ValidCredentials_ReturnsToken()
     {
-        var user = new UsuarioInfo("u1", "admin@resqui.local", null, null, "Admin", ["Admin"], false);
+        var user = new UsuarioInfo("u1", "admin@resqui.local", null, null, "Professor", ["Professor"], false);
         _repo.FindByEmailAsync("admin@resqui.local").Returns(user);
         _repo.CheckPasswordAsync("u1", "Admin@123").Returns(true);
 
@@ -112,7 +112,7 @@ public class AuthServiceTests
     [Fact]
     public async Task LoginAsync_WrongPassword_ReturnsNull()
     {
-        var user = new UsuarioInfo("u1", "admin@resqui.local", null, null, "Admin", ["Admin"], false);
+        var user = new UsuarioInfo("u1", "admin@resqui.local", null, null, "Professor", ["Professor"], false);
         _repo.FindByEmailAsync("admin@resqui.local").Returns(user);
         _repo.CheckPasswordAsync("u1", "wrong").Returns(false);
 
@@ -134,7 +134,7 @@ public class AuthServiceTests
     [Fact]
     public async Task GetMeAsync_ExistingId_ReturnsProfile()
     {
-        var user = new UsuarioInfo("u1", "admin@resqui.local", "Admin Resqui", "MAT-001", "Admin", ["Admin"], false);
+        var user = new UsuarioInfo("u1", "admin@resqui.local", "Admin Resqui", "MAT-001", "Professor", ["Professor"], false);
         _repo.FindByIdAsync("u1").Returns(user);
 
         var result = await _sut.GetMeAsync("u1");
@@ -150,7 +150,7 @@ public class AuthServiceTests
     [InlineData("  ")]
     public async Task RegisterAsync_EmailInvalido_LancaValidationException(string email)
     {
-        var cmd = new RegisterCmd(email, "Senha@123", null, "Tecnico", "Ana");
+        var cmd = new RegisterCmd(email, "Senha@123", null, "Professor", "Ana");
         var act = () => _sut.RegisterAsync(cmd, "admin@x.com");
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*E-mail*");
     }
@@ -158,7 +158,7 @@ public class AuthServiceTests
     [Fact]
     public async Task RegisterAsync_SenhaVazia_LancaValidationException()
     {
-        var cmd = new RegisterCmd("ana@x.com", "", null, "Tecnico", "Ana");
+        var cmd = new RegisterCmd("ana@x.com", "", null, "Professor", "Ana");
         var act = () => _sut.RegisterAsync(cmd, "admin@x.com");
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Senha*");
     }
@@ -174,24 +174,24 @@ public class AuthServiceTests
     [Fact]
     public async Task RegisterAsync_ValidCmd_ReturnsProfile()
     {
-        _repo.CreateAsync("new@resqui.local", "Pass@123", "MAT-002", "Tecnico", "Novo Usuário")
+        _repo.CreateAsync("new@resqui.local", "Pass@123", "MAT-002", "Professor", "Novo Usuário")
              .Returns("u2");
-        _repo.GetRolesAsync("u2").Returns((IList<string>)["Tecnico"]);
+        _repo.GetRolesAsync("u2").Returns((IList<string>)["Professor"]);
 
         var result = await _sut.RegisterAsync(
-            new RegisterCmd("new@resqui.local", "Pass@123", "MAT-002", "Tecnico", "Novo Usuário"),
+            new RegisterCmd("new@resqui.local", "Pass@123", "MAT-002", "Professor", "Novo Usuário"),
             "admin@resqui.local");
 
         result.Email.Should().Be("new@resqui.local");
-        result.Papel.Should().Be("Tecnico");
+        result.Papel.Should().Be("Professor");
         result.Nome.Should().Be("Novo Usuário");
-        result.Roles.Should().Contain("Tecnico");
-        await _repo.Received(1).AddToRoleAsync("u2", "Tecnico");
+        result.Roles.Should().Contain("Professor");
+        await _repo.Received(1).AddToRoleAsync("u2", "Professor");
     }
 
     [Theory]
     [InlineData("Professor")]
-    [InlineData("Pesquisador")]
+    [InlineData("Aluno")]
     public async Task RegisterAsync_PapelNovo_Aceito(string papel)
     {
         _repo.CreateAsync("novo@resqui.local", "Pass@123", null, papel, "Novo")
@@ -227,8 +227,8 @@ public class AuthServiceTests
     [Fact]
     public async Task AtualizarPerfilAsync_EmailEmUsoPorOutro_LancaValidation()
     {
-        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana", null, "Tecnico", new List<string>(), false));
-        _repo.FindByEmailAsync("outro@x.com").Returns(new UsuarioInfo("u2", "outro@x.com", "Bea", null, "Tecnico", new List<string>(), false));
+        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana", null, "Professor", new List<string>(), false));
+        _repo.FindByEmailAsync("outro@x.com").Returns(new UsuarioInfo("u2", "outro@x.com", "Bea", null, "Professor", new List<string>(), false));
 
         var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana", "outro@x.com"), "req@x.com"));
@@ -251,7 +251,7 @@ public class AuthServiceTests
         // FindByIdAsync é chamado tanto na checagem inicial quanto no GetMeAsync final;
         // já retorna o estado pós-atualização (nome/e-mail novos) para refletir o que
         // aconteceria após UpdateProfileAsync persistir no repositório real.
-        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana Souza", null, "Tecnico", new List<string> { "Tecnico" }, false));
+        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana Souza", null, "Professor", new List<string> { "Professor" }, false));
 
         var result = await _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana Souza", "ana@x.com"), "req@x.com");
 
@@ -266,7 +266,7 @@ public class AuthServiceTests
     [Fact]
     public async Task AtualizarPerfilAsync_EmailMudouEDisponivel_PersisteComNovoEmail()
     {
-        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana", null, "Tecnico", new List<string> { "Tecnico" }, false));
+        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo("u1", "ana@x.com", "Ana", null, "Professor", new List<string> { "Professor" }, false));
         _repo.FindByEmailAsync("nova@x.com").Returns((UsuarioInfo?)null);
 
         await _sut.AtualizarPerfilAsync("u1", new AtualizarPerfilCmd("Ana", "nova@x.com"), "req@x.com");
@@ -278,8 +278,8 @@ public class AuthServiceTests
     }
 
     private static UsuarioInfo FakeUser2fa() => new(
-        "user-1", "ana@lab.com", "Ana Silva", "M-001", "Gestor",
-        new List<string> { "Gestor" }, false, true);
+        "user-1", "ana@lab.com", "Ana Silva", "M-001", "Professor",
+        new List<string> { "Professor" }, false, true);
 
     [Fact]
     public async Task LoginAsync_TotpValido_NaoTentaResgatarCodigoDeRecuperacao()
@@ -614,8 +614,8 @@ public class AuthServiceTests
     // ---------- Reset de 2FA por Admin ----------
 
     private static UsuarioInfo AlvoComMfa() => new(
-        "alvo-9", "bruno@lab.com", "Bruno Lima", "M-009", "Tecnico",
-        new List<string> { "Tecnico" }, false, true);
+        "alvo-9", "bruno@lab.com", "Bruno Lima", "M-009", "Professor",
+        new List<string> { "Professor" }, false, true);
 
     [Fact]
     public async Task ResetarSegundoFatorAsync_ProprioUsuario_LancaSemEfeitoColateral()
@@ -695,5 +695,33 @@ public class AuthServiceTests
 
         ok.Should().BeTrue();
         await _repo.Received(1).SetTwoFactorEnabledAsync("alvo-9", false);
+    }
+
+    [Theory]
+    [InlineData("Professor")]
+    [InlineData("Aluno")]
+    public async Task RegisterAsync_AceitaOsDoisPapeisDoSistema(string papel)
+    {
+        _repo.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), papel, Arg.Any<string?>())
+            .Returns("u1");
+
+        var perfil = await _sut.RegisterAsync(
+            new RegisterCmd("nova@resqui.local", "Senh@123", null, papel, "Nova"), "admin@resqui.local");
+
+        perfil.Papel.Should().Be(papel);
+    }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("Gestor")]
+    [InlineData("Tecnico")]
+    [InlineData("Pesquisador")]
+    [InlineData("Visualizador")]
+    public async Task RegisterAsync_RecusaOsPapeisExtintos(string papel)
+    {
+        var act = () => _sut.RegisterAsync(
+            new RegisterCmd("nova@resqui.local", "Senh@123", null, papel, "Nova"), "admin@resqui.local");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Papel inválido*");
     }
 }

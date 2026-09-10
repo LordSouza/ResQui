@@ -12,7 +12,7 @@ public class LowStockChecker(
     IEmailService email,
     ILogger<LowStockChecker> logger)
 {
-    private static readonly string[] PapeisElegiveis = ["Admin", "Gestor", "Tecnico"];
+    private static readonly string[] PapeisElegiveis = ["Professor"];
 
     public async Task RunAsync(CancellationToken ct = default)
     {

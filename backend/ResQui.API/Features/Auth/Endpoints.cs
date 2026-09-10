@@ -96,7 +96,7 @@ public static class Endpoints
             var profile = await svc.RegisterAsync(cmd, email);
             return Results.Created($"/api/auth/me", profile);
         })
-        .RequireAuthorization("Admin")
+        .RequireAuthorization("Administracao")
         .WithName("Register")
         .WithSummary("Criar novo usuário (Admin only)");
 

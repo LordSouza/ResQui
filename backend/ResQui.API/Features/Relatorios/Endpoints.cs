@@ -19,7 +19,7 @@ public static class Endpoints
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
             var dto = await svc.GerarAsync(cmd, userId);
             return Results.Created($"/api/relatorios/{dto.Id}", dto);
-        }).RequireAuthorization("Gestor");
+        }).RequireAuthorization("Cadastro");
 
         group.MapGet("/{id:int}/download", async (int id, IRelatoriosService svc) =>
         {

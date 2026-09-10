@@ -114,12 +114,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization(opts =>
 {
-    opts.AddPolicy("Gestor",  p => p.RequireRole("Admin", "Gestor"));
-    opts.AddPolicy("Admin",   p => p.RequireRole("Admin"));
-    opts.AddPolicy("Tecnico", p => p.RequireRole("Admin", "Gestor", "Tecnico")); // mutações operacionais — exclui Visualizador
-    opts.AddPolicy("Operacional", p => p.RequireRole("Admin", "Gestor", "Tecnico", "Pesquisador", "Professor")); // solicitar descarte + baixa (inclui aluno/professor)
-    opts.AddPolicy("Aprovador",   p => p.RequireRole("Admin", "Gestor", "Professor")); // aprovar/rejeitar descarte (RF06)
-    opts.AddPolicy("Supervisao",  p => p.RequireRole("Admin", "Gestor", "Professor")); // leitura supervisora (auditoria)
+    opts.AddPolicy("Administracao", p => p.RequireRole("Professor")); // usuários, papéis, 2FA, exclusões definitivas
+    opts.AddPolicy("Cadastro",      p => p.RequireRole("Professor")); // cadastros, relatórios, configuração institucional
+    opts.AddPolicy("Operacao",      p => p.RequireRole("Professor")); // manifesto, lotes, edição de resíduo
+    opts.AddPolicy("Operacional",   p => p.RequireRole("Professor", "Aluno")); // solicitar descarte + baixa
+    opts.AddPolicy("Aprovador",     p => p.RequireRole("Professor")); // aprovar/rejeitar descarte (RF06)
+    opts.AddPolicy("Supervisao",    p => p.RequireRole("Professor")); // leitura do log de auditoria
 });
 
 // CORS — allow frontend Vite origin
@@ -197,8 +197,8 @@ app.MapGroup("/api/residuos").RequireAuthorization().MapResiduosEndpoints();
 app.MapGroup("/api/mtrs").RequireAuthorization().MapMtrsEndpoints();
 app.MapGroup("/api/auditoria").RequireAuthorization("Supervisao").MapAuditoriaEndpoints();
 app.MapGet("/api/usuarios/nomes", async (IUsuariosService svc) =>
-    Results.Ok(await svc.ListarNomesAsync())).RequireAuthorization("Gestor");
-app.MapGroup("/api/usuarios").RequireAuthorization("Admin").MapUsuariosEndpoints();
+    Results.Ok(await svc.ListarNomesAsync())).RequireAuthorization("Cadastro");
+app.MapGroup("/api/usuarios").RequireAuthorization("Administracao").MapUsuariosEndpoints();
 app.MapGroup("/api/compat").RequireAuthorization().MapCompatEndpoints();
 app.MapGroup("/api/notificacoes").RequireAuthorization().MapNotificacoesEndpoints();
 app.MapGroup("/api/relatorios").RequireAuthorization().MapRelatoriosEndpoints();

@@ -32,7 +32,7 @@ public static class Endpoints
             var r = await svc.CriarAsync(cmd, email);
             return Results.Created($"/api/reagentes/{r.Id}", r);
         })
-        .RequireAuthorization("Gestor");
+        .RequireAuthorization("Cadastro");
 
         group.MapPost("/importar-lote", async (CriarReagenteCmd[] cmds, IReagentesService svc, ClaimsPrincipal user) =>
         {
@@ -40,7 +40,7 @@ public static class Endpoints
             var result = await svc.ImportarLoteAsync(cmds, email);
             return Results.Ok(result);
         })
-        .RequireAuthorization("Gestor");
+        .RequireAuthorization("Cadastro");
 
         group.MapPut("/{id}", async (string id, AtualizarReagenteCmd cmd, IReagentesService svc, ClaimsPrincipal user) =>
         {
@@ -48,7 +48,7 @@ public static class Endpoints
             var r = await svc.AtualizarAsync(id, cmd, email);
             return r is null ? Results.NotFound() : Results.Ok(r);
         })
-        .RequireAuthorization("Gestor");
+        .RequireAuthorization("Cadastro");
 
         group.MapDelete("/{id}", async (string id, IReagentesService svc, ClaimsPrincipal user) =>
         {
@@ -56,7 +56,7 @@ public static class Endpoints
             var ok = await svc.DeletarAsync(id, email);
             return ok ? Results.NoContent() : Results.NotFound();
         })
-        .RequireAuthorization("Admin");
+        .RequireAuthorization("Administracao");
 
         group.MapPost("/{id}/baixa", async (string id, BaixaCmd cmd, IReagentesService svc, ClaimsPrincipal user) =>
         {
@@ -92,7 +92,7 @@ public static class Endpoints
             var lote = await svc.CriarLoteAsync(id, cmd, email);
             return lote is null ? Results.NotFound() : Results.Created($"/api/reagentes/{id}/lotes/{lote.Id}", lote);
         })
-        .RequireAuthorization("Tecnico");
+        .RequireAuthorization("Operacao");
 
         group.MapPost("/{id}/lotes/{loteId:int}/baixa", async (string id, int loteId, BaixaCmd cmd, IReagentesService svc, ClaimsPrincipal user) =>
         {
@@ -100,7 +100,7 @@ public static class Endpoints
             var lote = await svc.BaixaLoteAsync(id, loteId, cmd, email);
             return lote is null ? Results.NotFound() : Results.Ok(lote);
         })
-        .RequireAuthorization("Tecnico");
+        .RequireAuthorization("Operacao");
 
         group.MapGet("/{id}/rotulo", async (string id, IReagentesService svc, ClaimsPrincipal user) =>
         {
