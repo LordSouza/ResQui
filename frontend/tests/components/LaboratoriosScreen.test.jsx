@@ -65,7 +65,7 @@ describe('LaboratoriosScreen', () => {
   });
 });
 
-// POST/PUT /api/laboratorios exigem a policy Gestor; DELETE exige Admin.
+// POST/PUT /api/laboratorios exigem a policy Cadastro; DELETE exige Administracao.
 describe('LaboratoriosScreen — permissões', () => {
   const renderCom = (papel) => {
     useAuth.mockReturnValue({ user: { id: 'u-1', papel } });

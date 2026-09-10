@@ -15,7 +15,7 @@ public static class Endpoints
 
         // Recorte só com razão social e unidade, para o cabeçalho do resumo de segurança — que é
         // um documento de segurança e precisa identificar a instituição para qualquer papel,
-        // inclusive Pesquisador e Visualizador. Por isso exige apenas autenticação.
+        // inclusive o Aluno. Por isso exige apenas autenticação.
         group.MapGet("/identificacao", async (IPgrsConfigService svc) =>
             Results.Ok(await svc.ObterIdentificacaoAsync()))
             .RequireAuthorization();

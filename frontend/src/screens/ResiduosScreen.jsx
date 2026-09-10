@@ -20,8 +20,8 @@ export function ResiduosScreen({ state, dispatch }) {
   const { data: residuos = [], isPending, isError, refetch } = useResíduos();
   const podeAprovar = usePode('Aprovador');     // PUT /api/residuos/:id/aprovar|rejeitar (RF06)
   const podeRegistrar = usePode('Operacional'); // POST /api/residuos
-  // PUT /api/residuos/:id exige a policy Tecnico — Pesquisador e Professor criam resíduo
-  // (Operacional) mas não o editam, e sem este gate o botão só rendia 403 ao salvar.
+  // PUT /api/residuos/:id exige a policy Operacao — o Aluno cria resíduo (Operacional) mas não
+  // o edita, e sem este gate o botão só rendia 403 ao salvar.
   const podeEditar = usePode('Operacao');
   const aprovar = useAprovarResiduo();
 

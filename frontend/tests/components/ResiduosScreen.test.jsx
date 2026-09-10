@@ -35,8 +35,8 @@ beforeEach(() => {
   useAprovarResiduo.mockReturnValue({ mutate: vi.fn(), isPending: false });
 });
 
-describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
-  // PUT /api/residuos/:id exige a policy Tecnico (Admin, Gestor, Tecnico).
+describe('ResiduosScreen — botão Editar respeita a policy Operacao', () => {
+  // PUT /api/residuos/:id exige a policy Operacao, que só o Professor tem.
   it.each(['Professor', 'Professor', 'Professor'])('mostra "Editar" para %s', (papel) => {
     renderCom(papel);
     expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument();

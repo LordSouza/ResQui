@@ -8,7 +8,7 @@ public record ConfiguracaoPgrsDto(
 
 // Recorte legível por qualquer autenticado: identifica a instituição no cabeçalho do resumo de
 // segurança (ResumoSeguranca.jsx). Deliberadamente sem CNPJ, endereço e contatos do responsável
-// técnico — esses continuam só no ConfiguracaoPgrsDto, atrás da policy Tecnico.
+// técnico — esses continuam só no ConfiguracaoPgrsDto, atrás da policy Operacao.
 public record IdentificacaoPgrsDto(string RazaoSocial, string Unidade);
 
 public record AtualizarConfiguracaoPgrsCmd(

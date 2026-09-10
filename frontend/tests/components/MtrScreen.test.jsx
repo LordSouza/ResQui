@@ -43,7 +43,7 @@ describe('MtrScreen', () => {
     expect(screen.getAllByText('MTR-2026-0001').length).toBeGreaterThan(0);
   });
 
-  // POST /api/mtrs exige a policy Tecnico.
+  // POST /api/mtrs exige a policy Operacao.
   it.each(['Professor', 'Professor', 'Professor'])('mostra "Novo manifesto" para %s', (papel) => {
     renderCom(papel);
     expect(screen.getByRole('button', { name: /Novo manifesto/i })).toBeInTheDocument();
@@ -70,7 +70,7 @@ const comDestinado = () =>
   useMtrs.mockReturnValue({ data: [destinado], isPending: false, isError: false, refetch: vi.fn() });
 
 describe('MtrScreen · destinação', () => {
-  // POST /api/mtrs/:id/destinacao exige a policy Tecnico.
+  // POST /api/mtrs/:id/destinacao exige a policy Operacao.
   it.each(['Professor', 'Professor', 'Professor'])('mostra "Confirmar destinação" para %s', (papel) => {
     renderCom(papel);
     expect(screen.getByRole('button', { name: /Confirmar destinação/i })).toBeInTheDocument();

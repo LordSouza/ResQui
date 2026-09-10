@@ -59,8 +59,8 @@ function imprimirFolha() {
 export function ResumoSeguranca({ onClose, reagente }) {
   const { data: matriz, isPending: matrizPendente, isError: matrizErro } = useCompatMatriz();
   // Recorte de identificação, não a configuração inteira: o resumo é aberto por qualquer papel,
-  // e GET /api/pgrs-config exige Tecnico — pedi-lo aqui devolvia 403 para Pesquisador,
-  // Professor e Visualizador, e a folha saía sem identificar a instituição.
+  // e GET /api/pgrs-config exige a policy Operacao — pedi-lo aqui devolvia 403 para o Aluno,
+  // e a folha saía sem identificar a instituição.
   const { data: cfg } = useIdentificacaoPgrs();
   const r = reagente;
   if (!r) return null;

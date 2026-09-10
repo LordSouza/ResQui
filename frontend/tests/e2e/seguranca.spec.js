@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ADMIN, apiAuth, ensureLab, totp, criarResiduoAguardandoColeta, seedPgrsConfig } from './seed';
 
-// Visualizador não pode mutar estoque/resíduos/MTRs (item: autorização fina).
+// Aluno solicita descarte, mas não edita resíduo nem opera manifesto (item: autorização fina).
 test('Aluno cria resíduo mas é bloqueado ao editá-lo', async ({ request }) => {
   const auth = await apiAuth(request); // admin cria o usuário
   const email = `aluno_${Date.now()}@resqui.local`;
@@ -92,7 +92,7 @@ test('sessões lista a sessão atual e revogar-outras não derruba ela', async (
   expect(ok.ok()).toBeTruthy();
 });
 
-// RF06 / atores do artigo: Pesquisador solicita descarte + baixa, mas não cria MTR.
+// RF06 / atores do artigo: o Aluno solicita descarte + baixa, mas não cria MTR.
 test('Aluno cria resíduo mas é bloqueado em MTR', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `pesq_${Date.now()}@resqui.local`;
@@ -108,7 +108,7 @@ test('Aluno cria resíduo mas é bloqueado em MTR', async ({ request }) => {
   const criar = await request.post('/api/residuos', {
     headers: pesqAuth,
     data: {
-      Descricao: 'descarte pesquisador', LaboratorioId: lab.id, Tipo: 'x',
+      Descricao: 'descarte do aluno', LaboratorioId: lab.id, Tipo: 'x',
       Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [5],
     },
   });
@@ -150,7 +150,7 @@ test('Professor aprova descarte solicitado', async ({ request }) => {
   expect(atualizado.status).toBe('aguardando-coleta');
 });
 
-// Pesquisador não está na policy Aprovador (Admin/Gestor/Professor) — aprovar deve ser 403.
+// O Aluno não está na policy Aprovador — aprovar deve ser 403.
 test('Aluno é bloqueado ao aprovar descarte', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `pesq2_${Date.now()}@resqui.local`;
@@ -167,7 +167,7 @@ test('Aluno é bloqueado ao aprovar descarte', async ({ request }) => {
   const criar = await request.post('/api/residuos', {
     headers: auth,
     data: {
-      Descricao: 'descarte p/ bloqueio pesquisador', LaboratorioId: lab.id, Tipo: 'x',
+      Descricao: 'descarte p/ bloqueio aluno', LaboratorioId: lab.id, Tipo: 'x',
       Volume: 1, Unidade: 'L', Composicao: 'x', Risco: 'baixo', ClassesReatividade: [5],
     },
   });
@@ -177,7 +177,7 @@ test('Aluno é bloqueado ao aprovar descarte', async ({ request }) => {
   expect(aprovar.status()).toBe(403);
 });
 
-// Professor não está na policy Tecnico (Admin/Gestor/Tecnico) — criar MTR deve ser 403.
+// O Aluno não está na policy Operacao — criar MTR deve ser 403.
 test('Aluno é bloqueado ao criar MTR', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `aluno_mtr_${Date.now()}@resqui.local`;
@@ -485,7 +485,7 @@ test('pgrs-config/identificacao é aberto a Aluno e não vaza os campos restrito
   expect((await request.get('/api/pgrs-config', { headers })).status()).toBe(403);
 });
 
-// Confirmar destinação exige a policy Tecnico (Admin/Gestor/Tecnico) — Pesquisador deve levar 403.
+// Confirmar destinação exige a policy Operacao — o Aluno deve levar 403.
 test('Aluno não confirma destinação de MTR', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `pesq3_${Date.now()}@resqui.local`;

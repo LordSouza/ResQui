@@ -150,7 +150,7 @@ describe('ResumoSeguranca', () => {
   });
 
   // O resumo é aberto por qualquer papel; GET /api/pgrs-config exige Tecnico e devolveria 403
-  // para Pesquisador/Professor/Visualizador. Só o recorte de identificação é aberto.
+  // para quem não tem a policy Operacao. Só o recorte de identificação é aberto.
   it('busca a instituição no endpoint de identificação, não na configuração completa', async () => {
     renderCom();
 
