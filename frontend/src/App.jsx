@@ -9,7 +9,6 @@ import { useMarcarLida } from './notificacoes/useMarcarLida';
 import { useMarcarTodasLidas } from './notificacoes/useMarcarTodasLidas';
 import { pgrsTs, exportCsv, iniciaisUsuario } from './utils';
 import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge } from './components';
-import { BuscaGlobal } from './components/BuscaGlobal';
 import { reducer, initialState } from './store/reducer';
 import { useAtalhosGlobais } from './lib/useAtalhosGlobais';
 
@@ -294,7 +293,6 @@ const notifFootBtn = {
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const buscaRef = useRef(null);
   const { user, token, logout } = useAuth();
   const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
   const { data: identificacao } = useIdentificacaoPgrs({ enabled: !!token });
@@ -303,7 +301,6 @@ export default function App() {
   };
 
   useAtalhosGlobais({
-    onBuscar: () => buscaRef.current?.focus(),
     onChat: () => dispatch({ type: state.chatOpen ? 'closeChat' : 'openChat' }),
   });
 
@@ -404,7 +401,6 @@ export default function App() {
               </>
             )}
           </div>
-          <BuscaGlobal dispatch={dispatch} inputRef={buscaRef}/>
           <NotifBell dispatch={dispatch} papel={user?.papel}/>
           <button type="button" className="topbar-btn" onClick={() => dispatch({type: 'openChat'})}>
             <Icon name="sparkle" size={13}/> IA

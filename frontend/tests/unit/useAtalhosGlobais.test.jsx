@@ -14,24 +14,6 @@ function montar(handlers) {
 describe('useAtalhosGlobais', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('⌘K chama onBuscar', () => {
-    const onBuscar = vi.fn();
-    montar({ onBuscar });
-
-    fireEvent.keyDown(window, { key: 'k', metaKey: true });
-
-    expect(onBuscar).toHaveBeenCalledTimes(1);
-  });
-
-  it('Ctrl+K também chama onBuscar', () => {
-    const onBuscar = vi.fn();
-    montar({ onBuscar });
-
-    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
-
-    expect(onBuscar).toHaveBeenCalledTimes(1);
-  });
-
   it('⌘/ chama onChat', () => {
     const onChat = vi.fn();
     montar({ onChat });
@@ -42,24 +24,21 @@ describe('useAtalhosGlobais', () => {
   });
 
   it('? não dispara nada — a tela que ele abria não existe mais', () => {
-    const onBuscar = vi.fn();
     const onChat = vi.fn();
-    montar({ onBuscar, onChat });
+    montar({ onChat });
 
     fireEvent.keyDown(window, { key: '?' });
 
-    expect(onBuscar).not.toHaveBeenCalled();
     expect(onChat).not.toHaveBeenCalled();
   });
 
-  it('⌘K dentro de um campo de texto dispara', () => {
-    const onBuscar = vi.fn();
-    const { getByLabelText } = montar({ onBuscar });
-    getByLabelText('campo').focus();
+  it('⌘K não dispara nada — a busca global que ele focava não existe mais', () => {
+    const onChat = vi.fn();
+    montar({ onChat });
 
     fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
-    expect(onBuscar).toHaveBeenCalledTimes(1);
+    expect(onChat).not.toHaveBeenCalled();
   });
 
   it('⌘/ dentro de um campo de texto dispara (precisa fechar o chat a partir do próprio textarea)', () => {
@@ -73,12 +52,12 @@ describe('useAtalhosGlobais', () => {
   });
 
   it('remove o listener ao desmontar', () => {
-    const onBuscar = vi.fn();
-    const { unmount } = montar({ onBuscar });
+    const onChat = vi.fn();
+    const { unmount } = montar({ onChat });
     unmount();
 
-    fireEvent.keyDown(window, { key: 'k', metaKey: true });
+    fireEvent.keyDown(window, { key: '/', metaKey: true });
 
-    expect(onBuscar).not.toHaveBeenCalled();
+    expect(onChat).not.toHaveBeenCalled();
   });
 });
