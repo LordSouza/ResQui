@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useReducer } from 'react';
 import { Icon, Badge } from '../components';
-import { PERMISSION_GROUPS, ROLES } from '../data';
+import { ROLES } from '../data';
 import { exportCsv } from '../utils';
 import { useUsuarios } from '../usuarios/useUsuarios';
 import { useAlterarPapel } from '../usuarios/useAlterarPapel';
 import { useAuth } from '../auth/AuthContext';
-import { podePor } from '../auth/permissoes';
+import { podePor, POLICIES, DESCRICAO_POLICY } from '../auth/permissoes';
 
 // ============== Helpers ==============
 
@@ -96,50 +96,29 @@ export function PermissoesDrawer({ usuario, onClose, dispatch }) {
                     <span className="role-name">{r.label}</span>
                   </div>
                   <div className="role-desc">{r.desc}</div>
-                  <div className="role-foot mono">{r.perms.length} permissões</div>
                 </label>
               ))}
             </div>
           </div>
 
-          {/* Permissões do papel (read-only) */}
+          {/* Capacidades do papel (read-only) */}
           <div className="drawer-section">
             <div className="drawer-section-h">
               <div>
-                <h4>Permissões do papel</h4>
+                <h4>O que este papel pode</h4>
                 <div className="small muted">
-                  Concedidas automaticamente pelo papel <b>{ROLES[papel]?.label ?? papel}</b>. A autorização do sistema é por papel.
+                  Concedido automaticamente pelo papel <b>{ROLES[papel]?.label ?? papel}</b>. A autorização é do servidor.
                 </div>
               </div>
-              <span className="badge gray mono">{(ROLES[papel]?.perms ?? []).length} permissões</span>
             </div>
 
             <div className="perm-list">
-              {PERMISSION_GROUPS.map(g => {
-                const rolePerms = new Set(ROLES[papel]?.perms ?? []);
-                const granted = g.items.filter(([k]) => rolePerms.has(k));
-                if (granted.length === 0) return null;
-                return (
-                  <div key={g.id} className="perm-group">
-                    <div className="perm-group-h">
-                      <div className="row" style={{gap: 8, alignItems: 'center'}}>
-                        <span className="perm-icon"><Icon name={g.icon} size={14}/></span>
-                        <span className="perm-group-name">{g.label}</span>
-                        <span className="badge gray mono small">{granted.length}/{g.items.length}</span>
-                      </div>
-                    </div>
-                    <div className="perm-items">
-                      {granted.map(([k, label]) => (
-                        <div key={k} className="perm-item on">
-                          <span className="check-box"><Icon name="check" size={11}/></span>
-                          <span className="perm-label">{label}</span>
-                          <span className="perm-key mono">{k}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+              {Object.keys(POLICIES).filter(p => POLICIES[p].includes(papel)).map(policy => (
+                <div key={policy} className="perm-item on">
+                  <span className="check-box"><Icon name="check" size={11}/></span>
+                  <span className="perm-label">{DESCRICAO_POLICY[policy]}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -253,7 +232,7 @@ export function UsuariosScreen({ state, dispatch }) {
 
       {!isPending && !isError && (<>
         {/* KPIs por papel */}
-        <div className="kpi-grid" style={{gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 16}}>
+        <div className="kpi-grid" style={{gridTemplateColumns: 'repeat(2, 1fr)', marginBottom: 16}}>
           {Object.entries(ROLES).map(([k, r]) => {
             const n = todos.filter(u => u.papel === k && u.status === 'ativo').length;
             return (
@@ -261,7 +240,7 @@ export function UsuariosScreen({ state, dispatch }) {
                 <div className="kpi-stripe" style={{background: r.cor}}/>
                 <div className="label">{r.label}</div>
                 <div className="value tnum">{n}</div>
-                <div className="delta">{r.perms.length} permissões padrão</div>
+                <div className="delta">{r.desc}</div>
               </button>
             );
           })}

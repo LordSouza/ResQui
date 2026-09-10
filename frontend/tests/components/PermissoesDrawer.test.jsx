@@ -45,4 +45,27 @@ describe('PermissoesDrawer — honesto (papel só)', () => {
     expect(mockFetch.mock.calls[0][1].method).toBe('PUT');
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ NovoPapel: 'Professor' });
   });
+
+  it('lista as capacidades do papel derivadas das policies, não uma lista própria', () => {
+    render(<PermissoesDrawer usuario={usuario} onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    expect(screen.getByText('Solicitar descarte, registrar baixa e transferir reagente')).toBeInTheDocument();
+    expect(screen.queryByText('Consultar o log de auditoria')).toBeNull();
+  });
+
+  it('não exibe as permissões granulares que não autorizavam nada', () => {
+    render(<PermissoesDrawer usuario={usuario} onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    expect(screen.queryByText('Classificar / rotular')).toBeNull();
+    expect(screen.queryByText('Mover entre armários')).toBeNull();
+    expect(screen.queryByText(/permissões padrão/)).toBeNull();
+  });
+
+  it('oferece exatamente os dois papéis do sistema', () => {
+    render(<PermissoesDrawer usuario={usuario} onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.getByRole('radio', { name: 'Professor' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Aluno' })).toBeInTheDocument();
+  });
 });

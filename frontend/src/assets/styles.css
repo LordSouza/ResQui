@@ -1311,7 +1311,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .role-dot { width: 8px; height: 8px; border-radius: 50%; }
 .role-name { font-weight: 600; font-size: 13px; }
 .role-desc { font-size: 11.5px; color: var(--text-2); line-height: 1.35; }
-.role-foot { font-size: 10px; color: var(--text-3); margin-top: 2px; letter-spacing: 0.04em; }
 
 /* Lab chips */
 .lab-chip-grid {
@@ -1343,27 +1342,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 
 /* Permission list */
 .perm-list { display: flex; flex-direction: column; gap: 8px; }
-.perm-group {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--surface);
-}
-.perm-group-h {
-  padding: 8px 12px;
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
-  display: flex; justify-content: space-between; align-items: center;
-}
-.perm-icon {
-  width: 22px; height: 22px;
-  border-radius: 4px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  display: grid; place-items: center;
-}
-.perm-group-name { font-size: 12.5px; font-weight: 600; }
-
 .bulk-toggle {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 10.5px;
@@ -1375,7 +1353,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 }
 .bulk-toggle input { accent-color: var(--accent); }
 
-.perm-items { display: flex; flex-direction: column; }
 .perm-item {
   display: flex; align-items: center; gap: 10px;
   padding: 7px 12px;
@@ -1404,14 +1381,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   color: #fff;
 }
 .perm-label { flex: 1; }
-.perm-key {
-  font-size: 10px;
-  color: var(--text-3);
-  background: var(--surface-2);
-  padding: 1px 6px;
-  border-radius: 3px;
-  border: 1px solid var(--border);
-}
 
 /* Activity rows in drawer */
 .user-activity { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
