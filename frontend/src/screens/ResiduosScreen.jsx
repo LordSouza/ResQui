@@ -22,7 +22,7 @@ export function ResiduosScreen({ state, dispatch }) {
   const podeRegistrar = usePode('Operacional'); // POST /api/residuos
   // PUT /api/residuos/:id exige a policy Tecnico — Pesquisador e Professor criam resíduo
   // (Operacional) mas não o editam, e sem este gate o botão só rendia 403 ao salvar.
-  const podeEditar = usePode('Tecnico');
+  const podeEditar = usePode('Operacao');
   const aprovar = useAprovarResiduo();
 
   const list = residuos

@@ -12,8 +12,8 @@ function MtrDetalhe({ mtr }) {
   const [preview, setPreview] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [reabrindo, setReabrindo] = useState(false);
-  const podeDestinar = usePode('Tecnico');   // POST /api/mtrs/:id/destinacao
-  const podeReabrir = usePode('Gestor');     // DELETE /api/mtrs/:id/destinacao
+  const podeDestinar = usePode('Operacao');   // POST /api/mtrs/:id/destinacao
+  const podeReabrir = usePode('Cadastro');     // DELETE /api/mtrs/:id/destinacao
   return (
     <>
     <div className="detail-grid">
@@ -79,7 +79,7 @@ function MtrDetalhe({ mtr }) {
 
 export function MtrScreen({ state, dispatch }) {
   const [selectedId, setSelectedId] = useState(null);
-  const podeEmitir = usePode('Tecnico'); // POST /api/mtrs
+  const podeEmitir = usePode('Operacao'); // POST /api/mtrs
   const { data: mtrs = [], isPending, isError, refetch } = useMtrs();
 
   const sel = mtrs.find(m => m.id === selectedId) ?? mtrs[0];

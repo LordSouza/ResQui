@@ -39,28 +39,28 @@ beforeEach(() => {
 
 describe('MtrScreen', () => {
   it('lista os MTRs emitidos', () => {
-    renderCom('Admin');
+    renderCom('Professor');
     expect(screen.getAllByText('MTR-2026-0001').length).toBeGreaterThan(0);
   });
 
   // POST /api/mtrs exige a policy Tecnico.
-  it.each(['Admin', 'Gestor', 'Tecnico'])('mostra "Novo manifesto" para %s', (papel) => {
+  it.each(['Professor', 'Professor', 'Professor'])('mostra "Novo manifesto" para %s', (papel) => {
     renderCom(papel);
     expect(screen.getByRole('button', { name: /Novo manifesto/i })).toBeInTheDocument();
   });
 
-  it.each(['Professor', 'Pesquisador', 'Visualizador'])('esconde "Novo manifesto" de %s', (papel) => {
-    renderCom(papel);
+  it('esconde "Novo manifesto" de Aluno', () => {
+    renderCom('Aluno');
     expect(screen.queryByRole('button', { name: /Novo manifesto/i })).not.toBeInTheDocument();
   });
 
   it('mostra litros e quilos do manifesto', () => {
-    renderCom('Admin');
+    renderCom('Professor');
     expect(screen.getAllByText(/30\.00 L · 12\.50 kg/).length).toBeGreaterThan(0);
   });
 
   it('mantém a lista visível para quem não pode emitir', () => {
-    renderCom('Visualizador');
+    renderCom('Aluno');
     expect(screen.getAllByText('MTR-2026-0001').length).toBeGreaterThan(0);
   });
 });
@@ -71,43 +71,42 @@ const comDestinado = () =>
 
 describe('MtrScreen · destinação', () => {
   // POST /api/mtrs/:id/destinacao exige a policy Tecnico.
-  it.each(['Admin', 'Gestor', 'Tecnico'])('mostra "Confirmar destinação" para %s', (papel) => {
+  it.each(['Professor', 'Professor', 'Professor'])('mostra "Confirmar destinação" para %s', (papel) => {
     renderCom(papel);
     expect(screen.getByRole('button', { name: /Confirmar destinação/i })).toBeInTheDocument();
   });
 
-  it.each(['Professor', 'Pesquisador', 'Visualizador'])('esconde "Confirmar destinação" de %s', (papel) => {
-    renderCom(papel);
+  it('esconde "Confirmar destinação" de Aluno', () => {
+    renderCom('Aluno');
     expect(screen.queryByRole('button', { name: /Confirmar destinação/i })).not.toBeInTheDocument();
   });
 
   it('esconde "Confirmar destinação" de manifesto já destinado', () => {
     comDestinado();
-    renderCom('Admin');
+    renderCom('Professor');
     expect(screen.queryByRole('button', { name: /Confirmar destinação/i })).not.toBeInTheDocument();
   });
 
-  // DELETE exige Gestor: Tecnico confirma, mas não reabre.
-  it('mostra "Reabrir manifesto" para Gestor em manifesto destinado', () => {
+  it('mostra "Reabrir manifesto" para Professor em manifesto destinado', () => {
     comDestinado();
-    renderCom('Gestor');
+    renderCom('Professor');
     expect(screen.getByRole('button', { name: /Reabrir manifesto/i })).toBeInTheDocument();
   });
 
-  it('esconde "Reabrir manifesto" de Tecnico', () => {
+  it('esconde "Reabrir manifesto" de Aluno', () => {
     comDestinado();
-    renderCom('Tecnico');
+    renderCom('Aluno');
     expect(screen.queryByRole('button', { name: /Reabrir manifesto/i })).not.toBeInTheDocument();
   });
 
   it('não mostra "Reabrir manifesto" em manifesto não destinado', () => {
-    renderCom('Gestor');
+    renderCom('Professor');
     expect(screen.queryByRole('button', { name: /Reabrir manifesto/i })).not.toBeInTheDocument();
   });
 
   it('mostra a data de destinação na tabela', () => {
     comDestinado();
-    renderCom('Admin');
+    renderCom('Professor');
     expect(screen.getAllByText('2026-08-01').length).toBeGreaterThan(0);
   });
 });

@@ -25,7 +25,7 @@ describe('useAtualizarPerfil', () => {
   it('PUT /api/auth/me com Nome e Email, retorna profile', async () => {
     fetch.mockResolvedValue({
       ok: true, status: 200,
-      json: async () => ({ id: 'u1', nome: 'Ana', email: 'ana@x.com', papel: 'Tecnico' }),
+      json: async () => ({ id: 'u1', nome: 'Ana', email: 'ana@x.com', papel: 'Professor' }),
     });
     const { result } = renderHook(() => useAtualizarPerfil(), { wrapper });
     result.current.mutate({ Nome: 'Ana', Email: 'ana@x.com' });

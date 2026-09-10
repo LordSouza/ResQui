@@ -37,31 +37,24 @@ beforeEach(() => {
 
 describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
   // PUT /api/residuos/:id exige a policy Tecnico (Admin, Gestor, Tecnico).
-  it.each(['Admin', 'Gestor', 'Tecnico'])('mostra "Editar" para %s', (papel) => {
+  it.each(['Professor', 'Professor', 'Professor'])('mostra "Editar" para %s', (papel) => {
     renderCom(papel);
     expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument();
   });
 
-  // Pesquisador e Professor têm apenas Operacional (criam resíduo, não editam);
-  // Visualizador não tem nenhuma das duas.
-  it.each(['Pesquisador', 'Professor', 'Visualizador'])('esconde "Editar" para %s', (papel) => {
-    renderCom(papel);
+  // Aluno tem apenas Operacional: cria resíduo, não edita.
+  it('esconde "Editar" para Aluno', () => {
+    renderCom('Aluno');
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
   });
 
-  // POST /api/residuos exige Operacional — todos menos Visualizador.
-  it.each(['Admin', 'Gestor', 'Tecnico', 'Pesquisador', 'Professor'])('mostra "Registrar resíduo" para %s', (papel) => {
+  // POST /api/residuos exige Operacional, que os dois papéis têm.
+  it.each(['Professor', 'Aluno'])('mostra "Registrar resíduo" para %s', (papel) => {
     renderCom(papel);
     expect(screen.getByRole('button', { name: /Registrar resíduo/i })).toBeInTheDocument();
   });
 
-  it('esconde "Registrar resíduo" de Visualizador', () => {
-    renderCom('Visualizador');
-    expect(screen.queryByRole('button', { name: /Registrar resíduo/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Exportar lista/i })).toBeInTheDocument();
-  });
-
-  it('mantém Aprovar/Rejeitar para Professor, que os tem por policy Aprovador', () => {
+  it('mantém Aprovar/Rejeitar e Editar para Professor', () => {
     useResíduos.mockReturnValue({
       data: [{ ...residuo, status: 'solicitado' }],
       isPending: false, isError: false, refetch: vi.fn(),
@@ -69,7 +62,17 @@ describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
     renderCom('Professor');
     expect(screen.getByRole('button', { name: 'Aprovar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Rejeitar' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument();
+  });
+
+  it('esconde Aprovar/Rejeitar de Aluno', () => {
+    useResíduos.mockReturnValue({
+      data: [{ ...residuo, status: 'solicitado' }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
+    renderCom('Aluno');
+    expect(screen.queryByRole('button', { name: 'Aprovar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rejeitar' })).not.toBeInTheDocument();
   });
 
   it('rejeitar abre modal em vez de window.prompt', () => {
@@ -77,7 +80,7 @@ describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
       data: [{ ...residuo, status: 'solicitado' }],
       isPending: false, isError: false, refetch: vi.fn(),
     });
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Admin' } });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
     const dispatch = vi.fn();
     render(<ResiduosScreen state={initialState} dispatch={dispatch} />);
     fireEvent.click(screen.getByRole('button', { name: 'Rejeitar' }));
@@ -89,7 +92,7 @@ describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
   });
 
   it('não oferece a aba Rotulagem — status que não existe na API', () => {
-    renderCom('Admin');
+    renderCom('Professor');
     expect(screen.getByText(/Resíduos químicos/)).toBeInTheDocument();
     expect(screen.queryByText('Rotulagem')).not.toBeInTheDocument();
   });
@@ -98,7 +101,7 @@ describe('ResiduosScreen — botão Editar respeita a policy Tecnico', () => {
 describe('ResiduosScreen — ciclo como stepper', () => {
   it('mostra o ciclo em ordem e explica a etapa ativa', () => {
     useResíduos.mockReturnValue({ data: [], isPending: false, isError: false, refetch: vi.fn() });
-    renderCom('Admin');
+    renderCom('Professor');
     expect(screen.getByText('Aguardando coleta')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Solicitado'));
     expect(screen.getByText(/Aguardando aprovação de um professor ou gestor/)).toBeInTheDocument();
@@ -114,7 +117,7 @@ describe('ResiduosScreen — filtro inicial da navegação', () => {
       ],
       isPending: false, isError: false, refetch: vi.fn(),
     });
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Admin' } });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
     render(<ResiduosScreen state={{ residuosStatusInicial: 'solicitado' }} dispatch={vi.fn()} />);
     expect(screen.getByText('Solventes')).toBeInTheDocument();
     expect(screen.queryByText('Ácidos')).not.toBeInTheDocument();
@@ -127,7 +130,7 @@ describe('ResiduosScreen — próximo passo do ciclo como botão', () => {
       data: [{ ...residuo, status: 'aguardando-coleta' }],
       isPending: false, isError: false, refetch: vi.fn(),
     });
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
     const dispatch = vi.fn();
     render(<ResiduosScreen state={{ residuosStatusInicial: 'aguardando-coleta' }} dispatch={dispatch} />);
     fireEvent.click(screen.getByText(/Criar manifesto de coleta/));
@@ -139,26 +142,26 @@ describe('ResiduosScreen — próximo passo do ciclo como botão', () => {
       data: [{ ...residuo, status: 'em-coleta' }],
       isPending: false, isError: false, refetch: vi.fn(),
     });
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
     const dispatch = vi.fn();
     render(<ResiduosScreen state={{ residuosStatusInicial: 'em-coleta' }} dispatch={dispatch} />);
     fireEvent.click(screen.getByText(/Confirmar destinação nos manifestos/));
     expect(dispatch).toHaveBeenCalledWith({ type: 'nav', screen: 'mtr' });
   });
 
-  it('esconde o CTA de Visualizador, que não tem a policy Tecnico', () => {
+  it('esconde o CTA de Aluno, que não tem a policy Operacao', () => {
     useResíduos.mockReturnValue({
       data: [{ ...residuo, status: 'aguardando-coleta' }],
       isPending: false, isError: false, refetch: vi.fn(),
     });
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Visualizador' } });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Aluno' } });
     render(<ResiduosScreen state={{ residuosStatusInicial: 'aguardando-coleta' }} dispatch={vi.fn()} />);
     expect(screen.queryByText(/Criar manifesto de coleta/)).not.toBeInTheDocument();
   });
 
   it('não oferece CTA quando não há resíduo na etapa', () => {
     useResíduos.mockReturnValue({ data: [], isPending: false, isError: false, refetch: vi.fn() });
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
     render(<ResiduosScreen state={{ residuosStatusInicial: 'aguardando-coleta' }} dispatch={vi.fn()} />);
     expect(screen.queryByText(/Criar manifesto de coleta/)).not.toBeInTheDocument();
   });

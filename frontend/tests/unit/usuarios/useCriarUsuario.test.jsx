@@ -25,7 +25,7 @@ describe('useCriarUsuario', () => {
   it('envia POST /api/usuarios com RegisterCmd', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ id: 'u-new' }) });
     const { result } = renderHook(() => useCriarUsuario(), { wrapper });
-    const cmd = { Email: 'novo@instituto.example', Senha: 'Senha@123', Matricula: 'MAT-999', Papel: 'Tecnico', Nome: 'Novo Usuário' };
+    const cmd = { Email: 'novo@instituto.example', Senha: 'Senha@123', Matricula: 'MAT-999', Papel: 'Professor', Nome: 'Novo Usuário' };
     act(() => result.current.mutate(cmd));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockFetch.mock.calls[0][0]).toBe('/api/usuarios');

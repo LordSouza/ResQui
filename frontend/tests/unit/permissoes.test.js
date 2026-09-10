@@ -1,20 +1,20 @@
 // frontend/tests/unit/permissoes.test.js
 import { describe, it, expect } from 'vitest';
-import { POLICIES, podePor, podeVerTela, motivoTelaRestrita } from '../../src/auth/permissoes';
+import { POLICIES, DESCRICAO_POLICY, podePor, podeVerTela, motivoTelaRestrita } from '../../src/auth/permissoes';
 
 // Fonte da verdade: backend/ResQui.API/Program.cs:110-115. Se um caso aqui quebrar, o espelho
 // saiu de sincronia com o servidor — corrija o espelho, não o teste, a menos que a policy do
 // backend tenha mudado de propósito.
 const ESPERADO = {
-  Admin: ['Admin'],
-  Gestor: ['Admin', 'Gestor'],
-  Tecnico: ['Admin', 'Gestor', 'Tecnico'],
-  Operacional: ['Admin', 'Gestor', 'Tecnico', 'Pesquisador', 'Professor'],
-  Aprovador: ['Admin', 'Gestor', 'Professor'],
-  Supervisao: ['Admin', 'Gestor', 'Professor'],
+  Administracao: ['Professor'],
+  Cadastro: ['Professor'],
+  Operacao: ['Professor'],
+  Operacional: ['Professor', 'Aluno'],
+  Aprovador: ['Professor'],
+  Supervisao: ['Professor'],
 };
 
-const TODOS_OS_PAPEIS = ['Admin', 'Gestor', 'Professor', 'Tecnico', 'Pesquisador', 'Visualizador'];
+const TODOS_OS_PAPEIS = ['Professor', 'Aluno'];
 
 describe('POLICIES espelha as policies do backend', () => {
   it('cobre exatamente as seis policies declaradas', () => {
@@ -39,13 +39,19 @@ describe('podePor', () => {
   });
 
   it('nega quando a policy não existe, em vez de estourar', () => {
-    expect(podePor('Admin', 'PolicyInexistente')).toBe(false);
+    expect(podePor('Professor', 'PolicyInexistente')).toBe(false);
   });
 
-  // Visualizador é o papel de leitura externa: nenhuma policy de escrita o alcança.
-  it('não concede nenhuma policy a Visualizador', () => {
+  // Aluno só opera o próprio ciclo: solicita descarte e registra baixa.
+  it('concede a Aluno apenas Operacional', () => {
     for (const policy of Object.keys(POLICIES)) {
-      expect(podePor('Visualizador', policy)).toBe(false);
+      expect(podePor('Aluno', policy)).toBe(policy === 'Operacional');
+    }
+  });
+
+  it('concede a Professor todas as policies', () => {
+    for (const policy of Object.keys(POLICIES)) {
+      expect(podePor('Professor', policy)).toBe(true);
     }
   });
 });
@@ -59,14 +65,14 @@ describe('podeVerTela', () => {
     }
   });
 
-  // GET /api/auditoria exige Supervisao: Admin, Gestor ou Professor.
-  it.each([['Admin', true], ['Gestor', true], ['Professor', true], ['Tecnico', false], ['Pesquisador', false], ['Visualizador', false]])
+  // GET /api/auditoria exige Supervisao.
+  it.each([['Professor', true], ['Aluno', false]])
     ('auditoria para %s → %s', (papel, esperado) => {
       expect(podeVerTela(papel, 'auditoria')).toBe(esperado);
     });
 
-  // Todo o grupo /api/usuarios exige Admin.
-  it.each([['Admin', true], ['Gestor', false], ['Professor', false], ['Tecnico', false], ['Pesquisador', false], ['Visualizador', false]])
+  // Todo o grupo /api/usuarios exige Administracao.
+  it.each([['Professor', true], ['Aluno', false]])
     ('usuarios para %s → %s', (papel, esperado) => {
       expect(podeVerTela(papel, 'usuarios')).toBe(esperado);
     });
@@ -79,11 +85,23 @@ describe('podeVerTela', () => {
 
 describe('motivoTelaRestrita', () => {
   it('nomeia os papéis da policy da tela, sem texto herdado de outra', () => {
-    expect(motivoTelaRestrita('usuarios')).toBe('Esta tela é exclusiva de Admin.');
-    expect(motivoTelaRestrita('auditoria')).toBe('Esta tela é restrita a Admin, Gestor e Professor.');
+    expect(motivoTelaRestrita('usuarios')).toBe('Esta tela é exclusiva de Professor.');
+    expect(motivoTelaRestrita('auditoria')).toBe('Esta tela é exclusiva de Professor.');
   });
 
   it('devolve vazio para tela sem restrição', () => {
     expect(motivoTelaRestrita('dashboard')).toBe('');
+  });
+});
+
+describe('DESCRICAO_POLICY', () => {
+  it('descreve exatamente as policies existentes, sem sobra nem falta', () => {
+    expect(Object.keys(DESCRICAO_POLICY).sort()).toEqual(Object.keys(POLICIES).sort());
+  });
+
+  it('não deixa descrição vazia', () => {
+    for (const texto of Object.values(DESCRICAO_POLICY)) {
+      expect(texto.trim().length).toBeGreaterThan(0);
+    }
   });
 });

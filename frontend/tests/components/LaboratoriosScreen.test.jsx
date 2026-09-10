@@ -36,7 +36,7 @@ import { useAuth } from '../../src/auth/AuthContext';
 
 beforeEach(() => {
   useLaboratorios.mockReturnValue(mockReturn);
-  useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Admin' } });
+  useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
 });
 
 describe('LaboratoriosScreen', () => {
@@ -72,32 +72,33 @@ describe('LaboratoriosScreen — permissões', () => {
     return render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
   };
 
-  it.each(['Admin', 'Gestor'])('mostra criar e editar para %s', (papel) => {
+  it.each(['Professor', 'Professor'])('mostra criar e editar para %s', (papel) => {
     renderCom(papel);
     expect(screen.getByRole('button', { name: /Novo laboratório/i })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Editar laboratório' }).length).toBeGreaterThan(0);
   });
 
-  it.each(['Tecnico', 'Professor', 'Pesquisador', 'Visualizador'])('esconde criar e editar de %s', (papel) => {
-    renderCom(papel);
+  it('esconde criar e editar de Aluno', () => {
+    renderCom('Aluno');
     expect(screen.queryByRole('button', { name: /Novo laboratório/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Editar laboratório' })).not.toBeInTheDocument();
   });
 
-  it('só mostra remover para Admin — DELETE é a única rota de lab que exige Admin', () => {
-    renderCom('Admin');
+  it('mostra criar e remover para Professor', () => {
+    renderCom('Professor');
+    expect(screen.getByRole('button', { name: /Novo laboratório/i })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Remover laboratório' }).length).toBeGreaterThan(0);
   });
 
-  it('esconde remover de Gestor, que pode criar e editar mas não excluir', () => {
-    renderCom('Gestor');
-    expect(screen.getByRole('button', { name: /Novo laboratório/i })).toBeInTheDocument();
+  it('esconde criar e remover de Aluno', () => {
+    renderCom('Aluno');
+    expect(screen.queryByRole('button', { name: /Novo laboratório/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Remover laboratório' })).not.toBeInTheDocument();
   });
 
   it('esconde o atalho de cadastro do estado vazio para quem não pode criar', () => {
     useLaboratorios.mockReturnValue({ data: [], isPending: false, isError: false, refetch: vi.fn() });
-    renderCom('Tecnico');
+    renderCom('Aluno');
     expect(screen.queryByRole('button', { name: /Cadastrar primeiro laboratório/i })).not.toBeInTheDocument();
   });
 });

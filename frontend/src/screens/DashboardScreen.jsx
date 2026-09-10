@@ -26,7 +26,7 @@ export function DashboardScreen({ state, dispatch }) {
   );
 
   const podeAprovarDescarte = usePode('Aprovador');
-  const podeOperarColeta = usePode('Tecnico');
+  const podeOperarColeta = usePode('Operacao');
   const solicitados = residuosData.filter(r => r.status === 'solicitado').length;
   const manifestosPendentes = mtrsData.filter(m => !m.data_destinacao).length;
 

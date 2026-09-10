@@ -5,8 +5,8 @@ import { UsuariosScreen } from '../../src/screens/UsuariosScreen';
 import { AuthContext } from '../../src/auth/AuthContext';
 
 const USUARIOS = [
-  { id: 'u-1', email: 'ana@lab.com', nome: 'Ana Silva', matricula: 'M-1', papel: 'Gestor', roles: ['Gestor'], arquivado: false, twoFactorEnabled: true },
-  { id: 'u-2', email: 'bruno@lab.com', nome: 'Bruno Lima', matricula: 'M-2', papel: 'Tecnico', roles: ['Tecnico'], arquivado: false, twoFactorEnabled: false },
+  { id: 'u-1', email: 'ana@lab.com', nome: 'Ana Silva', matricula: 'M-1', papel: 'Professor', roles: ['Professor'], arquivado: false, twoFactorEnabled: true },
+  { id: 'u-2', email: 'bruno@lab.com', nome: 'Bruno Lima', matricula: 'M-2', papel: 'Professor', roles: ['Professor'], arquivado: false, twoFactorEnabled: false },
 ];
 
 function renderCom(user) {
@@ -38,7 +38,7 @@ describe('UsuariosScreen — MFA', () => {
   // O badge diz "TOTP" (o método), não "Ativo": a coluna Status da mesma linha já renderiza
   // "Ativo" e um segundo "Ativo" tornaria a asserção ambígua.
   it('mostra o estado real do 2FA de cada usuário', async () => {
-    renderCom({ id: 'admin-1', papel: 'Admin' });
+    renderCom({ id: 'admin-1', papel: 'Professor' });
 
     const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
     expect(within(linhaAna).getByText('TOTP')).toBeInTheDocument();
@@ -47,15 +47,15 @@ describe('UsuariosScreen — MFA', () => {
   });
 
   it('oferece "Resetar 2FA" ao Admin em usuário com MFA ativo', async () => {
-    renderCom({ id: 'admin-1', papel: 'Admin' });
+    renderCom({ id: 'admin-1', papel: 'Professor' });
 
     const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
     fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
     expect(screen.getByRole('button', { name: /resetar 2fa/i })).toBeInTheDocument();
   });
 
-  it('não oferece "Resetar 2FA" para quem não é Admin', async () => {
-    renderCom({ id: 'g-1', papel: 'Gestor' });
+  it('não oferece "Resetar 2FA" para quem não alcança Administracao', async () => {
+    renderCom({ id: 'g-1', papel: 'Aluno' });
 
     const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
     fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
@@ -63,7 +63,7 @@ describe('UsuariosScreen — MFA', () => {
   });
 
   it('não oferece "Resetar 2FA" na própria linha', async () => {
-    renderCom({ id: 'u-1', papel: 'Admin' });
+    renderCom({ id: 'u-1', papel: 'Professor' });
 
     const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
     fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
@@ -87,14 +87,14 @@ describe('UsuariosScreen — só mostra o que a API devolve', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('não oferece importar CSV de usuários', async () => {
-    renderCom({ id: 'admin-1', papel: 'Admin' });
+    renderCom({ id: 'admin-1', papel: 'Professor' });
 
     await screen.findByText('Ana Silva');
     expect(screen.queryByRole('button', { name: /importar csv/i })).not.toBeInTheDocument();
   });
 
   it('não exibe colunas sem dado na API', async () => {
-    renderCom({ id: 'admin-1', papel: 'Admin' });
+    renderCom({ id: 'admin-1', papel: 'Professor' });
 
     await screen.findByText('Ana Silva');
     expect(screen.queryByRole('columnheader', { name: /laboratórios/i })).not.toBeInTheDocument();
@@ -102,14 +102,14 @@ describe('UsuariosScreen — só mostra o que a API devolve', () => {
   });
 
   it('não oferece o filtro de pendentes, que nunca tem resultado', async () => {
-    renderCom({ id: 'admin-1', papel: 'Admin' });
+    renderCom({ id: 'admin-1', papel: 'Professor' });
 
     await screen.findByText('Ana Silva');
     expect(screen.queryByRole('button', { name: /pendentes/i })).not.toBeInTheDocument();
   });
 
   it('marca com "você" apenas a linha do usuário logado', async () => {
-    renderCom({ id: 'u-2', papel: 'Admin' });
+    renderCom({ id: 'u-2', papel: 'Professor' });
 
     const linhaBruno = (await screen.findByText('Bruno Lima')).closest('tr');
     expect(within(linhaBruno).getByText('você')).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('UsuariosScreen — só mostra o que a API devolve', () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={qc}>
-        <AuthContext.Provider value={{ user: { id: 'admin-1', papel: 'Admin' }, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
+        <AuthContext.Provider value={{ user: { id: 'admin-1', papel: 'Professor' }, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
           <UsuariosScreen state={{ tick: 0, flashId: 'u-2' }} dispatch={vi.fn()} />
         </AuthContext.Provider>
       </QueryClientProvider>
@@ -150,13 +150,13 @@ describe('UsuariosScreen — permissões', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('mostra "Novo usuário" para Admin', async () => {
-    renderCom({ id: 'admin-1', papel: 'Admin' });
+  it('mostra "Novo usuário" para Professor', async () => {
+    renderCom({ id: 'admin-1', papel: 'Professor' });
     expect(await screen.findByRole('button', { name: /Novo usuário/i })).toBeInTheDocument();
   });
 
-  it('esconde "Novo usuário" de Gestor', async () => {
-    renderCom({ id: 'g-1', papel: 'Gestor' });
+  it('esconde "Novo usuário" de Aluno', async () => {
+    renderCom({ id: 'g-1', papel: 'Aluno' });
     await screen.findByRole('heading', { name: /Usuários/i });
     expect(screen.queryByRole('button', { name: /Novo usuário/i })).not.toBeInTheDocument();
   });

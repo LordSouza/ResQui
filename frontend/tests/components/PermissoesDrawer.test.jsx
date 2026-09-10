@@ -9,7 +9,7 @@ function wrapper({ children }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
-const usuario = { id: 'u1', nome: 'Ana Lima', email: 'ana@lab.com', papel: 'Tecnico', status: 'ativo', matricula: 'M001', cor: '#333', iniciais: 'AL' };
+const usuario = { id: 'u1', nome: 'Ana Lima', email: 'ana@lab.com', papel: 'Aluno', status: 'ativo', matricula: 'M001', cor: '#333', iniciais: 'AL' };
 
 describe('PermissoesDrawer — honesto (papel só)', () => {
   let onClose, dispatch, mockFetch;
@@ -38,11 +38,11 @@ describe('PermissoesDrawer — honesto (papel só)', () => {
     mockFetch.mockResolvedValueOnce({ ok: true, status: 204, json: async () => null });
     render(<PermissoesDrawer usuario={usuario} onClose={onClose} dispatch={dispatch} />, { wrapper });
 
-    await userEvent.click(screen.getByRole('radio', { name: /Gestor/i }));
+    await userEvent.click(screen.getByRole('radio', { name: /Professor/i }));
     await userEvent.click(screen.getByRole('button', { name: /Salvar alterações/i }));
 
     expect(mockFetch.mock.calls[0][0]).toBe('/api/usuarios/u1/papel');
     expect(mockFetch.mock.calls[0][1].method).toBe('PUT');
-    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ NovoPapel: 'Gestor' });
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ NovoPapel: 'Professor' });
   });
 });

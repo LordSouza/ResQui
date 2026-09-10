@@ -189,7 +189,7 @@ export function UsuariosScreen({ state, dispatch }) {
   const setMenuOpen    = (value) => screenDispatch({ type: 'setMenuOpen', value });
 
   const { user: usuarioLogado } = useAuth();
-  const souAdmin = podePor(usuarioLogado?.papel, 'Admin'); // todo o grupo /api/usuarios exige Admin
+  const souAdmin = podePor(usuarioLogado?.papel, 'Administracao'); // todo o grupo /api/usuarios exige Administracao
 
   // Timestamp for export filename (stable per render cycle)
   const exportDate = useMemo(() => new Date().toISOString().slice(0, 10), []);

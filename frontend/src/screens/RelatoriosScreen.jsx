@@ -18,8 +18,8 @@ export function RelatoriosScreen({ state, dispatch }) {
   const gerar = useGerarRelatorio();
   const { addToast } = useToast();
   // PUT /api/pgrs-config e POST /api/relatorios/gerar exigem a policy Gestor.
-  const podeConfigurar = usePode('Gestor');
-  const podeGerar = usePode('Gestor');
+  const podeConfigurar = usePode('Cadastro');
+  const podeGerar = usePode('Cadastro');
 
   async function handleGerar(slug) {
     try {

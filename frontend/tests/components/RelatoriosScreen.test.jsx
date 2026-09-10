@@ -20,7 +20,7 @@ describe('RelatoriosScreen', () => {
   beforeEach(() => {
     addToast = vi.fn();
     useToast.mockReturnValue({ addToast });
-    useAuth.mockReturnValue({ user: { papel: 'Admin' } });
+    useAuth.mockReturnValue({ user: { papel: 'Professor' } });
     global.URL.createObjectURL = vi.fn(() => 'blob:test');
     vi.stubGlobal('localStorage', {
       data: {}, setItem(k, v) { this.data[k] = String(v); },
@@ -83,16 +83,16 @@ describe('RelatoriosScreen', () => {
     expect(addToast.mock.calls[0][1]).toBe('error');
   });
 
-  // POST /api/relatorios/gerar exige Gestor; o histórico e o download seguem legíveis por todos.
-  it.each(['Tecnico', 'Professor', 'Pesquisador', 'Visualizador'])('esconde "Gerar" de %s', (papel) => {
-    useAuth.mockReturnValue({ user: { papel } });
+  // POST /api/relatorios/gerar exige Cadastro; o histórico e o download seguem legíveis por todos.
+  it('esconde "Gerar" de Aluno', () => {
+    useAuth.mockReturnValue({ user: { papel: 'Aluno' } });
     render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(screen.queryAllByRole('button', { name: /^Gerar$/i })).toHaveLength(0);
     expect(screen.queryByRole('button', { name: /Configurar PGRS/i })).not.toBeInTheDocument();
   });
 
-  it('mostra "Gerar" em todos os tipos para Gestor', () => {
-    useAuth.mockReturnValue({ user: { papel: 'Gestor' } });
+  it('mostra "Gerar" em todos os tipos para Professor', () => {
+    useAuth.mockReturnValue({ user: { papel: 'Professor' } });
     render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(screen.getAllByRole('button', { name: /Gerar/i }).length).toBeGreaterThan(0);
   });

@@ -6,11 +6,11 @@ const { mutateMock, updateUserMock } = vi.hoisted(() => ({
   updateUserMock: vi.fn(),
 }));
 
-const profileFake = { nome: 'Ana Souza', email: 'ana@x.com', matricula: '123', papel: 'Tecnico' };
+const profileFake = { nome: 'Ana Souza', email: 'ana@x.com', matricula: '123', papel: 'Professor' };
 
 vi.mock('../../src/auth/AuthContext', () => ({
   useAuth: () => ({
-    user: { nome: 'Ana', email: 'ana@x.com', matricula: '123', papel: 'Tecnico' },
+    user: { nome: 'Ana', email: 'ana@x.com', matricula: '123', papel: 'Professor' },
     updateUser: updateUserMock,
   }),
 }));

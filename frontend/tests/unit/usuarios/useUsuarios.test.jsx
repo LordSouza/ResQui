@@ -33,7 +33,7 @@ describe('useUsuarios', () => {
   it('deriva status=ativo quando arquivado=false', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true, status: 200,
-      json: async () => [{ id: 'u1', email: 'a@b.com', nome: 'Ana Lima', matricula: null, papel: 'Admin', roles: ['Admin'], arquivado: false }],
+      json: async () => [{ id: 'u1', email: 'a@b.com', nome: 'Ana Lima', matricula: null, papel: 'Professor', roles: ['Professor'], arquivado: false }],
     });
     const { result } = renderHook(() => useUsuarios(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -43,7 +43,7 @@ describe('useUsuarios', () => {
   it('deriva status=arquivado quando arquivado=true', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true, status: 200,
-      json: async () => [{ id: 'u2', email: 'b@c.com', nome: 'Bruno', matricula: null, papel: 'Tecnico', roles: ['Tecnico'], arquivado: true }],
+      json: async () => [{ id: 'u2', email: 'b@c.com', nome: 'Bruno', matricula: null, papel: 'Professor', roles: ['Professor'], arquivado: true }],
     });
     const { result } = renderHook(() => useUsuarios(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -53,7 +53,7 @@ describe('useUsuarios', () => {
   it('deriva iniciais de 2 letras do nome', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true, status: 200,
-      json: async () => [{ id: 'u1', email: 'a@b.com', nome: 'Ana Lima', matricula: null, papel: 'Admin', roles: [], arquivado: false }],
+      json: async () => [{ id: 'u1', email: 'a@b.com', nome: 'Ana Lima', matricula: null, papel: 'Professor', roles: [], arquivado: false }],
     });
     const { result } = renderHook(() => useUsuarios(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -63,7 +63,7 @@ describe('useUsuarios', () => {
   it('usa email como nome quando nome é null', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true, status: 200,
-      json: async () => [{ id: 'u1', email: 'ana@b.com', nome: null, matricula: null, papel: 'Admin', roles: [], arquivado: false }],
+      json: async () => [{ id: 'u1', email: 'ana@b.com', nome: null, matricula: null, papel: 'Professor', roles: [], arquivado: false }],
     });
     const { result } = renderHook(() => useUsuarios(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

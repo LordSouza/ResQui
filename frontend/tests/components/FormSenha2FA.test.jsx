@@ -57,7 +57,7 @@ describe('FormSenha2FA — códigos de recuperação', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('mostra a contagem de códigos restantes quando o 2FA está ativo', () => {
-    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor',
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor',
       twoFactorEnabled: true, codigosRecuperacaoRestantes: 7 });
 
     abrirAbaMfa();
@@ -66,7 +66,7 @@ describe('FormSenha2FA — códigos de recuperação', () => {
   });
 
   it('exibe os códigos devolvidos ao ativar o 2FA', async () => {
-    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor',
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor',
       twoFactorEnabled: false, codigosRecuperacaoRestantes: 0 });
 
     await ativar2fa(['aaaa-1111', 'bbbb-2222']);
@@ -80,7 +80,7 @@ describe('FormSenha2FA — códigos de recuperação', () => {
   // a ativação sem reload, senão o usuário reativa e destrói os códigos que acabou de salvar.
   it('o painel de códigos some ao fechar o modal — não há releitura', async () => {
     const dez = Array.from({ length: 10 }, (_, i) => `cod-${i + 1}`);
-    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor',
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor',
       twoFactorEnabled: false, codigosRecuperacaoRestantes: 0 });
 
     await ativar2fa(dez);
@@ -105,7 +105,7 @@ describe('FormSenha2FA — códigos de recuperação', () => {
     fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
     vi.stubGlobal('prompt', vi.fn(() => 'cod-1'));
 
-    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor',
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor',
       twoFactorEnabled: true, codigosRecuperacaoRestantes: 5 });
 
     abrirAbaMfa();
@@ -133,7 +133,7 @@ describe('FormSenha2FA — senha exigida no setup do 2FA', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('não deixa iniciar o setup sem senha', () => {
-    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor', twoFactorEnabled: false });
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor', twoFactorEnabled: false });
     abrirAbaMfa();
 
     expect(screen.getByRole('button', { name: /ativar 2fa/i })).toBeDisabled();
@@ -145,7 +145,7 @@ describe('FormSenha2FA — senha exigida no setup do 2FA', () => {
       ok: true, status: 200,
       json: async () => ({ secret: 'ABC123', otpauthUri: 'otpauth://totp/ResQui:ana' }),
     });
-    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor', twoFactorEnabled: false });
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor', twoFactorEnabled: false });
     abrirAbaMfa();
 
     fireEvent.change(screen.getByLabelText('Senha atual para ativar o 2FA'), { target: { value: 'Senha@123' } });
@@ -162,7 +162,7 @@ describe('FormSenha2FA — senha exigida no setup do 2FA', () => {
       ok: true, status: 200,
       json: async () => ({ secret: 'ABC123', otpauthUri: 'otpauth://totp/ResQui:ana', qrPngBase64: 'aGVsbG8=' }),
     });
-    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Gestor', twoFactorEnabled: false });
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor', twoFactorEnabled: false });
     abrirAbaMfa();
 
     fireEvent.change(screen.getByLabelText('Senha atual para ativar o 2FA'), { target: { value: 'Senha@123' } });

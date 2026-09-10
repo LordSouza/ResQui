@@ -66,7 +66,7 @@ describe('InventarioScreen', () => {
       clear() { this.data = {}; },
     });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeApiResponse(MOCK_ITEMS)));
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Admin' } });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -121,16 +121,16 @@ describe('InventarioScreen', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'openModal', kind: 'importarCsv' });
   });
 
-  // POST /api/reagentes e POST /api/reagentes/importar-lote exigem a policy Gestor.
-  it.each(['Tecnico', 'Professor', 'Pesquisador', 'Visualizador'])('esconde criar e importar de %s', (papel) => {
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel } });
+  // POST /api/reagentes e POST /api/reagentes/importar-lote exigem a policy Cadastro.
+  it('esconde criar e importar de Aluno', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Aluno' } });
     render(<InventarioScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(screen.queryByRole('button', { name: /Novo reagente/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Importar CSV/i })).not.toBeInTheDocument();
   });
 
-  it('mostra criar e importar para Gestor', () => {
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Gestor' } });
+  it('mostra criar e importar para Professor', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
     render(<InventarioScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(screen.getByRole('button', { name: /Novo reagente/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Importar CSV/i })).toBeInTheDocument();

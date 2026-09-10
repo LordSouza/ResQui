@@ -36,7 +36,7 @@ function MovimentacoesCard({ reagenteId }) {
 }
 
 function LotesCard({ reagente }) {
-  const podeGerirLotes = usePode('Tecnico'); // POST /api/reagentes/:id/lotes e /baixa
+  const podeGerirLotes = usePode('Operacao'); // POST /api/reagentes/:id/lotes e /baixa
   const { data: lotes = [], isPending } = useLotes(reagente.id);
   const criarLote = useCriarLote(reagente.id);
   const baixaLote = useBaixaLote(reagente.id);
@@ -103,8 +103,8 @@ export function DetalheScreen({ state, dispatch }) {
   const { data: listData } = useReagentes({ pageSize: 200 });
   const deletarMutation = useDeletarReagente();
   const podeMovimentar = usePode('Operacional'); // POST /:id/baixa e /:id/transferencia
-  const podeEditar = usePode('Gestor');          // PUT /api/reagentes/:id
-  const podeExcluir = usePode('Admin');          // DELETE /api/reagentes/:id
+  const podeEditar = usePode('Cadastro');          // PUT /api/reagentes/:id
+  const podeExcluir = usePode('Administracao');          // DELETE /api/reagentes/:id
   const { data: matrizData } = useCompatMatriz();
   const compatMatrix = matrizData?.matrix ?? {};
 

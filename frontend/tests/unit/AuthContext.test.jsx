@@ -35,9 +35,9 @@ describe('AuthContext', () => {
 
   it('hidrata o user completo via /api/auth/me no mount com token válido', async () => {
     const exp = Math.floor(Date.now() / 1000) + 3600;
-    const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Admin', exp });
+    const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Professor', exp });
     localStorage.setItem('resqui_token', token);
-    const profile = { id: 'u1', email: 'admin@test.com', nome: 'Admin Real', matricula: '123', papel: 'Admin', roles: ['Admin'], twoFactorEnabled: true };
+    const profile = { id: 'u1', email: 'admin@test.com', nome: 'Admin Real', matricula: '123', papel: 'Professor', roles: ['Professor'], twoFactorEnabled: true };
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => profile });
 
     const { result } = renderHook(() => useAuth(), { wrapper });
@@ -48,19 +48,19 @@ describe('AuthContext', () => {
 
   it('mantém o user básico do JWT quando /api/auth/me falha (offline)', async () => {
     const exp = Math.floor(Date.now() / 1000) + 3600;
-    const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Admin', exp });
+    const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Professor', exp });
     localStorage.setItem('resqui_token', token);
     mockFetch.mockRejectedValueOnce(new Error('offline'));
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
-    await waitFor(() => expect(result.current.user).toEqual({ id: 'u1', email: 'admin@test.com', papel: 'Admin' }));
+    await waitFor(() => expect(result.current.user).toEqual({ id: 'u1', email: 'admin@test.com', papel: 'Professor' }));
     expect(result.current.token).toBe(token);
   });
 
   it('discards expired token from localStorage on mount', () => {
     const exp = Math.floor(Date.now() / 1000) - 100;
-    const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Admin', exp });
+    const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Professor', exp });
     localStorage.setItem('resqui_token', token);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
@@ -72,7 +72,7 @@ describe('AuthContext', () => {
   it('login() saves token to localStorage and sets user in state', () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
     const token = 'fake-token';
-    const user = { id: 'u1', email: 'a@b.com', papel: 'Admin' };
+    const user = { id: 'u1', email: 'a@b.com', papel: 'Professor' };
 
     act(() => {
       result.current.login(token, user);
@@ -87,7 +87,7 @@ describe('AuthContext', () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     act(() => {
-      result.current.login('some-token', { id: 'u1', email: 'a@b.com', papel: 'Admin' });
+      result.current.login('some-token', { id: 'u1', email: 'a@b.com', papel: 'Professor' });
     });
     act(() => {
       result.current.logout();
@@ -102,7 +102,7 @@ describe('AuthContext', () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     act(() => {
-      result.current.login('some-token', { id: 'u1', email: 'a@b.com', papel: 'Admin' });
+      result.current.login('some-token', { id: 'u1', email: 'a@b.com', papel: 'Professor' });
     });
 
     act(() => {

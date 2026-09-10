@@ -9,7 +9,7 @@ function wrapper({ children }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
-const usuario = { id: 'u1', nome: 'Ana Lima', email: 'ana@lab.com', papel: 'Tecnico', cor: '#333', iniciais: 'AL' };
+const usuario = { id: 'u1', nome: 'Ana Lima', email: 'ana@lab.com', papel: 'Professor', cor: '#333', iniciais: 'AL' };
 
 describe('ConfirmExcluirUsuario', () => {
   let onClose, dispatch, mockFetch;

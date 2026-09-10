@@ -50,7 +50,7 @@ let addToast;
 beforeEach(() => {
   addToast = vi.fn();
   useToast.mockReturnValue({ addToast });
-  useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+  useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
   useRegistrarParecer.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false });
   useNotificarResponsaveis.mockReturnValue({
     mutateAsync: vi.fn().mockResolvedValue({ notificados: [{ usuarioId: 'u-2', nome: 'Ana Souza' }], naoResolvidos: [] }),
@@ -185,24 +185,18 @@ describe('CompatScreen — ações reais', () => {
     expect(addToast.mock.calls[0][0]).toMatch(/Ana Souza/);
   });
 
-  it('esconde as duas ações do Visualizador', () => {
-    useAuth.mockReturnValue({ user: { id: 'u-9', papel: 'Visualizador' } });
-    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: /Registrar parecer/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Notificar responsáveis/i })).toBeNull();
-  });
-
-  // "Editar regras" salva overrides (PUT/DELETE /api/compat/overrides), que exigem Gestor —
-  // policy mais estreita que a Operacional das duas ações acima.
-  it('esconde "Editar regras" de Tecnico, que ainda vê as ações operacionais', () => {
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Tecnico' } });
+  // "Editar regras" salva overrides (PUT/DELETE /api/compat/overrides), que exigem Cadastro —
+  // policy mais estreita que a Operacional das duas ações da tela.
+  it('esconde "Editar regras" de Aluno, que ainda vê as ações operacionais', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-9', papel: 'Aluno' } });
     render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /Editar regras/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /Registrar parecer/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Exportar matriz/i })).toBeInTheDocument();
   });
 
-  it('mostra "Editar regras" para Gestor', () => {
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Gestor' } });
+  it('mostra "Editar regras" para Professor', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
     render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
     expect(screen.getByRole('button', { name: /Editar regras/i })).toBeInTheDocument();
   });

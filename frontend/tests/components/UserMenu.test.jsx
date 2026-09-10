@@ -25,20 +25,20 @@ describe('UserMenu — identidade real', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('mostra nome, papel e badge 2FA do usuário real', async () => {
-    const user = { nome: 'Ana Lima', email: 'ana@x.com', papel: 'Gestor', twoFactorEnabled: true };
+    const user = { nome: 'Ana Lima', email: 'ana@x.com', papel: 'Professor', twoFactorEnabled: true };
     render(<UserMenu user={user} onLogout={vi.fn()} dispatch={vi.fn()}/>, { wrapper });
 
     await userEvent.click(screen.getByLabelText('Conta e preferências'));
 
     expect(screen.getAllByText('Ana Lima').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Gestor').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Professor').length).toBeGreaterThan(0);
     expect(screen.getByText('2FA ativo')).toBeInTheDocument();
     expect(await screen.findByText('2 dispositivos')).toBeInTheDocument();
     expect(screen.queryByText('IMC')).toBeNull();
   });
 
   it('omite o badge 2FA quando twoFactorEnabled é falso', async () => {
-    const user = { nome: 'Beto Souza', email: 'beto@x.com', papel: 'Tecnico', twoFactorEnabled: false };
+    const user = { nome: 'Beto Souza', email: 'beto@x.com', papel: 'Professor', twoFactorEnabled: false };
     render(<UserMenu user={user} onLogout={vi.fn()} dispatch={vi.fn()}/>, { wrapper });
 
     await userEvent.click(screen.getByLabelText('Conta e preferências'));
@@ -47,7 +47,7 @@ describe('UserMenu — identidade real', () => {
   });
 
   it('não oferece ajuda que o app não tem — sem reportar problema, documentação ou atalhos', async () => {
-    const user = { nome: 'Ana Lima', email: 'ana@x.com', papel: 'Gestor' };
+    const user = { nome: 'Ana Lima', email: 'ana@x.com', papel: 'Professor' };
     render(<UserMenu user={user} onLogout={vi.fn()} dispatch={vi.fn()}/>, { wrapper });
 
     await userEvent.click(screen.getByLabelText('Conta e preferências'));

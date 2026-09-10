@@ -37,11 +37,11 @@ describe('useLogin', () => {
   });
 
   it('on success stores token in localStorage and sets isSuccess', async () => {
-    const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Admin', exp: 9999999999 });
+    const token = makeToken({ sub: 'u1', email: 'admin@test.com', papel: 'Professor', exp: 9999999999 });
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ token, expireAt: '2099-01-01T00:00:00Z', user: { id: 'u1', email: 'admin@test.com', papel: 'Admin', roles: ['Admin'] } }),
+      json: async () => ({ token, expireAt: '2099-01-01T00:00:00Z', user: { id: 'u1', email: 'admin@test.com', papel: 'Professor', roles: ['Professor'] } }),
     });
 
     const { result } = renderHook(() => useLogin(), { wrapper });
@@ -69,11 +69,11 @@ describe('useLogin', () => {
   });
 
   it('sends Email and Senha fields in POST body', async () => {
-    const token = makeToken({ sub: 'u1', email: 'a@b.com', papel: 'Admin', exp: 9999999999 });
+    const token = makeToken({ sub: 'u1', email: 'a@b.com', papel: 'Professor', exp: 9999999999 });
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ token, expireAt: '2099-01-01T00:00:00Z', user: { id: 'u1', email: 'a@b.com', papel: 'Admin', roles: ['Admin'] } }),
+      json: async () => ({ token, expireAt: '2099-01-01T00:00:00Z', user: { id: 'u1', email: 'a@b.com', papel: 'Professor', roles: ['Professor'] } }),
     });
 
     const { result } = renderHook(() => useLogin(), { wrapper });

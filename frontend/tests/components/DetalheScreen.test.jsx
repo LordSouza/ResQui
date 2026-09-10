@@ -72,7 +72,7 @@ beforeEach(() => {
   useCriarLote.mockReturnValue({ mutate: vi.fn(), isPending: false });
   useBaixaLote.mockReturnValue({ mutate: vi.fn(), isPending: false });
   useMovimentacoes.mockReturnValue({ data: [], isPending: false });
-  useAuth.mockReturnValue({ user: { papel: 'Tecnico' } });
+  useAuth.mockReturnValue({ user: { papel: 'Professor' } });
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -95,38 +95,27 @@ describe('DetalheScreen — permissões', () => {
     return render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={vi.fn()} />);
   };
 
-  it('Tecnico baixa, transfere e cria lote, mas não edita nem exclui o reagente', () => {
-    renderCom('Tecnico');
+  it('Professor alcança todas as ações do reagente', () => {
+    renderCom('Professor');
     expect(screen.getByRole('button', { name: /Baixar consumo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Transferir/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Novo lote/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Editar$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Excluir/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Editar$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Excluir/i })).toBeInTheDocument();
   });
 
-  it('Pesquisador baixa e transfere, mas não cria lote', () => {
-    renderCom('Pesquisador');
+  // Aluno tem Operacional (baixa e transferência), não Operacao (lote) nem Cadastro (edição).
+  it('Aluno baixa e transfere, mas não cria lote, edita nem exclui', () => {
+    renderCom('Aluno');
     expect(screen.getByRole('button', { name: /Baixar consumo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Transferir/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Novo lote/i })).not.toBeInTheDocument();
-  });
-
-  it('Visualizador não vê nenhuma ação de escrita', () => {
-    renderCom('Visualizador');
-    expect(screen.queryByRole('button', { name: /Baixar consumo/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Transferir/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Novo lote/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Editar$/i })).not.toBeInTheDocument();
-  });
-
-  it('Gestor edita, mas só Admin exclui', () => {
-    renderCom('Gestor');
-    expect(screen.getByRole('button', { name: /^Editar$/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Excluir/i })).not.toBeInTheDocument();
   });
 
   it('mantém leitura para todos: rótulo PDF e resumo de segurança', () => {
-    renderCom('Visualizador');
+    renderCom('Aluno');
     expect(screen.getByRole('button', { name: /Rótulo PDF/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Resumo de segurança/i })).toBeInTheDocument();
   });

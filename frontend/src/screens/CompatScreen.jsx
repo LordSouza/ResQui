@@ -27,7 +27,7 @@ export function CompatScreen({ state, dispatch }) {
   const { data: overrides = [] } = useCompatOverrides();
   const { addToast } = useToast();
   const podeAgir = usePode('Operacional');       // POST /api/compat/parecer e /notificar
-  const podeEditarRegras = usePode('Gestor');    // PUT/DELETE /api/compat/overrides/:a/:b
+  const podeEditarRegras = usePode('Cadastro');    // PUT/DELETE /api/compat/overrides/:a/:b
   const [parecer, setParecer] = useState('');
   const registrarParecer = useRegistrarParecer();
   const notificar = useNotificarResponsaveis();

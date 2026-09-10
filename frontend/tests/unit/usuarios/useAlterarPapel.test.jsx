@@ -25,11 +25,11 @@ describe('useAlterarPapel', () => {
   it('envia PUT /api/usuarios/u1/papel com NovoPapel', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, status: 204, json: async () => null });
     const { result } = renderHook(() => useAlterarPapel(), { wrapper });
-    act(() => result.current.mutate({ id: 'u1', NovoPapel: 'Gestor' }));
+    act(() => result.current.mutate({ id: 'u1', NovoPapel: 'Professor' }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockFetch.mock.calls[0][0]).toBe('/api/usuarios/u1/papel');
     expect(mockFetch.mock.calls[0][1].method).toBe('PUT');
-    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ NovoPapel: 'Gestor' });
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ NovoPapel: 'Professor' });
   });
 
   it('seta isError em resposta não-ok', async () => {
