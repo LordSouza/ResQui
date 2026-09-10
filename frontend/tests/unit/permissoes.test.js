@@ -55,7 +55,7 @@ describe('podeVerTela', () => {
     for (const papel of TODOS_OS_PAPEIS) {
       expect(podeVerTela(papel, 'dashboard')).toBe(true);
       expect(podeVerTela(papel, 'inventario')).toBe(true);
-      expect(podeVerTela(papel, 'chamados')).toBe(true);
+      expect(podeVerTela(papel, 'compat')).toBe(true);
     }
   });
 

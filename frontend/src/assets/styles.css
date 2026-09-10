@@ -1945,45 +1945,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 }
 .chat-list-item + .chat-list-item { border-top: 1px solid var(--border); }
 
-/* === ChamadosScreen: comment thread === */
-.comment-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-.comment-avatar.eu {
-  background: var(--accent);
-  color: #fff;
-}
-.comment-avatar.outro {
-  background: var(--surface-3);
-  color: var(--text-2);
-}
-.comment-bubble {
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--text);
-  padding: 8px 11px;
-  border-radius: var(--radius);
-  white-space: pre-wrap;
-}
-.comment-bubble.eu  { background: var(--accent-soft); }
-.comment-bubble.outro { background: var(--surface-2); }
-.comment-textarea {
-  width: 100%;
-  padding: 8px 11px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 12.5px;
-  resize: vertical;
-  font-family: var(--font);
-  line-height: 1.45;
-}
 .csv-dropzone {
   border-radius: var(--radius);
   padding: 40px 20px;

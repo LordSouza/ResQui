@@ -3,7 +3,6 @@ import { Icon, Badge } from '../components';
 import Modal from './Modal';
 import { useGetNotificacaoPrefs } from '../notificacoes/useGetNotificacaoPrefs';
 import { useNotificacaoPrefs } from '../notificacoes/useNotificacaoPrefs';
-import { useCriarChamado } from '../chamados/useCriarChamado';
 import { useAuth } from '../auth/AuthContext';
 import { useAtualizarPerfil } from '../auth/useAtualizarPerfil';
 import { iniciaisUsuario } from '../utils';
@@ -444,126 +443,6 @@ export function FormNotificacoes({ onClose }) {
           </div>
         </>
       )}
-    </Modal>
-  );
-}
-
-// ---------- Reportar problema ----------
-export function FormReportar({ onClose, dispatch }) {
-  const [data, setData] = useState({
-    tipo: 'bug',
-    severidade: 'media',
-    titulo: '',
-    descricao: '',
-    passos: '',
-    incluirContexto: true,
-  });
-  const [enviado, setEnviado] = useState(false);
-  const mutation = useCriarChamado();
-  const set = (k, v) => setData(d => ({ ...d, [k]: v }));
-
-  const valid = data.titulo.trim().length >= 5 && data.descricao.trim().length >= 10;
-
-  const enviar = () => {
-    if (!valid) return;
-    mutation.mutate(
-      {
-        Titulo: data.titulo.trim(),
-        Descricao: data.descricao.trim() + (data.passos.trim() ? '\n\nPassos:\n' + data.passos.trim() : ''),
-        LaboratorioId: null,
-        Tipo: data.tipo.charAt(0).toUpperCase() + data.tipo.slice(1),
-        Severidade: data.severidade.charAt(0).toUpperCase() + data.severidade.slice(1),
-      },
-      { onSuccess: () => setEnviado(true) }
-    );
-  };
-
-  if (enviado) {
-    return (
-      <Modal title="Ticket criado" onClose={onClose} width={520}
-        footer={<>
-          <button type="button" className="btn btn-sm" onClick={() => { onClose(); dispatch({ type: 'nav', screen: 'chamados' }); }}>
-            <Icon name="warning" size={12}/> Ver chamado
-          </button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={onClose}>Fechar</button>
-        </>}>
-        <div style={{textAlign: 'center', padding: '20px 0'}}>
-          {(() => {
-            const ticketSuccessIconStyle = {width: 56, height: 56, borderRadius: '50%', background: 'var(--green-soft)', color: 'var(--green)', display: 'grid', placeItems: 'center', margin: '0 auto 14px'};
-            return <div style={ticketSuccessIconStyle}><Icon name="check" size={28} stroke={2.5}/></div>;
-          })()}
-          <div style={{fontSize: 15, fontWeight: 600, marginBottom: 6}}>Recebemos seu relato</div>
-          <div style={{fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.5, maxWidth: 360, margin: '0 auto'}}>
-            Seu relato foi registrado. A equipe de suporte responderá em até <strong>1 dia útil</strong>.
-          </div>
-        </div>
-      </Modal>
-    );
-  }
-
-  return (
-    <Modal title="Reportar problema" sub="Ajude-nos a melhorar o ResQui"
-      onClose={onClose} width={620}
-      footer={<>
-        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" disabled={!valid || mutation.isPending} onClick={enviar}>
-          <Icon name="send" size={12}/> {mutation.isPending ? 'Enviando…' : 'Enviar relato'}
-        </button>
-      </>}>
-      <div className="form-row">
-        <div className="field">
-          <label htmlFor="reportar-tipo">Tipo</label>
-          <select id="reportar-tipo" value={data.tipo} onChange={e => set('tipo', e.target.value)}>
-            <option value="bug">🐛 Bug · algo não funcionou</option>
-            <option value="feature">💡 Sugestão · nova funcionalidade</option>
-            <option value="ui">🎨 Interface · problema visual ou de usabilidade</option>
-            <option value="performance">⚡ Performance · sistema lento</option>
-            <option value="conformidade">📋 Conformidade · norma ou regra incorreta</option>
-            <option value="outro">Outro</option>
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="reportar-severidade">Severidade</label>
-          <select id="reportar-severidade" value={data.severidade} onChange={e => set('severidade', e.target.value)}>
-            <option value="baixa">Baixa · incômodo menor</option>
-            <option value="media">Média · atrapalha o uso</option>
-            <option value="alta">Alta · bloqueia operação</option>
-            <option value="critica">Crítica · risco regulatório/segurança</option>
-          </select>
-        </div>
-      </div>
-      <div className="form-row full">
-        <div className="field">
-          <label htmlFor="reportar-titulo">Título <span style={{color: 'var(--text-3)', fontWeight: 400}}>(mín. 5 caracteres)</span></label>
-          <input id="reportar-titulo" aria-label="Título do problema" value={data.titulo} onChange={e => set('titulo', e.target.value)} placeholder="Ex: Botão de salvar rascunho não persiste após reload"/>
-        </div>
-      </div>
-      <div className="form-row full">
-        <div className="field">
-          <label htmlFor="reportar-descricao">Descrição <span style={{color: 'var(--text-3)', fontWeight: 400}}>(o que aconteceu e o que esperava)</span></label>
-          <textarea id="reportar-descricao" aria-label="Descrição do problema" value={data.descricao} onChange={e => set('descricao', e.target.value)} rows={4}
-            placeholder="Descreva o problema com o máximo de detalhes possível…"
-            style={{resize: 'vertical', fontFamily: 'var(--font)', lineHeight: 1.45}}/>
-        </div>
-      </div>
-      <div className="form-row full">
-        <div className="field">
-          <label htmlFor="reportar-passos">Passos para reproduzir <span style={{color: 'var(--text-3)', fontWeight: 400}}>(opcional)</span></label>
-          <textarea id="reportar-passos" aria-label="Passos para reproduzir" value={data.passos} onChange={e => set('passos', e.target.value)} rows={3}
-            placeholder={'1. Abrir tela X\n2. Clicar em Y\n3. ...'}
-            style={{resize: 'vertical', fontFamily: 'var(--mono)', lineHeight: 1.45, fontSize: 12}}/>
-        </div>
-      </div>
-
-      <label style={{...pgrsCheck, marginTop: 4}}>
-        <input type="checkbox" aria-label="Incluir dados de contexto automaticamente" checked={data.incluirContexto} onChange={() => set('incluirContexto', !data.incluirContexto)}/>
-        <span>
-          Incluir dados de contexto automaticamente
-          <div style={{fontSize: 12, color: 'var(--text-3)', marginTop: 2}}>
-            Versão do app, navegador, tela aberta, último ID acessado · nenhum dado sensível
-          </div>
-        </span>
-      </label>
     </Modal>
   );
 }

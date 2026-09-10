@@ -23,7 +23,6 @@ import { AuditoriaScreen } from './screens/AuditoriaScreen';
 import { RelatoriosScreen } from './screens/RelatoriosScreen';
 import { LaboratoriosScreen } from './screens/LaboratoriosScreen';
 import { UsuariosScreen } from './screens/UsuariosScreen';
-import { ChamadosScreen } from './screens/ChamadosScreen';
 
 import { AssistenteChat } from './chat/AssistenteChat';
 
@@ -32,8 +31,7 @@ import { ResumoSeguranca } from './forms/ResumoSeguranca';
 import { FormNovoResiduo, FormEditarResiduo, ConfirmRejeitarResiduo, FormNovoMtr, FormConfigurarPgrs } from './forms/residuos';
 import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/laboratorios';
 import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario, ConfirmResetar2fa } from './forms/usuarios';
-import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes, FormReportar } from './forms/sistema';
-import { FormNovoChamado } from './forms/chamados';
+import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes } from './forms/sistema';
 import { FormEditarReagente } from './forms/FormEditarReagente';
 
 import { LoginScreen } from './Login';
@@ -60,7 +58,6 @@ const NAV = [
   { key: 'relatorios', label: 'Relatórios', icon: 'file_chart', section: 'gestao' },
   { key: 'auditoria', label: 'Auditoria', icon: 'audit', section: 'gestao' },
   { key: 'usuarios', label: 'Usuários', icon: 'clipboard', section: 'gestao' },
-  { key: 'chamados', label: 'Chamados', icon: 'warning', section: 'sistema' },
 ];
 
 export function UserMenu({ user, onLogout, dispatch }) {
@@ -121,13 +118,10 @@ export function UserMenu({ user, onLogout, dispatch }) {
             <UmItem icon="bell" label="Notificações por e-mail" hint="Vencimento · MTR · Estoque" onClick={() => openModal('notificacoes')}/>
           </UmGroup>
 
-          {/* Ajuda */}
-          <UmGroup label="Ajuda">
-            <UmItem icon="warning" label="Reportar problema" onClick={() => openModal('reportar')}/>
-            <div style={{padding: '6px 12px', fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--mono)'}}>
-              ResQui v{__APP_VERSION__}
-            </div>
-          </UmGroup>
+          {/* Versão */}
+          <div style={{padding: '6px 12px', fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--mono)'}}>
+            ResQui v{__APP_VERSION__}
+          </div>
 
           {/* Logout */}
           <div style={{borderTop: '1px solid var(--border)', paddingTop: 4, marginTop: 4}}>
@@ -340,7 +334,6 @@ export default function App() {
       case 'auditoria': return AuditoriaScreen;
       case 'relatorios': return RelatoriosScreen;
       case 'usuarios': return UsuariosScreen;
-      case 'chamados': return ChamadosScreen;
       default: return DashboardScreen;
     }
   })();
@@ -380,17 +373,6 @@ export default function App() {
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
               {n.label}
               {navBadges[n.key] > 0 && <span className="badge-count">{navBadges[n.key]}</span>}
-            </button>
-          ))}
-        </nav>
-
-        <div className="sidebar-section" id="nav-secao-sistema">Sistema</div>
-        <nav className="nav" aria-labelledby="nav-secao-sistema">
-          {NAV.filter(n => n.section === 'sistema').filter(n => podeVerTela(user?.papel, n.key)).map(n => (
-            <button type="button" key={n.key} className={`nav-item ${state.screen === n.key ? 'active' : ''}`}
-              onClick={() => dispatch({type: 'nav', screen: n.key})}>
-              <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
-              {n.label}
             </button>
           ))}
         </nav>
@@ -445,8 +427,6 @@ export default function App() {
       {state.modal === 'senha2fa' && <FormSenha2FA onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'sessoes' && <FormSessoes onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'notificacoes' && <FormNotificacoes onClose={() => dispatch({type: 'closeModal'})}/>}
-      {state.modal === 'reportar' && <FormReportar onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
-      {state.modal === 'novoChamado' && <FormNovoChamado onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'novoResiduo' && <FormNovoResiduo inicial={state.modalResiduoInicial} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'editarResiduo' && state.modalResiduo && <FormEditarResiduo residuo={state.modalResiduo} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'rejeitarResiduo' && state.modalResiduo && <ConfirmRejeitarResiduo residuo={state.modalResiduo} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
