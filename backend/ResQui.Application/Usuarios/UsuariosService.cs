@@ -14,7 +14,7 @@ public interface IUsuariosService
     Task<IEnumerable<UsuarioDto>> ListarAsync();
     Task<IEnumerable<UsuarioNomeDto>> ListarNomesAsync();
     Task AlterarPapelAsync(string id, AlterarPapelCmd cmd, string usuarioEmail);
-    Task ArquivarAsync(string id, string usuarioEmail);
+    Task ArquivarAsync(string id, string usuarioEmail, string requesterPapel);
     Task ExcluirAsync(string id, string requesterId, string usuarioEmail);
 }
 
@@ -38,9 +38,11 @@ public class UsuariosService(IAuthRepository repo, IAuditoriaService auditoria) 
             $"Alterou papel do usuário {id} para {cmd.NovoPapel}", RiscoAuditoria.High);
     }
 
-    public async Task ArquivarAsync(string id, string usuarioEmail)
+    public async Task ArquivarAsync(string id, string usuarioEmail, string requesterPapel)
     {
-        if (await repo.FindByIdAsync(id) is null) return;
+        if (await repo.FindByIdAsync(id) is not { } alvo) return;
+        if (alvo.Papel != "Aluno" && requesterPapel != "Admin")
+            throw new ValidationException($"Arquivar conta de {alvo.Papel} é só o Admin; você pode arquivar Aluno.");
         await repo.SoftDeleteAsync(id);
         await auditoria.RegistrarAsync(usuarioEmail, "user.arquivar", "Usuários",
             $"Arquivou usuário {id}", RiscoAuditoria.High);

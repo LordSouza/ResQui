@@ -15,7 +15,7 @@ public static class DbSeeder
     {
         await db.Database.MigrateAsync();
 
-        string[] roles = ["Professor", "Aluno"];
+        string[] roles = ["Admin", "Professor", "Aluno"];
         foreach (var role in roles)
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
@@ -27,7 +27,7 @@ public static class DbSeeder
             {
                 UserName = adminEmail,
                 Email = adminEmail,
-                Papel = "Professor",
+                Papel = "Admin",
                 EmailConfirmed = true
             };
             var criado = await userManager.CreateAsync(admin, adminPassword);
@@ -39,7 +39,7 @@ public static class DbSeeder
                     "Não foi possível criar o admin do seed: "
                     + string.Join("; ", criado.Errors.Select(e => e.Description))
                     + " (ajuste ADMIN_PASSWORD / Seed:AdminPassword)");
-            await userManager.AddToRoleAsync(admin, "Professor");
+            await userManager.AddToRoleAsync(admin, "Admin");
         }
 
         // A matriz base é sincronizada a cada startup: correções em CompatMatrixData precisam

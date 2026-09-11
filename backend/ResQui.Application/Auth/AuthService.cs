@@ -233,15 +233,17 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         return ativas.Count;
     }
 
-    public async Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, string requesterEmail)
+    public async Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, string requesterEmail, string requesterPapel)
     {
         if (string.IsNullOrWhiteSpace(cmd.Email) || !cmd.Email.Contains('@'))
             throw new ValidationException("E-mail inválido.");
         if (string.IsNullOrWhiteSpace(cmd.Senha))
             throw new ValidationException("Senha é obrigatória.");
-        string[] papeisValidos = ["Professor", "Aluno"];
+        string[] papeisValidos = ["Admin", "Professor", "Aluno"];
         if (!papeisValidos.Contains(cmd.Papel))
             throw new ValidationException($"Papel inválido: {cmd.Papel}.");
+        if (cmd.Papel != "Aluno" && requesterPapel != "Admin")
+            throw new ValidationException($"Criar conta de {cmd.Papel} é só o Admin; você pode criar Aluno.");
 
         var id = await repo.CreateAsync(cmd.Email, cmd.Senha, cmd.Matricula, cmd.Papel, cmd.Nome);
         await repo.AddToRoleAsync(id, cmd.Papel);

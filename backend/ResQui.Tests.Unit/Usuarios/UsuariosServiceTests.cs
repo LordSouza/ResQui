@@ -55,7 +55,7 @@ public class UsuariosServiceTests
         _repo.FindByIdAsync("user-1").Returns(FakeUser());
         _repo.SoftDeleteAsync(Arg.Any<string>()).Returns(Task.CompletedTask);
 
-        await _sut.ArquivarAsync("user-1", "admin@lab.com");
+        await _sut.ArquivarAsync("user-1", "admin@lab.com", "Admin");
 
         await _audit.Received(1).RegistrarAsync(
             "admin@lab.com", "user.arquivar", "Usuários",
@@ -67,7 +67,7 @@ public class UsuariosServiceTests
     {
         _repo.FindByIdAsync("user-999").Returns((UsuarioInfo?)null);
 
-        await _sut.ArquivarAsync("user-999", "admin@lab.com");
+        await _sut.ArquivarAsync("user-999", "admin@lab.com", "Admin");
 
         await _audit.DidNotReceive().RegistrarAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
@@ -173,5 +173,41 @@ public class UsuariosServiceTests
     {
         typeof(UsuarioNomeDto).GetProperties().Select(p => p.Name)
             .Should().BeEquivalentTo("Id", "Nome", "Email");
+    }
+
+    [Fact]
+    public async Task ArquivarAsync_ProfessorArquivaAluno()
+    {
+        _repo.FindByIdAsync("aluno-1").Returns(new UsuarioInfo(
+            "aluno-1", "aluno@lab.com", "Aluno", null, "Aluno", new List<string> { "Aluno" }, false));
+
+        await _sut.ArquivarAsync("aluno-1", "prof@lab.com", "Professor");
+
+        await _repo.Received(1).SoftDeleteAsync("aluno-1");
+    }
+
+    [Theory]
+    [InlineData("Professor")]
+    [InlineData("Admin")]
+    public async Task ArquivarAsync_ProfessorNaoArquivaAlemDeAluno(string papelAlvo)
+    {
+        _repo.FindByIdAsync("alvo-1").Returns(new UsuarioInfo(
+            "alvo-1", "colega@lab.com", "Colega", null, papelAlvo, new List<string> { papelAlvo }, false));
+
+        var act = () => _sut.ArquivarAsync("alvo-1", "prof@lab.com", "Professor");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*só o Admin*");
+        await _repo.DidNotReceive().SoftDeleteAsync("alvo-1");
+    }
+
+    [Fact]
+    public async Task ArquivarAsync_AdminArquivaProfessor()
+    {
+        _repo.FindByIdAsync("prof-1").Returns(new UsuarioInfo(
+            "prof-1", "prof@lab.com", "Prof", null, "Professor", new List<string> { "Professor" }, false));
+
+        await _sut.ArquivarAsync("prof-1", "admin@lab.com", "Admin");
+
+        await _repo.Received(1).SoftDeleteAsync("prof-1");
     }
 }

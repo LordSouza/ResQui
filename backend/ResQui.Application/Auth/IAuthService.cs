@@ -11,7 +11,7 @@ public interface IAuthService
     Task<IEnumerable<SessaoDto>> ListarSessoesAsync(string userId, string? jtiAtual);
     Task<bool> RevogarSessaoAsync(string userId, string jti, string usuarioEmail);
     Task<int> RevogarOutrasSessoesAsync(string userId, string? jtiAtual, string usuarioEmail);
-    Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, string requesterEmail);
+    Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, string requesterEmail, string requesterPapel);
     Task<UserProfileDto?> GetMeAsync(string userId);
     Task<UserProfileDto> AtualizarPerfilAsync(string userId, AtualizarPerfilCmd cmd, string requesterEmail);
     Task<bool> ResetarSegundoFatorAsync(string alvoId, string requesterId, string requesterEmail);

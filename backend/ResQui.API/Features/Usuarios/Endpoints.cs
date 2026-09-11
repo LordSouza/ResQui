@@ -14,22 +14,22 @@ public static class Endpoints
         group.MapPost("/", async (RegisterCmd cmd, IAuthService authSvc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var profile = await authSvc.RegisterAsync(cmd, email);
+            var profile = await authSvc.RegisterAsync(cmd, email, user.FindFirstValue("papel") ?? "");
             return Results.Created($"/api/usuarios/{profile.Id}", profile);
-        })
-        .RequireAuthorization("Administracao");
+        });
 
         group.MapPut("/{id}/papel", async (string id, AlterarPapelCmd cmd, IUsuariosService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             await svc.AlterarPapelAsync(id, cmd, email);
             return Results.NoContent();
-        });
+        })
+        .RequireAuthorization("Administracao");
 
         group.MapDelete("/{id}", async (string id, IUsuariosService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            await svc.ArquivarAsync(id, email);
+            await svc.ArquivarAsync(id, email, user.FindFirstValue("papel") ?? "");
             return Results.NoContent();
         });
 
@@ -40,7 +40,8 @@ public static class Endpoints
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             await svc.ExcluirAsync(id, requesterId, email);
             return Results.NoContent();
-        });
+        })
+        .RequireAuthorization("Administracao");
 
         group.MapPost("/{id}/2fa/reset", async (string id, IAuthService authSvc, ClaimsPrincipal user) =>
         {

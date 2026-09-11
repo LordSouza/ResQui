@@ -38,7 +38,7 @@ public static class Endpoints
             var ok = await svc.DeletarAsync(id, email);
             return ok ? Results.NoContent() : Results.NotFound();
         })
-        .RequireAuthorization("Administracao");
+        .RequireAuthorization("Cadastro");
 
         return group;
     }

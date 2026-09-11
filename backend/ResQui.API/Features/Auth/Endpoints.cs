@@ -93,10 +93,10 @@ public static class Endpoints
         group.MapPost("/register", async (RegisterCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var profile = await svc.RegisterAsync(cmd, email);
+            var profile = await svc.RegisterAsync(cmd, email, user.FindFirstValue("papel") ?? "");
             return Results.Created($"/api/auth/me", profile);
         })
-        .RequireAuthorization("Administracao")
+        .RequireAuthorization("GestaoUsuarios")
         .WithName("Register")
         .WithSummary("Criar novo usuário (Admin only)");
 
