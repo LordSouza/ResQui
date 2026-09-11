@@ -542,3 +542,102 @@ test('Professor confirma e reabre a destinação do manifesto', async ({ request
   const denovo = await request.delete(`/api/mtrs/${mtr.id}/destinacao`, { headers: auth });
   expect(denovo.status()).toBe(400);
 });
+
+// O Admin gerencia as contas de professor; o Professor cuida dos próprios alunos. O gate olha o
+// papel do ALVO, não só o de quem pede — por isso não é uma policy sozinha.
+test('Professor cria Aluno mas não cria outro Professor', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `prof_gate_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Gate E2E' },
+  });
+  const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Prof@123' } });
+  const { token } = await login.json();
+  const profAuth = { Authorization: `Bearer ${token}` };
+
+  const aluno = await request.post('/api/auth/register', {
+    headers: profAuth,
+    data: { Email: `aluno_gate_${Date.now()}@resqui.local`, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Gate' },
+  });
+  expect(aluno.ok()).toBeTruthy();
+
+  const colega = await request.post('/api/auth/register', {
+    headers: profAuth,
+    data: { Email: `colega_gate_${Date.now()}@resqui.local`, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Colega' },
+  });
+  expect(colega.status()).toBe(400);
+  expect((await colega.json()).message).toMatch(/só o Admin/);
+
+  const novoAdmin = await request.post('/api/auth/register', {
+    headers: profAuth,
+    data: { Email: `admin_gate_${Date.now()}@resqui.local`, Senha: 'Adm@1234', Papel: 'Admin', Nome: 'Admin' },
+  });
+  expect(novoAdmin.status()).toBe(400);
+});
+
+test('Professor arquiva Aluno mas não arquiva colega Professor', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const base = Date.now();
+  const profEmail = `prof_arq_${base}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: profEmail, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Arq' },
+  });
+  const colegaRes = await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: `colega_arq_${base}@resqui.local`, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Colega Arq' },
+  });
+  const colega = await colegaRes.json();
+
+  const login = await request.post('/api/auth/login', { data: { Email: profEmail, Senha: 'Prof@123' } });
+  const { token } = await login.json();
+  const profAuth = { Authorization: `Bearer ${token}` };
+
+  const alunoRes = await request.post('/api/auth/register', {
+    headers: profAuth,
+    data: { Email: `aluno_arq_${base}@resqui.local`, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Arq' },
+  });
+  const aluno = await alunoRes.json();
+
+  const arquivaAluno = await request.delete(`/api/usuarios/${aluno.id}`, { headers: profAuth });
+  expect(arquivaAluno.status()).toBe(204);
+
+  const arquivaColega = await request.delete(`/api/usuarios/${colega.id}`, { headers: profAuth });
+  expect(arquivaColega.status()).toBe(400);
+  expect((await arquivaColega.json()).message).toMatch(/só o Admin/);
+});
+
+test('Professor não alcança papel, exclusão definitiva nem reset de 2FA', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const base = Date.now();
+  const profEmail = `prof_adm_${base}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: profEmail, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Adm' },
+  });
+  const alvoRes = await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: `alvo_adm_${base}@resqui.local`, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Alvo Adm' },
+  });
+  const alvo = await alvoRes.json();
+
+  const login = await request.post('/api/auth/login', { data: { Email: profEmail, Senha: 'Prof@123' } });
+  const { token } = await login.json();
+  const profAuth = { Authorization: `Bearer ${token}` };
+
+  const papel = await request.put(`/api/usuarios/${alvo.id}/papel`, {
+    headers: profAuth, data: { NovoPapel: 'Professor' },
+  });
+  expect(papel.status()).toBe(403);
+
+  const definitivo = await request.delete(`/api/usuarios/${alvo.id}/definitivo`, { headers: profAuth });
+  expect(definitivo.status()).toBe(403);
+
+  const reset = await request.post(`/api/usuarios/${alvo.id}/2fa/reset`, { headers: profAuth });
+  expect(reset.status()).toBe(403);
+
+  // Mas lista e cria — é o que GestaoUsuarios lhe dá.
+  const lista = await request.get('/api/usuarios', { headers: profAuth });
+  expect(lista.ok()).toBeTruthy();
+});
