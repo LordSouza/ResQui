@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Icon, Badge } from '../components';
 import { ROLES } from '../data';
+import { usePode } from '../auth/permissoes';
 import Modal from './Modal';
 import ConfirmArquivarUsuario from './ConfirmArquivarUsuario';
 import { useCriarUsuario } from '../usuarios/useCriarUsuario';
@@ -16,8 +17,9 @@ const papelBadge = (p) => {
 // ============== Modal: Novo usuário ==============
 
 export function FormNovoUsuario({ onClose, dispatch }) {
+  const podeQualquerPapel = usePode('Administracao');
   const [f, setF] = useState({
-    nome: '', email: '', senha: '', matricula: '', papel: 'Tecnico',
+    nome: '', email: '', senha: '', matricula: '', papel: 'Aluno',
   });
   const mutation = useCriarUsuario();
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
@@ -72,8 +74,10 @@ export function FormNovoUsuario({ onClose, dispatch }) {
           <input id="nu-senha" type="password" value={f.senha} onChange={e => upd('senha', e.target.value)} placeholder="Mínimo 8 caracteres" />
         </div>
         <div className="field"><label htmlFor="nu-papel">Papel</label>
-          <select id="nu-papel" value={f.papel} onChange={e => upd('papel', e.target.value)}>
-            {Object.entries(ROLES).map(([k, r]) => <option key={k} value={k}>{r.label}</option>)}
+          <select id="nu-papel" value={f.papel} onChange={e => upd('papel', e.target.value)} disabled={!podeQualquerPapel}>
+            {Object.entries(ROLES)
+              .filter(([k]) => podeQualquerPapel || k === 'Aluno')
+              .map(([k, r]) => <option key={k} value={k}>{r.label}</option>)}
           </select>
         </div>
       </div>

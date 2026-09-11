@@ -104,7 +104,7 @@ export function DetalheScreen({ state, dispatch }) {
   const deletarMutation = useDeletarReagente();
   const podeMovimentar = usePode('Operacional'); // POST /:id/baixa e /:id/transferencia
   const podeEditar = usePode('Cadastro');          // PUT /api/reagentes/:id
-  const podeExcluir = usePode('Administracao');          // DELETE /api/reagentes/:id
+  const podeExcluir = usePode('Cadastro');               // DELETE /api/reagentes/:id
   const { data: matrizData } = useCompatMatriz();
   const compatMatrix = matrizData?.matrix ?? {};
 

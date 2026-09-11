@@ -5,7 +5,7 @@ import { exportCsv } from '../utils';
 import { useUsuarios } from '../usuarios/useUsuarios';
 import { useAlterarPapel } from '../usuarios/useAlterarPapel';
 import { useAuth } from '../auth/AuthContext';
-import { podePor, POLICIES, DESCRICAO_POLICY } from '../auth/permissoes';
+import { podePor, usePode, POLICIES, DESCRICAO_POLICY } from '../auth/permissoes';
 
 // ============== Helpers ==============
 
@@ -33,6 +33,7 @@ function drawerReducer(state, action) {
 }
 
 export function PermissoesDrawer({ usuario, onClose, dispatch }) {
+  const podeAlterarPapel = usePode('Administracao');
   const alterarPapel = useAlterarPapel();
   const [drawerState, drawerDispatch] = useReducer(drawerReducer, null, () => ({
     papel: usuario.papel,
@@ -84,13 +85,15 @@ export function PermissoesDrawer({ usuario, onClose, dispatch }) {
             <div className="drawer-section-h">
               <div>
                 <h4>Papel</h4>
-                <div className="small muted">Define o conjunto de permissões concedidas pelo papel.</div>
+                <div className="small muted">
+                  {podeAlterarPapel ? 'Define o conjunto de permissões concedidas pelo papel.' : 'Só o Administrador altera o papel de uma conta.'}
+                </div>
               </div>
             </div>
             <div className="role-grid">
               {Object.entries(ROLES).map(([k, r]) => (
                 <label key={k} className={`role-card ${papel === k ? 'sel' : ''}`} style={{'--role-c': r.cor}}>
-                  <input type="radio" name="papel" aria-label={r.label} checked={papel === k} onChange={() => onPapelChange(k)}/>
+                  <input type="radio" name="papel" aria-label={r.label} checked={papel === k} disabled={!podeAlterarPapel} onChange={() => onPapelChange(k)}/>
                   <div className="role-card-h">
                     <span className="role-dot" style={{background: r.cor}}/>
                     <span className="role-name">{r.label}</span>
@@ -128,10 +131,12 @@ export function PermissoesDrawer({ usuario, onClose, dispatch }) {
             {dirty ? 'Papel alterado — salve para aplicar.' : 'Sem alterações pendentes.'}
           </div>
           <div className="row" style={{gap: 8}}>
-            <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-            <button type="button" className="btn btn-primary btn-sm" disabled={!dirty || alterarPapel.isPending} onClick={salvar}>
-              <Icon name="check" size={12}/> {alterarPapel.isPending ? 'Salvando…' : 'Salvar alterações'}
-            </button>
+            <button type="button" className="btn btn-sm" onClick={onClose}>{podeAlterarPapel ? 'Cancelar' : 'Fechar'}</button>
+            {podeAlterarPapel && (
+              <button type="button" className="btn btn-primary btn-sm" disabled={!dirty || alterarPapel.isPending} onClick={salvar}>
+                <Icon name="check" size={12}/> {alterarPapel.isPending ? 'Salvando…' : 'Salvar alterações'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -168,7 +173,10 @@ export function UsuariosScreen({ state, dispatch }) {
   const setMenuOpen    = (value) => screenDispatch({ type: 'setMenuOpen', value });
 
   const { user: usuarioLogado } = useAuth();
-  const souAdmin = podePor(usuarioLogado?.papel, 'Administracao'); // todo o grupo /api/usuarios exige Administracao
+  const souAdmin = podePor(usuarioLogado?.papel, 'Administracao'); // papel, exclusão definitiva e reset de 2FA
+  const podeGerir = podePor(usuarioLogado?.papel, 'GestaoUsuarios'); // listar, criar e arquivar
+  // O servidor gateia pelo papel do alvo: quem não é Admin só mexe em Aluno.
+  const podeMexerEm = (u) => souAdmin || u.papel === 'Aluno';
 
   // Timestamp for export filename (stable per render cycle)
   const exportDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -219,7 +227,7 @@ export function UsuariosScreen({ state, dispatch }) {
             exportCsv(rows, `usuarios-${exportDate}.csv`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar lista</button>
-          {souAdmin && (
+          {podeGerir && (
             <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'novoUsuario'})}>
               <Icon name="plus" size={13}/> Novo usuário
             </button>
@@ -316,7 +324,7 @@ export function UsuariosScreen({ state, dispatch }) {
                             <button type="button" onClick={() => { setSelecionado(u.id); setMenuOpen(null); }}>
                               <Icon name="shield" size={12}/> Editar permissões
                             </button>
-                            {u.status === 'ativo' && (
+                            {u.status === 'ativo' && podeMexerEm(u) && (
                               <button type="button" onClick={() => { dispatch({type: 'openModal', kind: 'arquivarUsuario', usuario: u}); setMenuOpen(null); }}>
                                 <Icon name="book" size={12}/> Arquivar
                               </button>
@@ -326,11 +334,13 @@ export function UsuariosScreen({ state, dispatch }) {
                                 <Icon name="shield" size={12}/> Resetar 2FA
                               </button>
                             )}
-                            <div className="row-menu-sep"/>
-                            <button type="button" className="danger" disabled={u.voce}
-                              onClick={() => { dispatch({type: 'openModal', kind: 'excluirUsuario', usuario: u}); setMenuOpen(null); }}>
-                              <Icon name="trash" size={12}/> Excluir definitivamente
-                            </button>
+                            {souAdmin && (<>
+                              <div className="row-menu-sep"/>
+                              <button type="button" className="danger" disabled={u.voce}
+                                onClick={() => { dispatch({type: 'openModal', kind: 'excluirUsuario', usuario: u}); setMenuOpen(null); }}>
+                                <Icon name="trash" size={12}/> Excluir definitivamente
+                              </button>
+                            </>)}
                           </div>
                         )}
                       </div>

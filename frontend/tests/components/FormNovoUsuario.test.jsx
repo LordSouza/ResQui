@@ -2,11 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthContext } from '../../src/auth/AuthContext';
 import { FormNovoUsuario } from '../../src/forms/usuarios';
 
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={qc}>
+      <AuthContext.Provider value={{ user: { id: 'admin-1', papel: 'Admin' }, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
+        {children}
+      </AuthContext.Provider>
+    </QueryClientProvider>
+  );
 }
 
 describe('FormNovoUsuario — entradas inválidas', () => {

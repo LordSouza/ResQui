@@ -4,19 +4,21 @@ import { useAuth } from './AuthContext';
 // servidor; isto existe só para não oferecer na UI um controle que a API vai recusar com 403.
 // Ao mexer numa policy lá, mexa aqui.
 export const POLICIES = {
-  Administracao: ['Professor'],
-  Cadastro: ['Professor'],
-  Operacao: ['Professor'],
-  Operacional: ['Professor', 'Aluno'],
-  Aprovador: ['Professor'],
-  Supervisao: ['Professor'],
+  Administracao: ['Admin'],
+  GestaoUsuarios: ['Admin', 'Professor'],
+  Cadastro: ['Admin', 'Professor'],
+  Operacao: ['Admin', 'Professor'],
+  Operacional: ['Admin', 'Professor', 'Aluno'],
+  Aprovador: ['Admin', 'Professor'],
+  Supervisao: ['Admin', 'Professor'],
 };
 
 // O que cada policy libera, em linguagem de usuário. Fonte única do que o PermissoesDrawer exibe:
 // sem isto ele voltaria a manter uma lista paralela, que foi o que esta fatia removeu.
 export const DESCRICAO_POLICY = {
-  Administracao: 'Gerir usuários e papéis, resetar 2FA, excluir reagente e laboratório',
-  Cadastro: 'Cadastrar e editar reagentes e laboratórios, importar CSV, gerar relatórios, configurar o PGRS',
+  Administracao: 'Alterar papéis, excluir contas definitivamente e resetar 2FA',
+  GestaoUsuarios: 'Listar, criar e arquivar usuários',
+  Cadastro: 'Cadastrar, editar e excluir reagentes e laboratórios, importar CSV, gerar relatórios, configurar o PGRS',
   Operacao: 'Emitir manifesto, confirmar destinação, gerir lotes e editar resíduo',
   Operacional: 'Solicitar descarte, registrar baixa e transferir reagente',
   Aprovador: 'Aprovar e rejeitar solicitações de descarte',
@@ -31,7 +33,7 @@ export function podePor(papel, policy) {
 // renderiza erro de carregamento. As demais são legíveis por qualquer usuário autenticado.
 export const POLICY_POR_TELA = {
   auditoria: 'Supervisao', // GET /api/auditoria
-  usuarios: 'Administracao', // grupo /api/usuarios inteiro
+  usuarios: 'GestaoUsuarios', // grupo /api/usuarios
 };
 
 // Texto exibido quando o papel não alcança a tela. Derivado do mapa acima para que uma tela nova

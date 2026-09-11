@@ -6,18 +6,19 @@ import { POLICIES, DESCRICAO_POLICY, podePor, podeVerTela, motivoTelaRestrita } 
 // saiu de sincronia com o servidor — corrija o espelho, não o teste, a menos que a policy do
 // backend tenha mudado de propósito.
 const ESPERADO = {
-  Administracao: ['Professor'],
-  Cadastro: ['Professor'],
-  Operacao: ['Professor'],
-  Operacional: ['Professor', 'Aluno'],
-  Aprovador: ['Professor'],
-  Supervisao: ['Professor'],
+  Administracao: ['Admin'],
+  GestaoUsuarios: ['Admin', 'Professor'],
+  Cadastro: ['Admin', 'Professor'],
+  Operacao: ['Admin', 'Professor'],
+  Operacional: ['Admin', 'Professor', 'Aluno'],
+  Aprovador: ['Admin', 'Professor'],
+  Supervisao: ['Admin', 'Professor'],
 };
 
-const TODOS_OS_PAPEIS = ['Professor', 'Aluno'];
+const TODOS_OS_PAPEIS = ['Admin', 'Professor', 'Aluno'];
 
 describe('POLICIES espelha as policies do backend', () => {
-  it('cobre exatamente as seis policies declaradas', () => {
+  it('cobre exatamente as sete policies declaradas', () => {
     expect(Object.keys(POLICIES).sort()).toEqual(Object.keys(ESPERADO).sort());
   });
 
@@ -49,9 +50,15 @@ describe('podePor', () => {
     }
   });
 
-  it('concede a Professor todas as policies', () => {
+  it('concede a Professor tudo menos Administracao', () => {
     for (const policy of Object.keys(POLICIES)) {
-      expect(podePor('Professor', policy)).toBe(true);
+      expect(podePor('Professor', policy)).toBe(policy !== 'Administracao');
+    }
+  });
+
+  it('concede a Admin todas as policies', () => {
+    for (const policy of Object.keys(POLICIES)) {
+      expect(podePor('Admin', policy)).toBe(true);
     }
   });
 });
@@ -66,13 +73,13 @@ describe('podeVerTela', () => {
   });
 
   // GET /api/auditoria exige Supervisao.
-  it.each([['Professor', true], ['Aluno', false]])
+  it.each([['Admin', true], ['Professor', true], ['Aluno', false]])
     ('auditoria para %s → %s', (papel, esperado) => {
       expect(podeVerTela(papel, 'auditoria')).toBe(esperado);
     });
 
-  // Todo o grupo /api/usuarios exige Administracao.
-  it.each([['Professor', true], ['Aluno', false]])
+  // O grupo /api/usuarios exige GestaoUsuarios: o professor entra para cuidar dos alunos.
+  it.each([['Admin', true], ['Professor', true], ['Aluno', false]])
     ('usuarios para %s → %s', (papel, esperado) => {
       expect(podeVerTela(papel, 'usuarios')).toBe(esperado);
     });
@@ -85,8 +92,8 @@ describe('podeVerTela', () => {
 
 describe('motivoTelaRestrita', () => {
   it('nomeia os papéis da policy da tela, sem texto herdado de outra', () => {
-    expect(motivoTelaRestrita('usuarios')).toBe('Esta tela é exclusiva de Professor.');
-    expect(motivoTelaRestrita('auditoria')).toBe('Esta tela é exclusiva de Professor.');
+    expect(motivoTelaRestrita('usuarios')).toBe('Esta tela é restrita a Admin e Professor.');
+    expect(motivoTelaRestrita('auditoria')).toBe('Esta tela é restrita a Admin e Professor.');
   });
 
   it('devolve vazio para tela sem restrição', () => {

@@ -47,7 +47,7 @@ describe('UsuariosScreen — MFA', () => {
   });
 
   it('oferece "Resetar 2FA" ao Admin em usuário com MFA ativo', async () => {
-    renderCom({ id: 'admin-1', papel: 'Professor' });
+    renderCom({ id: 'admin-1', papel: 'Admin' });
 
     const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
     fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
@@ -55,7 +55,7 @@ describe('UsuariosScreen — MFA', () => {
   });
 
   it('não oferece "Resetar 2FA" para quem não alcança Administracao', async () => {
-    renderCom({ id: 'g-1', papel: 'Aluno' });
+    renderCom({ id: 'g-1', papel: 'Professor' });
 
     const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
     fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
@@ -63,7 +63,7 @@ describe('UsuariosScreen — MFA', () => {
   });
 
   it('não oferece "Resetar 2FA" na própria linha', async () => {
-    renderCom({ id: 'u-1', papel: 'Professor' });
+    renderCom({ id: 'u-1', papel: 'Admin' });
 
     const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
     fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
@@ -145,13 +145,13 @@ describe('UsuariosScreen — permissões', () => {
       clear() { this.data = {}; },
     });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true, status: 200, text: async () => JSON.stringify(USUARIOS),
+      ok: true, status: 200, json: async () => USUARIOS, text: async () => JSON.stringify(USUARIOS),
     }));
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('mostra "Novo usuário" para Professor', async () => {
-    renderCom({ id: 'admin-1', papel: 'Professor' });
+  it.each(['Admin', 'Professor'])('mostra "Novo usuário" para %s', async (papel) => {
+    renderCom({ id: 'admin-1', papel });
     expect(await screen.findByRole('button', { name: /Novo usuário/i })).toBeInTheDocument();
   });
 
@@ -159,5 +159,22 @@ describe('UsuariosScreen — permissões', () => {
     renderCom({ id: 'g-1', papel: 'Aluno' });
     await screen.findByRole('heading', { name: /Usuários/i });
     expect(screen.queryByRole('button', { name: /Novo usuário/i })).not.toBeInTheDocument();
+  });
+
+  it('esconde "Excluir definitivamente" do Professor', async () => {
+    renderCom({ id: 'p-1', papel: 'Professor' });
+
+    const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
+    fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
+    expect(screen.queryByRole('button', { name: /excluir definitivamente/i })).not.toBeInTheDocument();
+  });
+
+  // O servidor recusa arquivar quem não é Aluno sem ser Admin; a tela não oferece.
+  it('esconde "Arquivar" de colega Professor, mas oferece para Aluno', async () => {
+    renderCom({ id: 'p-1', papel: 'Professor' });
+
+    const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
+    fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
+    expect(screen.queryByRole('button', { name: /^arquivar$/i })).not.toBeInTheDocument();
   });
 });

@@ -70,7 +70,7 @@ function LabCard({ lab, onRemove, onEdit, dispatch, flash, podeEditar, podeRemov
 export function LaboratoriosScreen({ state, dispatch }) {
   const { data: labs = [], isPending, isError, refetch } = useLaboratorios();
   const podeGerir = usePode('Cadastro');   // POST/PUT /api/laboratorios
-  const podeRemover = usePode('Administracao');  // DELETE /api/laboratorios/:id
+  const podeRemover = usePode('Cadastro');       // DELETE /api/laboratorios/:id
 
   const totalArmarios = labs.reduce((s, l) => s + l.armarios.length, 0);
   const totalArea = labs.reduce((s, l) => s + l.area_m2, 0);

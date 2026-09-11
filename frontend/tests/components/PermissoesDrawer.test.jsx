@@ -2,11 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthContext } from '../../src/auth/AuthContext';
 import { PermissoesDrawer } from '../../src/screens/UsuariosScreen';
 
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={qc}>
+      <AuthContext.Provider value={{ user: { id: 'admin-1', papel: 'Admin' }, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
+        {children}
+      </AuthContext.Provider>
+    </QueryClientProvider>
+  );
 }
 
 const usuario = { id: 'u1', nome: 'Ana Lima', email: 'ana@lab.com', papel: 'Aluno', status: 'ativo', matricula: 'M001', cor: '#333', iniciais: 'AL' };
@@ -61,11 +68,26 @@ describe('PermissoesDrawer — honesto (papel só)', () => {
     expect(screen.queryByText(/permissões padrão/)).toBeNull();
   });
 
-  it('oferece exatamente os dois papéis do sistema', () => {
+  it('oferece exatamente os três papéis do sistema', () => {
     render(<PermissoesDrawer usuario={usuario} onClose={onClose} dispatch={dispatch} />, { wrapper });
 
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
+    expect(screen.getByRole('radio', { name: 'Administrador' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Professor' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Aluno' })).toBeInTheDocument();
+  });
+
+  // PUT /api/usuarios/:id/papel exige Administracao — o professor lê o drawer mas não altera.
+  it('não deixa o Professor alterar papel', () => {
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <AuthContext.Provider value={{ user: { id: 'p-1', papel: 'Professor' }, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
+          <PermissoesDrawer usuario={usuario} onClose={onClose} dispatch={dispatch} />
+        </AuthContext.Provider>
+      </QueryClientProvider>
+    );
+
+    for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Salvar alterações/i })).toBeNull();
   });
 });
