@@ -117,8 +117,8 @@ builder.Services.AddAuthorization(opts =>
     opts.AddPolicy("Administracao",  p => p.RequireRole("Admin")); // papel, exclusão definitiva, reset de 2FA
     opts.AddPolicy("GestaoUsuarios", p => p.RequireRole("Admin", "Professor")); // listar, criar e arquivar — com gate pelo papel do alvo no serviço
     opts.AddPolicy("Cadastro",       p => p.RequireRole("Admin", "Professor")); // cadastros, relatórios, configuração institucional
-    opts.AddPolicy("Operacao",       p => p.RequireRole("Admin", "Professor")); // manifesto, lotes, edição de resíduo
-    opts.AddPolicy("Operacional",    p => p.RequireRole("Admin", "Professor", "Aluno")); // solicitar descarte + baixa
+    opts.AddPolicy("Operacao",       p => p.RequireRole("Admin", "Professor")); // manifesto, criar lote, edição de resíduo
+    opts.AddPolicy("Operacional",    p => p.RequireRole("Admin", "Professor", "Aluno")); // solicitar descarte + baixa de reagente e de lote
     opts.AddPolicy("Aprovador",      p => p.RequireRole("Admin", "Professor")); // aprovar/rejeitar descarte (RF06)
     opts.AddPolicy("Supervisao",     p => p.RequireRole("Admin", "Professor")); // leitura do log de auditoria
 });
