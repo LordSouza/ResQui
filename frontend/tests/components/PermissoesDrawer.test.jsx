@@ -56,7 +56,7 @@ describe('PermissoesDrawer — honesto (papel só)', () => {
   it('lista as capacidades do papel derivadas das policies, não uma lista própria', () => {
     render(<PermissoesDrawer usuario={usuario} onClose={onClose} dispatch={dispatch} />, { wrapper });
 
-    expect(screen.getByText('Solicitar descarte, registrar baixa de reagente e de lote, transferir reagente')).toBeInTheDocument();
+    expect(screen.getByText('Solicitar descarte, registrar baixa de reagente e de lote, transferir reagente, registrar parecer e notificar responsáveis na compatibilidade')).toBeInTheDocument();
     expect(screen.queryByText('Consultar o log de auditoria')).toBeNull();
   });
 

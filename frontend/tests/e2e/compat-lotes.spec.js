@@ -63,10 +63,11 @@ test('lote criado soma ao estoque e baixa decrementa', async ({ request }) => {
 test('Aluno dá baixa em lote mas não cria lote', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `aluno_lote_${Date.now()}@resqui.local`;
-  await request.post('/api/auth/register', {
+  const cadastro = await request.post('/api/auth/register', {
     headers: auth,
     data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Lote E2E' },
   });
+  expect(cadastro.ok(), 'falha ao criar o aluno do teste').toBeTruthy();
   const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: 'Alun@123' } })).json();
   const alunoAuth = { Authorization: `Bearer ${token}` };
 

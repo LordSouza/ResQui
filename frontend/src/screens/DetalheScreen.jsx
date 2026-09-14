@@ -37,7 +37,7 @@ function MovimentacoesCard({ reagenteId }) {
 
 function LotesCard({ reagente }) {
   const podeCriarLote = usePode('Operacao'); // POST /api/reagentes/:id/lotes
-  const podeBaixarLote = usePode('Operacional');
+  const podeBaixarLote = usePode('Operacional'); // POST /api/reagentes/:id/lotes/:loteId/baixa
   const { data: lotes = [], isPending } = useLotes(reagente.id);
   const criarLote = useCriarLote(reagente.id);
   const baixaLote = useBaixaLote(reagente.id);
