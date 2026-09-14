@@ -302,7 +302,7 @@ public class ReagentesServiceTests
         item.Ghs.Signal.Should().Be("Perigo");
     }
 
-    private ReagenteLote ArrumarLote(Reagente r, decimal estoqueDoLote)
+    private ReagenteLote PrepararLoteDoReagente(Reagente r, decimal estoqueDoLote)
     {
         var lote = new ReagenteLote
         {
@@ -319,11 +319,11 @@ public class ReagentesServiceTests
     {
         var r = FakeReagente("R-001");
         r.Estoque = 5m;
-        var lote = ArrumarLote(r, 3m);
+        var lote = PrepararLoteDoReagente(r, 3m);
 
-        var dto = await _sut.BaixaLoteAsync(r.Id, lote.Id, new BaixaCmd(1.5m), "ana@resqui.local");
+        var loteAtualizado = await _sut.BaixaLoteAsync(r.Id, lote.Id, new BaixaCmd(1.5m), "ana@resqui.local");
 
-        dto!.Estoque.Should().Be(1.5m);
+        loteAtualizado!.Estoque.Should().Be(1.5m);
         lote.Estoque.Should().Be(1.5m);
         r.Estoque.Should().Be(3.5m);
     }
@@ -333,7 +333,7 @@ public class ReagentesServiceTests
     {
         var r = FakeReagente("R-001");
         r.Estoque = 10m;
-        var lote = ArrumarLote(r, 3m);
+        var lote = PrepararLoteDoReagente(r, 3m);
 
         var acao = () => _sut.BaixaLoteAsync(r.Id, lote.Id, new BaixaCmd(4m), "ana@resqui.local");
 
@@ -347,7 +347,7 @@ public class ReagentesServiceTests
     {
         var r = FakeReagente("R-001");
         r.Estoque = 1m;
-        var lote = ArrumarLote(r, 3m);
+        var lote = PrepararLoteDoReagente(r, 3m);
 
         var acao = () => _sut.BaixaLoteAsync(r.Id, lote.Id, new BaixaCmd(2m), "ana@resqui.local");
 
@@ -360,10 +360,50 @@ public class ReagentesServiceTests
     public async Task BaixaLote_RecusaQuantidadeNaoPositiva()
     {
         var r = FakeReagente("R-001");
-        var lote = ArrumarLote(r, 3m);
+        var lote = PrepararLoteDoReagente(r, 3m);
 
         var acao = () => _sut.BaixaLoteAsync(r.Id, lote.Id, new BaixaCmd(0m), "ana@resqui.local");
 
         await acao.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task BaixaLote_ComOsDoisSaldosEstourados_ReclamaDoLotePrimeiro()
+    {
+        var r = FakeReagente("R-001");
+        r.Estoque = 1m;
+        var lote = PrepararLoteDoReagente(r, 3m);
+
+        var acao = () => _sut.BaixaLoteAsync(r.Id, lote.Id, new BaixaCmd(5m), "ana@resqui.local");
+
+        var erro = await acao.Should().ThrowAsync<ValidationException>();
+        erro.WithMessage("*lote L-001*");
+        erro.Which.Message.Should().NotContain("descasados");
+    }
+
+    [Fact]
+    public async Task BaixaLote_AceitaEsvaziarOLoteQuandoAQuantidadeIgualaOsSaldos()
+    {
+        var r = FakeReagente("R-001");
+        r.Estoque = 3m;
+        var lote = PrepararLoteDoReagente(r, 3m);
+
+        var loteAtualizado = await _sut.BaixaLoteAsync(r.Id, lote.Id, new BaixaCmd(3m), "ana@resqui.local");
+
+        loteAtualizado!.Estoque.Should().Be(0m);
+        r.Estoque.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task BaixaLote_ArredondaOsDoisSaldosATresCasas()
+    {
+        var r = FakeReagente("R-001");
+        r.Estoque = 5m;
+        var lote = PrepararLoteDoReagente(r, 3m);
+
+        await _sut.BaixaLoteAsync(r.Id, lote.Id, new BaixaCmd(0.0006m), "ana@resqui.local");
+
+        lote.Estoque.Should().Be(2.999m);
+        r.Estoque.Should().Be(4.999m);
     }
 }

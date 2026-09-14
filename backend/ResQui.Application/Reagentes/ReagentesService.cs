@@ -71,7 +71,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         if (cmd.Quantidade > lote.Estoque)
             throw new ValidationException($"Estoque insuficiente no lote {lote.Codigo}: disponível {lote.Estoque}, solicitado {cmd.Quantidade}.");
         if (cmd.Quantidade > r.Estoque)
-            throw new ValidationException($"Estoque do reagente insuficiente: {r.Estoque} {r.Unidade} disponíveis, mas o lote {lote.Codigo} registra {lote.Estoque}. Os saldos estão descasados.");
+            throw new ValidationException($"Estoque do reagente insuficiente: {r.Estoque} {r.Unidade} disponíveis, solicitado {cmd.Quantidade}, mas o lote {lote.Codigo} registra {lote.Estoque}. Os saldos estão descasados.");
 
         lote.Estoque = Math.Round(lote.Estoque - cmd.Quantidade, 3);
         r.Estoque = Math.Round(r.Estoque - cmd.Quantidade, 3);
