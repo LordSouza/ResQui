@@ -87,28 +87,37 @@ describe('DetalheScreen', () => {
   });
 });
 
-// Três policies distintas convivem nesta tela: baixa/transferência são Operacional, lotes são
-// Tecnico, editar reagente é Gestor e excluir é Admin.
+// Três policies distintas convivem nesta tela: baixa direta, transferência e baixa de lote são
+// Operacional; criar lote é Operacao; editar e excluir reagente são Cadastro.
 describe('DetalheScreen — permissões', () => {
   const renderCom = (papel) => {
     useAuth.mockReturnValue({ user: { papel } });
     return render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={vi.fn()} />);
   };
 
+  beforeEach(() => {
+    useLotes.mockReturnValue({
+      data: [{ id: 1, codigo: 'L-001', estoque: 4, validade: '2027-01-01', validadeStatus: 'ok' }],
+      isPending: false,
+    });
+  });
+
   it('Professor alcança todas as ações do reagente', () => {
     renderCom('Professor');
     expect(screen.getByRole('button', { name: /Baixar consumo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Transferir/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Novo lote/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Baixa$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Editar$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Excluir/i })).toBeInTheDocument();
   });
 
-  // Aluno tem Operacional (baixa e transferência), não Operacao (lote) nem Cadastro (edição).
-  it('Aluno baixa e transfere, mas não cria lote, edita nem exclui', () => {
+  // Aluno tem Operacional — as duas baixas decrementam o mesmo saldo, e o gate delas é o mesmo.
+  it('Aluno baixa reagente e lote e transfere, mas não cria lote, edita nem exclui', () => {
     renderCom('Aluno');
     expect(screen.getByRole('button', { name: /Baixar consumo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Transferir/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Baixa$/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Novo lote/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Editar$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Excluir/i })).not.toBeInTheDocument();

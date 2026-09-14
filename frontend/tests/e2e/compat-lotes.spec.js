@@ -60,6 +60,35 @@ test('lote criado soma ao estoque e baixa decrementa', async ({ request }) => {
   expect(excesso.status()).toBe(400);
 });
 
+test('Aluno dá baixa em lote mas não cria lote', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `aluno_lote_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Lote E2E' },
+  });
+  const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: 'Alun@123' } })).json();
+  const alunoAuth = { Authorization: `Bearer ${token}` };
+
+  const reag = await ensureReagente(request, auth, { nome: 'Reag Lote Aluno E2E', cas: '333-33-3', classe: 5 });
+  const lote = await (await request.post(`/api/reagentes/${reag.id}/lotes`, {
+    headers: auth,
+    data: { Codigo: `LALU-${Date.now()}`, Estoque: 5, Validade: '2030-01-01', Abertura: null },
+  })).json();
+
+  const baixa = await request.post(`/api/reagentes/${reag.id}/lotes/${lote.id}/baixa`, {
+    headers: alunoAuth, data: { Quantidade: 2 },
+  });
+  expect(baixa.ok()).toBeTruthy();
+  expect((await baixa.json()).estoque).toBeCloseTo(3, 2);
+
+  const criacao = await request.post(`/api/reagentes/${reag.id}/lotes`, {
+    headers: alunoAuth,
+    data: { Codigo: `LALU2-${Date.now()}`, Estoque: 1, Validade: '2030-01-01', Abertura: null },
+  });
+  expect(criacao.status()).toBe(403);
+});
+
 test('downloads de rótulo PDF e MTR PDF retornam arquivos', async ({ request }) => {
   const auth = await apiAuth(request);
   const reag = await ensureReagente(request, auth, { nome: 'Reag PDF E2E', cas: '222-22-2', classe: 5 });

@@ -36,7 +36,8 @@ function MovimentacoesCard({ reagenteId }) {
 }
 
 function LotesCard({ reagente }) {
-  const podeGerirLotes = usePode('Operacao'); // POST /api/reagentes/:id/lotes e /baixa
+  const podeCriarLote = usePode('Operacao'); // POST /api/reagentes/:id/lotes
+  const podeBaixarLote = usePode('Operacional');
   const { data: lotes = [], isPending } = useLotes(reagente.id);
   const criarLote = useCriarLote(reagente.id);
   const baixaLote = useBaixaLote(reagente.id);
@@ -59,7 +60,7 @@ function LotesCard({ reagente }) {
   return (
     <div className="card">
       <SectionTitle title="Lotes / frascos" sub={`${lotes.length} registrado(s)`}
-        right={podeGerirLotes && (
+        right={podeCriarLote && (
           <button type="button" className="btn btn-sm" onClick={() => setNovo({ codigo: '', estoque: '', validade: '' })}>
             <Icon name="plus" size={12}/> Novo lote
           </button>
@@ -76,7 +77,7 @@ function LotesCard({ reagente }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="mono tnum">{Number(l.estoque).toFixed(2)} {reagente.unidade}</span>
               <button type="button" className="btn btn-sm" title="Etiqueta com QR" onClick={() => downloadRotuloLote(reagente.id, l.id)}>QR</button>
-              {podeGerirLotes && (
+              {podeBaixarLote && (
                 <button type="button" className="btn btn-sm" disabled={baixaLote.isPending || l.estoque <= 0} onClick={() => baixar(l)}>Baixa</button>
               )}
             </div>

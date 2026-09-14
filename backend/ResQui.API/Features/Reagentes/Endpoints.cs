@@ -100,7 +100,7 @@ public static class Endpoints
             var lote = await svc.BaixaLoteAsync(id, loteId, cmd, email);
             return lote is null ? Results.NotFound() : Results.Ok(lote);
         })
-        .RequireAuthorization("Operacao");
+        .RequireAuthorization("Operacional");
 
         group.MapGet("/{id}/rotulo", async (string id, IReagentesService svc, ClaimsPrincipal user) =>
         {
