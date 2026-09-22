@@ -69,6 +69,25 @@ describe('FormConvidarUsuario', () => {
     await waitFor(() => expect(escrito).toMatch(/\?convite=tok-abc$/));
   });
 
+  it('o card nomeia o papel do link e trocar o papel descarta o link antigo', async () => {
+    mockFetch.mockImplementation(async (url, opts) => {
+      if (opts?.method === 'POST') return { ok: true, status: 200, json: async () => ({ token: 'tok-prof', papel: 'Professor' }) };
+      return { ok: true, status: 200, json: async () => [] };
+    });
+    renderCom('Admin');
+
+    const select = await screen.findByLabelText(/Papel do convidado/i);
+    await userEvent.selectOptions(select, 'Professor');
+    await userEvent.click(screen.getByRole('button', { name: /Gerar link/i }));
+
+    expect(await screen.findByText(/cria uma conta de/i)).toHaveTextContent('Professor');
+
+    await userEvent.selectOptions(select, 'Aluno');
+
+    expect(screen.queryByText(new RegExp('\\?convite=tok-prof'))).toBeNull();
+    expect(screen.queryByRole('button', { name: /Copiar link/i })).toBeNull();
+  });
+
   it('lista convites com situação e oferece revogar só nos pendentes', async () => {
     mockFetch.mockImplementation(async (url) => {
       if (url === '/api/convites') {

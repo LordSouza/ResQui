@@ -18,7 +18,7 @@ public interface IConvitesService
 {
     Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, string? requesterId, string requesterEmail, string requesterPapel);
     Task<IEnumerable<ConviteDto>> ListarAsync();
-    Task<bool> RevogarAsync(int id, string requesterEmail);
+    Task<bool> RevogarAsync(int id, string requesterEmail, string requesterPapel);
     Task<ConvitePublicoDto?> ConsultarAsync(string token);
     Task AceitarAsync(string token, AceitarConviteCmd cmd);
 }
@@ -59,9 +59,11 @@ public class ConvitesService(IConvitesRepository convites, IAuthRepository usuar
             c.UsadoPorId is { } id && porId.TryGetValue(id, out var nome) ? nome : null));
     }
 
-    public async Task<bool> RevogarAsync(int id, string requesterEmail)
+    public async Task<bool> RevogarAsync(int id, string requesterEmail, string requesterPapel)
     {
         if (await convites.GetByIdAsync(id) is not { } convite) return false;
+        if (convite.Papel != "Aluno" && requesterPapel != "Admin")
+            throw new ValidationException($"Revogar convite de {convite.Papel} é só o Admin.");
         if (StatusDe(convite) != "pendente")
             throw new ValidationException("Só convites pendentes podem ser revogados.");
         convite.RevogadoEm = DateTime.UtcNow;
@@ -99,7 +101,7 @@ public class ConvitesService(IConvitesRepository convites, IAuthRepository usuar
         {
             id = await usuarios.CreateAsync(email, cmd.Senha, cmd.Matricula?.Trim(), convite.Papel, cmd.Nome.Trim());
         }
-        catch
+        catch (ValidationException)
         {
             convite.UsadoEm = null;
             await convites.SaveChangesAsync();

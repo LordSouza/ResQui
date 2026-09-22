@@ -218,7 +218,7 @@ public class ConvitesServiceTests
         convite.Id = 7;
         _convites.GetByIdAsync(7).Returns(convite);
 
-        (await _sut.RevogarAsync(7, "prof@lab.com")).Should().BeTrue();
+        (await _sut.RevogarAsync(7, "prof@lab.com", "Professor")).Should().BeTrue();
 
         convite.RevogadoEm.Should().NotBeNull();
         await _audit.Received(1).RegistrarAsync("prof@lab.com", "convite.revogar", "Usuários",
@@ -233,9 +233,22 @@ public class ConvitesServiceTests
         convite.UsadoEm = DateTime.UtcNow;
         _convites.GetByIdAsync(7).Returns(convite);
 
-        var act = () => _sut.RevogarAsync(7, "prof@lab.com");
+        var act = () => _sut.RevogarAsync(7, "prof@lab.com", "Professor");
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*pendentes*");
+    }
+
+    [Fact]
+    public async Task RevogarAsync_ProfessorRevogandoConviteDeProfessor_Recusa()
+    {
+        var (_, convite) = await CriarConviteAsync("Professor", "Admin");
+        convite.Id = 7;
+        _convites.GetByIdAsync(7).Returns(convite);
+
+        var act = () => _sut.RevogarAsync(7, "prof@lab.com", "Professor");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*só o Admin*");
+        convite.RevogadoEm.Should().BeNull();
     }
 
     [Fact]
@@ -243,7 +256,7 @@ public class ConvitesServiceTests
     {
         _convites.GetByIdAsync(99).Returns((Convite?)null);
 
-        (await _sut.RevogarAsync(99, "prof@lab.com")).Should().BeFalse();
+        (await _sut.RevogarAsync(99, "prof@lab.com", "Professor")).Should().BeFalse();
     }
 
     [Fact]

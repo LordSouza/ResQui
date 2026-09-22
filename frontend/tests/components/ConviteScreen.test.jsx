@@ -75,6 +75,24 @@ describe('ConviteScreen', () => {
     expect(onConcluido).toHaveBeenCalled();
   });
 
+  it('conta criada mas login falhando manda o convidado para o login, sem reenviar o aceite', async () => {
+    mockFetch.mockImplementation(async (url) => {
+      if (url === '/api/convites/tok-abc') return conviteValido;
+      if (url === '/api/convites/tok-abc/aceitar') return { ok: true, status: 204, json: async () => null };
+      if (url === '/api/auth/login') throw new TypeError('Failed to fetch');
+      throw new Error(`fetch inesperado: ${url}`);
+    });
+    renderCom();
+
+    await screen.findByLabelText(/Nome completo/i);
+    await preencher();
+    await userEvent.click(screen.getByRole('button', { name: /Criar conta e entrar/i }));
+
+    expect(await screen.findByText(/Conta criada/i)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Criar conta e entrar/i })).toBeNull();
+    expect(mockFetch.mock.calls.filter(c => String(c[0]).endsWith('/aceitar'))).toHaveLength(1);
+  });
+
   it('confirmação divergente não chega a chamar a API', async () => {
     mockFetch.mockResolvedValue(conviteValido);
     renderCom();

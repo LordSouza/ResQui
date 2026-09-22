@@ -9,5 +9,6 @@ export function useCriarConvite() {
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['convites'] }),
+    onError: () => {},
   });
 }

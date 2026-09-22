@@ -23,7 +23,8 @@ public static class Endpoints
         group.MapDelete("/{id:int}", async (int id, IConvitesService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            return await svc.RevogarAsync(id, email) ? Results.NoContent() : Results.NotFound();
+            var papel = user.FindFirstValue(ClaimTypes.Role) ?? "";
+            return await svc.RevogarAsync(id, email, papel) ? Results.NoContent() : Results.NotFound();
         })
         .RequireAuthorization("GestaoUsuarios");
 

@@ -90,6 +90,18 @@ test('convite revogado deixa de ser aceitável', async ({ request }) => {
   expect(lista.find(c => c.id === id).status).toBe('revogado');
 });
 
+test('Professor não revoga convite de Professor gerado pelo Admin', async ({ request }) => {
+  const adminAuth = await apiAuth(request);
+  const professor = await criarProfessor(request, adminAuth);
+  const { id } = await (await request.post('/api/convites', { headers: adminAuth, data: { Papel: 'Professor' } })).json();
+
+  const tentativa = await request.delete(`/api/convites/${id}`, { headers: professor.auth });
+  expect(tentativa.status()).toBe(400);
+
+  const doAdmin = await request.delete(`/api/convites/${id}`, { headers: adminAuth });
+  expect(doAdmin.status()).toBe(204);
+});
+
 test('convidado cria a conta pela tela de aceite e cai no app logado', async ({ page, request }) => {
   const adminAuth = await apiAuth(request);
   const { token } = await (await request.post('/api/convites', { headers: adminAuth, data: { Papel: 'Aluno' } })).json();

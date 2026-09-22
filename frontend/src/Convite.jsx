@@ -36,6 +36,7 @@ export function ConviteScreen({ token, onConcluido }) {
 
   const papelLabel = ROLES[convite.data?.papel]?.label ?? convite.data?.papel;
   const processando = aceitar.isPending || login.isPending || login.isSuccess;
+  const contaCriadaSemLogin = aceitar.isSuccess && login.isError;
   const erro = erroLocal
     || (aceitar.isError ? aceitar.error?.message : '')
     || (login.isError ? login.error?.message : '');
@@ -83,7 +84,20 @@ export function ConviteScreen({ token, onConcluido }) {
             </div>
           )}
 
-          {convite.isSuccess && (
+          {contaCriadaSemLogin && (
+            <div style={{textAlign: 'center'}}>
+              <h2 style={{fontSize: 22, fontWeight: 600, margin: '0 0 8px'}}>Conta criada</h2>
+              <p style={{fontSize: 13, color: 'var(--text-2)', margin: '0 0 6px'}}>
+                Sua conta já existe, mas não conseguimos entrar automaticamente: {login.error?.message}
+              </p>
+              <p style={{fontSize: 13, color: 'var(--text-2)', margin: '0 0 18px'}}>
+                Entre com o e-mail e a senha que você acabou de cadastrar. Este convite já foi usado.
+              </p>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => onConcluido?.()}>Ir para o login</button>
+            </div>
+          )}
+
+          {convite.isSuccess && !contaCriadaSemLogin && (
             <>
               <div style={{textAlign: 'center', marginBottom: 24}}>
                 <div className="mono" style={{fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 8}}>

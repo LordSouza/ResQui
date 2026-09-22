@@ -8,5 +8,6 @@ export function useRevogarConvite() {
       await apiFetch(`/api/convites/${id}`, { method: 'DELETE' });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['convites'] }),
+    onError: () => {},
   });
 }

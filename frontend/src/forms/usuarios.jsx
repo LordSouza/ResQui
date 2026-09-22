@@ -103,19 +103,33 @@ const STATUS_CONVITE = {
 export function FormConvidarUsuario({ onClose }) {
   const podeQualquerPapel = usePode('Administracao');
   const [papel, setPapel] = useState('Aluno');
-  const [link, setLink] = useState('');
+  const [gerado, setGerado] = useState(null);
   const [copiado, setCopiado] = useState(false);
+  const [falhaAoCopiar, setFalhaAoCopiar] = useState(false);
   const criar = useCriarConvite();
   const revogar = useRevogarConvite();
   const convites = useConvites();
 
+  const trocarPapel = (novo) => { setPapel(novo); setGerado(null); setCopiado(false); setFalhaAoCopiar(false); };
+
   const gerar = () => criar.mutate({ Papel: papel }, {
-    onSuccess: (convite) => { setLink(linkConvite(convite.token)); setCopiado(false); },
+    onSuccess: (convite) => {
+      setGerado({ link: linkConvite(convite.token), papel: convite.papel });
+      setCopiado(false);
+      setFalhaAoCopiar(false);
+    },
   });
 
   const copiar = async () => {
-    await navigator.clipboard?.writeText(link);
-    setCopiado(true);
+    try {
+      if (!navigator.clipboard) throw new Error('sem clipboard');
+      await navigator.clipboard.writeText(gerado.link);
+      setCopiado(true);
+      setFalhaAoCopiar(false);
+    } catch {
+      setFalhaAoCopiar(true);
+      setCopiado(false);
+    }
   };
 
   return (
@@ -132,7 +146,7 @@ export function FormConvidarUsuario({ onClose }) {
 
       <div className="form-row">
         <div className="field"><label htmlFor="convite-papel">Papel do convidado</label>
-          <select id="convite-papel" value={papel} onChange={e => setPapel(e.target.value)} disabled={!podeQualquerPapel}>
+          <select id="convite-papel" value={papel} onChange={e => trocarPapel(e.target.value)} disabled={!podeQualquerPapel}>
             {Object.entries(ROLES)
               .filter(([k]) => k !== 'Admin' && (podeQualquerPapel || k === 'Aluno'))
               .map(([k, r]) => <option key={k} value={k}>{r.label}</option>)}
@@ -140,17 +154,23 @@ export function FormConvidarUsuario({ onClose }) {
         </div>
       </div>
 
-      {link && (
+      {gerado && (
         <div className="hint-card amber" style={{marginTop: 4, display: 'block'}}>
           <div className="small" style={{marginBottom: 8}}>
-            <b>Copie agora.</b> O link aparece uma única vez, vale para um cadastro e expira em 7 dias.
+            <b>Copie agora.</b> Este link cria uma conta de <b>{ROLES[gerado.papel]?.label ?? gerado.papel}</b>,
+            aparece uma única vez, vale para um cadastro e expira em 7 dias.
           </div>
           <div className="mono" style={{fontSize: 12, wordBreak: 'break-all', padding: 10, background: 'var(--surface-2)', borderRadius: 'var(--radius)', color: 'var(--text)'}}>
-            {link}
+            {gerado.link}
           </div>
           <button type="button" className="btn btn-sm" style={{marginTop: 10}} onClick={copiar}>
             <Icon name="clipboard" size={12}/> {copiado ? 'Copiado' : 'Copiar link'}
           </button>
+          {falhaAoCopiar && (
+            <div className="small" style={{marginTop: 8}}>
+              Não foi possível copiar automaticamente — selecione o link acima e copie à mão.
+            </div>
+          )}
         </div>
       )}
 

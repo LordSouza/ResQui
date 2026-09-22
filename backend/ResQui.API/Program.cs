@@ -208,7 +208,7 @@ app.MapGroup("/api/notificacoes").RequireAuthorization().MapNotificacoesEndpoint
 app.MapGroup("/api/relatorios").RequireAuthorization().MapRelatoriosEndpoints();
 app.MapGroup("/api/pgrs-config").RequireAuthorization().MapPgrsConfigEndpoints();
 app.MapGroup("/api/assistente").RequireAuthorization().MapAssistenteEndpoints();
-app.MapGroup("/api/convites").MapConvitesEndpoints();
+app.MapGroup("/api/convites").RequireAuthorization("GestaoUsuarios").MapConvitesEndpoints();
 
 app.Run();
 
