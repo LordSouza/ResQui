@@ -96,6 +96,35 @@ public class ConvitesServiceTests
     }
 
     [Fact]
+    public async Task AceitarAsync_QueimaOConviteAntesDeCriarAConta()
+    {
+        var (token, convite) = await CriarConviteAsync();
+        _usuarios.FindByEmailAsync("novo@lab.com").Returns((UsuarioInfo?)null);
+        DateTime? usadoEmDuranteACriacao = null;
+        _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
+            .Returns(_ => { usadoEmDuranteACriacao = convite.UsadoEm; return "user-9"; });
+
+        await _sut.AceitarAsync(token, new AceitarConviteCmd("Novo Aluno", "novo@lab.com", null, "Senha@123"));
+
+        usadoEmDuranteACriacao.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task AceitarAsync_FalhaAoCriarAConta_DevolveOConviteAoEstadoPendente()
+    {
+        var (token, convite) = await CriarConviteAsync();
+        _usuarios.FindByEmailAsync("novo@lab.com").Returns((UsuarioInfo?)null);
+        _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
+            .Returns<string>(_ => throw new ValidationException("Passwords must have at least one digit."));
+
+        var act = () => _sut.AceitarAsync(token, new AceitarConviteCmd("Novo Aluno", "novo@lab.com", null, "senha"));
+
+        await act.Should().ThrowAsync<ValidationException>();
+        convite.UsadoEm.Should().BeNull();
+        (await _sut.ConsultarAsync(token)).Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task AceitarAsync_ConviteJaUsado_Recusa()
     {
         var (token, convite) = await CriarConviteAsync();

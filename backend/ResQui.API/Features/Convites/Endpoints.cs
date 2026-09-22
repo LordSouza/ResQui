@@ -12,7 +12,7 @@ public static class Endpoints
             var id = user.FindFirstValue(ClaimTypes.NameIdentifier);
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             var papel = user.FindFirstValue(ClaimTypes.Role) ?? "";
-            return Results.Ok(await svc.CriarAsync(cmd, id!, email, papel));
+            return Results.Ok(await svc.CriarAsync(cmd, id, email, papel));
         })
         .RequireAuthorization("GestaoUsuarios")
         .WithSummary("Gerar link de convite");

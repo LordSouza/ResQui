@@ -89,3 +89,22 @@ test('convite revogado deixa de ser aceitável', async ({ request }) => {
   const lista = await (await request.get('/api/convites', { headers: adminAuth })).json();
   expect(lista.find(c => c.id === id).status).toBe('revogado');
 });
+
+test('convidado cria a conta pela tela de aceite e cai no app logado', async ({ page, request }) => {
+  const adminAuth = await apiAuth(request);
+  const { token } = await (await request.post('/api/convites', { headers: adminAuth, data: { Papel: 'Aluno' } })).json();
+
+  await page.goto(`/?convite=${token}`);
+  await expect(page.getByText(/Convite para Aluno/i)).toBeVisible();
+
+  const email = `ui_${Date.now()}@resqui.local`;
+  await page.getByLabel('Nome completo').fill('Convidado UI');
+  await page.getByLabel('E-mail institucional').fill(email);
+  await page.getByLabel('Matrícula').fill('M-UI');
+  await page.getByLabel('Senha', { exact: true }).fill('Convid@123');
+  await page.getByLabel('Confirmar senha').fill('Convid@123');
+  await page.getByRole('button', { name: 'Criar conta e entrar' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Início' })).toBeVisible();
+  expect(page.url()).not.toContain('convite=');
+});

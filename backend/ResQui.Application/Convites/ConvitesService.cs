@@ -16,7 +16,7 @@ public record AceitarConviteCmd(string Nome, string Email, string? Matricula, st
 
 public interface IConvitesService
 {
-    Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, string requesterId, string requesterEmail, string requesterPapel);
+    Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, string? requesterId, string requesterEmail, string requesterPapel);
     Task<IEnumerable<ConviteDto>> ListarAsync();
     Task<bool> RevogarAsync(int id, string requesterEmail);
     Task<ConvitePublicoDto?> ConsultarAsync(string token);
@@ -28,7 +28,7 @@ public class ConvitesService(IConvitesRepository convites, IAuthRepository usuar
     public const int DiasValidade = 7;
     private static readonly string[] PapeisConvidaveis = ["Professor", "Aluno"];
 
-    public async Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, string requesterId, string requesterEmail, string requesterPapel)
+    public async Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, string? requesterId, string requesterEmail, string requesterPapel)
     {
         if (!PapeisConvidaveis.Contains(cmd.Papel))
             throw new ValidationException($"Papel inválido para convite: {cmd.Papel}.");
@@ -91,10 +91,22 @@ public class ConvitesService(IConvitesRepository convites, IAuthRepository usuar
         if (await usuarios.FindByEmailAsync(email) is not null)
             throw new ValidationException("E-mail já em uso.");
 
-        var id = await usuarios.CreateAsync(email, cmd.Senha, cmd.Matricula?.Trim(), convite.Papel, cmd.Nome.Trim());
+        convite.UsadoEm = DateTime.UtcNow;
+        await convites.SaveChangesAsync();
+
+        string id;
+        try
+        {
+            id = await usuarios.CreateAsync(email, cmd.Senha, cmd.Matricula?.Trim(), convite.Papel, cmd.Nome.Trim());
+        }
+        catch
+        {
+            convite.UsadoEm = null;
+            await convites.SaveChangesAsync();
+            throw;
+        }
         await usuarios.AddToRoleAsync(id, convite.Papel);
 
-        convite.UsadoEm = DateTime.UtcNow;
         convite.UsadoPorId = id;
         await convites.SaveChangesAsync();
         await auditoria.RegistrarAsync(email, "convite.aceito", "Usuários",
