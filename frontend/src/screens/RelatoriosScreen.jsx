@@ -56,8 +56,7 @@ export function RelatoriosScreen({ state, dispatch }) {
               </div>
               <div style={{ fontWeight: 600, marginBottom: 2 }}>{titulo}</div>
               <div className="small muted" style={{ marginBottom: 10 }}>{desc}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 8 }}>
-                <span className="mono small muted">CSV</span>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 8 }}>
                 {podeGerar && (
                   <button
                     type="button"

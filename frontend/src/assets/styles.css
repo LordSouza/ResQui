@@ -12,6 +12,7 @@
   --text-3: #7b8493;
   --accent: #0d4a8c;
   --accent-2: #1465c0;
+  --accent-hover: #0c5cb0;
   --accent-soft: #e8f0fa;
   --accent-soft-2: #d6e4f5;
   --green: #1f7a3e;
@@ -26,7 +27,6 @@
   --radius: 6px;
   --radius-sm: 4px;
   --radius-lg: 10px;
-  --shadow-sm: 0 1px 2px rgba(15, 26, 44, 0.05);
   --shadow-md: 0 4px 16px rgba(15, 26, 44, 0.08);
   --shadow-lg: 0 16px 48px rgba(15, 26, 44, 0.16);
 
@@ -75,7 +75,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 }
 .sidebar-brand .logo {
   width: 28px; height: 28px;
-  background: linear-gradient(135deg, #1465c0, #0d4a8c);
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
   border-radius: 6px;
   display: grid; place-items: center;
   font-family: var(--mono);
@@ -138,7 +138,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   font-family: var(--mono);
   font-size: 10px;
   padding: 1px 6px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .sidebar-foot {
@@ -151,7 +151,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 }
 .avatar {
   width: 28px; height: 28px; border-radius: 50%;
-  background: #1465c0;
+  background: var(--accent-2);
   color: #fff;
   display: grid; place-items: center;
   font-weight: 600; font-size: 11px;
@@ -236,7 +236,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   color: #fff;
   border-color: var(--accent);
 }
-.btn-primary:hover { background: #0c5cb0; border-color: #0c5cb0; }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn-danger {
   background: var(--surface);
   color: var(--red);
@@ -284,6 +284,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   gap: 12px;
   margin-bottom: 16px;
 }
+.kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
 .kpi {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -295,6 +296,11 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   font-family: inherit;
   font-size: inherit;
   color: inherit;
+  text-align: left;
+  /* <button> centra o próprio conteúdo na vertical; virar flex container desliga isso */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   appearance: none;
   -webkit-appearance: none;
 }
@@ -317,6 +323,13 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .kpi .delta {
   font-size: 11px;
   font-family: var(--mono);
+  margin-top: 6px;
+  color: var(--text-2);
+}
+/* descrição em frase: sans, não mono — mono é para rótulo, número e identificador */
+.kpi .desc {
+  font-size: 11.5px;
+  line-height: 1.35;
   margin-top: 6px;
   color: var(--text-2);
 }
@@ -359,10 +372,18 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .tbl tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .tbl tbody tr.selected { background: var(--accent-soft); }
 .tbl tbody tr:last-child td { border-bottom: 0; }
-.tbl .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tbl .num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tbl .muted { color: var(--text-3); }
 .tbl .right { text-align: right; }
 .tbl .narrow { width: 1%; white-space: nowrap; }
+/* grupo de ações numa linha de tabela: alinhado à direita, com espaçamento próprio.
+   O flex vive num div interno — num <td> ele tiraria a célula do layout da tabela. */
+.tbl .tbl-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
 
 /* === Badges / chips === */
 .badge {
@@ -370,7 +391,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   font-size: 10.5px;
   font-weight: 500;
   padding: 2px 7px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--surface-3);
   color: var(--text);
   white-space: nowrap;
@@ -399,6 +420,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   border-radius: 3px;
   color: var(--text-2);
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 /* === Toolbar / filters === */
@@ -480,6 +502,25 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   padding-top: 10px; border-top: 1px solid var(--border);
 }
 .form-section-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+.form-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-3);
+  padding: 8px 10px;
+  margin-bottom: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.form-sub-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  margin: 4px 0 8px;
+}
 .ghs-details summary { cursor: pointer; font-size: 12.5px; color: var(--text-2); padding: 6px 0; }
 
 /* === GHS label === */
@@ -685,7 +726,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 /* === Timeline / audit log === */
 .audit-row {
   display: grid;
-  grid-template-columns: 140px 110px 200px 1fr 120px;
+  grid-template-columns: 140px 170px 170px 1fr 100px;
   gap: 12px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
@@ -693,8 +734,19 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   align-items: center;
 }
 .audit-row:hover { background: var(--surface-2); }
-.audit-row .ts { font-family: var(--mono); color: var(--text-2); font-size: 11px; }
-.audit-row .who { font-weight: 500; }
+.audit-row .ts {
+  font-family: var(--mono);
+  color: var(--text-2);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.audit-row .who {
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .audit-row .what {
   font-family: var(--mono);
   font-size: 11px;
@@ -757,7 +809,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .chat-h {
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(135deg, #0d4a8c, #1465c0);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #fff;
   display: flex; align-items: center; gap: 10px;
 }
@@ -824,7 +876,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   align-self: stretch;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   font-size: 12px;
   margin: 2px 0;
@@ -878,7 +930,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   display: flex; align-items: flex-end; gap: 8px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 6px 6px 6px 10px;
 }
 .chat-input:focus-within { border-color: var(--accent); }
@@ -949,19 +1001,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   content: '';
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 15% 85%, rgba(20, 101, 192, 0.25), transparent 50%),
-    radial-gradient(circle at 85% 15%, rgba(13, 74, 140, 0.3), transparent 60%);
-  pointer-events: none;
-}
-.login-side::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
-  background-size: 32px 32px;
+  background: radial-gradient(120% 80% at 18% 100%, rgba(20, 101, 192, 0.16), transparent 62%);
   pointer-events: none;
 }
 .login-side > * { position: relative; z-index: 1; }
@@ -971,7 +1011,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 }
 .login-brand .logo {
   width: 36px; height: 36px;
-  background: linear-gradient(135deg, #1465c0, #0d4a8c);
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
   border-radius: 8px;
   display: grid; place-items: center;
   font-family: var(--mono);
@@ -992,12 +1032,13 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.login-side-body { padding: 40px 0; max-width: 460px; }
+.login-side-body { padding: 0 0 26px; max-width: 460px; }
 .login-side-foot {
   font-size: 10.5px;
-  color: #5a6d8a;
+  color: #7a8fae;
   letter-spacing: 0.06em;
-  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid #112a4d;
 }
 
 .login-main {
@@ -1017,7 +1058,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   max-width: 380px;
 }
 .login-foot {
-  text-align: center;
   font-size: 12px;
   color: var(--text-2);
   margin-top: 22px;
@@ -1054,7 +1094,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .modal-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
 .modal-h .close {
   background: transparent; border: 0; color: var(--text-3);
-  padding: 4px; border-radius: 4px;
+  padding: 4px; border-radius: var(--radius-sm);
 }
 .modal-h .close:hover { background: var(--surface-2); color: var(--text); }
 .modal-body { padding: 16px 18px; overflow-y: auto; }
@@ -1147,7 +1187,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   padding: 2px 7px;
   background: var(--accent-soft);
   color: var(--accent);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   letter-spacing: 0.02em;
 }
 
@@ -1175,7 +1215,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   font-size: 11px;
   font-weight: 500;
   padding: 2px 8px 2px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--role-c) 12%, white);
   color: var(--role-c);
   border: 1px solid color-mix(in oklab, var(--role-c) 24%, white);
@@ -1213,7 +1253,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   text-align: left;
   font-size: 12px;
   color: var(--text);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 .row-menu button:hover { background: var(--surface-2); }
@@ -1254,7 +1294,7 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .drawer-sub { font-size: 12px; color: var(--text-3); }
 .drawer-h .close {
   background: transparent; border: 0; color: var(--text-3);
-  padding: 4px; border-radius: 4px;
+  padding: 4px; border-radius: var(--radius-sm);
 }
 .drawer-h .close:hover { background: var(--surface-2); color: var(--text); }
 
@@ -1517,7 +1557,7 @@ button.link { background: transparent; border: 0; padding: 0; font: inherit; }
 .audit-col-header {
   padding: 8px 12px;
   display: grid;
-  grid-template-columns: 140px 110px 200px 1fr 120px;
+  grid-template-columns: 140px 170px 170px 1fr 100px;
   gap: 12px;
   font-family: var(--mono);
   font-size: 12px;
@@ -1794,7 +1834,7 @@ button.link { background: transparent; border: 0; padding: 0; font: inherit; }
 .user-menu-btn {
   display: flex; align-items: center; gap: 10px; width: 100%;
   background: transparent; border: 0; padding: 0; cursor: pointer;
-  color: inherit; border-radius: 4px; text-align: left;
+  color: inherit; border-radius: var(--radius-sm); text-align: left;
 }
 .user-menu-btn.open { background: rgba(255,255,255,0.06); }
 
@@ -1838,6 +1878,42 @@ button.link { background: transparent; border: 0; padding: 0; font: inherit; }
 .notif-icon.sev-other { background: var(--accent-soft); color: var(--accent); }
 
 /* ── Login.jsx extracted styles ─────────────────────────────────────────── */
+.login-headline {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: #fff;
+  margin: 0 0 12px;
+}
+.login-lede {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #7a8fae;
+  margin: 0;
+}
+
+.login-card-head { margin-bottom: 24px; }
+.login-card-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.login-card-sub {
+  font-size: 12.5px;
+  color: var(--text-2);
+  margin: 6px 0 0;
+}
+
+.login-field { margin-bottom: 14px; }
+.login-field + .login-field { margin-bottom: 8px; }
+.login-hint {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 6px;
+}
+
 .login-err {
   padding: 8px 10px; background: var(--red-soft); color: var(--red);
   border-radius: var(--radius); font-size: 12px; margin-bottom: 12px;

@@ -245,7 +245,7 @@ export function UsuariosScreen({ state, dispatch }) {
 
       {!isPending && !isError && (<>
         {/* KPIs por papel */}
-        <div className="kpi-grid" style={{gridTemplateColumns: 'repeat(2, 1fr)', marginBottom: 16}}>
+        <div className="kpi-grid kpi-grid-3">
           {Object.entries(ROLES).map(([k, r]) => {
             const n = todos.filter(u => u.papel === k && u.status === 'ativo').length;
             return (
@@ -253,7 +253,7 @@ export function UsuariosScreen({ state, dispatch }) {
                 <div className="kpi-stripe" style={{background: r.cor}}/>
                 <div className="label">{r.label}</div>
                 <div className="value tnum">{n}</div>
-                <div className="delta">{r.desc}</div>
+                <div className="desc">{r.desc}</div>
               </button>
             );
           })}

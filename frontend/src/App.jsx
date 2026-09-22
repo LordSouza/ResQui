@@ -389,7 +389,7 @@ export default function App() {
           <button type="button" className="nav-item" onClick={() => dispatch({type: 'openChat'})}>
             <span className="nav-icon"><Icon name="sparkle" size={15}/></span>
             Assistente
-            <span className="badge-count" style={{background: '#1465c0'}}>IA</span>
+            <span className="badge-count" style={{background: 'var(--accent-2)'}}>IA</span>
           </button>
         </nav>
 

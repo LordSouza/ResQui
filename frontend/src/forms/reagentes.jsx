@@ -700,7 +700,7 @@ export function FormEditarRegrasCompat({ onClose, dispatch }) {
               {selected.data && (
                 <div className="field">
                   <label htmlFor={ids.ultimaEdicao}>Última edição</label>
-                  <input id={ids.ultimaEdicao} readOnly value={selected.data} style={{color: 'var(--text-3)'}}/>
+                  <input id={ids.ultimaEdicao} readOnly value={selected.data} className="muted"/>
                 </div>
               )}
             </div>

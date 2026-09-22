@@ -47,9 +47,9 @@ function FiltrosAvancadosAuditoria({ adv, setAdv, onClose, allData }) {
           <div style={faqLabel}>Período customizado</div>
           <div className="form-row" style={{margin: 0}}>
             <div className="field"><label htmlFor="adv-date-from">De</label>
-              <input id="adv-date-from" aria-label="Data inicial do período" type="date" value={draft.dateFrom} onChange={e => setDraft(d => ({...d, dateFrom: e.target.value}))} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="adv-date-from" aria-label="Data inicial do período" type="date" value={draft.dateFrom} onChange={e => setDraft(d => ({...d, dateFrom: e.target.value}))} className="mono"/></div>
             <div className="field"><label htmlFor="adv-date-to">Até</label>
-              <input id="adv-date-to" aria-label="Data final do período" type="date" value={draft.dateTo} onChange={e => setDraft(d => ({...d, dateTo: e.target.value}))} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="adv-date-to" aria-label="Data final do período" type="date" value={draft.dateTo} onChange={e => setDraft(d => ({...d, dateTo: e.target.value}))} className="mono"/></div>
           </div>
           <div className="small muted" style={{marginTop: 4, fontSize: 12}}>Sobrepõe o filtro de período da toolbar.</div>
         </div>
@@ -151,6 +151,15 @@ function auditReducer(s, action) {
     default: return s;
   }
 }
+
+const formatarTimestamp = (ts) => {
+  const data = new Date(ts);
+  if (Number.isNaN(data.getTime())) return ts;
+  return data.toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).replace(', ', ' ');
+};
 
 export function AuditoriaScreen({ state, dispatch }) {
   const [filters, dispatchFilters] = useReducer(auditReducer, AUDIT_INITIAL);
@@ -274,7 +283,7 @@ export function AuditoriaScreen({ state, dispatch }) {
           </div> :
         filtered.map((a) =>
         <div key={`${a.ts}|${a.who}|${a.what}`} className="audit-row" style={a.risk === 'high' ? { background: 'var(--red-soft)' } : a.risk === 'medium' ? { background: 'var(--amber-soft)' } : {}}>
-            <span className="ts">{a.ts}</span>
+            <span className="ts">{formatarTimestamp(a.ts)}</span>
             <span className="who">
               {a.who === 'sistema' ? <Badge kind="blue"><Icon name="bot" size={10} /> sistema</Badge> : a.who}
             </span>

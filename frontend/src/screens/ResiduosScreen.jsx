@@ -118,6 +118,7 @@ export function ResiduosScreen({ state, dispatch }) {
                 <td className="mono small muted">{r.data_registro?.slice(0, 10)}</td>
                 <td className="mono small">{r.mtr_id || <span className="muted">-</span>}</td>
                 <td>
+                  <div className="tbl-acoes">
                   {podeAprovar && r.status === 'solicitado' && (
                     <>
                       <button
@@ -128,7 +129,6 @@ export function ResiduosScreen({ state, dispatch }) {
                       >
                         Aprovar
                       </button>
-                      {' '}
                       <button
                         type="button"
                         className="btn btn-sm"
@@ -136,7 +136,6 @@ export function ResiduosScreen({ state, dispatch }) {
                       >
                         Rejeitar
                       </button>
-                      {' '}
                     </>
                   )}
                   {podeEditar && (
@@ -148,6 +147,7 @@ export function ResiduosScreen({ state, dispatch }) {
                       Editar
                     </button>
                   )}
+                  </div>
                 </td>
               </tr>
             ))}

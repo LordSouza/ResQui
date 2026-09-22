@@ -11,9 +11,6 @@ import {
   useSessoes, useRevogarSessao, useRevogarOutrasSessoes, useGerarCodigosRecuperacao,
 } from '../auth/useSeguranca';
 
-const pgrsHint = { fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 14, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--accent)' };
-const pgrsSub = { fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: 8, marginTop: 4 };
-const pgrsCheck = { display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, padding: '4px 0', cursor: 'pointer' };
 
 // ---------- Conta: Perfil ----------
 export function FormPerfil({ onClose }) {
@@ -56,11 +53,11 @@ export function FormPerfil({ onClose }) {
         <div className="field"><label htmlFor="perfil-nome">Nome</label>
           <input id="perfil-nome" aria-label="Nome" value={nome} onChange={e => setNome(e.target.value)}/></div>
         <div className="field"><label htmlFor="perfil-matricula">Matrícula / SIAPE</label>
-          <input id="perfil-matricula" aria-label="Matrícula / SIAPE" value={user?.matricula ?? '—'} readOnly style={{fontFamily: 'var(--mono)'}}/></div>
+          <input id="perfil-matricula" aria-label="Matrícula / SIAPE" value={user?.matricula ?? '—'} readOnly className="mono"/></div>
       </div>
       <div className="form-row">
         <div className="field"><label htmlFor="perfil-email">E-mail</label>
-          <input id="perfil-email" aria-label="E-mail" type="email" value={email} onChange={e => setEmail(e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+          <input id="perfil-email" aria-label="E-mail" type="email" value={email} onChange={e => setEmail(e.target.value)} className="mono"/></div>
         <div className="field"><label htmlFor="perfil-papel">Papel</label>
           <input id="perfil-papel" aria-label="Papel" value={user?.papel ?? '—'} readOnly/></div>
       </div>
@@ -270,7 +267,7 @@ export function FormSenha2FA({ onClose, dispatch }) {
 
           {!mfaEnabled && setup && (
             <div style={{padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--radius)'}}>
-              <div style={pgrsSub}>1. Leia este QR code no seu app autenticador</div>
+              <div className="form-sub-label">1. Leia este QR code no seu app autenticador</div>
               <div style={{display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 10}}>
                 {setup.qrPngBase64 && (
                   <img src={`data:image/png;base64,${setup.qrPngBase64}`} width={148} height={148}
@@ -286,7 +283,7 @@ export function FormSenha2FA({ onClose, dispatch }) {
                   </div>
                 </div>
               </div>
-              <div style={pgrsSub}>2. Informe o código gerado para confirmar</div>
+              <div className="form-sub-label">2. Informe o código gerado para confirmar</div>
               <div style={{display: 'flex', gap: 8}}>
                 <input inputMode="numeric" aria-label="Código de verificação" placeholder="000000"
                   value={codigo} onChange={e => setCodigo(e.target.value)} style={{flex: 1}}/>
@@ -323,7 +320,7 @@ export function FormSessoes({ onClose }) {
           </button>
         )}
       </>}>
-      <div style={pgrsHint}>
+      <div className="form-hint">
         Se você não reconhece alguma sessão, encerre-a imediatamente e <strong>altere sua senha</strong>.
       </div>
       {isPending && <div style={{padding: 8, fontSize: 12}}>Carregando…</div>}
@@ -342,9 +339,9 @@ export function FormSessoes({ onClose }) {
                   {s.atual && <Badge kind="blue" dot>Sessão atual</Badge>}
                 </div>
                 <div style={{display: 'grid', gridTemplateColumns: '90px 1fr', gap: '3px 10px', fontSize: 12}}>
-                  <span style={{color: 'var(--text-3)'}}>Sessão</span><span style={{fontFamily: 'var(--mono)'}}>{s.jti.slice(0, 12)}…</span>
-                  <span style={{color: 'var(--text-3)'}}>Iniciada</span><span style={{fontFamily: 'var(--mono)'}}>{fmt(s.criadaEm)}</span>
-                  <span style={{color: 'var(--text-3)'}}>Expira</span><span style={{fontFamily: 'var(--mono)'}}>{fmt(s.expiraEm)}</span>
+                  <span className="muted">Sessão</span><span className="mono">{s.jti.slice(0, 12)}…</span>
+                  <span className="muted">Iniciada</span><span className="mono">{fmt(s.criadaEm)}</span>
+                  <span className="muted">Expira</span><span className="mono">{fmt(s.expiraEm)}</span>
                 </div>
               </div>
               {!s.atual && (

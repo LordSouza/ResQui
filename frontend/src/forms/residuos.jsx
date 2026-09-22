@@ -514,8 +514,6 @@ export function ConfirmReabrirDestinacao({ mtr, residuos, onClose }) {
 }
 
 // ---------- Configurar PGRS (Lei 12.305/10 art. 21) ----------
-const pgrsHint = { fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 14, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--accent)' };
-const pgrsSub = { fontSize: 12, fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: 8, marginTop: 4 };
 
 export function FormConfigurarPgrs({ onClose }) {
   const { data: cfgApi, isPending, isError, refetch } = useConfigPgrs();
@@ -573,14 +571,14 @@ export function FormConfigurarPgrs({ onClose }) {
                 }}>Recarregar</button>
             </div>
           )}
-          <div style={pgrsHint}>Identificação do empreendimento (Lei 12.305/10, art. 21, inc. I). Campos em branco são omitidos do relatório.</div>
+          <div className="form-hint">Identificação do empreendimento (Lei 12.305/10, art. 21, inc. I). Campos em branco são omitidos do relatório.</div>
           <div className="form-row full">
             <div className="field"><label htmlFor="pgrs-razao-social">Razão social</label>
               <input id="pgrs-razao-social" aria-label="Razão social" value={f.razaoSocial} onChange={e => set('razaoSocial', e.target.value)}/></div>
           </div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-cnpj">CNPJ</label>
-              <input id="pgrs-cnpj" aria-label="CNPJ" value={f.cnpj} onChange={e => set('cnpj', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="pgrs-cnpj" aria-label="CNPJ" value={f.cnpj} onChange={e => set('cnpj', e.target.value)} className="mono"/></div>
             <div className="field"><label htmlFor="pgrs-unidade">Unidade geradora</label>
               <input id="pgrs-unidade" aria-label="Unidade geradora" value={f.unidade} onChange={e => set('unidade', e.target.value)}/></div>
           </div>
@@ -589,27 +587,27 @@ export function FormConfigurarPgrs({ onClose }) {
               <input id="pgrs-endereco" aria-label="Endereço" value={f.endereco} onChange={e => set('endereco', e.target.value)}/></div>
           </div>
 
-          <div style={pgrsSub}>Responsável técnico</div>
+          <div className="form-sub-label">Responsável técnico</div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-resp-nome">Nome</label>
               <input id="pgrs-resp-nome" aria-label="Nome do responsável técnico" value={f.respTecnico} onChange={e => set('respTecnico', e.target.value)}/></div>
             <div className="field"><label htmlFor="pgrs-resp-crq">Registro CRQ</label>
-              <input id="pgrs-resp-crq" aria-label="Registro CRQ" value={f.respCrq} onChange={e => set('respCrq', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="pgrs-resp-crq" aria-label="Registro CRQ" value={f.respCrq} onChange={e => set('respCrq', e.target.value)} className="mono"/></div>
           </div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-resp-email">E-mail</label>
-              <input id="pgrs-resp-email" aria-label="E-mail do responsável técnico" value={f.respEmail} onChange={e => set('respEmail', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="pgrs-resp-email" aria-label="E-mail do responsável técnico" value={f.respEmail} onChange={e => set('respEmail', e.target.value)} className="mono"/></div>
             <div className="field"><label htmlFor="pgrs-resp-tel">Telefone</label>
-              <input id="pgrs-resp-tel" aria-label="Telefone do responsável técnico" value={f.respTel} onChange={e => set('respTel', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="pgrs-resp-tel" aria-label="Telefone do responsável técnico" value={f.respTel} onChange={e => set('respTel', e.target.value)} className="mono"/></div>
           </div>
 
-          <div style={pgrsSub}>Padrões do manifesto</div>
-          <div style={pgrsHint}>Preenchem os campos do novo manifesto; seguem editáveis a cada emissão.</div>
+          <div className="form-sub-label">Padrões do manifesto</div>
+          <div className="form-hint">Preenchem os campos do novo manifesto; seguem editáveis a cada emissão.</div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-gerador">Gerador padrão</label>
               <input id="pgrs-gerador" aria-label="Gerador padrão" value={f.geradorPadrao} onChange={e => set('geradorPadrao', e.target.value)}/></div>
             <div className="field"><label htmlFor="pgrs-codigo-ibama">Código IBAMA padrão</label>
-              <input id="pgrs-codigo-ibama" aria-label="Código IBAMA padrão" value={f.codigoIbamaPadrao} onChange={e => set('codigoIbamaPadrao', e.target.value)} style={{fontFamily: 'var(--mono)'}}/></div>
+              <input id="pgrs-codigo-ibama" aria-label="Código IBAMA padrão" value={f.codigoIbamaPadrao} onChange={e => set('codigoIbamaPadrao', e.target.value)} className="mono"/></div>
           </div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-transportador">Transportador padrão</label>

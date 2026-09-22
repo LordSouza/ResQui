@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Icon, Badge, Tag } from '../components';
+import { Icon, Badge } from '../components';
 import { REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
 import { validadeBadge } from '../components';
 import { useReagentes } from '../reagentes/useReagentes';
@@ -70,11 +70,6 @@ export function InventarioScreen({ state, dispatch }) {
             <option value="em-breve">≤ 90 dias</option>
           </select>
           <span className={`filter-pill ${state.flashId ? 'active' : ''}`}><Icon name="filter" size={11}/> {total} resultados</span>
-          <div style={{marginLeft: 'auto'}} className="row">
-            <span className="muted small">Atalhos:</span>
-            <Tag>⌘K</Tag>
-            <Tag>⌘N</Tag>
-          </div>
         </div>
 
         {isPending && (
@@ -115,7 +110,7 @@ export function InventarioScreen({ state, dispatch }) {
                     <div className="mono small muted">{r.sinonimo}</div>
                   </td>
                   <td className="num">{r.cas}</td>
-                  <td>{r.classe}. {REATIVIDADE_CLASSES[r.classe]?.split(' ').slice(0, 2).join(' ')}</td>
+                  <td>{r.classe}. {REATIVIDADE_CLASSES[r.classe]}</td>
                   <td className="small muted">{r.local}</td>
                   <td className="num right" style={{color: r.estoque_min && r.estoque < r.estoque_min ? 'var(--red)' : 'inherit', fontWeight: r.estoque_min && r.estoque < r.estoque_min ? 600 : 400}}>
                     {r.estoque?.toFixed(1)} {r.unidade}
