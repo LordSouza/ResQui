@@ -108,13 +108,16 @@ export function FormConvidarUsuario({ onClose }) {
   const [falhaAoCopiar, setFalhaAoCopiar] = useState(false);
   const criar = useCriarConvite();
   const revogar = useRevogarConvite();
+  const revogarConvite = (id) => revogar.mutate(id, {
+    onSuccess: () => { if (gerado?.id === id) setGerado(null); },
+  });
   const convites = useConvites();
 
   const trocarPapel = (novo) => { setPapel(novo); setGerado(null); setCopiado(false); setFalhaAoCopiar(false); };
 
   const gerar = () => criar.mutate({ Papel: papel }, {
     onSuccess: (convite) => {
-      setGerado({ link: linkConvite(convite.token), papel: convite.papel });
+      setGerado({ id: convite.id, link: linkConvite(convite.token), papel: convite.papel });
       setCopiado(false);
       setFalhaAoCopiar(false);
     },
@@ -193,9 +196,9 @@ export function FormConvidarUsuario({ onClose }) {
                     <td><Badge kind={st.kind}>{st.label}</Badge>{c.usadoPor ? <span className="small muted"> · {c.usadoPor}</span> : null}</td>
                     <td className="small muted">{new Date(c.expiraEm).toLocaleDateString('pt-BR')}</td>
                     <td style={{textAlign: 'right'}}>
-                      {c.status === 'pendente' && (
+                      {c.status === 'pendente' && (podeQualquerPapel || c.papel === 'Aluno') && (
                         <button type="button" className="btn btn-sm btn-ghost" disabled={revogar.isPending}
-                          onClick={() => revogar.mutate(c.id)}>Revogar</button>
+                          onClick={() => revogarConvite(c.id)}>Revogar</button>
                       )}
                     </td>
                   </tr>

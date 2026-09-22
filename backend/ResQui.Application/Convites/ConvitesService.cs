@@ -53,7 +53,12 @@ public class ConvitesService(IConvitesRepository convites, IAuthRepository usuar
     public async Task<IEnumerable<ConviteDto>> ListarAsync()
     {
         var todos = (await convites.GetAllAsync()).ToList();
-        var porId = (await usuarios.GetAllAsync()).ToDictionary(u => u.Id, u => string.IsNullOrWhiteSpace(u.Nome) ? u.Email : u.Nome);
+        var porId = new Dictionary<string, string>();
+        foreach (var usadoPorId in todos.Select(c => c.UsadoPorId).OfType<string>().Distinct())
+        {
+            if (await usuarios.FindByIdIncluindoArquivadosAsync(usadoPorId) is { } usuario)
+                porId[usadoPorId] = string.IsNullOrWhiteSpace(usuario.Nome) ? usuario.Email : usuario.Nome;
+        }
         return todos.Select(c => new ConviteDto(
             c.Id, c.Papel, StatusDe(c), c.CriadoEm, c.ExpiraEm, c.UsadoEm,
             c.UsadoPorId is { } id && porId.TryGetValue(id, out var nome) ? nome : null));
@@ -90,8 +95,10 @@ public class ConvitesService(IConvitesRepository convites, IAuthRepository usuar
         if (string.IsNullOrWhiteSpace(cmd.Senha))
             throw new ValidationException("Senha é obrigatória.");
         var email = cmd.Email.Trim();
-        if (await usuarios.FindByEmailAsync(email) is not null)
-            throw new ValidationException("E-mail já em uso.");
+        if (await usuarios.FindByEmailIncluindoArquivadosAsync(email) is { } existente)
+            throw new ValidationException(existente.Arquivado
+                ? "Este e-mail pertence a uma conta arquivada. Peça ao responsável para reativá-la."
+                : "E-mail já em uso.");
 
         convite.UsadoEm = DateTime.UtcNow;
         await convites.SaveChangesAsync();
@@ -101,16 +108,22 @@ public class ConvitesService(IConvitesRepository convites, IAuthRepository usuar
         {
             id = await usuarios.CreateAsync(email, cmd.Senha, cmd.Matricula?.Trim(), convite.Papel, cmd.Nome.Trim());
         }
-        catch (ValidationException)
+        catch
         {
-            convite.UsadoEm = null;
-            await convites.SaveChangesAsync();
+            try
+            {
+                convite.UsadoEm = null;
+                await convites.SaveChangesAsync();
+            }
+            catch
+            {
+            }
             throw;
         }
-        await usuarios.AddToRoleAsync(id, convite.Papel);
 
         convite.UsadoPorId = id;
         await convites.SaveChangesAsync();
+        await usuarios.AddToRoleAsync(id, convite.Papel);
         await auditoria.RegistrarAsync(email, "convite.aceito", "Usuários",
             $"Aceitou o convite #{convite.Id} e criou conta de {convite.Papel}", RiscoAuditoria.Medium);
     }

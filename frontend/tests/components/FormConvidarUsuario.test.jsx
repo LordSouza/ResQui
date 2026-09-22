@@ -105,6 +105,40 @@ describe('FormConvidarUsuario', () => {
     expect(screen.getAllByRole('button', { name: /Revogar/i })).toHaveLength(1);
   });
 
+  it('Professor não vê Revogar em convite de Professor, que a API recusaria', async () => {
+    mockFetch.mockImplementation(async (url) => {
+      if (url === '/api/convites') {
+        return { ok: true, status: 200, json: async () => ([
+          { id: 1, papel: 'Professor', status: 'pendente', criadoEm: '2026-09-22T10:00:00Z', expiraEm: '2026-09-29T10:00:00Z', usadoEm: null, usadoPor: null },
+          { id: 2, papel: 'Aluno', status: 'pendente', criadoEm: '2026-09-22T10:00:00Z', expiraEm: '2026-09-29T10:00:00Z', usadoEm: null, usadoPor: null },
+        ]) };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+    renderCom('Professor');
+
+    await screen.findByText('Professor');
+    expect(screen.getAllByRole('button', { name: /Revogar/i })).toHaveLength(1);
+  });
+
+  it('revogar o convite recém-gerado retira o link da tela', async () => {
+    mockFetch.mockImplementation(async (url, opts) => {
+      if (opts?.method === 'POST') return { ok: true, status: 200, json: async () => ({ id: 5, token: 'tok-abc', papel: 'Aluno' }) };
+      if (opts?.method === 'DELETE') return { ok: true, status: 204, json: async () => null };
+      return { ok: true, status: 200, json: async () => ([
+        { id: 5, papel: 'Aluno', status: 'pendente', criadoEm: '2026-09-22T10:00:00Z', expiraEm: '2026-09-29T10:00:00Z', usadoEm: null, usadoPor: null },
+      ]) };
+    });
+    renderCom('Professor');
+
+    await userEvent.click(await screen.findByRole('button', { name: /Gerar link/i }));
+    expect(await screen.findByRole('button', { name: /Copiar link/i })).toBeTruthy();
+
+    await userEvent.click(screen.getByRole('button', { name: /Revogar/i }));
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Copiar link/i })).toBeNull());
+  });
+
   it('mostra a mensagem do servidor quando a geração falha', async () => {
     mockFetch.mockImplementation(async (url, opts) => {
       if (opts?.method === 'POST') return { ok: false, status: 400, text: async () => JSON.stringify({ message: 'Convidar Professor é só o Admin; você pode convidar Aluno.' }) };

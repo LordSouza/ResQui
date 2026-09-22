@@ -11,7 +11,7 @@ public static class Endpoints
         {
             var id = user.FindFirstValue(ClaimTypes.NameIdentifier);
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var papel = user.FindFirstValue(ClaimTypes.Role) ?? "";
+            var papel = user.FindFirstValue("papel") ?? "";
             return Results.Ok(await svc.CriarAsync(cmd, id, email, papel));
         })
         .RequireAuthorization("GestaoUsuarios")
@@ -23,7 +23,7 @@ public static class Endpoints
         group.MapDelete("/{id:int}", async (int id, IConvitesService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var papel = user.FindFirstValue(ClaimTypes.Role) ?? "";
+            var papel = user.FindFirstValue("papel") ?? "";
             return await svc.RevogarAsync(id, email, papel) ? Results.NoContent() : Results.NotFound();
         })
         .RequireAuthorization("GestaoUsuarios");

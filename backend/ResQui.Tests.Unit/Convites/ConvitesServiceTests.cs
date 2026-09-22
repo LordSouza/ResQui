@@ -83,7 +83,7 @@ public class ConvitesServiceTests
     public async Task AceitarAsync_CriaUsuarioComOPapelDoConvite_EQueimaOConvite()
     {
         var (token, convite) = await CriarConviteAsync();
-        _usuarios.FindByEmailAsync("novo@lab.com").Returns((UsuarioInfo?)null);
+        _usuarios.FindByEmailIncluindoArquivadosAsync("novo@lab.com").Returns((UsuarioInfo?)null);
         _usuarios.CreateAsync("novo@lab.com", "Senha@123", "M99", "Aluno", "Novo Aluno").Returns("user-9");
 
         await _sut.AceitarAsync(token, new AceitarConviteCmd("Novo Aluno", "novo@lab.com", "M99", "Senha@123"));
@@ -99,7 +99,7 @@ public class ConvitesServiceTests
     public async Task AceitarAsync_QueimaOConviteAntesDeCriarAConta()
     {
         var (token, convite) = await CriarConviteAsync();
-        _usuarios.FindByEmailAsync("novo@lab.com").Returns((UsuarioInfo?)null);
+        _usuarios.FindByEmailIncluindoArquivadosAsync("novo@lab.com").Returns((UsuarioInfo?)null);
         DateTime? usadoEmDuranteACriacao = null;
         _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
             .Returns(_ => { usadoEmDuranteACriacao = convite.UsadoEm; return "user-9"; });
@@ -113,7 +113,7 @@ public class ConvitesServiceTests
     public async Task AceitarAsync_FalhaAoCriarAConta_DevolveOConviteAoEstadoPendente()
     {
         var (token, convite) = await CriarConviteAsync();
-        _usuarios.FindByEmailAsync("novo@lab.com").Returns((UsuarioInfo?)null);
+        _usuarios.FindByEmailIncluindoArquivadosAsync("novo@lab.com").Returns((UsuarioInfo?)null);
         _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
             .Returns<string>(_ => throw new ValidationException("Passwords must have at least one digit."));
 
@@ -172,12 +172,55 @@ public class ConvitesServiceTests
     public async Task AceitarAsync_EmailJaCadastrado_Recusa()
     {
         var (token, _) = await CriarConviteAsync();
-        _usuarios.FindByEmailAsync("ana@lab.com").Returns(new UsuarioInfo(
+        _usuarios.FindByEmailIncluindoArquivadosAsync("ana@lab.com").Returns(new UsuarioInfo(
             "user-1", "ana@lab.com", "Ana", null, "Aluno", new List<string> { "Aluno" }, false));
 
         var act = () => _sut.AceitarAsync(token, new AceitarConviteCmd("Ana", "ana@lab.com", null, "Senha@123"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*já em uso*");
+    }
+
+    [Fact]
+    public async Task AceitarAsync_EmailDeContaArquivada_RecusaComMensagemPropria()
+    {
+        var (token, convite) = await CriarConviteAsync();
+        _usuarios.FindByEmailIncluindoArquivadosAsync("ana@lab.com").Returns(new UsuarioInfo(
+            "user-1", "ana@lab.com", "Ana", null, "Aluno", new List<string> { "Aluno" }, true));
+
+        var act = () => _sut.AceitarAsync(token, new AceitarConviteCmd("Ana", "ana@lab.com", null, "Senha@123"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*arquivada*");
+        convite.UsadoEm.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AceitarAsync_RegistraQuemUsouAntesDeAtribuirOPapel()
+    {
+        var (token, convite) = await CriarConviteAsync();
+        _usuarios.FindByEmailIncluindoArquivadosAsync("novo@lab.com").Returns((UsuarioInfo?)null);
+        _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
+            .Returns("user-9");
+        string? usadoPorIdAoAtribuirPapel = null;
+        _usuarios.AddToRoleAsync("user-9", "Aluno")
+            .Returns(_ => { usadoPorIdAoAtribuirPapel = convite.UsadoPorId; return Task.CompletedTask; });
+
+        await _sut.AceitarAsync(token, new AceitarConviteCmd("Novo", "novo@lab.com", null, "Senha@123"));
+
+        usadoPorIdAoAtribuirPapel.Should().Be("user-9");
+    }
+
+    [Fact]
+    public async Task AceitarAsync_FalhaInesperadaAoCriarAConta_TambemDevolveOConvite()
+    {
+        var (token, convite) = await CriarConviteAsync();
+        _usuarios.FindByEmailIncluindoArquivadosAsync("novo@lab.com").Returns((UsuarioInfo?)null);
+        _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
+            .Returns<string>(_ => throw new InvalidOperationException("falha de infraestrutura"));
+
+        var act = () => _sut.AceitarAsync(token, new AceitarConviteCmd("Novo", "novo@lab.com", null, "Senha@123"));
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        convite.UsadoEm.Should().BeNull();
     }
 
     [Theory]
@@ -270,14 +313,13 @@ public class ConvitesServiceTests
             new() { Id = 3, Papel = "Aluno", ExpiraEm = agora.AddMinutes(-1) },
             new() { Id = 4, Papel = "Aluno", ExpiraEm = agora.AddDays(7), RevogadoEm = agora },
         });
-        _usuarios.GetAllAsync().Returns(new List<UsuarioInfo>
-        {
-            new("user-9", "novo@lab.com", "Novo Aluno", null, "Aluno", new List<string> { "Aluno" }, false),
-        });
+        _usuarios.FindByIdIncluindoArquivadosAsync("user-9").Returns(new UsuarioInfo(
+            "user-9", "novo@lab.com", "Novo Aluno", null, "Aluno", new List<string> { "Aluno" }, false));
 
         var lista = (await _sut.ListarAsync()).ToList();
 
         lista.Select(c => c.Status).Should().Equal("pendente", "usado", "expirado", "revogado");
         lista[1].UsadoPor.Should().Be("Novo Aluno");
+        await _usuarios.DidNotReceive().GetAllAsync();
     }
 }

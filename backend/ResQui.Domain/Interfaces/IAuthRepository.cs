@@ -18,6 +18,7 @@ public interface IAuthRepository
     // FindByIdAsync devolve null para arquivado; o reset de 2FA precisa alcançar a conta
     // arquivada (um 404 ali leria como "usuário não existe"). Mesma escolha de HardDeleteAsync.
     Task<UsuarioInfo?> FindByIdIncluindoArquivadosAsync(string id);
+    Task<UsuarioInfo?> FindByEmailIncluindoArquivadosAsync(string email);
     Task<bool> CheckPasswordAsync(string userId, string password);
     Task<string> CreateAsync(string email, string password, string? matricula, string papel, string? nome);
     Task AddToRoleAsync(string userId, string role);
