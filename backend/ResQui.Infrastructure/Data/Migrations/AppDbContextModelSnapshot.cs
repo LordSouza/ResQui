@@ -314,6 +314,58 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.ToTable("configuracao_pgrs", (string)null);
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.Convite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CriadoPorId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiraEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Papel")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RevogadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UsadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UsadoPorId")
+                        .HasColumnType("text");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CriadoPorId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UsadoPorId");
+
+                    b.ToTable("Convites");
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.Laboratorio", b =>
                 {
                     b.Property<string>("Id")
@@ -885,6 +937,19 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.Convite", b =>
+                {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("CriadoPorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsadoPorId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("ResQui.Domain.Entities.Mtr", b =>

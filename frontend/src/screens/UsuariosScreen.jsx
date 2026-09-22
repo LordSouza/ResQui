@@ -228,6 +228,11 @@ export function UsuariosScreen({ state, dispatch }) {
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13}/> Exportar lista</button>
           {podeGerir && (
+            <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'convidarUsuario'})}>
+              <Icon name="send" size={13}/> Convidar por link
+            </button>
+          )}
+          {podeGerir && (
             <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'novoUsuario'})}>
               <Icon name="plus" size={13}/> Novo usuário
             </button>

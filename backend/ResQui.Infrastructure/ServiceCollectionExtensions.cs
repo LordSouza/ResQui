@@ -47,6 +47,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthRepository, EfAuthRepository>();
         services.AddScoped<ISessoesRepository, EfSessoesRepository>();
         services.AddScoped<IPgrsConfigRepository, EfPgrsConfigRepository>();
+        services.AddScoped<IConvitesRepository, EfConvitesRepository>();
 
         services.AddScoped<ExpiryChecker>();
         services.AddScoped<LowStockChecker>();

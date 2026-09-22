@@ -29,11 +29,13 @@ import { FormNovoReagente, FormImportarCSV, FormEditarRegrasCompat, FormBaixa, F
 import { ResumoSeguranca } from './forms/ResumoSeguranca';
 import { FormNovoResiduo, FormEditarResiduo, ConfirmRejeitarResiduo, FormNovoMtr, FormConfigurarPgrs } from './forms/residuos';
 import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/laboratorios';
-import { FormNovoUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario, ConfirmResetar2fa } from './forms/usuarios';
+import { FormNovoUsuario, FormConvidarUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario, ConfirmResetar2fa } from './forms/usuarios';
 import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes } from './forms/sistema';
 import { FormEditarReagente } from './forms/FormEditarReagente';
 
 import { LoginScreen } from './Login';
+import { ConviteScreen } from './Convite';
+import { tokenConviteDaUrl } from './convites/linkConvite';
 import { podeVerTela, motivoTelaRestrita } from './auth/permissoes';
 import { useIdentificacaoPgrs } from './pgrs/useIdentificacaoPgrs';
 
@@ -293,6 +295,7 @@ const notifFootBtn = {
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [conviteToken, setConviteToken] = useState(tokenConviteDaUrl);
   const { user, token, logout } = useAuth();
   const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
   const { data: identificacao } = useIdentificacaoPgrs({ enabled: !!token });
@@ -311,6 +314,13 @@ export default function App() {
       return () => clearTimeout(t);
     }
   }, [state.flashId]);
+
+  if (conviteToken) {
+    return <ConviteScreen token={conviteToken} onConcluido={() => {
+      window.history.replaceState({}, '', window.location.pathname);
+      setConviteToken(null);
+    }}/>;
+  }
 
   if (!user) {
     return <LoginScreen />;
@@ -446,6 +456,7 @@ export default function App() {
         />
       )}
       {state.modal === 'novoUsuario' && <FormNovoUsuario onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'convidarUsuario' && <FormConvidarUsuario onClose={() => dispatch({type: 'closeModal'})}/>}
       {state.modal === 'arquivarUsuario' && state.modalUsuario && <ConfirmArquivarUsuario usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'excluirUsuario' && state.modalUsuario && <ConfirmExcluirUsuario usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'resetar2fa' && state.modalUsuario && <ConfirmResetar2fa usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}

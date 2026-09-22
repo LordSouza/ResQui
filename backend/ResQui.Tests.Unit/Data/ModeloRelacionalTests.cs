@@ -27,6 +27,8 @@ public class ModeloRelacionalTests
     [InlineData(typeof(Notificacao), "UsuarioId", typeof(Usuario), DeleteBehavior.Cascade)]
     [InlineData(typeof(SessaoToken), "UsuarioId", typeof(Usuario), DeleteBehavior.Cascade)]
     [InlineData(typeof(RelatorioGerado), "GeradoPorId", typeof(Usuario), DeleteBehavior.SetNull)]
+    [InlineData(typeof(Convite), "CriadoPorId", typeof(Usuario), DeleteBehavior.SetNull)]
+    [InlineData(typeof(Convite), "UsadoPorId", typeof(Usuario), DeleteBehavior.SetNull)]
     public void Modelo_DeclaraFk_ComAPoliticaDecidida(
         Type entidade, string propriedade, Type alvo, DeleteBehavior esperado)
     {

@@ -7,6 +7,10 @@ import ConfirmArquivarUsuario from './ConfirmArquivarUsuario';
 import { useCriarUsuario } from '../usuarios/useCriarUsuario';
 import { useExcluirUsuario } from '../usuarios/useExcluirUsuario';
 import { useResetar2fa } from '../usuarios/useResetar2fa';
+import { useConvites } from '../convites/useConvites';
+import { useCriarConvite } from '../convites/useCriarConvite';
+import { useRevogarConvite } from '../convites/useRevogarConvite';
+import { linkConvite } from '../convites/linkConvite';
 
 const papelBadge = (p) => {
   const r = ROLES[p];
@@ -86,6 +90,104 @@ export function FormNovoUsuario({ onClose, dispatch }) {
 }
 
 export { ConfirmArquivarUsuario };
+
+// ============== Modal: Convidar por link ==============
+
+const STATUS_CONVITE = {
+  pendente: { kind: 'blue', label: 'Pendente' },
+  usado: { kind: 'green', label: 'Usado' },
+  expirado: { kind: 'gray', label: 'Expirado' },
+  revogado: { kind: 'gray', label: 'Revogado' },
+};
+
+export function FormConvidarUsuario({ onClose }) {
+  const podeQualquerPapel = usePode('Administracao');
+  const [papel, setPapel] = useState('Aluno');
+  const [link, setLink] = useState('');
+  const [copiado, setCopiado] = useState(false);
+  const criar = useCriarConvite();
+  const revogar = useRevogarConvite();
+  const convites = useConvites();
+
+  const gerar = () => criar.mutate({ Papel: papel }, {
+    onSuccess: (convite) => { setLink(linkConvite(convite.token)); setCopiado(false); },
+  });
+
+  const copiar = async () => {
+    await navigator.clipboard?.writeText(link);
+    setCopiado(true);
+  };
+
+  return (
+    <Modal title="Convidar por link" sub="O convidado define a própria senha"
+      onClose={onClose} width={560}
+      footer={<>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={gerar} disabled={criar.isPending}>
+          <Icon name="plus" size={12} /> {criar.isPending ? 'Gerando…' : 'Gerar link'}
+        </button>
+      </>}>
+      {criar.isError && <div className="login-err" style={{ marginBottom: 12 }}>{criar.error.message}</div>}
+      {revogar.isError && <div className="login-err" style={{ marginBottom: 12 }}>{revogar.error.message}</div>}
+
+      <div className="form-row">
+        <div className="field"><label htmlFor="convite-papel">Papel do convidado</label>
+          <select id="convite-papel" value={papel} onChange={e => setPapel(e.target.value)} disabled={!podeQualquerPapel}>
+            {Object.entries(ROLES)
+              .filter(([k]) => k !== 'Admin' && (podeQualquerPapel || k === 'Aluno'))
+              .map(([k, r]) => <option key={k} value={k}>{r.label}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {link && (
+        <div className="hint-card amber" style={{marginTop: 4, display: 'block'}}>
+          <div className="small" style={{marginBottom: 8}}>
+            <b>Copie agora.</b> O link aparece uma única vez, vale para um cadastro e expira em 7 dias.
+          </div>
+          <div className="mono" style={{fontSize: 12, wordBreak: 'break-all', padding: 10, background: 'var(--surface-2)', borderRadius: 'var(--radius)', color: 'var(--text)'}}>
+            {link}
+          </div>
+          <button type="button" className="btn btn-sm" style={{marginTop: 10}} onClick={copiar}>
+            <Icon name="clipboard" size={12}/> {copiado ? 'Copiado' : 'Copiar link'}
+          </button>
+        </div>
+      )}
+
+      <div style={{marginTop: 16}}>
+        <div className="small muted" style={{marginBottom: 8}}>Convites gerados</div>
+        {convites.isPending && <div className="page-loading"><Icon name="refresh" size={14}/> Carregando…</div>}
+        {convites.isError && <div className="small muted">Não foi possível carregar os convites.</div>}
+        {convites.isSuccess && convites.data.length === 0 && <div className="small muted">Nenhum convite gerado ainda.</div>}
+        {convites.isSuccess && convites.data.length > 0 && (
+          <table className="tbl">
+            <thead>
+              <tr><th>Papel</th><th>Situação</th><th>Expira</th><th></th></tr>
+            </thead>
+            <tbody>
+              {convites.data.map(c => {
+                const st = STATUS_CONVITE[c.status] ?? { kind: 'gray', label: c.status };
+                return (
+                  <tr key={c.id}>
+                    <td>{ROLES[c.papel]?.label ?? c.papel}</td>
+                    <td><Badge kind={st.kind}>{st.label}</Badge>{c.usadoPor ? <span className="small muted"> · {c.usadoPor}</span> : null}</td>
+                    <td className="small muted">{new Date(c.expiraEm).toLocaleDateString('pt-BR')}</td>
+                    <td style={{textAlign: 'right'}}>
+                      {c.status === 'pendente' && (
+                        <button type="button" className="btn btn-sm btn-ghost" disabled={revogar.isPending}
+                          onClick={() => revogar.mutate(c.id)}>Revogar</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </Modal>
+  );
+}
 
 // ============== Modal: Excluir ==============
 

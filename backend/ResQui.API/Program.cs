@@ -14,11 +14,13 @@ using ResQui.Application.Residuos;
 using ResQui.Application.Email;
 using ResQui.Application.Usuarios;
 using ResQui.Application.Pgrs;
+using ResQui.Application.Convites;
 using ResQui.Infrastructure;
 using ResQui.Infrastructure.Data;
 using ResQui.Infrastructure.Identity;
 using ResQui.Infrastructure.Seed;
 using ResQui.API.Features.Auth;
+using ResQui.API.Features.Convites;
 using ResQui.API.Features.Reagentes;
 using ResQui.API.Features.Laboratorios;
 using ResQui.API.Features.Residuos;
@@ -62,6 +64,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRelatoriosService, RelatoriosService>();
 builder.Services.AddScoped<IPgrsConfigService, PgrsConfigService>();
 builder.Services.AddScoped<IAssistenteService, AssistenteService>();
+builder.Services.AddScoped<IConvitesService, ConvitesService>();
 builder.Services.AddHttpClient<IAssistenteProvider, DeepSeekProvider>(http =>
 {
     http.BaseAddress = new Uri(builder.Configuration["Assistente:BaseUrl"] ?? "https://api.deepseek.com");
@@ -205,6 +208,7 @@ app.MapGroup("/api/notificacoes").RequireAuthorization().MapNotificacoesEndpoint
 app.MapGroup("/api/relatorios").RequireAuthorization().MapRelatoriosEndpoints();
 app.MapGroup("/api/pgrs-config").RequireAuthorization().MapPgrsConfigEndpoints();
 app.MapGroup("/api/assistente").RequireAuthorization().MapAssistenteEndpoints();
+app.MapGroup("/api/convites").MapConvitesEndpoints();
 
 app.Run();
 

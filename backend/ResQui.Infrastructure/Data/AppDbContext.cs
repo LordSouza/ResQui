@@ -21,6 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<RelatorioGerado> RelatoriosGerados => Set<RelatorioGerado>();
     public DbSet<SessaoToken> SessoesTokens => Set<SessaoToken>();
     public DbSet<ConfiguracaoPgrs> ConfiguracaoPgrs => Set<ConfiguracaoPgrs>();
+    public DbSet<Convite> Convites => Set<Convite>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -35,5 +36,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Residuo>().Property<uint>("xmin").IsRowVersion();
         builder.Entity<ConfiguracaoPgrs>().Property<uint>("xmin").IsRowVersion();
         builder.Entity<CompatOverride>().Property<uint>("xmin").IsRowVersion();
+        builder.Entity<Convite>().Property<uint>("xmin").IsRowVersion();
     }
 }
