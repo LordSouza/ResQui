@@ -30,7 +30,7 @@ public static class Endpoints
         })
         .RequireAuthorization("Operacao");
 
-        // RF06 — aprovar/rejeitar solicitação de descarte. Aprovador: Admin, Gestor ou Professor.
+        // RF06 — aprovar/rejeitar solicitação de descarte. Policy Aprovador: Admin ou Professor.
         group.MapPut("/{id:int}/aprovar", async (int id, IResiduosService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";

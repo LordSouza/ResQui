@@ -53,7 +53,7 @@ export async function criarResiduoComClasses(request, auth, classes, extra = {})
   });
 }
 
-// Aprova a solicitação de descarte (RF06): solicitado → aguardando-coleta. Requer Gestor+ (auth admin).
+// Aprova a solicitação de descarte (RF06): solicitado → aguardando-coleta. Requer a policy Aprovador (Admin ou Professor).
 export async function aprovarResiduo(request, auth, id) {
   return request.put(`/api/residuos/${id}/aprovar`, { headers: auth });
 }

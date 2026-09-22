@@ -510,7 +510,7 @@ test('Aluno não confirma destinação de MTR', async ({ request }) => {
   expect(res.status()).toBe(403);
 });
 
-// Reabrir exige Gestor — Tecnico confirma mas não desfaz.
+// Confirmar exige a policy Operacao e reabrir exige Cadastro — o Professor tem as duas.
 test('Professor confirma e reabre a destinação do manifesto', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `tec_dest_${Date.now()}@resqui.local`;

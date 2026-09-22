@@ -149,7 +149,7 @@ describe('ResumoSeguranca', () => {
     expect(await screen.findByText(/Instituição Demo · Campus Central/)).toBeInTheDocument();
   });
 
-  // O resumo é aberto por qualquer papel; GET /api/pgrs-config exige Tecnico e devolveria 403
+  // O resumo é aberto por qualquer papel; GET /api/pgrs-config exige a policy Operacao e devolveria 403
   // para quem não tem a policy Operacao. Só o recorte de identificação é aberto.
   it('busca a instituição no endpoint de identificação, não na configuração completa', async () => {
     renderCom();

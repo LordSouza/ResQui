@@ -49,7 +49,7 @@ export function CompatScreen({ state, dispatch }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Motor de compatibilidade química</h1>
-          <p className="page-sub">Verifica reações de risco entre pares antes do armazenamento, manuseio ou descarte conjunto. Regras institucionais só se aplicam quando um Gestor cadastra uma exceção na matriz.</p>
+          <p className="page-sub">Verifica reações de risco entre pares antes do armazenamento, manuseio ou descarte conjunto. Regras institucionais só se aplicam quando um Professor cadastra uma exceção na matriz.</p>
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => {

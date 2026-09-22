@@ -180,7 +180,7 @@ public class PgrsConfigServiceTests
     }
 
     // GET /api/pgrs-config/identificacao é aberto a qualquer autenticado; ele NÃO pode vazar
-    // CNPJ, endereço nem os contatos do responsável técnico, que seguem atrás da policy Tecnico.
+    // CNPJ, endereço nem os contatos do responsável técnico, que seguem atrás da policy Operacao.
     [Fact]
     public async Task ObterIdentificacaoAsync_DevolveApenasRazaoSocialEUnidade()
     {

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../lib/api';
 
-// RF06 — aprova a solicitação de descarte (move solicitado → aguardando-coleta). Requer Gestor+.
+// RF06 — aprova a solicitação de descarte (move solicitado → aguardando-coleta). Requer a policy Aprovador.
 export function useAprovarResiduo() {
   const queryClient = useQueryClient();
   return useMutation({

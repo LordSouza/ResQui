@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../lib/api';
 
-// RF06 — rejeita a solicitação de descarte (move solicitado → rejeitado). Requer Gestor+.
+// RF06 — rejeita a solicitação de descarte (move solicitado → rejeitado). Requer a policy Aprovador.
 export function useRejeitarResiduo() {
   const queryClient = useQueryClient();
   return useMutation({
