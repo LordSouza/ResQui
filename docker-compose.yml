@@ -42,6 +42,8 @@ services:
       Email__User: ${EMAIL_USER:-}
       Email__Password: ${EMAIL_PASSWORD:-}
       Email__From: ${EMAIL_FROM:-resqui@resqui.local}
+      Email__RequireTls: ${EMAIL_REQUIRE_TLS:-true}
+      Email__TimeoutSeconds: ${EMAIL_TIMEOUT_SECONDS:-10}
 
   frontend:
     build:
