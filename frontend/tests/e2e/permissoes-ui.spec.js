@@ -3,7 +3,7 @@
 // servidor — coberta por seguranca.spec.js, que exercita os endpoints direto. Aqui o que se
 // verifica é a UI não oferecer o que o papel não alcança, e não esconder o que ele alcança.
 import { test, expect } from '@playwright/test';
-import { apiAuth } from './seed.js';
+import { apiAuth, todosLaboratorios } from './seed.js';
 
 const SENHA = 'Perm@2026x';
 
@@ -12,7 +12,7 @@ async function usuarioCom(request, papel) {
   const email = `permui_${papel.toLowerCase()}_${Date.now()}@resqui.local`;
   const res = await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: SENHA, Papel: papel, Nome: `Perm ${papel}` },
+    data: { Email: email, Senha: SENHA, Papel: papel, Nome: `Perm ${papel}`, LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   expect(res.ok(), `falha ao criar usuário ${papel}`).toBeTruthy();
   return email;

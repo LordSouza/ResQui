@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { apiAuth, ensureReagente, criarResiduoComClasses, aprovarResiduo } from './seed';
+import { apiAuth, ensureReagente, criarResiduoComClasses, aprovarResiduo, todosLaboratorios } from './seed';
 
 test('mistura de classes proibidas é bloqueada com 400', async ({ request }) => {
   const auth = await apiAuth(request);
@@ -65,7 +65,7 @@ test('Aluno dá baixa em lote mas não cria lote', async ({ request }) => {
   const email = `aluno_lote_${Date.now()}@resqui.local`;
   const cadastro = await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Lote E2E' },
+    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Lote E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   expect(cadastro.ok(), 'falha ao criar o aluno do teste').toBeTruthy();
   const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: 'Alun@123' } })).json();

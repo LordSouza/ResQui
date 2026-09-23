@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { apiAuth } from './seed';
+import { apiAuth, todosLaboratorios } from './seed';
 
 async function criarProfessor(request, auth) {
   const email = `prof_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@resqui.local`;
   const senha = 'Prof@123';
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Professor E2E' },
+    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Professor E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: senha } })).json();
   return { email, auth: { Authorization: `Bearer ${token}` } };
@@ -63,7 +63,7 @@ test('Professor não gera convite de Professor e Aluno não gera convite nenhum'
   const emailAluno = `aluno_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: adminAuth,
-    data: { Email: emailAluno, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno E2E' },
+    data: { Email: emailAluno, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno E2E', LaboratorioIds: await todosLaboratorios(request, adminAuth) },
   });
   const { token } = await (await request.post('/api/auth/login', { data: { Email: emailAluno, Senha: 'Alun@123' } })).json();
 

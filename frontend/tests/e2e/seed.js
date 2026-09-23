@@ -23,6 +23,19 @@ export async function ensureLab(request, auth) {
   return res.json();
 }
 
+export async function todosLaboratorios(request, auth) {
+  await ensureLab(request, auth);
+  const labs = await (await request.get('/api/laboratorios', { headers: auth })).json();
+  return labs.map((l) => l.id);
+}
+
+export async function atribuirLaboratorios(request, auth, usuarioId, laboratorioIds) {
+  return request.put(`/api/usuarios/${usuarioId}/laboratorios`, {
+    headers: auth,
+    data: { LaboratorioIds: laboratorioIds },
+  });
+}
+
 export async function ensureReagente(request, auth, { nome, cas, classe = 1 }) {
   const res = await request.get(`/api/reagentes?q=${encodeURIComponent(nome)}&page=1&pageSize=5`, { headers: auth });
   const data = await res.json();

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ADMIN, apiAuth, ensureLab, totp, criarResiduoAguardandoColeta, seedPgrsConfig } from './seed';
+import { ADMIN, apiAuth, ensureLab, totp, criarResiduoAguardandoColeta, seedPgrsConfig, todosLaboratorios } from './seed';
 
 // Aluno solicita descarte, mas não edita resíduo nem opera manifesto (item: autorização fina).
 test('Aluno cria resíduo mas é bloqueado ao editá-lo', async ({ request }) => {
@@ -7,7 +7,7 @@ test('Aluno cria resíduo mas é bloqueado ao editá-lo', async ({ request }) =>
   const email = `aluno_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno E2E' },
+    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
 
   const loginRes = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Alun@123' } });
@@ -77,7 +77,7 @@ test('sessões lista a sessão atual e revogar-outras não derruba ela', async (
   const email = `sess_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: adminAuth,
-    data: { Email: email, Senha: 'Sess@123', Papel: 'Professor', Nome: 'Sessao E2E' },
+    data: { Email: email, Senha: 'Sess@123', Papel: 'Professor', Nome: 'Sessao E2E', LaboratorioIds: await todosLaboratorios(request, adminAuth) },
   });
   const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: 'Sess@123' } })).json();
   const auth = { Authorization: `Bearer ${token}` };
@@ -98,7 +98,7 @@ test('Aluno cria resíduo mas é bloqueado em MTR', async ({ request }) => {
   const email = `pesq_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Pesq@123', Papel: 'Aluno', Nome: 'Pesq E2E' },
+    data: { Email: email, Senha: 'Pesq@123', Papel: 'Aluno', Nome: 'Pesq E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Pesq@123' } });
   const { token } = await login.json();
@@ -127,7 +127,7 @@ test('Professor aprova descarte solicitado', async ({ request }) => {
   const email = `prof_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof E2E' },
+    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Prof@123' } });
   const { token } = await login.json();
@@ -156,7 +156,7 @@ test('Aluno é bloqueado ao aprovar descarte', async ({ request }) => {
   const email = `pesq2_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Pesq@123', Papel: 'Aluno', Nome: 'Pesq2 E2E' },
+    data: { Email: email, Senha: 'Pesq@123', Papel: 'Aluno', Nome: 'Pesq2 E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Pesq@123' } });
   const { token } = await login.json();
@@ -183,7 +183,7 @@ test('Aluno é bloqueado ao criar MTR', async ({ request }) => {
   const email = `aluno_mtr_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno MTR E2E' },
+    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno MTR E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Alun@123' } });
   const { token } = await login.json();
@@ -204,7 +204,7 @@ test('hard-delete remove usuário arquivado e some da listagem', async ({ reques
   const email = `del_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Del@1234', Papel: 'Professor', Nome: 'Del E2E' },
+    data: { Email: email, Senha: 'Del@1234', Papel: 'Professor', Nome: 'Del E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
 
   const achar = async () =>
@@ -236,7 +236,7 @@ test('códigos de recuperação: ativa 2FA, entra com um código e a contagem ca
   const senha = 'Recup@123';
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Recuperação E2E' },
+    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Recuperação E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
 
   const login1 = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
@@ -281,7 +281,7 @@ test('Professor reseta o 2FA: derruba a sessão antiga e a própria rotação (n
   const senha = 'Reset@123';
   const criado = await request.post('/api/auth/register', {
     headers: adminAuth,
-    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Reset E2E' },
+    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Reset E2E', LaboratorioIds: await todosLaboratorios(request, adminAuth) },
   });
   const { id } = await criado.json();
 
@@ -346,7 +346,7 @@ test('conta bloqueia após 5 senhas erradas e recusa até a senha correta', asyn
   const senha = 'Lock@123';
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: senha, Papel: 'Aluno', Nome: 'Lockout E2E' },
+    data: { Email: email, Senha: senha, Papel: 'Aluno', Nome: 'Lockout E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
 
   // As cinco primeiras falhas ainda respondem 401: a checagem de bloqueio roda antes da senha,
@@ -403,7 +403,7 @@ test('hard-delete do usuário derruba o token dele na hora', async ({ request })
   const senha = 'Token@123';
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Token E2E' },
+    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Token E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
 
   const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: senha } })).json();
@@ -428,7 +428,7 @@ test('pgrs-config exige Operacao: Aluno 403, Professor 200', async ({ request })
   const visu = `pgvisu_${stamp}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: visu, Senha: 'Visu@123', Papel: 'Aluno', Nome: 'PG Visu' },
+    data: { Email: visu, Senha: 'Visu@123', Papel: 'Aluno', Nome: 'PG Visu', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const { token: tokenVisu } = await (await request.post('/api/auth/login', {
     data: { Email: visu, Senha: 'Visu@123' },
@@ -441,7 +441,7 @@ test('pgrs-config exige Operacao: Aluno 403, Professor 200', async ({ request })
   const tec = `pgtec_${stamp}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: tec, Senha: 'Tecn@123', Papel: 'Professor', Nome: 'PG Tec' },
+    data: { Email: tec, Senha: 'Tecn@123', Papel: 'Professor', Nome: 'PG Tec', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const { token: tokenTec } = await (await request.post('/api/auth/login', {
     data: { Email: tec, Senha: 'Tecn@123' },
@@ -467,7 +467,7 @@ test('pgrs-config/identificacao é aberto a Aluno e não vaza os campos restrito
   const visu = `idvisu_${stamp}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: visu, Senha: 'Visu@123', Papel: 'Aluno', Nome: 'Id Visu' },
+    data: { Email: visu, Senha: 'Visu@123', Papel: 'Aluno', Nome: 'Id Visu', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const { token } = await (await request.post('/api/auth/login', {
     data: { Email: visu, Senha: 'Visu@123' },
@@ -491,7 +491,7 @@ test('Aluno não confirma destinação de MTR', async ({ request }) => {
   const email = `pesq3_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Pesq@123', Papel: 'Aluno', Nome: 'Pesq3 E2E' },
+    data: { Email: email, Senha: 'Pesq@123', Papel: 'Aluno', Nome: 'Pesq3 E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const loginRes = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Pesq@123' } });
   const { token } = await loginRes.json();
@@ -516,7 +516,7 @@ test('Professor confirma e reabre a destinação do manifesto', async ({ request
   const email = `tec_dest_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Tecn@123', Papel: 'Professor', Nome: 'Tec Dest E2E' },
+    data: { Email: email, Senha: 'Tecn@123', Papel: 'Professor', Nome: 'Tec Dest E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const loginRes = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Tecn@123' } });
   const { token } = await loginRes.json();
@@ -550,7 +550,7 @@ test('Professor cria Aluno mas não cria outro Professor', async ({ request }) =
   const email = `prof_gate_${Date.now()}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Gate E2E' },
+    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Gate E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Prof@123' } });
   const { token } = await login.json();
@@ -582,7 +582,7 @@ test('Professor arquiva Aluno mas não arquiva colega Professor', async ({ reque
   const profEmail = `prof_arq_${base}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: profEmail, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Arq' },
+    data: { Email: profEmail, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Arq', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const colegaRes = await request.post('/api/auth/register', {
     headers: auth,
@@ -614,7 +614,7 @@ test('Professor não alcança papel, exclusão definitiva nem reset de 2FA', asy
   const profEmail = `prof_adm_${base}@resqui.local`;
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: profEmail, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Adm' },
+    data: { Email: profEmail, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Adm', LaboratorioIds: await todosLaboratorios(request, auth) },
   });
   const alvoRes = await request.post('/api/auth/register', {
     headers: auth,
