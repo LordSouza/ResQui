@@ -153,6 +153,11 @@ app.Use(async (ctx, next) =>
         ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
         await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
     }
+    catch (AcessoNegadoException ex)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
+    }
     catch (ConflitoConcorrenciaException ex)
     {
         ctx.Response.StatusCode = StatusCodes.Status409Conflict;
