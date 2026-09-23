@@ -10,9 +10,9 @@ function renderWithProvider(ui) {
 import { useToast } from '../../src/components/ToastContext';
 import { act } from '@testing-library/react';
 
-function Trigger({ message }) {
+function Trigger({ message, kind }) {
   const { addToast } = useToast();
-  return <button onClick={() => addToast(message)}>add</button>;
+  return <button onClick={() => addToast(message, kind)}>add</button>;
 }
 
 describe('ToastContainer', () => {
@@ -43,5 +43,21 @@ describe('ToastContainer', () => {
     act(() => { fireEvent.click(screen.getByText('add')); });
     const region = screen.getByRole('region');
     expect(region).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('erro é anunciado como alerta', () => {
+    renderWithProvider(<>
+      <Trigger message="Mistura bloqueada" kind="error" />
+      <ToastContainer />
+    </>);
+    act(() => { fireEvent.click(screen.getByText('add')); });
+    expect(screen.getByRole('alert')).toHaveTextContent('Mistura bloqueada');
+  });
+
+  it('sucesso usa role status em vez de alert', () => {
+    renderWithProvider(<><Trigger message="Regra salva" kind="success" /><ToastContainer /></>);
+    act(() => { fireEvent.click(screen.getByText('add')); });
+    expect(screen.getByRole('status')).toHaveTextContent('Regra salva');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

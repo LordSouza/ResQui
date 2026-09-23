@@ -31,12 +31,19 @@ describe('ToastContext', () => {
     expect(result.current.toasts).toHaveLength(0);
   });
 
-  it('toast é removido automaticamente após 5000ms', () => {
+  it('toast de sucesso é removido automaticamente após 5000ms', () => {
     const { result } = renderHook(() => useToast(), { wrapper });
-    act(() => result.current.addToast('Auto-remove'));
+    act(() => result.current.addToast('Salvo', 'success'));
     expect(result.current.toasts).toHaveLength(1);
     act(() => vi.advanceTimersByTime(5000));
     expect(result.current.toasts).toHaveLength(0);
+  });
+
+  it('toast de erro permanece até ser fechado', () => {
+    const { result } = renderHook(() => useToast(), { wrapper });
+    act(() => result.current.addToast('Mistura bloqueada'));
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(result.current.toasts).toHaveLength(1);
   });
 
   it('mantém no máximo 5 toasts — o mais antigo é removido', () => {

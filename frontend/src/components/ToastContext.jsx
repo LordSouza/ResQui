@@ -24,7 +24,7 @@ export function ToastProvider({ children }) {
       }
       return next;
     });
-    timers.current[id] = setTimeout(() => removeToast(id), 5000);
+    if (kind !== 'error') timers.current[id] = setTimeout(() => removeToast(id), 5000);
   }, [removeToast]);
 
   return (
