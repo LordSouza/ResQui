@@ -44,4 +44,30 @@ describe('FormEditarResiduo — classificação', () => {
     render(<FormEditarResiduo residuo={{ ...RESIDUO_CLASSIFICADO, classes: [] }} onClose={onClose} dispatch={dispatch} />, { wrapper });
     expect(screen.getByRole('button', { name: /Salvar alterações/i })).toBeEnabled();
   });
+
+  describe('com resíduo gravado antes de uma revisão da matriz', () => {
+    const MATRIZ = { entries: [{ classeA: 1, classeB: 3, nivel: 3 }, { classeA: 3, classeB: 1, nivel: 3 }], fonte: null };
+    const RESIDUO_PROIBIDO = { ...RESIDUO_CLASSIFICADO, classes: [1, 3] };
+
+    beforeEach(() => {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => Promise.resolve({
+        ok: true, status: 200,
+        json: async () => (String(url).startsWith('/api/compat/matriz') ? MATRIZ : {}),
+      })));
+    });
+
+    it('mantém salvável quando as classes não mudam, como o servidor', async () => {
+      render(<FormEditarResiduo residuo={RESIDUO_PROIBIDO} onClose={onClose} dispatch={dispatch} />, { wrapper });
+      expect(await screen.findByText(/gravada antes da regra atual/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Salvar alterações/i })).toBeEnabled();
+    });
+
+    it('bloqueia quando a nova combinação continua proibida', async () => {
+      render(<FormEditarResiduo residuo={RESIDUO_PROIBIDO} onClose={onClose} dispatch={dispatch} />, { wrapper });
+      await userEvent.click(screen.getByLabelText(/^5\./));
+      expect(await screen.findByText(/o sistema recusa o registro/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Salvar alterações/i })).toBeDisabled();
+    });
+  });
 });
+

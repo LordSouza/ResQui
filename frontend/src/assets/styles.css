@@ -245,6 +245,10 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .btn-danger:hover { background: var(--red-soft); }
 .btn-ghost { background: transparent; border-color: transparent; }
 .btn-ghost:hover { background: var(--surface-2); }
+.btn:disabled { color: var(--text-3); cursor: not-allowed; }
+.btn:disabled:hover { background: var(--surface); }
+.btn-ghost:disabled:hover { background: transparent; }
+.btn-primary:disabled, .btn-primary:disabled:hover { background: var(--surface-3); border-color: var(--border); color: var(--text-3); }
 .btn-sm { padding: 4px 8px; font-size: 11.5px; }
 
 /* === Cards === */
@@ -624,6 +628,14 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .compat-result.ok .res-title { color: var(--green); }
 .compat-result.warn .res-title { color: var(--amber); }
 .compat-result.danger .res-title { color: var(--red); }
+.compat-result.compact { padding: 10px 12px; gap: 10px; }
+.compat-result.compact > svg { flex-shrink: 0; margin-top: 1px; }
+.compat-result.compact.ok > svg { color: var(--green); }
+.compat-result.compact.warn > svg { color: var(--amber); }
+.compat-result.compact.danger > svg { color: var(--red); }
+.compat-result.compact .res-title { font-size: 13px; }
+.compat-result .res-detalhe { font-size: 12px; color: var(--text-2); line-height: 1.45; }
+.veredito-mistura:not(:empty) { margin-top: 10px; }
 
 /* === Detail panel === */
 .detail-grid {
@@ -1362,6 +1374,35 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   display: flex; align-items: center; gap: 8px;
   padding: 8px 10px;
   border: 1px solid var(--border);
+.classe-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.field .classe-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin: 0;
+  padding: 5px 10px 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+  transition: border-color 0.12s, background-color 0.12s;
+}
+.classe-chip:hover { border-color: var(--border-strong); }
+.field .classe-chip input { margin: 0; padding: 0; width: 14px; height: 14px; flex-shrink: 0; accent-color: var(--accent); }
+.classe-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.classe-chip.sel { border-color: var(--accent); background: var(--accent-soft); }
+.classe-chip.conflita { border-color: #efc4c0; }
+.classe-chip.conflita svg { color: var(--red); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
   border-radius: var(--radius);
   background: var(--surface);
   cursor: pointer;

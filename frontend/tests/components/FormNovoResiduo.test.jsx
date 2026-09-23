@@ -79,4 +79,46 @@ describe('FormNovoResiduo — entradas inválidas', () => {
     expect(screen.getByText(/aguarda aprovação antes de ir para a coleta/i)).toBeInTheDocument();
     expect(screen.queryByText(/rotula automaticamente/i)).not.toBeInTheDocument();
   });
+
+  describe('veredito de mistura ao vivo', () => {
+    const MATRIZ = {
+      entries: [
+        { classeA: 1, classeB: 3, nivel: 3 }, { classeA: 3, classeB: 1, nivel: 3 },
+        { classeA: 1, classeB: 5, nivel: 1 }, { classeA: 5, classeB: 1, nivel: 1 },
+      ],
+      fonte: null,
+    };
+
+    beforeEach(() => {
+      mockFetch.mockImplementation((url) => Promise.resolve({
+        ok: true, status: 200,
+        json: async () => (String(url).startsWith('/api/compat/matriz') ? MATRIZ : []),
+      }));
+    });
+
+    it('bloqueia o envio e nomeia o par proibido antes de chegar ao servidor', async () => {
+      render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+      await userEvent.click(screen.getByLabelText(/^1\./));
+      await userEvent.click(await screen.findByLabelText(/^3\./));
+      expect(await screen.findByText(/Proibido: 1\. Ácidos inorgânicos × 3\. Bases/)).toBeInTheDocument();
+      const botao = screen.getByRole('button', { name: /Registrar resíduo/i });
+      expect(botao).toBeDisabled();
+      expect(botao).toHaveAccessibleDescription(/o sistema recusa o registro/);
+    });
+
+    it('marca como conflitante a classe que o sistema recusaria junto das já marcadas', async () => {
+      render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+      await userEvent.click(screen.getByLabelText(/^1\./));
+      expect(await screen.findByLabelText(/^3\. Bases \/ álcalis: proibido com as classes marcadas/)).toBeInTheDocument();
+    });
+
+    it('aceita mistura em cautela, avisando', async () => {
+      render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+      await userEvent.click(screen.getByLabelText(/^1\./));
+      await userEvent.click(screen.getByLabelText(/^5\./));
+      expect(await screen.findByText(/Cautela: 1\. Ácidos inorgânicos × 5\. Solventes/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Registrar resíduo/i })).toBeEnabled();
+    });
+  });
 });
+

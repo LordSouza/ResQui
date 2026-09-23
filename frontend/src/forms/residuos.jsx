@@ -14,30 +14,109 @@ import { useConfirmarDestinacao } from '../mtrs/useConfirmarDestinacao';
 import { useReabrirDestinacao } from '../mtrs/useReabrirDestinacao';
 import { useRejeitarResiduo } from '../residuos/useRejeitarResiduo';
 import { quantidadesResiduos, formatarQuantidade } from '../utils';
+import { useVereditoMistura } from '../compat/useVereditoMistura';
+import { NIVEL_BLOQUEIO_MISTURA, ROTULO_NIVEL, piorNivelContra } from '../compat/avaliarMistura';
 
 // Seletor de classes de reatividade da mistura — o backend bloqueia pares Perigo/Proibido na matriz
-function ClassesSelector({ idPrefix, value, onChange, obrigatorio = false }) {
+function ClassesSelector({ idPrefix, value, onChange, veredito, obrigatorio = false }) {
   const toggle = (n) =>
     onChange(value.includes(n) ? value.filter(c => c !== n) : [...value, n]);
   return (
     <div className="form-row full">
       <div className="field">
         <span className="field-label" id={`${idPrefix}-classes-legenda`}>Classes de reatividade da mistura{obrigatorio ? ' *' : ''}</span>
-        <div role="group" aria-labelledby={`${idPrefix}-classes-legenda`} style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {Object.entries(REATIVIDADE_CLASSES).map(([n, label]) => (
-            <label key={n} htmlFor={`${idPrefix}-classe-${n}`} className="btn btn-sm"
-              style={{ cursor: 'pointer', opacity: value.includes(Number(n)) ? 1 : 0.55 }}>
-              <input id={`${idPrefix}-classe-${n}`} type="checkbox" style={{ marginRight: 4 }}
-                checked={value.includes(Number(n))} onChange={() => toggle(Number(n))} />
-              {n}. {label}
-            </label>
-          ))}
+        <div role="group" aria-labelledby={`${idPrefix}-classes-legenda`} className="classe-chip-grid">
+          {Object.entries(REATIVIDADE_CLASSES).map(([n, label]) => {
+            const classe = Number(n);
+            const marcada = value.includes(classe);
+            const nivelContraMarcadas = !marcada && veredito.matrix
+              ? piorNivelContra(classe, value, veredito.matrix)
+              : 0;
+            const conflita = nivelContraMarcadas >= NIVEL_BLOQUEIO_MISTURA;
+            return (
+              <label key={n} htmlFor={`${idPrefix}-classe-${n}`}
+                className={`classe-chip${marcada ? ' sel' : ''}${conflita ? ' conflita' : ''}`}>
+                <input id={`${idPrefix}-classe-${n}`} type="checkbox"
+                  checked={marcada} onChange={() => toggle(classe)} />
+                <span className="classe-chip-nome">{n}. {label}</span>
+                {conflita && (
+                  <>
+                    <Icon name="warning" size={13} />
+                    <span className="sr-only">: {ROTULO_NIVEL[nivelContraMarcadas].toLowerCase()} com as classes marcadas</span>
+                  </>
+                )}
+              </label>
+            );
+          })}
         </div>
-        {obrigatorio && (
+        {obrigatorio && value.length === 0 && (
           <div className="small muted" style={{ marginTop: 6 }}>
             Selecione ao menos uma classe — é ela que determina quais misturas o sistema bloqueia.
           </div>
         )}
+        <VereditoMistura id={`${idPrefix}-veredito`} classes={value} veredito={veredito} />
+      </div>
+    </div>
+  );
+}
+
+function nomeDaClasse(classe) {
+  return `${classe}. ${REATIVIDADE_CLASSES[classe]}`;
+}
+
+function VereditoMistura({ id, classes, veredito }) {
+  return (
+    <div id={id} className="veredito-mistura" role="status" aria-live="polite">
+      {new Set(classes).size >= 2 && <ConteudoVeredito veredito={veredito} />}
+    </div>
+  );
+}
+
+function ConteudoVeredito({ veredito }) {
+  const { pior, consultando, indisponivel, perigoso, bloqueia } = veredito;
+  if (indisponivel) {
+    return (
+      <div className="small muted">
+        Não foi possível consultar a matriz de compatibilidade agora. O servidor ainda confere a mistura ao registrar.
+      </div>
+    );
+  }
+  if (consultando || !pior) {
+    return <div className="small muted">Consultando a matriz de compatibilidade…</div>;
+  }
+  const par = `${nomeDaClasse(pior.classeA)} × ${nomeDaClasse(pior.classeB)}`;
+  if (pior.nivel === 0) {
+    return (
+      <div className="compat-result compact ok">
+        <Icon name="check" size={16} stroke={2} />
+        <div>
+          <div className="res-title">Mistura compatível</div>
+          <div className="res-detalhe">Nenhum par entre as classes marcadas tem restrição na matriz.</div>
+        </div>
+      </div>
+    );
+  }
+  if (!perigoso) {
+    return (
+      <div className="compat-result compact warn">
+        <Icon name="warning" size={16} stroke={2} />
+        <div>
+          <div className="res-title">Cautela: {par}</div>
+          <div className="res-detalhe">O registro é aceito. Confira a composição antes de juntar os resíduos no mesmo recipiente.</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="compat-result compact danger">
+      <Icon name="warning" size={16} stroke={2} />
+      <div>
+        <div className="res-title">{ROTULO_NIVEL[pior.nivel]}: {par}</div>
+        <div className="res-detalhe">
+          {bloqueia
+            ? 'Estas classes não podem ir no mesmo recipiente, e o sistema recusa o registro. Separe os resíduos e registre cada um, ou desmarque uma das classes do par.'
+            : 'Esta classificação foi gravada antes da regra atual e continua editável nos outros campos. Se alterar as classes, a nova combinação precisa ser permitida.'}
+        </div>
       </div>
     </div>
   );
@@ -55,8 +134,10 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
   });
   const [erros, setErros] = useState({});
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
+  const veredito = useVereditoMistura(f.classes);
 
   const submit = () => {
+    if (veredito.bloqueia) return;
     const pendentes = {};
     if (!f.volume) pendentes.volume = 'Informe o volume.';
     if (!f.composicao) pendentes.composicao = 'Descreva a composição.';
@@ -86,7 +167,9 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
       onClose={onClose} width={620}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={criarResiduo.isPending || f.classes.length === 0}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit}
+          disabled={criarResiduo.isPending || f.classes.length === 0 || veredito.bloqueia}
+          aria-describedby={veredito.bloqueia ? 'residuo-veredito' : undefined}>
           {criarResiduo.isPending ? 'Salvando…' : 'Registrar resíduo'}
         </button>
       </>}>
@@ -129,7 +212,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
           {erros.composicao && <div className="field-error">{erros.composicao}</div>}
         </div>
       </div>
-      <ClassesSelector idPrefix="residuo" value={f.classes} onChange={v => upd('classes', v)} obrigatorio />
+      <ClassesSelector idPrefix="residuo" value={f.classes} onChange={v => upd('classes', v)} veredito={veredito} obrigatorio />
       <div className="residuo-warning-banner">
         <Icon name="warning" size={14} />
         <span>O registro entra como solicitação de descarte e aguarda aprovação antes de ir para a coleta.</span>
@@ -150,8 +233,10 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
     classes: residuo.classes ?? [],
   });
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
+  const veredito = useVereditoMistura(f.classes, residuo.classes ?? []);
 
   const submit = () => {
+    if (veredito.bloqueia) return;
     if (!f.volume || !f.composicao) { alert('Volume e composição são obrigatórios.'); return; }
     atualizarResiduo.mutate(
       { id: residuo.id, Tipo: f.tipo, Volume: Number(f.volume), Unidade: f.unidade, Composicao: f.composicao, Risco: f.risco, ClassesReatividade: f.classes },
@@ -164,7 +249,8 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
       onClose={onClose} width={560}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={atualizarResiduo.isPending || (f.classes.length === 0 && (residuo.classes?.length ?? 0) > 0)}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={atualizarResiduo.isPending || (f.classes.length === 0 && (residuo.classes?.length ?? 0) > 0) || veredito.bloqueia}
+          aria-describedby={veredito.bloqueia ? 'edit-veredito' : undefined}>
           {atualizarResiduo.isPending ? 'Salvando…' : 'Salvar alterações'}
         </button>
       </>}>
@@ -197,7 +283,7 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
           <textarea id="edit-composicao" rows={3} value={f.composicao} onChange={e => upd('composicao', e.target.value)} />
         </div>
       </div>
-      <ClassesSelector idPrefix="edit" value={f.classes} onChange={v => upd('classes', v)} />
+      <ClassesSelector idPrefix="edit" value={f.classes} onChange={v => upd('classes', v)} veredito={veredito} />
     </Modal>
   );
 }
