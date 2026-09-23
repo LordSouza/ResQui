@@ -4,6 +4,7 @@ import { REATIVIDADE_CLASSES } from '../data';
 import { useCompatMatriz } from '../compat/useCompatMatriz';
 import { useReagente } from '../reagentes/useReagente';
 import { useReagentes } from '../reagentes/useReagentes';
+import { ROTULO_NIVEL, piorNivelContra } from '../compat/avaliarMistura';
 import { useDeletarReagente } from '../reagentes/useDeletarReagente';
 import { useLotes } from '../reagentes/useLotes';
 import { useCriarLote } from '../reagentes/useCriarLote';
@@ -129,9 +130,12 @@ export function DetalheScreen({ state, dispatch }) {
   if (r === null || !r) return null;  // useEffect handles redirect; just suppress render
 
   const todosReagentes = listData?.items ?? [];
-  const mesmoArmario = todosReagentes.filter(
-    x => x.local.split('·')[0].trim() === r.local.split('·')[0].trim() && x.id !== r.id
-  ).slice(0, 5);
+  const vizinhosDeArmario = todosReagentes
+    .filter(x => x.local.trim() === r.local.trim() && x.id !== r.id)
+    .map(x => ({ ...x, nivel: piorNivelContra(r.classe, [x.classe], compatMatrix) }))
+    .sort((a, b) => b.nivel - a.nivel);
+  const vizinhosExibidos = vizinhosDeArmario.slice(0, 5);
+  const vizinhosOcultos = vizinhosDeArmario.length - vizinhosExibidos.length;
 
   const handleDeletar = () => {
     if (!window.confirm(`Excluir ${r.nome} (${r.id}) permanentemente?`)) return;
@@ -281,20 +285,26 @@ export function DetalheScreen({ state, dispatch }) {
           <div className="card">
             <SectionTitle title="Compatibilidade rápida" sub="vs. itens no mesmo armário"/>
             <div className="card-body" style={{padding: 0}}>
-              {mesmoArmario.map(x => {
-                const score = (compatMatrix[r.classe] || [])[x.classe - 1] ?? 0;
-                const kind = score === 0 ? 'green' : score === 1 ? 'amber' : 'red';
-                const label = score === 0 ? 'Compatível' : score === 1 ? 'Cautela' : score === 2 ? 'Perigo' : 'Proibido';
+              {vizinhosDeArmario.length === 0 && (
+                <div className="small muted" style={{padding: '10px 14px'}}>Nenhum outro reagente cadastrado em {r.local}.</div>
+              )}
+              {vizinhosExibidos.map(x => {
+                const kind = x.nivel === 0 ? 'green' : x.nivel === 1 ? 'amber' : 'red';
                 return (
                   <div key={x.id} style={{padding: '8px 14px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12}}>
                     <div>
                       <div>{x.nome}</div>
                       <div className="mono small muted">{x.id} · classe {x.classe}</div>
                     </div>
-                    <Badge kind={kind}>{label}</Badge>
+                    <Badge kind={kind}>{ROTULO_NIVEL[x.nivel]}</Badge>
                   </div>
                 );
               })}
+              {vizinhosOcultos > 0 && (
+                <div className="small muted" style={{padding: '8px 14px'}}>
+                  e mais {vizinhosOcultos} {vizinhosOcultos === 1 ? 'item' : 'itens'} neste local, de risco igual ou menor que os listados
+                </div>
+              )}
             </div>
           </div>
         </div>

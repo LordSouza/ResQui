@@ -85,6 +85,15 @@ describe('DetalheScreen', () => {
     expect(screen.getByText('Proibido')).toBeInTheDocument();
     expect(screen.queryByText('Compatível')).not.toBeInTheDocument();
   });
+
+  it('compara pela localização completa e lista primeiro o par de maior risco', () => {
+    const outroArmario = { id: 'R-00003', nome: 'Hidróxido de sódio', local: 'Lab A · Armário 2', classe: 3 };
+    const compativel = { id: 'R-00004', nome: 'Ácido clorídrico', local: 'Lab A · Armário 1', classe: 1 };
+    useReagentes.mockReturnValue({ data: { items: [reagente, compativel, outroArmario, vizinho], total: 4 }, isPending: false, isError: false });
+    render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={vi.fn()} />);
+    const nomes = screen.getAllByText(/^(Ácido nítrico|Ácido clorídrico|Hidróxido de sódio)$/).map(el => el.textContent);
+    expect(nomes).toEqual(['Ácido nítrico', 'Ácido clorídrico']);
+  });
 });
 
 // Três policies distintas convivem nesta tela: baixa direta, transferência e baixa de lote são
