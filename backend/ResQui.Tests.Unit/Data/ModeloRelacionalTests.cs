@@ -29,6 +29,10 @@ public class ModeloRelacionalTests
     [InlineData(typeof(RelatorioGerado), "GeradoPorId", typeof(Usuario), DeleteBehavior.SetNull)]
     [InlineData(typeof(Convite), "CriadoPorId", typeof(Usuario), DeleteBehavior.SetNull)]
     [InlineData(typeof(Convite), "UsadoPorId", typeof(Usuario), DeleteBehavior.SetNull)]
+    [InlineData(typeof(UsuarioLaboratorio), "UsuarioId", typeof(Usuario), DeleteBehavior.Cascade)]
+    [InlineData(typeof(UsuarioLaboratorio), "LaboratorioId", typeof(Laboratorio), DeleteBehavior.Cascade)]
+    [InlineData(typeof(ConviteLaboratorio), "ConviteId", typeof(Convite), DeleteBehavior.Cascade)]
+    [InlineData(typeof(ConviteLaboratorio), "LaboratorioId", typeof(Laboratorio), DeleteBehavior.Cascade)]
     public void Modelo_DeclaraFk_ComAPoliticaDecidida(
         Type entidade, string propriedade, Type alvo, DeleteBehavior esperado)
     {
@@ -69,6 +73,16 @@ public class ModeloRelacionalTests
         db.Model.FindEntityType(entidade)!.GetForeignKeys()
             .Where(f => f.Properties.Count == 1 && f.Properties[0].Name == propriedade)
             .Should().BeEmpty($"{entidade.Name}.{propriedade} é isenta de FK por decisão registrada");
+    }
+
+    [Theory]
+    [InlineData(typeof(UsuarioLaboratorio), "UsuarioId", "LaboratorioId")]
+    [InlineData(typeof(ConviteLaboratorio), "ConviteId", "LaboratorioId")]
+    public void Modelo_UsaChaveComposta_NasTabelasDeAssociacao(Type entidade, string a, string b)
+    {
+        using var db = NovoContexto();
+        db.Model.FindEntityType(entidade)!.FindPrimaryKey()!.Properties
+            .Select(p => p.Name).Should().Equal(a, b);
     }
 
     [Fact]

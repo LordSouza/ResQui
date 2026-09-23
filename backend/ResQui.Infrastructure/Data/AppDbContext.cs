@@ -22,6 +22,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SessaoToken> SessoesTokens => Set<SessaoToken>();
     public DbSet<ConfiguracaoPgrs> ConfiguracaoPgrs => Set<ConfiguracaoPgrs>();
     public DbSet<Convite> Convites => Set<Convite>();
+    public DbSet<UsuarioLaboratorio> UsuarioLaboratorios => Set<UsuarioLaboratorio>();
+    public DbSet<ConviteLaboratorio> ConviteLaboratorios => Set<ConviteLaboratorio>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

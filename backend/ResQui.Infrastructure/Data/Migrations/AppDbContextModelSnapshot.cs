@@ -366,6 +366,21 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.ToTable("Convites");
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.ConviteLaboratorio", b =>
+                {
+                    b.Property<int>("ConviteId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LaboratorioId")
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("ConviteId", "LaboratorioId");
+
+                    b.HasIndex("LaboratorioId");
+
+                    b.ToTable("ConviteLaboratorios");
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.Laboratorio", b =>
                 {
                     b.Property<string>("Id")
@@ -811,6 +826,21 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.ToTable("SessoesTokens");
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.UsuarioLaboratorio", b =>
+                {
+                    b.Property<string>("UsuarioId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LaboratorioId")
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("UsuarioId", "LaboratorioId");
+
+                    b.HasIndex("LaboratorioId");
+
+                    b.ToTable("UsuarioLaboratorios");
+                });
+
             modelBuilder.Entity("ResQui.Infrastructure.Identity.Usuario", b =>
                 {
                     b.Property<string>("Id")
@@ -956,6 +986,21 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.ConviteLaboratorio", b =>
+                {
+                    b.HasOne("ResQui.Domain.Entities.Convite", null)
+                        .WithMany()
+                        .HasForeignKey("ConviteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ResQui.Domain.Entities.Laboratorio", null)
+                        .WithMany()
+                        .HasForeignKey("LaboratorioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.Mtr", b =>
                 {
                     b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
@@ -1020,6 +1065,21 @@ namespace ResQui.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ResQui.Domain.Entities.SessaoToken", b =>
                 {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.UsuarioLaboratorio", b =>
+                {
+                    b.HasOne("ResQui.Domain.Entities.Laboratorio", null)
+                        .WithMany()
+                        .HasForeignKey("LaboratorioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
                         .WithMany()
                         .HasForeignKey("UsuarioId")
