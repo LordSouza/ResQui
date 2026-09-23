@@ -80,4 +80,20 @@ describe('Modal', () => {
     expect(gatilho).toHaveFocus();
     unmount();
   });
+
+  it('trata o resumo da seção recolhida como último campo e volta ao início', async () => {
+    render(
+      <Modal title="Novo reagente" onClose={vi.fn()}>
+        <input aria-label="Nome" />
+        <details>
+          <summary>Classificação GHS</summary>
+          <input aria-label="Frases H" />
+        </details>
+      </Modal>
+    );
+    screen.getByText('Classificação GHS').focus();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: 'Fechar janela' })).toHaveFocus();
+  });
 });
+

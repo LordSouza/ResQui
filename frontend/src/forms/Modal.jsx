@@ -3,11 +3,18 @@ import { Icon } from '../components';
 
 const SELETOR_FOCAVEL = [
   'a[href]', 'button:not([disabled])', 'input:not([disabled])', 'select:not([disabled])',
-  'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
+  'textarea:not([disabled])', 'summary', '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
+function estaOculto(elemento) {
+  if (elemento.closest('[hidden]')) return true;
+  if (elemento.style.display === 'none') return true;
+  const detalhesFechado = elemento.closest('details:not([open])');
+  return detalhesFechado !== null && elemento !== detalhesFechado.querySelector(':scope > summary');
+}
+
 function elementosFocaveis(container) {
-  return [...container.querySelectorAll(SELETOR_FOCAVEL)].filter(el => !el.closest('[hidden]'));
+  return [...container.querySelectorAll(SELETOR_FOCAVEL)].filter(el => !estaOculto(el));
 }
 
 function focarPrimeiroCampo(dialogo) {
