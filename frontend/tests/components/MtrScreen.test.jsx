@@ -63,6 +63,21 @@ describe('MtrScreen', () => {
     renderCom('Aluno');
     expect(screen.getAllByText('MTR-2026-0001').length).toBeGreaterThan(0);
   });
+
+  // GET /api/residuos é escopado; o PDF, gerado no servidor, não é.
+  it('avisa quando o manifesto tem resíduos de laboratórios fora do escopo', () => {
+    renderCom('Professor');
+    expect(screen.getByText(/Mais 1 resíduo\(s\) deste manifesto são de laboratórios/)).toBeInTheDocument();
+  });
+
+  it('não avisa quando todos os resíduos do manifesto estão visíveis', () => {
+    useResíduos.mockReturnValue({
+      data: [{ id: 7, descricao: 'Solvente', tipo: 'Solventes', volume: 30, unidade: 'L', risco: 'medio' }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
+    renderCom('Professor');
+    expect(screen.queryByText(/deste manifesto são de laboratórios/)).not.toBeInTheDocument();
+  });
 });
 
 const destinado = { ...mtr, id: 2, numero: 'MTR-2026-0002', data_destinacao: '2026-08-01' };

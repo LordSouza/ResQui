@@ -4,6 +4,7 @@ import { REATIVIDADE_CLASSES } from '../data';
 import { exportCsv } from '../utils';
 import { useLaboratorios } from '../laboratorios/useLaboratorios';
 import { usePode } from '../auth/permissoes';
+import { useLaboratoriosDoUsuario } from '../laboratorios/useLaboratoriosDoUsuario';
 
 function LabCard({ lab, onRemove, onEdit, dispatch, flash, podeEditar, podeRemover }) {
   return (
@@ -69,6 +70,7 @@ function LabCard({ lab, onRemove, onEdit, dispatch, flash, podeEditar, podeRemov
 
 export function LaboratoriosScreen({ state, dispatch }) {
   const { data: labs = [], isPending, isError, refetch } = useLaboratorios();
+  const { respondePor } = useLaboratoriosDoUsuario();
   const podeGerir = usePode('Cadastro');   // POST/PUT /api/laboratorios
   const podeRemover = usePode('Cadastro');       // DELETE /api/laboratorios/:id
 
@@ -128,8 +130,8 @@ export function LaboratoriosScreen({ state, dispatch }) {
                 lab={lab}
                 onRemove={() => dispatch({ type: 'openModal', kind: 'removerLab', lab })}
                 onEdit={() => dispatch({ type: 'openModal', kind: 'editarLab', lab })}
-                podeEditar={podeGerir}
-                podeRemover={podeRemover}
+                podeEditar={podeGerir && respondePor(lab.id)}
+                podeRemover={podeRemover && respondePor(lab.id)}
                 dispatch={dispatch}
                 flash={state.flashId === lab.id}
               />

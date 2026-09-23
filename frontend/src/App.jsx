@@ -32,6 +32,7 @@ import { FormNovoLab, ConfirmRemoverLab, FormEditarLaboratorio } from './forms/l
 import { FormNovoUsuario, FormConvidarUsuario, ConfirmArquivarUsuario, ConfirmExcluirUsuario, ConfirmResetar2fa } from './forms/usuarios';
 import { FormPerfil, FormSenha2FA, FormSessoes, FormNotificacoes } from './forms/sistema';
 import { FormEditarReagente } from './forms/FormEditarReagente';
+import FormLaboratoriosUsuario from './forms/FormLaboratoriosUsuario';
 
 import { LoginScreen } from './Login';
 import { ConviteScreen } from './Convite';
@@ -471,6 +472,7 @@ export default function App() {
       {state.modal === 'arquivarUsuario' && state.modalUsuario && <ConfirmArquivarUsuario usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'excluirUsuario' && state.modalUsuario && <ConfirmExcluirUsuario usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
       {state.modal === 'resetar2fa' && state.modalUsuario && <ConfirmResetar2fa usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})} dispatch={dispatch}/>}
+      {state.modal === 'laboratoriosUsuario' && state.modalUsuario && <FormLaboratoriosUsuario usuario={state.modalUsuario} onClose={() => dispatch({type: 'closeModal'})}/>}
     </div>
   );
 }

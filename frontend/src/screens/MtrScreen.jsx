@@ -14,6 +14,7 @@ function MtrDetalhe({ mtr }) {
   const [reabrindo, setReabrindo] = useState(false);
   const podeDestinar = usePode('Operacao');   // POST /api/mtrs/:id/destinacao
   const podeReabrir = usePode('Cadastro');     // DELETE /api/mtrs/:id/destinacao
+  const foraDoEscopo = (mtr.residuo_ids ?? []).length - residuos.length;
   return (
     <>
     <div className="detail-grid">
@@ -24,6 +25,11 @@ function MtrDetalhe({ mtr }) {
           <tbody>
             {isPending && <tr><td colSpan={5}>Carregando…</td></tr>}
             {!isPending && residuos.length === 0 && <tr><td colSpan={5} className="muted">Nenhum resíduo vinculado.</td></tr>}
+            {!isPending && foraDoEscopo > 0 && (
+              <tr><td colSpan={5} className="muted small">
+                Mais {foraDoEscopo} resíduo(s) deste manifesto são de laboratórios pelos quais você não responde. O PDF traz todos.
+              </td></tr>
+            )}
             {residuos.map((r) => (
               <tr key={r.id}>
                 <td className="num">#{r.id}</td>

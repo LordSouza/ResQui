@@ -26,6 +26,8 @@ const mockReturn = {
   refetch: vi.fn(),
 };
 
+const LAB_IDS = mockReturn.data.map(l => l.id);
+
 vi.mock('../../src/laboratorios/useLaboratorios', () => ({
   useLaboratorios: vi.fn(),
 }));
@@ -36,7 +38,7 @@ import { useAuth } from '../../src/auth/AuthContext';
 
 beforeEach(() => {
   useLaboratorios.mockReturnValue(mockReturn);
-  useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
+  useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor', laboratorioIds: LAB_IDS } });
 });
 
 describe('LaboratoriosScreen', () => {
@@ -68,7 +70,7 @@ describe('LaboratoriosScreen', () => {
 // POST/PUT /api/laboratorios exigem a policy Cadastro; DELETE exige Administracao.
 describe('LaboratoriosScreen — permissões', () => {
   const renderCom = (papel) => {
-    useAuth.mockReturnValue({ user: { id: 'u-1', papel } });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel, laboratorioIds: LAB_IDS } });
     return render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
   };
 
@@ -100,5 +102,14 @@ describe('LaboratoriosScreen — permissões', () => {
     useLaboratorios.mockReturnValue({ data: [], isPending: false, isError: false, refetch: vi.fn() });
     renderCom('Aluno');
     expect(screen.queryByRole('button', { name: /Cadastrar primeiro laboratório/i })).not.toBeInTheDocument();
+  });
+
+  it('esconde editar e remover do laboratório pelo qual o Professor não responde', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor', laboratorioIds: [] } });
+    render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: /Novo laboratório/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Editar laboratório' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remover laboratório' })).not.toBeInTheDocument();
   });
 });

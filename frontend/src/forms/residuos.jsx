@@ -4,7 +4,7 @@ import { REATIVIDADE_CLASSES, TIPOS_RESIDUO } from '../data';
 import Modal from './Modal';
 import { useCriarResiduo } from '../residuos/useCriarResiduo';
 import { useAtualizarResiduo } from '../residuos/useAtualizarResiduo';
-import { useLaboratorios } from '../laboratorios/useLaboratorios';
+import { useLaboratoriosDoUsuario } from '../laboratorios/useLaboratoriosDoUsuario';
 import { useCriarMtr } from '../mtrs/useCriarMtr';
 import { useResíduos } from '../residuos/useResíduos';
 import { downloadMtrPdf } from '../mtrs/downloadMtr';
@@ -125,14 +125,22 @@ function ConteudoVeredito({ veredito }) {
 // ---------- Novo Resíduo ----------
 export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
   const criarResiduo = useCriarResiduo();
-  const { data: labs = [] } = useLaboratorios();
+  const { laboratorios: labs, isPending: labsPendentes } = useLaboratoriosDoUsuario();
+  const labUnico = labs.length === 1 ? labs[0].id : '';
+  const semLaboratorio = !labsPendentes && labs.length === 0;
   const [f, setF] = useState({
     tipo: inicial?.tipo || TIPOS_RESIDUO[0],
     volume: inicial?.volume ?? '', unidade: inicial?.unidade || 'L',
     laboratorioId: inicial?.laboratorioId || '', composicao: inicial?.composicao || '', risco: inicial?.risco || 'medio',
     classes: [],
   });
+
   const [erros, setErros] = useState({});
+
+  useEffect(() => {
+    if (labUnico) setF(s => (s.laboratorioId ? s : { ...s, laboratorioId: labUnico }));
+  }, [labUnico]);
+
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
   const veredito = useVereditoMistura(f.classes);
 
@@ -168,7 +176,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
         <button type="button" className="btn btn-primary btn-sm" onClick={submit}
-          disabled={criarResiduo.isPending || f.classes.length === 0 || veredito.bloqueia}
+          disabled={criarResiduo.isPending || f.classes.length === 0 || veredito.bloqueia || semLaboratorio}
           aria-describedby={veredito.bloqueia ? 'residuo-veredito' : undefined}>
           {criarResiduo.isPending ? 'Salvando…' : 'Registrar resíduo'}
         </button>
@@ -198,10 +206,12 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
           {erros.volume && <div className="field-error">{erros.volume}</div>}
         </div>
         <div className="field"><label htmlFor="residuo-lab">Laboratório *</label>
-          <select id="residuo-lab" value={f.laboratorioId} onChange={e => upd('laboratorioId', e.target.value)}>
+          <select id="residuo-lab" value={f.laboratorioId} onChange={e => upd('laboratorioId', e.target.value)}
+            disabled={labs.length <= 1}>
             <option value="">Selecione…</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
           </select>
+          {semLaboratorio && <div className="field-error">Sua conta não responde por nenhum laboratório. Peça a um responsável para atribuir um.</div>}
           {erros.laboratorioId && <div className="field-error">{erros.laboratorioId}</div>}
         </div>
       </div>

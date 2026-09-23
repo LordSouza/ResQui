@@ -5,9 +5,11 @@ import { UsuariosScreen } from '../../src/screens/UsuariosScreen';
 import { AuthContext } from '../../src/auth/AuthContext';
 
 const USUARIOS = [
-  { id: 'u-1', email: 'ana@lab.com', nome: 'Ana Silva', matricula: 'M-1', papel: 'Professor', roles: ['Professor'], arquivado: false, twoFactorEnabled: true },
-  { id: 'u-2', email: 'bruno@lab.com', nome: 'Bruno Lima', matricula: 'M-2', papel: 'Professor', roles: ['Professor'], arquivado: false, twoFactorEnabled: false },
+  { id: 'u-1', email: 'ana@lab.com', nome: 'Ana Silva', matricula: 'M-1', papel: 'Professor', roles: ['Professor'], arquivado: false, twoFactorEnabled: true, laboratorioIds: ['Lab-001'] },
+  { id: 'u-2', email: 'bruno@lab.com', nome: 'Bruno Lima', matricula: 'M-2', papel: 'Professor', roles: ['Professor'], arquivado: false, twoFactorEnabled: false, laboratorioIds: [] },
 ];
+
+const LABS = [{ id: 'Lab-001', nome: 'Química Geral' }, { id: 'Lab-002', nome: 'Físico-Química' }];
 
 function renderCom(user) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -97,7 +99,6 @@ describe('UsuariosScreen — só mostra o que a API devolve', () => {
     renderCom({ id: 'admin-1', papel: 'Professor' });
 
     await screen.findByText('Ana Silva');
-    expect(screen.queryByRole('columnheader', { name: /laboratórios/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: /último acesso/i })).not.toBeInTheDocument();
   });
 
@@ -176,5 +177,46 @@ describe('UsuariosScreen — permissões', () => {
     const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
     fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
     expect(screen.queryByRole('button', { name: /^arquivar$/i })).not.toBeInTheDocument();
+  });
+});
+
+describe('UsuariosScreen — laboratórios', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      data: {},
+      setItem(k, v) { this.data[k] = String(v); },
+      getItem(k) { return this.data[k] ?? null; },
+      removeItem(k) { delete this.data[k]; },
+      clear() { this.data = {}; },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) =>
+      Promise.resolve({
+        ok: true, status: 200,
+        json: async () => (String(url).startsWith('/api/laboratorios') ? LABS : USUARIOS),
+      })));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('mostra o nome dos laboratórios de cada usuário', async () => {
+    renderCom({ id: 'admin-1', papel: 'Admin' });
+
+    const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
+    expect(within(linhaAna).getByText('Química Geral')).toBeInTheDocument();
+  });
+
+  it('oferece a ação Laboratórios a quem gere usuários', async () => {
+    renderCom({ id: 'admin-1', papel: 'Admin' });
+
+    const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
+    fireEvent.click(within(linhaAna).getByRole('button', { name: 'Opções do usuário' }));
+    expect(screen.getByRole('button', { name: /Laboratórios/ })).toBeInTheDocument();
+  });
+
+  it('esconde a ação Laboratórios de Professor sobre outro Professor', async () => {
+    renderCom({ id: 'admin-1', papel: 'Professor' });
+
+    const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
+    fireEvent.click(within(linhaAna).getByRole('button', { name: 'Opções do usuário' }));
+    expect(screen.queryByRole('button', { name: /Laboratórios/ })).not.toBeInTheDocument();
   });
 });

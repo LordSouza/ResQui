@@ -9,7 +9,7 @@ function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return (
     <QueryClientProvider client={qc}>
-      <AuthContext.Provider value={{ user: { id: 'admin-1', papel: 'Admin' }, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
+      <AuthContext.Provider value={{ user: { id: 'admin-1', papel: 'Admin', laboratorioIds: [] }, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
         {children}
       </AuthContext.Provider>
     </QueryClientProvider>
@@ -30,7 +30,7 @@ describe('FormNovoUsuario — entradas inválidas', () => {
       removeItem(k) { delete this.data[k]; },
       clear() { this.data = {}; },
     });
-    mockFetch = vi.fn();
+    mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
     vi.stubGlobal('fetch', mockFetch);
   });
 
@@ -40,7 +40,7 @@ describe('FormNovoUsuario — entradas inválidas', () => {
     render(<FormNovoUsuario onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Criar usuário/i }));
     expect(window.alert).toHaveBeenCalledWith('Nome, e-mail e senha são obrigatórios.');
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
   });
 
   it('exibe mensagem de erro do servidor para e-mail inválido', async () => {

@@ -3,6 +3,7 @@ import { Icon, Badge } from '../components';
 import { ROLES } from '../data';
 import { usePode } from '../auth/permissoes';
 import Modal from './Modal';
+import { SeletorLaboratorios } from './FormLaboratoriosUsuario';
 import ConfirmArquivarUsuario from './ConfirmArquivarUsuario';
 import { useCriarUsuario } from '../usuarios/useCriarUsuario';
 import { useExcluirUsuario } from '../usuarios/useExcluirUsuario';
@@ -25,6 +26,7 @@ export function FormNovoUsuario({ onClose, dispatch }) {
   const [f, setF] = useState({
     nome: '', email: '', senha: '', matricula: '', papel: 'Aluno',
   });
+  const [laboratorios, setLaboratorios] = useState([]);
   const mutation = useCriarUsuario();
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
@@ -40,6 +42,7 @@ export function FormNovoUsuario({ onClose, dispatch }) {
         Senha: f.senha,
         Matricula: f.matricula.trim() || null,
         Papel: f.papel,
+        LaboratorioIds: laboratorios,
       },
       {
         onSuccess: () => {
@@ -85,6 +88,12 @@ export function FormNovoUsuario({ onClose, dispatch }) {
           </select>
         </div>
       </div>
+      <div className="form-row full">
+        <div className="field">
+          <span className="field-label" id="nu-labs">Laboratórios</span>
+          <SeletorLaboratorios id="nu-labs" value={laboratorios} onChange={setLaboratorios} />
+        </div>
+      </div>
     </Modal>
   );
 }
@@ -103,6 +112,7 @@ const STATUS_CONVITE = {
 export function FormConvidarUsuario({ onClose }) {
   const podeQualquerPapel = usePode('Administracao');
   const [papel, setPapel] = useState('Aluno');
+  const [laboratorios, setLaboratorios] = useState([]);
   const [gerado, setGerado] = useState(null);
   const [copiado, setCopiado] = useState(false);
   const [falhaAoCopiar, setFalhaAoCopiar] = useState(false);
@@ -115,7 +125,7 @@ export function FormConvidarUsuario({ onClose }) {
 
   const trocarPapel = (novo) => { setPapel(novo); setGerado(null); setCopiado(false); setFalhaAoCopiar(false); };
 
-  const gerar = () => criar.mutate({ Papel: papel }, {
+  const gerar = () => criar.mutate({ Papel: papel, LaboratorioIds: laboratorios }, {
     onSuccess: (convite) => {
       setGerado({ id: convite.id, link: linkConvite(convite.token), papel: convite.papel });
       setCopiado(false);
@@ -154,6 +164,13 @@ export function FormConvidarUsuario({ onClose }) {
               .filter(([k]) => k !== 'Admin' && (podeQualquerPapel || k === 'Aluno'))
               .map(([k, r]) => <option key={k} value={k}>{r.label}</option>)}
           </select>
+        </div>
+      </div>
+
+      <div className="form-row full">
+        <div className="field">
+          <span className="field-label" id="convite-labs">Laboratórios do convidado</span>
+          <SeletorLaboratorios id="convite-labs" value={laboratorios} onChange={setLaboratorios} />
         </div>
       </div>
 

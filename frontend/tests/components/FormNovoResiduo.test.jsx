@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FormNovoResiduo } from '../../src/forms/residuos';
 
+vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
+import { useAuth } from '../../src/auth/AuthContext';
+
+const LABS = [{ id: 'Lab-001', nome: 'Lab Teste' }, { id: 'Lab-002', nome: 'Lab Dois' }];
+
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
@@ -23,7 +28,11 @@ describe('FormNovoResiduo — entradas inválidas', () => {
       removeItem(k) { delete this.data[k]; },
       clear() { this.data = {}; },
     });
-    mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor', laboratorioIds: ['Lab-001', 'Lab-002'] } });
+    mockFetch = vi.fn().mockImplementation((url) =>
+      String(url).startsWith('/api/laboratorios')
+        ? Promise.resolve({ ok: true, status: 200, json: async () => LABS })
+        : Promise.resolve({ ok: true, status: 200, json: async () => [] }));
     vi.stubGlobal('fetch', mockFetch);
   });
 
@@ -43,12 +52,6 @@ describe('FormNovoResiduo — entradas inválidas', () => {
   });
 
   it('envia o LaboratorioId como string, sem derivar número por regex', async () => {
-    mockFetch.mockImplementation((url) => {
-      if (String(url).startsWith('/api/laboratorios')) {
-        return Promise.resolve({ ok: true, status: 200, json: async () => [{ id: 'Lab-001', nome: 'Lab Teste' }] });
-      }
-      return Promise.resolve({ ok: true, status: 200, json: async () => ({ id: 1, laboratorioId: 'Lab-001' }) });
-    });
     render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
     await screen.findByRole('option', { name: 'Lab Teste' });
     await userEvent.selectOptions(screen.getByLabelText(/Laboratório/i), 'Lab-001');
@@ -92,7 +95,11 @@ describe('FormNovoResiduo — entradas inválidas', () => {
     beforeEach(() => {
       mockFetch.mockImplementation((url) => Promise.resolve({
         ok: true, status: 200,
-        json: async () => (String(url).startsWith('/api/compat/matriz') ? MATRIZ : []),
+        json: async () => {
+          if (String(url).startsWith('/api/compat/matriz')) return MATRIZ;
+          if (String(url).startsWith('/api/laboratorios')) return LABS;
+          return [];
+        },
       }));
     });
 
@@ -120,5 +127,22 @@ describe('FormNovoResiduo — entradas inválidas', () => {
       expect(screen.getByRole('button', { name: /Registrar resíduo/i })).toBeEnabled();
     });
   });
-});
 
+  it('com um único laboratório, preenche o campo e não o oferece como escolha', async () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor', laboratorioIds: ['Lab-001'] } });
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    const select = await screen.findByLabelText(/Laboratório/i);
+    await waitFor(() => expect(select).toHaveValue('Lab-001'));
+    expect(select).toBeDisabled();
+  });
+
+  it('sem laboratório atribuído, explica e impede o registro', async () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Aluno', laboratorioIds: [] } });
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    expect(await screen.findByText(/não responde por nenhum laboratório/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
+    expect(screen.getByRole('button', { name: /Registrar resíduo/i })).toBeDisabled();
+  });
+});

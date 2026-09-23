@@ -6,6 +6,7 @@ import { useUsuarios } from '../usuarios/useUsuarios';
 import { useAlterarPapel } from '../usuarios/useAlterarPapel';
 import { useAuth } from '../auth/AuthContext';
 import { podePor, usePode, POLICIES, DESCRICAO_POLICY } from '../auth/permissoes';
+import { useLaboratorios } from '../laboratorios/useLaboratorios';
 
 // ============== Helpers ==============
 
@@ -30,6 +31,13 @@ function drawerReducer(state, action) {
     default:
       return state;
   }
+}
+
+function resumirLaboratorios(ids, nomePorLab) {
+  if (!ids?.length) return <span className="muted">—</span>;
+  const nomes = ids.map(id => nomePorLab[id] ?? id);
+  const visiveis = nomes.slice(0, 2).join(', ');
+  return nomes.length > 2 ? `${visiveis} +${nomes.length - 2}` : visiveis;
 }
 
 export function PermissoesDrawer({ usuario, onClose, dispatch }) {
@@ -191,6 +199,8 @@ export function UsuariosScreen({ state, dispatch }) {
   }, [menuOpen]);
 
   const { data: todos = [], isPending, isError, refetch } = useUsuarios();
+  const { data: laboratorios = [] } = useLaboratorios();
+  const nomePorLab = Object.fromEntries(laboratorios.map(l => [l.id, l.nome]));
 
   let list = todos;
   if (filter === 'ativos')     list = list.filter(u => u.status === 'ativo');
@@ -291,6 +301,7 @@ export function UsuariosScreen({ state, dispatch }) {
                   <th>Usuário</th>
                   <th>Matrícula</th>
                   <th>Papel</th>
+                  <th>Laboratórios</th>
                   <th>MFA</th>
                   <th>Status</th>
                   <th className="narrow" aria-label="Ações"></th>
@@ -315,6 +326,7 @@ export function UsuariosScreen({ state, dispatch }) {
                     </td>
                     <td className="mono small muted">{u.matricula}</td>
                     <td>{papelBadge(u.papel)}</td>
+                    <td className="small">{resumirLaboratorios(u.laboratorioIds, nomePorLab)}</td>
                     <td>{u.mfa
                       ? <Badge kind="green">TOTP</Badge>
                       : <span className="muted small">—</span>}</td>
@@ -329,6 +341,11 @@ export function UsuariosScreen({ state, dispatch }) {
                             <button type="button" onClick={() => { setSelecionado(u.id); setMenuOpen(null); }}>
                               <Icon name="shield" size={12}/> Editar permissões
                             </button>
+                            {podeMexerEm(u) && (
+                              <button type="button" onClick={() => { dispatch({type: 'openModal', kind: 'laboratoriosUsuario', usuario: u}); setMenuOpen(null); }}>
+                                <Icon name="flask" size={12}/> Laboratórios
+                              </button>
+                            )}
                             {u.status === 'ativo' && podeMexerEm(u) && (
                               <button type="button" onClick={() => { dispatch({type: 'openModal', kind: 'arquivarUsuario', usuario: u}); setMenuOpen(null); }}>
                                 <Icon name="book" size={12}/> Arquivar
