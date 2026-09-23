@@ -5,6 +5,7 @@ using ResQui.Application.Auth;
 using ResQui.Application.Common;
 using ResQui.Application.Email;
 using ResQui.Domain.Enums;
+using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Tests.Unit.Auth;
@@ -24,6 +25,7 @@ public class AuthServiceTests
         ExpirationHours = 8
     };
     private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
+    private readonly ILaboratoriosRepository _labRepo = Substitute.For<ILaboratoriosRepository>();
     private readonly AuthService _sut;
 
     private static Solicitante Quem(string email, string papel, params string[] labs) =>
@@ -31,10 +33,14 @@ public class AuthServiceTests
 
     public AuthServiceTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs);
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs, _labRepo);
         // Sem isto, TentarConsumir devolve false (default de bool) e todo login destes testes
         // morre no throttle.
         _throttle.TentarConsumir(Arg.Any<string>()).Returns(true);
+        _labRepo.GetAllAsync().Returns([
+            new Laboratorio { Id = "Lab-001", Nome = "A" },
+            new Laboratorio { Id = "Lab-002", Nome = "B" },
+        ]);
     }
 
     private static UsuarioInfo FakeUser() => new(
@@ -800,5 +806,17 @@ public class AuthServiceTests
         var perfil = await _sut.GetMeAsync("u1");
 
         perfil!.LaboratorioIds.Should().Equal("Lab-001", "Lab-003");
+    }
+
+    [Fact]
+    public async Task RegisterAsync_LaboratorioInexistente_RecusaAntesDeCriarAConta()
+    {
+        var act = () => _sut.RegisterAsync(
+            new RegisterCmd("aluno@resqui.local", "Senh@123", null, "Aluno", "Aluno", ["Lab-999"]),
+            Quem("admin@resqui.local", "Admin"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-999*");
+        await _repo.DidNotReceive().CreateAsync(Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>());
     }
 }

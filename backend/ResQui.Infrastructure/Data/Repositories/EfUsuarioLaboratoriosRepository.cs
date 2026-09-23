@@ -31,9 +31,11 @@ public class EfUsuarioLaboratoriosRepository(AppDbContext db) : IUsuarioLaborato
 
     public async Task DefinirAsync(string usuarioId, IEnumerable<string> laboratorioIds)
     {
+        var desejados = laboratorioIds.Distinct().ToHashSet();
         var atuais = await db.UsuarioLaboratorios.Where(ul => ul.UsuarioId == usuarioId).ToListAsync();
-        db.UsuarioLaboratorios.RemoveRange(atuais);
-        foreach (var laboratorioId in laboratorioIds.Distinct())
+
+        db.UsuarioLaboratorios.RemoveRange(atuais.Where(ul => !desejados.Contains(ul.LaboratorioId)));
+        foreach (var laboratorioId in desejados.Except(atuais.Select(ul => ul.LaboratorioId)))
             await db.UsuarioLaboratorios.AddAsync(new UsuarioLaboratorio
             {
                 UsuarioId = usuarioId,
@@ -64,9 +66,11 @@ public class EfUsuarioLaboratoriosRepository(AppDbContext db) : IUsuarioLaborato
 
     public async Task DefinirDoConviteAsync(int conviteId, IEnumerable<string> laboratorioIds)
     {
+        var desejados = laboratorioIds.Distinct().ToHashSet();
         var atuais = await db.ConviteLaboratorios.Where(cl => cl.ConviteId == conviteId).ToListAsync();
-        db.ConviteLaboratorios.RemoveRange(atuais);
-        foreach (var laboratorioId in laboratorioIds.Distinct())
+
+        db.ConviteLaboratorios.RemoveRange(atuais.Where(cl => !desejados.Contains(cl.LaboratorioId)));
+        foreach (var laboratorioId in desejados.Except(atuais.Select(cl => cl.LaboratorioId)))
             await db.ConviteLaboratorios.AddAsync(new ConviteLaboratorio
             {
                 ConviteId = conviteId,

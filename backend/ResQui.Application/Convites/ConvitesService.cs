@@ -53,7 +53,7 @@ public class ConvitesService(
         {
             TokenHash = Hash(token),
             Papel = cmd.Papel,
-            CriadoPorId = solicitante.Id,
+            CriadoPorId = solicitante.Id is { Length: > 0 } criador ? criador : null,
             ExpiraEm = DateTime.UtcNow.AddDays(DiasValidade),
         };
         await convites.AddAsync(convite);

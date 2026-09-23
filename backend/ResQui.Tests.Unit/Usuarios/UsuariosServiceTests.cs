@@ -340,4 +340,28 @@ public class UsuariosServiceTests
 
         lista.Should().ContainSingle().Which.LaboratorioIds.Should().Equal("Lab-001", "Lab-002");
     }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_Professor_PreservaLaboratoriosQueNaoSaoDele()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("aluno-1").Returns(Aluno());
+        _usuarioLabs.DoUsuarioAsync("aluno-1").Returns(new List<string> { "Lab-001", "Lab-002" });
+
+        await _sut.DefinirLaboratoriosAsync("aluno-1", new DefinirLaboratoriosCmd([]), Professor("Lab-001"));
+
+        await _usuarioLabs.Received(1).DefinirAsync("aluno-1",
+            Arg.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "Lab-002" })));
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_Admin_SubstituiOConjuntoInteiro()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("aluno-1").Returns(Aluno());
+        _usuarioLabs.DoUsuarioAsync("aluno-1").Returns(new List<string> { "Lab-001", "Lab-002" });
+
+        await _sut.DefinirLaboratoriosAsync("aluno-1", new DefinirLaboratoriosCmd(["Lab-001"]), Admin());
+
+        await _usuarioLabs.Received(1).DefinirAsync("aluno-1",
+            Arg.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "Lab-001" })));
+    }
 }

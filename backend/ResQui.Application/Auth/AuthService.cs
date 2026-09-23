@@ -10,7 +10,7 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Auth;
 
-public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email, ILoginThrottle throttle, IUsuarioLaboratoriosRepository usuarioLabs) : IAuthService
+public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email, ILoginThrottle throttle, IUsuarioLaboratoriosRepository usuarioLabs, ILaboratoriosRepository labRepo) : IAuthService
 {
     private const int QuantidadeCodigosRecuperacao = 10;
 
@@ -246,6 +246,9 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
             throw new ValidationException($"Criar conta de {cmd.Papel} é só o Admin; você pode criar Aluno.");
 
         var laboratorios = (cmd.LaboratorioIds ?? []).Distinct().ToList();
+        var existentes = (await labRepo.GetAllAsync()).Select(l => l.Id).ToHashSet();
+        if (laboratorios.FirstOrDefault(labId => !existentes.Contains(labId)) is { } inexistente)
+            throw new ValidationException($"Laboratório {inexistente} não encontrado.");
         if (solicitante.Papel != "Admin"
             && laboratorios.FirstOrDefault(labId => !solicitante.Responde(labId)) is { } alheio)
             throw new ValidationException($"Você não responde pelo laboratório {alheio}.");

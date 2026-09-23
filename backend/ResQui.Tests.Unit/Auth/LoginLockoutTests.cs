@@ -27,7 +27,7 @@ public class LoginLockoutTests
 
     public LoginLockoutTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, Substitute.For<IUsuarioLaboratoriosRepository>());
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, Substitute.For<IUsuarioLaboratoriosRepository>(), Substitute.For<ILaboratoriosRepository>());
         _throttle.TentarConsumir(Arg.Any<string>()).Returns(true);
     }
 

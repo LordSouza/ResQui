@@ -38,8 +38,6 @@ public class ColetaChecker(
                 .Where(u => laboratoriosPorUsuario.TryGetValue(u.Id, out var labs)
                             && labs.Contains(r.LaboratorioId))
                 .ToList();
-            // Laboratório sem professor ativo: o aviso cai para os Admins, senão o silêncio
-            // ficaria indistinguível de "não há resíduo atrasado".
             var destinatarios = responsaveis.Count > 0 ? responsaveis : admins;
             foreach (var u in destinatarios)
             {

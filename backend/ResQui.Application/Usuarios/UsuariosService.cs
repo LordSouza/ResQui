@@ -67,6 +67,7 @@ public class UsuariosService(
         if (pedidos.FirstOrDefault(labId => !existentes.Contains(labId)) is { } inexistente)
             throw new ValidationException($"Laboratório {inexistente} não encontrado.");
 
+        var resultante = pedidos;
         if (solicitante.Papel != "Admin")
         {
             if (alvo.Papel != "Aluno")
@@ -74,10 +75,14 @@ public class UsuariosService(
                     $"Definir os laboratórios de {alvo.Papel} é só o Admin; você pode definir de Aluno.");
             if (pedidos.FirstOrDefault(labId => !solicitante.Responde(labId)) is { } alheio)
                 throw new ValidationException($"Você não responde pelo laboratório {alheio}.");
+
+            var preservados = (await usuarioLabs.DoUsuarioAsync(id))
+                .Where(labId => !solicitante.Responde(labId));
+            resultante = preservados.Concat(pedidos).Distinct().ToList();
         }
 
-        await usuarioLabs.DefinirAsync(id, pedidos);
-        var lista = pedidos.Count == 0 ? "nenhum laboratório" : string.Join(", ", pedidos);
+        await usuarioLabs.DefinirAsync(id, resultante);
+        var lista = resultante.Count == 0 ? "nenhum laboratório" : string.Join(", ", resultante);
         await auditoria.RegistrarAsync(solicitante.Email, "usuario.laboratorios", "Usuários",
             $"Definiu os laboratórios do usuário {id}: {lista}", RiscoAuditoria.Medium);
     }
