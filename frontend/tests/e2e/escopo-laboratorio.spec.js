@@ -11,8 +11,18 @@ async function criarUsuario(request, adminAuth, papel, laboratorioIds) {
   });
   expect(res.ok(), `falha ao criar ${papel}`).toBeTruthy();
   const criado = await res.json();
-  const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: SENHA } })).json();
-  return { id: criado.id, email, auth: { Authorization: `Bearer ${token}` } };
+  let cache = null;
+  return {
+    id: criado.id,
+    email,
+    async autenticar() {
+      if (!cache) {
+        const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: SENHA } })).json();
+        cache = { Authorization: `Bearer ${token}` };
+      }
+      return cache;
+    },
+  };
 }
 
 async function doisLaboratorios(request, adminAuth) {
@@ -43,11 +53,11 @@ test('professor não cria resíduo em laboratório que não é dele', async ({ r
   const [meu, alheio] = await doisLaboratorios(request, adminAuth);
   const professor = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
 
-  const recusado = await criarResiduo(request, professor.auth, alheio.id);
+  const recusado = await criarResiduo(request, await professor.autenticar(), alheio.id);
   expect(recusado.status()).toBe(400);
   expect((await recusado.json()).message).toContain(alheio.id);
 
-  const aceito = await criarResiduo(request, professor.auth, meu.id);
+  const aceito = await criarResiduo(request, await professor.autenticar(), meu.id);
   expect(aceito.status()).toBe(201);
 });
 
@@ -57,12 +67,12 @@ test('professor de outro laboratório não aprova o descarte alheio', async ({ r
   const dono = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
   const estranho = await criarUsuario(request, adminAuth, 'Professor', [alheio.id]);
 
-  const residuo = await (await criarResiduo(request, dono.auth, meu.id)).json();
+  const residuo = await (await criarResiduo(request, await dono.autenticar(), meu.id)).json();
 
-  const negado = await request.put(`/api/residuos/${residuo.id}/aprovar`, { headers: estranho.auth });
+  const negado = await request.put(`/api/residuos/${residuo.id}/aprovar`, { headers: await estranho.autenticar() });
   expect(negado.status()).toBe(403);
 
-  const permitido = await request.put(`/api/residuos/${residuo.id}/aprovar`, { headers: dono.auth });
+  const permitido = await request.put(`/api/residuos/${residuo.id}/aprovar`, { headers: await dono.autenticar() });
   expect(permitido.ok()).toBeTruthy();
 });
 
@@ -72,9 +82,9 @@ test('listagem devolve só os resíduos do laboratório do professor', async ({ 
   const dono = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
 
   await criarResiduo(request, adminAuth, alheio.id);
-  const visivel = await (await criarResiduo(request, dono.auth, meu.id)).json();
+  const visivel = await (await criarResiduo(request, await dono.autenticar(), meu.id)).json();
 
-  const lista = await (await request.get('/api/residuos', { headers: dono.auth })).json();
+  const lista = await (await request.get('/api/residuos', { headers: await dono.autenticar() })).json();
   expect(lista.map((r) => r.id)).toContain(visivel.id);
   expect(lista.every((r) => r.laboratorioId === meu.id)).toBeTruthy();
 });
@@ -85,7 +95,7 @@ test('professor não responde por laboratório alheio ao editá-lo', async ({ re
   const professor = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
 
   const negado = await request.put(`/api/laboratorios/${alheio.id}`, {
-    headers: professor.auth,
+    headers: await professor.autenticar(),
     data: {
       Nome: 'Renomeado indevidamente', Responsavel: 'X', Sala: 'S-02',
       Armarios: [], Areas: [], Capacidade: 10, AreaM2: 20, Ventilacao: 'natural', Cor: '#ef4444',
@@ -100,7 +110,7 @@ test('professor não altera os laboratórios de outro professor', async ({ reque
   const professor = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
   const colega = await criarUsuario(request, adminAuth, 'Professor', [alheio.id]);
 
-  const negado = await atribuirLaboratorios(request, professor.auth, colega.id, [meu.id]);
+  const negado = await atribuirLaboratorios(request, await professor.autenticar(), colega.id, [meu.id]);
   expect(negado.status()).toBe(400);
 });
 
@@ -110,10 +120,10 @@ test('professor atribui ao aluno só os laboratórios que ele tem, e não remove
   const professor = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
   const aluno = await criarUsuario(request, adminAuth, 'Aluno', [alheio.id]);
 
-  const recusado = await atribuirLaboratorios(request, professor.auth, aluno.id, [alheio.id]);
+  const recusado = await atribuirLaboratorios(request, await professor.autenticar(), aluno.id, [alheio.id]);
   expect(recusado.status()).toBe(400);
 
-  const aceito = await atribuirLaboratorios(request, professor.auth, aluno.id, [meu.id]);
+  const aceito = await atribuirLaboratorios(request, await professor.autenticar(), aluno.id, [meu.id]);
   expect(aceito.status()).toBe(204);
 
   const usuarios = await (await request.get('/api/usuarios', { headers: adminAuth })).json();

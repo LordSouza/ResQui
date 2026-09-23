@@ -24,10 +24,10 @@ function MtrDetalhe({ mtr }) {
           <thead><tr><th>#</th><th>Descrição</th><th>Tipo</th><th className="right">Volume</th><th>Risco</th></tr></thead>
           <tbody>
             {isPending && <tr><td colSpan={5}>Carregando…</td></tr>}
-            {!isPending && residuos.length === 0 && <tr><td colSpan={5} className="muted">Nenhum resíduo vinculado.</td></tr>}
+            {!isPending && residuos.length === 0 && foraDoEscopo === 0 && <tr><td colSpan={5} className="muted">Nenhum resíduo vinculado.</td></tr>}
             {!isPending && foraDoEscopo > 0 && (
               <tr><td colSpan={5} className="muted small">
-                Mais {foraDoEscopo} resíduo(s) deste manifesto são de laboratórios pelos quais você não responde. O PDF traz todos.
+                {residuos.length === 0 ? 'Os' : 'Mais'} {foraDoEscopo} resíduo(s) deste manifesto são de laboratórios pelos quais você não responde. O PDF traz todos.
               </td></tr>
             )}
             {residuos.map((r) => (

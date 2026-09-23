@@ -64,7 +64,18 @@ describe('MtrScreen', () => {
     expect(screen.getAllByText('MTR-2026-0001').length).toBeGreaterThan(0);
   });
 
-  it('avisa quando o manifesto tem resíduos de laboratórios fora do escopo', () => {
+  it('avisa quando nenhum resíduo do manifesto está no escopo, sem dizer "Mais"', () => {
+    renderCom('Professor');
+    expect(screen.getByText(/Os 1 resíduo\(s\) deste manifesto são de laboratórios/)).toBeInTheDocument();
+    expect(screen.queryByText('Nenhum resíduo vinculado.')).not.toBeInTheDocument();
+  });
+
+  it('diz "Mais" quando parte dos resíduos do manifesto aparece na lista', () => {
+    useMtrs.mockReturnValue({ data: [{ ...mtr, residuo_ids: [7, 8] }], isPending: false, isError: false, refetch: vi.fn() });
+    useResíduos.mockReturnValue({
+      data: [{ id: 7, descricao: 'Solvente', tipo: 'Solventes', volume: 30, unidade: 'L', risco: 'medio' }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
     renderCom('Professor');
     expect(screen.getByText(/Mais 1 resíduo\(s\) deste manifesto são de laboratórios/)).toBeInTheDocument();
   });

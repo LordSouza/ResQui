@@ -145,4 +145,14 @@ describe('FormNovoResiduo — entradas inválidas', () => {
     await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
     expect(screen.getByRole('button', { name: /Registrar resíduo/i })).toBeDisabled();
   });
+
+  it('descarta laboratório pré-preenchido que não está no escopo do usuário', async () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor', laboratorioIds: ['Lab-001', 'Lab-002'] } });
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch}
+      inicial={{ laboratorioId: 'Unifei S.A.' }} />, { wrapper });
+
+    const select = await screen.findByLabelText(/Laboratório/i);
+    await waitFor(() => expect(select).toHaveValue(''));
+    expect(select).toBeEnabled();
+  });
 });

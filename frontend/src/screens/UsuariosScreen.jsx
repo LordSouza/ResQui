@@ -33,7 +33,8 @@ function drawerReducer(state, action) {
   }
 }
 
-function resumirLaboratorios(ids, nomePorLab) {
+function resumirLaboratorios(ids, nomePorLab, papel) {
+  if (papel === 'Admin') return <span className="muted">todos</span>;
   if (!ids?.length) return <span className="muted">—</span>;
   const nomes = ids.map(id => nomePorLab[id] ?? id);
   const visiveis = nomes.slice(0, 2).join(', ');
@@ -326,7 +327,7 @@ export function UsuariosScreen({ state, dispatch }) {
                     </td>
                     <td className="mono small muted">{u.matricula}</td>
                     <td>{papelBadge(u.papel)}</td>
-                    <td className="small">{resumirLaboratorios(u.laboratorioIds, nomePorLab)}</td>
+                    <td className="small">{resumirLaboratorios(u.laboratorioIds, nomePorLab, u.papel)}</td>
                     <td>{u.mfa
                       ? <Badge kind="green">TOTP</Badge>
                       : <span className="muted small">—</span>}</td>

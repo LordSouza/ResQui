@@ -126,7 +126,7 @@ function ConteudoVeredito({ veredito }) {
 export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
   const criarResiduo = useCriarResiduo();
   const { laboratorios: labs, isPending: labsPendentes } = useLaboratoriosDoUsuario();
-  const labUnico = labs.length === 1 ? labs[0].id : '';
+  const idsPermitidos = labs.map(l => l.id).join(',');
   const semLaboratorio = !labsPendentes && labs.length === 0;
   const [f, setF] = useState({
     tipo: inicial?.tipo || TIPOS_RESIDUO[0],
@@ -138,8 +138,14 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
   const [erros, setErros] = useState({});
 
   useEffect(() => {
-    if (labUnico) setF(s => (s.laboratorioId ? s : { ...s, laboratorioId: labUnico }));
-  }, [labUnico]);
+    if (labsPendentes) return;
+    const permitidos = idsPermitidos ? idsPermitidos.split(',') : [];
+    const escolhaForcada = permitidos.length === 1 ? permitidos[0] : '';
+    setF(s => {
+      if (permitidos.includes(s.laboratorioId) || s.laboratorioId === escolhaForcada) return s;
+      return { ...s, laboratorioId: escolhaForcada };
+    });
+  }, [labsPendentes, idsPermitidos]);
 
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
   const veredito = useVereditoMistura(f.classes);
@@ -176,7 +182,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
         <button type="button" className="btn btn-primary btn-sm" onClick={submit}
-          disabled={criarResiduo.isPending || f.classes.length === 0 || veredito.bloqueia || semLaboratorio}
+          disabled={criarResiduo.isPending || f.classes.length === 0 || veredito.bloqueia || semLaboratorio || labsPendentes}
           aria-describedby={veredito.bloqueia ? 'residuo-veredito' : undefined}>
           {criarResiduo.isPending ? 'Salvando…' : 'Registrar resíduo'}
         </button>
@@ -207,7 +213,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
         </div>
         <div className="field"><label htmlFor="residuo-lab">Laboratório *</label>
           <select id="residuo-lab" value={f.laboratorioId} onChange={e => upd('laboratorioId', e.target.value)}
-            disabled={labs.length <= 1}>
+            disabled={labs.length === 1}>
             <option value="">Selecione…</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
           </select>
@@ -440,6 +446,8 @@ function RowMtr({ label, value, mono }) {
 export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
   // Preview espelha o PDF real do backend (PdfService.ManifestoMtr) — só dados reais do MTR.
   const emissao = mtr.data_emissao ? mtr.data_emissao.slice(0, 10).split('-').reverse().join('/') : '—';
+  const total = (mtr.residuo_ids ?? []).length;
+  const foraDoEscopo = total - residuos.length;
   return (
     <Modal title={`Pré-visualização · ${mtr.numero}`} sub="Manifesto de uso interno — não substitui o MTR oficial emitido pelo órgão ambiental"
       onClose={onClose} width={920}
@@ -514,7 +522,7 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
           </SectionMtr>
 
           {/* Seção 2 - Resíduos */}
-          <SectionMtr num="2" title={`RESÍDUOS (${residuos.length})`}>
+          <SectionMtr num="2" title={`RESÍDUOS (${foraDoEscopo > 0 ? `${residuos.length} de ${total}` : residuos.length})`}>
             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 6}}>
               <thead>
                 <tr style={{background: '#f0f0f0'}}>
@@ -540,6 +548,11 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
                     <td style={mtrTd}>{(r.classes ?? []).length > 0 ? r.classes.join(', ') : '—'}</td>
                   </tr>
                 ))}
+                {foraDoEscopo > 0 && (
+                  <tr><td style={mtrTd} colSpan={6}>
+                    Mais {foraDoEscopo} resíduo(s) de laboratórios pelos quais você não responde — eles entram na quantidade total acima e saem no PDF.
+                  </td></tr>
+                )}
               </tbody>
             </table>
           </SectionMtr>
@@ -570,6 +583,7 @@ export function FormConfirmarDestinacao({ mtr, residuos, onClose }) {
   const confirmar = useConfirmarDestinacao();
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const emColeta = (residuos ?? []).filter(r => r.status === 'em-coleta');
+  const listaCompleta = (residuos ?? []).length === (mtr.residuo_ids ?? []).length;
 
   const submit = () => confirmar.mutate({ id: mtr.id, data }, { onSuccess: onClose });
 
@@ -587,7 +601,9 @@ export function FormConfirmarDestinacao({ mtr, residuos, onClose }) {
         <input id="destinacao-data" type="date" value={data} onChange={e => setData(e.target.value)} />
       </div>
       <p className="small muted" style={{ marginTop: 10 }}>
-        {emColeta.length} resíduo(s) em coleta serão marcados como destinados.
+        {listaCompleta
+          ? `${emColeta.length} resíduo(s) em coleta serão marcados como destinados.`
+          : 'Todos os resíduos deste manifesto que estiverem em coleta serão marcados como destinados — inclusive os de laboratórios que você não vê nesta lista.'}
       </p>
     </Modal>
   );
@@ -597,6 +613,7 @@ export function FormConfirmarDestinacao({ mtr, residuos, onClose }) {
 export function ConfirmReabrirDestinacao({ mtr, residuos, onClose }) {
   const reabrir = useReabrirDestinacao();
   const destinados = (residuos ?? []).filter(r => r.status === 'destinado').length;
+  const listaCompleta = (residuos ?? []).length === (mtr.residuo_ids ?? []).length;
 
   return (
     <Modal title={`Reabrir ${mtr.numero}?`} sub="Desfaz o registro de destinação deste manifesto."
@@ -609,8 +626,10 @@ export function ConfirmReabrirDestinacao({ mtr, residuos, onClose }) {
         </button>
       </>}>
       <p className="small">
-        {destinados} resíduo(s) voltam para &quot;em coleta&quot; e a data de destinação
-        ({mtr.data_destinacao}) é apagada. A reabertura fica registrada na auditoria.
+        {listaCompleta
+          ? `${destinados} resíduo(s) voltam para "em coleta"`
+          : 'Todos os resíduos destinados deste manifesto voltam para "em coleta" — inclusive os de laboratórios que você não vê nesta lista'}
+        {' '}e a data de destinação ({mtr.data_destinacao}) é apagada. A reabertura fica registrada na auditoria.
       </p>
     </Modal>
   );

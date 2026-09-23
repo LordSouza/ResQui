@@ -55,6 +55,7 @@ export default function FormLaboratoriosUsuario({ onClose, usuario }) {
           {definir.isPending ? 'Salvando…' : 'Salvar'}
         </button>
       </>}>
+      <span className="field-label" id="labs-usuario">Laboratórios que você pode atribuir</span>
       <SeletorLaboratorios id="labs-usuario" value={selecionados} onChange={setSelecionados} />
       {preservados.length > 0 && (
         <>

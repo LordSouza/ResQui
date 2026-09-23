@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
 
@@ -41,7 +42,15 @@ public class EfUsuarioLaboratoriosRepository(AppDbContext db) : IUsuarioLaborato
                 UsuarioId = usuarioId,
                 LaboratorioId = laboratorioId,
             });
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ViolacaoDeUnicidade.Detecta(ex))
+        {
+            throw new ConflitoConcorrenciaException(
+                "Os laboratórios deste usuário foram alterados por outra pessoa enquanto você editava. Recarregue antes de salvar.");
+        }
     }
 
     public async Task AdicionarAsync(string usuarioId, string laboratorioId)
@@ -49,12 +58,16 @@ public class EfUsuarioLaboratoriosRepository(AppDbContext db) : IUsuarioLaborato
         var ja = await db.UsuarioLaboratorios
             .AnyAsync(ul => ul.UsuarioId == usuarioId && ul.LaboratorioId == laboratorioId);
         if (ja) return;
-        await db.UsuarioLaboratorios.AddAsync(new UsuarioLaboratorio
+        var linha = new UsuarioLaboratorio { UsuarioId = usuarioId, LaboratorioId = laboratorioId };
+        await db.UsuarioLaboratorios.AddAsync(linha);
+        try
         {
-            UsuarioId = usuarioId,
-            LaboratorioId = laboratorioId,
-        });
-        await db.SaveChangesAsync();
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ViolacaoDeUnicidade.Detecta(ex))
+        {
+            db.Entry(linha).State = EntityState.Detached;
+        }
     }
 
     public async Task<IReadOnlyList<string>> DoConviteAsync(int conviteId) =>
@@ -76,6 +89,14 @@ public class EfUsuarioLaboratoriosRepository(AppDbContext db) : IUsuarioLaborato
                 ConviteId = conviteId,
                 LaboratorioId = laboratorioId,
             });
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ViolacaoDeUnicidade.Detecta(ex))
+        {
+            throw new ConflitoConcorrenciaException(
+                "Os laboratórios deste convite foram alterados por outra pessoa. Recarregue antes de salvar.");
+        }
     }
 }

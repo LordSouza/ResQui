@@ -263,7 +263,7 @@ export async function executeAction(action, params, { reagentes, residuos, addCa
         tipo: params.tipo || '',
         volume: params.volume ?? '',
         unidade: params.unidade || 'L',
-        laboratorioId: params.gerador || residuos[0]?.lab_id || '',
+        laboratorioId: residuos[0]?.lab_id || '',
         composicao: params.composicao || '',
         risco: params.risco || 'medio',
       },
