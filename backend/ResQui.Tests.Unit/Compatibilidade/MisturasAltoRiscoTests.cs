@@ -70,11 +70,14 @@ public class MisturasAltoRiscoTests
         { 6, 11, "Solventes halogenados × Peróxidos" },
     };
 
+    private static readonly Solicitante Solicitante =
+        new("u1", "tecnico@resqui.local", "Professor", ["Lab-001"]);
+
     [Theory]
     [MemberData(nameof(ParesProibidos))]
     public async Task CriarResiduo_BloqueiaPar_Proibido(int classeA, int classeB, string nome)
     {
-        var act = () => _residuos.CriarAsync(CmdComClasses(classeA, classeB), "tecnico@resqui.local");
+        var act = () => _residuos.CriarAsync(CmdComClasses(classeA, classeB), Solicitante);
         await act.Should().ThrowAsync<ValidationException>($"o par {nome} é proibido na matriz");
     }
 
@@ -88,7 +91,7 @@ public class MisturasAltoRiscoTests
 
         foreach (var par in paresAltoRisco)
         {
-            var act = () => _residuos.CriarAsync(CmdComClasses(par.ClasseA, par.ClasseB), "tecnico@resqui.local");
+            var act = () => _residuos.CriarAsync(CmdComClasses(par.ClasseA, par.ClasseB), Solicitante);
             await act.Should().ThrowAsync<ValidationException>(
                 $"par ({par.ClasseA},{par.ClasseB}) tem nível {par.Nivel} e deve ser bloqueado");
         }
@@ -100,7 +103,7 @@ public class MisturasAltoRiscoTests
     [InlineData(1, 2)]  // Ácidos inorgânicos × orgânicos — cautela (1)
     public async Task CriarResiduo_Permite_ParesCompativeisOuCautela(int classeA, int classeB)
     {
-        var dto = await _residuos.CriarAsync(CmdComClasses(classeA, classeB), "tecnico@resqui.local");
+        var dto = await _residuos.CriarAsync(CmdComClasses(classeA, classeB), Solicitante);
         dto.ClassesReatividade.Should().BeEquivalentTo(new[] { classeA, classeB });
     }
 
@@ -119,7 +122,7 @@ public class MisturasAltoRiscoTests
     {
         // Reconciliação de 2026-07-28 (Fatia 3): pares com classe agregada que subiram para
         // nível 2 e passaram a barrar a mistura na criação do resíduo.
-        var act = () => _residuos.CriarAsync(CmdComClasses(classeA, classeB), "tecnico@resqui.local");
+        var act = () => _residuos.CriarAsync(CmdComClasses(classeA, classeB), Solicitante);
         await act.Should().ThrowAsync<ValidationException>($"o par {nome} é nível Perigo na matriz");
     }
 

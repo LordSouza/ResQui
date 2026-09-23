@@ -23,6 +23,15 @@ public class ResiduosServiceTests
         _sut = new ResiduosService(_repo, _audit, _labRepo, _compat);
     }
 
+    private static Solicitante Dono(string email = "u@x.com") =>
+        new("u1", email, "Professor", ["Lab-001"]);
+
+    private static Solicitante Alheio(string email = "outro@x.com") =>
+        new("u2", email, "Professor", ["Lab-002"]);
+
+    private static Solicitante Admin(string email = "admin@x.com") =>
+        new("adm", email, "Admin", []);
+
     private static Residuo FakeResiduo(int id = 1, int? mtrId = null, string status = "aguardando-coleta") => new()
     {
         Id = id,
@@ -57,7 +66,7 @@ public class ResiduosServiceTests
     {
         _repo.GetAllAsync().Returns([FakeResiduo(1), FakeResiduo(2)]);
 
-        var result = await _sut.ListarAsync(null, null, null);
+        var result = await _sut.ListarAsync(null, null, null, Dono());
 
         result.Should().HaveCount(2);
     }
@@ -70,7 +79,7 @@ public class ResiduosServiceTests
             FakeResiduo(2, status: "destinado"),
         ]);
 
-        var result = await _sut.ListarAsync(null, null, "aguardando-coleta");
+        var result = await _sut.ListarAsync(null, null, "aguardando-coleta", Dono());
 
         result.Should().HaveCount(1);
         result.First().Status.Should().Be("aguardando-coleta");
@@ -84,7 +93,7 @@ public class ResiduosServiceTests
             FakeResiduo(2, mtrId: null),
         ]);
 
-        var result = await _sut.ListarAsync(null, 5, null);
+        var result = await _sut.ListarAsync(null, 5, null, Dono());
 
         result.Should().HaveCount(1);
         result.First().MtrId.Should().Be(5);
@@ -108,7 +117,7 @@ public class ResiduosServiceTests
         _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        var result = await _sut.CriarAsync(cmd, "test@lab.com");
+        var result = await _sut.CriarAsync(cmd, new Solicitante("u1", "test@lab.com", "Professor", ["Lab-002"]));
 
         result.Tipo.Should().Be("Ácidos inorgânicos");
         result.Volume.Should().Be(2.0m);
@@ -123,7 +132,7 @@ public class ResiduosServiceTests
     {
         _repo.GetByIdAsync(999).Returns((Residuo?)null);
 
-        var result = await _sut.AtualizarAsync(999, new AtualizarResiduoCmd(null, null, null, null, null, null, null), "test@lab.com");
+        var result = await _sut.AtualizarAsync(999, new AtualizarResiduoCmd(null, null, null, null, null, null, null), Dono("test@lab.com"));
 
         result.Should().BeNull();
     }
@@ -138,7 +147,7 @@ public class ResiduosServiceTests
         var result = await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
             Descricao: null, Tipo: "Metais pesados", Volume: 0.8m,
             Unidade: null, Composicao: null, Risco: "alto",
-            Destino: null), "test@lab.com");
+            Destino: null), Dono("test@lab.com"));
 
         result!.Tipo.Should().Be("Metais pesados");
         result.Volume.Should().Be(0.8m);
@@ -154,7 +163,7 @@ public class ResiduosServiceTests
         _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        await _sut.CriarAsync(cmd, "ana@lab.com");
+        await _sut.CriarAsync(cmd, Dono("ana@lab.com"));
 
         await _audit.Received(1).RegistrarAsync(
             "ana@lab.com", "residuo.criar", "Resíduos",
@@ -169,7 +178,7 @@ public class ResiduosServiceTests
         _repo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, "alto", null), "ana@lab.com");
+        await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, "alto", null), Dono("ana@lab.com"));
 
         await _audit.Received(1).RegistrarAsync(
             "ana@lab.com", "residuo.atualizar", "Resíduos",
@@ -182,7 +191,7 @@ public class ResiduosServiceTests
         var r = FakeResiduo(1, status: "solicitado");
         _repo.GetByIdAsync(1).Returns(r);
 
-        var result = await _sut.AprovarAsync(1, "prof@lab.com");
+        var result = await _sut.AprovarAsync(1, Dono("prof@lab.com"));
 
         result!.Status.Should().Be("aguardando-coleta");
         await _audit.Received(1).RegistrarAsync(
@@ -193,14 +202,14 @@ public class ResiduosServiceTests
     public async Task AprovarAsync_IdInexistente_RetornaNull()
     {
         _repo.GetByIdAsync(999).Returns((Residuo?)null);
-        (await _sut.AprovarAsync(999, "u@x.com")).Should().BeNull();
+        (await _sut.AprovarAsync(999, Dono("u@x.com"))).Should().BeNull();
     }
 
     [Fact]
     public async Task AprovarAsync_StatusNaoSolicitado_LancaValidationException()
     {
         _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "aguardando-coleta"));
-        var act = () => _sut.AprovarAsync(1, "u@x.com");
+        var act = () => _sut.AprovarAsync(1, Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*solicitação pendente*");
     }
 
@@ -210,7 +219,7 @@ public class ResiduosServiceTests
         var r = FakeResiduo(1, status: "solicitado");
         _repo.GetByIdAsync(1).Returns(r);
 
-        var result = await _sut.RejeitarAsync(1, "fora de conformidade", "prof@lab.com");
+        var result = await _sut.RejeitarAsync(1, "fora de conformidade", Dono("prof@lab.com"));
 
         result!.Status.Should().Be("rejeitado");
         result.MotivoRejeicao.Should().Be("fora de conformidade");
@@ -227,7 +236,7 @@ public class ResiduosServiceTests
         var r = FakeResiduo(1, status: "solicitado");
         _repo.GetByIdAsync(1).Returns(r);
 
-        var act = () => _sut.RejeitarAsync(1, motivo, "prof@lab.com");
+        var act = () => _sut.RejeitarAsync(1, motivo, Dono("prof@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*motivo*");
         r.Status.Should().Be("solicitado");
@@ -238,7 +247,7 @@ public class ResiduosServiceTests
     public async Task RejeitarAsync_MotivoAcimaDoLimite_LancaValidationException()
     {
         _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "solicitado"));
-        var act = () => _sut.RejeitarAsync(1, new string('x', Residuo.MaxMotivoRejeicao + 1), "prof@lab.com");
+        var act = () => _sut.RejeitarAsync(1, new string('x', Residuo.MaxMotivoRejeicao + 1), Dono("prof@lab.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*no máximo*");
     }
 
@@ -246,7 +255,7 @@ public class ResiduosServiceTests
     public async Task RejeitarAsync_GravaMotivoSemEspacosNasPontas()
     {
         _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "solicitado"));
-        var result = await _sut.RejeitarAsync(1, "  pH fora da faixa  ", "prof@lab.com");
+        var result = await _sut.RejeitarAsync(1, "  pH fora da faixa  ", Dono("prof@lab.com"));
         result!.MotivoRejeicao.Should().Be("pH fora da faixa");
     }
 
@@ -255,7 +264,7 @@ public class ResiduosServiceTests
     {
         _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "aguardando-coleta"));
 
-        var result = await _sut.DesfazerAprovacaoAsync(1, "prof@lab.com");
+        var result = await _sut.DesfazerAprovacaoAsync(1, Dono("prof@lab.com"));
 
         result!.Status.Should().Be("solicitado");
         await _repo.Received(1).SaveChangesAsync();
@@ -271,7 +280,7 @@ public class ResiduosServiceTests
     public async Task DesfazerAprovacaoAsync_ForaDaJanela_LancaValidationException(string status, int? mtrId)
     {
         _repo.GetByIdAsync(1).Returns(FakeResiduo(1, mtrId: mtrId, status: status));
-        var act = () => _sut.DesfazerAprovacaoAsync(1, "prof@lab.com");
+        var act = () => _sut.DesfazerAprovacaoAsync(1, Dono("prof@lab.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*desfazer a aprovação*");
         await _repo.DidNotReceive().SaveChangesAsync();
     }
@@ -280,14 +289,14 @@ public class ResiduosServiceTests
     public async Task DesfazerAprovacaoAsync_IdInexistente_RetornaNull()
     {
         _repo.GetByIdAsync(999).Returns((Residuo?)null);
-        (await _sut.DesfazerAprovacaoAsync(999, "u@x.com")).Should().BeNull();
+        (await _sut.DesfazerAprovacaoAsync(999, Dono("u@x.com"))).Should().BeNull();
     }
 
     [Fact]
     public async Task RejeitarAsync_StatusNaoSolicitado_LancaValidationException()
     {
         _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "em-coleta"));
-        var act = () => _sut.RejeitarAsync(1, null, "u@x.com");
+        var act = () => _sut.RejeitarAsync(1, null, Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*solicitação pendente*");
     }
 
@@ -298,35 +307,35 @@ public class ResiduosServiceTests
         _labRepo.GetAllAsync().Returns([new Laboratorio { Id = id, Nome = "Lab" }]);
 
     [Fact]
-    public async Task CriarAsync_VolumeZero_LancaValidationException() { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(volume: 0m), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*"); }
+    public async Task CriarAsync_VolumeZero_LancaValidationException() { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(volume: 0m), Dono("u@x.com")); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*"); }
 
     [Fact]
-    public async Task CriarAsync_VolumeNegativo_LancaValidationException() { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(volume: -2m), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*"); }
+    public async Task CriarAsync_VolumeNegativo_LancaValidationException() { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(volume: -2m), Dono("u@x.com")); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*"); }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     public async Task CriarAsync_DescricaoVazia_LancaValidationException(string? descricao)
-    { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(descricao: descricao!), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Descrição*"); }
+    { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(descricao: descricao!), Dono("u@x.com")); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Descrição*"); }
 
     [Fact]
     public async Task CriarAsync_RiscoInvalido_LancaValidationException()
-    { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(risco: "altíssimo"), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Risco*"); }
+    { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(risco: "altíssimo"), Dono("u@x.com")); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Risco*"); }
 
     [Fact]
     public async Task CriarAsync_UnidadeInvalida_LancaValidationException()
-    { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(unidade: "galões"), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Unidade*"); }
+    { LabExiste(); var act = () => _sut.CriarAsync(FakeResiduoCmd(unidade: "galões"), Dono("u@x.com")); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Unidade*"); }
 
     [Fact]
     public async Task CriarAsync_LaboratorioInexistente_LancaValidationException()
-    { _labRepo.GetAllAsync().Returns([]); var act = () => _sut.CriarAsync(FakeResiduoCmd(labId: "Lab-999"), "u@x.com"); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Laboratório*"); }
+    { _labRepo.GetAllAsync().Returns([]); var act = () => _sut.CriarAsync(FakeResiduoCmd(labId: "Lab-999"), Dono("u@x.com")); await act.Should().ThrowAsync<ValidationException>().WithMessage("*Laboratório*"); }
 
     [Fact]
     public async Task CriarAsync_SemClassificacao_LancaValidationException()
     {
         LabExiste();
         var cmd = new CriarResiduoCmd("Solvente usado", "Lab-001", "Solventes orgânicos não-halogenados", 1m, "L", "acetona 80%", "medio", null, null!);
-        var act = () => _sut.CriarAsync(cmd, "u@x.com");
+        var act = () => _sut.CriarAsync(cmd, Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Classifique a reatividade*");
     }
 
@@ -334,7 +343,7 @@ public class ResiduosServiceTests
     public async Task CriarAsync_ClassificacaoVazia_LancaValidationException()
     {
         LabExiste();
-        var act = () => _sut.CriarAsync(FakeResiduoCmd(classes: []), "u@x.com");
+        var act = () => _sut.CriarAsync(FakeResiduoCmd(classes: []), Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Classifique a reatividade*");
     }
 
@@ -345,7 +354,7 @@ public class ResiduosServiceTests
     public async Task CriarAsync_ClasseForaDaFaixa_LancaValidationException(int classe)
     {
         LabExiste();
-        var act = () => _sut.CriarAsync(FakeResiduoCmd(classes: [classe]), "u@x.com");
+        var act = () => _sut.CriarAsync(FakeResiduoCmd(classes: [classe]), Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*entre 1 e 12*");
     }
 
@@ -355,16 +364,16 @@ public class ResiduosServiceTests
         LabExiste();
         _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
-        var result = await _sut.CriarAsync(FakeResiduoCmd(classes: [1, 12]), "u@x.com");
+        var result = await _sut.CriarAsync(FakeResiduoCmd(classes: [1, 12]), Dono("u@x.com"));
         result.ClassesReatividade.Should().Equal(1, 12);
     }
 
     [Fact]
     public async Task AtualizarAsync_VolumeNaoPositivo_LancaValidationException()
     {
-        _repo.GetByIdAsync(1).Returns(new Residuo { Id = 1 });
+        _repo.GetByIdAsync(1).Returns(new Residuo { Id = 1, LaboratorioId = "Lab-001" });
         var cmd = new AtualizarResiduoCmd(null, null, -1m, null, null, null, null);
-        var act = () => _sut.AtualizarAsync(1, cmd, "u@x.com");
+        var act = () => _sut.AtualizarAsync(1, cmd, Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Volume*");
     }
 
@@ -385,7 +394,7 @@ public class ResiduosServiceTests
         _repo.GetAllAsync().Returns([r1, r2]);
         _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab A")]);
 
-        var result = await _sut.AnalyticsAsync(6);
+        var result = await _sut.AnalyticsAsync(6, Dono());
 
         result.Mensal.Should().Contain(m => m.Mes == mesEsperado && m.Litros == 15);
     }
@@ -398,7 +407,7 @@ public class ResiduosServiceTests
         _repo.GetAllAsync().Returns([r1, r2]);
         _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab Química")]);
 
-        var result = await _sut.AnalyticsAsync(6);
+        var result = await _sut.AnalyticsAsync(6, Dono());
 
         result.PorLab.Should().Contain(l => l.Lab == "Lab Química" && l.Litros == 10);
     }
@@ -410,7 +419,7 @@ public class ResiduosServiceTests
         _repo.GetAllAsync().Returns([r]);
         _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab A")]);
 
-        var result = await _sut.AnalyticsAsync(6);
+        var result = await _sut.AnalyticsAsync(6, Dono());
 
         result.PorLab.Should().Contain(l => l.Litros == 0.5m);
     }
@@ -424,7 +433,7 @@ public class ResiduosServiceTests
         _repo.GetAllAsync().Returns([liquido, solido, cubico]);
         _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab Química")]);
 
-        var result = await _sut.AnalyticsAsync(6);
+        var result = await _sut.AnalyticsAsync(6, Dono());
 
         result.PorLab.Single().Litros.Should().Be(1005m);
         result.PorLab.Single().Quilos.Should().Be(0.3m);
@@ -440,7 +449,7 @@ public class ResiduosServiceTests
         _repo.GetAllAsync().Returns([r]);
         _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab A")]);
 
-        var result = await _sut.AnalyticsAsync(6);
+        var result = await _sut.AnalyticsAsync(6, Dono());
 
         result.Mensal.Should().NotContain(m => m.Litros > 0);
     }
@@ -458,7 +467,7 @@ public class ResiduosServiceTests
         var result = await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
             Descricao: null, Tipo: null, Volume: 9.0m, Unidade: null, Composicao: null,
             Risco: null, Destino: null,
-            ClassesReatividade: [1, 5]), "ana@lab.com");
+            ClassesReatividade: [1, 5]), Dono("ana@lab.com"));
 
         result!.Volume.Should().Be(9.0m);
         await _compat.DidNotReceive().AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>());
@@ -474,7 +483,7 @@ public class ResiduosServiceTests
 
         await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
             null, null, null, null, "Nova composição", null, null,
-            ClassesReatividade: [5, 1]), "ana@lab.com");
+            ClassesReatividade: [5, 1]), Dono("ana@lab.com"));
 
         await _compat.DidNotReceive().AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>());
     }
@@ -488,7 +497,7 @@ public class ResiduosServiceTests
             .Returns(new CompatResultDto(1, 3, 3, "Proibido"));
 
         var act = () => _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, null, null,
-            ClassesReatividade: [1, 3]), "ana@lab.com");
+            ClassesReatividade: [1, 3]), Dono("ana@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>();
         await _audit.Received(1).RegistrarAsync(
@@ -505,7 +514,7 @@ public class ResiduosServiceTests
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
         var result = await _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
-            null, null, null, null, null, "alto", null), "ana@lab.com");
+            null, null, null, null, null, "alto", null), Dono("ana@lab.com"));
 
         result!.ClassesReatividade.Should().Equal([1, 5]);
         await _compat.DidNotReceive().AvaliarMisturaAsync(Arg.Any<IReadOnlyCollection<int>>());
@@ -518,7 +527,7 @@ public class ResiduosServiceTests
         _repo.GetByIdAsync(1).Returns(r);
 
         var act = () => _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, null, null,
-            ClassesReatividade: []), "ana@lab.com");
+            ClassesReatividade: []), Dono("ana@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>();
     }
@@ -533,9 +542,119 @@ public class ResiduosServiceTests
         _repo.GetByIdAsync(1).Returns(r);
 
         var act = () => _sut.AtualizarAsync(1, new AtualizarResiduoCmd(null, null, null, null, null, null, null,
-            ClassesReatividade: [classe]), "ana@lab.com");
+            ClassesReatividade: [classe]), Dono("ana@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task CriarAsync_EmLaboratorioAlheio_LancaValidationException()
+    {
+        LabExiste();
+
+        var act = () => _sut.CriarAsync(FakeResiduoCmd(), Alheio());
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-001*");
+    }
+
+    [Fact]
+    public async Task CriarAsync_ComoAdmin_AceitaQualquerLaboratorio()
+    {
+        LabExiste();
+        _repo.AddAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        var result = await _sut.CriarAsync(FakeResiduoCmd(), Admin());
+
+        result.LaboratorioId.Should().Be("Lab-001");
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_DeLaboratorioAlheio_LancaAcessoNegado()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1));
+
+        var act = () => _sut.AtualizarAsync(1, new AtualizarResiduoCmd(
+            "Nova descrição", null, null, null, null, null, null), Alheio());
+
+        await act.Should().ThrowAsync<AcessoNegadoException>().WithMessage("*Lab-001*");
+    }
+
+    [Fact]
+    public async Task AprovarAsync_DeLaboratorioAlheio_LancaAcessoNegado()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "solicitado"));
+
+        var act = () => _sut.AprovarAsync(1, Alheio());
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+    }
+
+    [Fact]
+    public async Task RejeitarAsync_DeLaboratorioAlheio_LancaAcessoNegado()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "solicitado"));
+
+        var act = () => _sut.RejeitarAsync(1, "motivo qualquer", Alheio());
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+    }
+
+    [Fact]
+    public async Task DesfazerAprovacaoAsync_DeLaboratorioAlheio_LancaAcessoNegado()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1));
+
+        var act = () => _sut.DesfazerAprovacaoAsync(1, Alheio());
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+    }
+
+    [Fact]
+    public async Task AprovarAsync_ResiduoInexistente_ChecaExistenciaAntesDoEscopo()
+    {
+        _repo.GetByIdAsync(999).Returns((Residuo?)null);
+
+        (await _sut.AprovarAsync(999, Alheio())).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ListarAsync_DevolveSoOsLaboratoriosDoSolicitante()
+    {
+        var doDono = FakeResiduo(1);
+        var deOutro = FakeResiduo(2);
+        deOutro.LaboratorioId = "Lab-002";
+        _repo.GetAllAsync().Returns([doDono, deOutro]);
+
+        var result = await _sut.ListarAsync(null, null, null, Dono());
+
+        result.Should().ContainSingle().Which.LaboratorioId.Should().Be("Lab-001");
+    }
+
+    [Fact]
+    public async Task ListarAsync_ComoAdmin_DevolveTodos()
+    {
+        var doDono = FakeResiduo(1);
+        var deOutro = FakeResiduo(2);
+        deOutro.LaboratorioId = "Lab-002";
+        _repo.GetAllAsync().Returns([doDono, deOutro]);
+
+        var result = await _sut.ListarAsync(null, null, null, Admin());
+
+        result.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task AnalyticsAsync_AgregaSoOsLaboratoriosDoSolicitante()
+    {
+        var doDono = FakeResiduo(1); doDono.Volume = 3; doDono.Unidade = "L";
+        var deOutro = FakeResiduo(2); deOutro.Volume = 7; deOutro.Unidade = "L"; deOutro.LaboratorioId = "Lab-002";
+        _repo.GetAllAsync().Returns([doDono, deOutro]);
+        _labRepo.GetAllAsync().Returns([FakeLab("Lab-001", "Lab A"), FakeLab("Lab-002", "Lab B")]);
+
+        var result = await _sut.AnalyticsAsync(6, Dono());
+
+        result.PorLab.Should().ContainSingle().Which.Lab.Should().Be("Lab A");
     }
 
     [Fact]

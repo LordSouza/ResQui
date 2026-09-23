@@ -30,16 +30,24 @@ public class ResiduosService(
                 "Segregue os componentes em resíduos separados.");
         }
     }
-    public async Task<IEnumerable<ResiduoDto>> ListarAsync(string? labId, int? mtrId, string? status)
+    private static void GarantirEscopo(Residuo r, Solicitante solicitante)
+    {
+        if (!solicitante.Responde(r.LaboratorioId))
+            throw new AcessoNegadoException(
+                $"O resíduo #{r.Id} é do laboratório {r.LaboratorioId}, pelo qual você não responde.");
+    }
+
+    public async Task<IEnumerable<ResiduoDto>> ListarAsync(string? labId, int? mtrId, string? status, Solicitante solicitante)
     {
         var all = await repo.GetAllAsync();
+        if (!solicitante.VeTudo) all = all.Where(r => solicitante.LaboratorioIds.Contains(r.LaboratorioId));
         if (!string.IsNullOrEmpty(labId)) all = all.Where(r => r.LaboratorioId == labId);
         if (mtrId.HasValue) all = all.Where(r => r.MtrId == mtrId.Value);
         if (!string.IsNullOrEmpty(status)) all = all.Where(r => r.Status == status);
         return all.Select(ToDto);
     }
 
-    public async Task<ResiduoDto> CriarAsync(CriarResiduoCmd cmd, string usuarioEmail)
+    public async Task<ResiduoDto> CriarAsync(CriarResiduoCmd cmd, Solicitante solicitante)
     {
         if (string.IsNullOrWhiteSpace(cmd.Descricao)) throw new ValidationException("Descrição é obrigatória.");
         if (cmd.Volume <= 0) throw new ValidationException("Volume deve ser maior que zero.");
@@ -47,11 +55,13 @@ public class ResiduosService(
         if (!UnidadesValidas.Contains(cmd.Unidade)) throw new ValidationException("Unidade inválida — use L, mL, kg, g ou m³.");
         var labExiste = (await labRepo.GetAllAsync()).Any(l => l.Id == cmd.LaboratorioId);
         if (!labExiste) throw new ValidationException($"Laboratório {cmd.LaboratorioId} não encontrado.");
+        if (!solicitante.Responde(cmd.LaboratorioId))
+            throw new ValidationException($"Você não responde pelo laboratório {cmd.LaboratorioId}.");
         if (cmd.ClassesReatividade is null || cmd.ClassesReatividade.Count == 0)
             throw new ValidationException("Classifique a reatividade do resíduo — selecione ao menos uma classe.");
         if (cmd.ClassesReatividade.Any(c => c is < 1 or > 12))
             throw new ValidationException("Classe de reatividade deve estar entre 1 e 12.");
-        await ValidarMisturaAsync(cmd.ClassesReatividade, usuarioEmail);
+        await ValidarMisturaAsync(cmd.ClassesReatividade, solicitante.Email);
         var r = new Residuo
         {
             Descricao = cmd.Descricao,
@@ -66,15 +76,16 @@ public class ResiduosService(
         };
         await repo.AddAsync(r);
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "residuo.criar", "Resíduos",
+        await auditoria.RegistrarAsync(solicitante.Email, "residuo.criar", "Resíduos",
             $"Registrou resíduo {r.Id} — {r.Descricao}", RiscoAuditoria.Low);
         return ToDto(r);
     }
 
-    public async Task<ResiduoDto?> AtualizarAsync(int id, AtualizarResiduoCmd cmd, string usuarioEmail)
+    public async Task<ResiduoDto?> AtualizarAsync(int id, AtualizarResiduoCmd cmd, Solicitante solicitante)
     {
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
+        GarantirEscopo(r, solicitante);
         if (cmd.Volume is <= 0) throw new ValidationException("Volume deve ser maior que zero.");
         if (cmd.Risco is not null && !RiscosValidos.Contains(cmd.Risco)) throw new ValidationException("Risco inválido — use baixo, medio ou alto.");
         if (cmd.Unidade is not null && !UnidadesValidas.Contains(cmd.Unidade)) throw new ValidationException("Unidade inválida — use L, mL, kg, g ou m³.");
@@ -86,7 +97,7 @@ public class ResiduosService(
         // ter par hoje bloqueado, e recusar a edição não o torna seguro — só impede o registro de
         // ficar correto. Comparação por conjunto: classes não têm ordem semântica.
         if (cmd.ClassesReatividade is not null && !r.ClassesReatividade.ToHashSet().SetEquals(cmd.ClassesReatividade))
-            await ValidarMisturaAsync(cmd.ClassesReatividade, usuarioEmail);
+            await ValidarMisturaAsync(cmd.ClassesReatividade, solicitante.Email);
         if (cmd.Descricao is not null) r.Descricao = cmd.Descricao;
         if (cmd.Tipo is not null) r.Tipo = cmd.Tipo;
         if (cmd.Volume is not null) r.Volume = cmd.Volume.Value;
@@ -97,45 +108,48 @@ public class ResiduosService(
         if (cmd.ClassesReatividade is not null) r.ClassesReatividade = cmd.ClassesReatividade.ToList();
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "residuo.atualizar", "Resíduos",
+        await auditoria.RegistrarAsync(solicitante.Email, "residuo.atualizar", "Resíduos",
             $"Editou resíduo {id}", RiscoAuditoria.Low);
         return ToDto(r);
     }
 
     // RF06 — aprovação/rejeição de solicitação de descarte. Gate: só resíduos em "solicitado".
     // Aprovar move para o fluxo de coleta ("aguardando-coleta"); rejeitar encerra em "rejeitado".
-    public async Task<ResiduoDto?> AprovarAsync(int id, string usuarioEmail)
+    public async Task<ResiduoDto?> AprovarAsync(int id, Solicitante solicitante)
     {
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
+        GarantirEscopo(r, solicitante);
         if (r.Status != "solicitado")
             throw new ValidationException($"Só é possível aprovar resíduos com solicitação pendente (status atual: \"{r.Status}\").");
         r.Status = "aguardando-coleta";
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "residuo.aprovar", "Resíduos",
+        await auditoria.RegistrarAsync(solicitante.Email, "residuo.aprovar", "Resíduos",
             $"Aprovou descarte do resíduo {id} — {r.Descricao}", RiscoAuditoria.Medium);
         return ToDto(r);
     }
 
-    public async Task<ResiduoDto?> DesfazerAprovacaoAsync(int id, string usuarioEmail)
+    public async Task<ResiduoDto?> DesfazerAprovacaoAsync(int id, Solicitante solicitante)
     {
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
+        GarantirEscopo(r, solicitante);
         if (r.Status != "aguardando-coleta" || r.MtrId is not null)
             throw new ValidationException($"Só é possível desfazer a aprovação enquanto o resíduo aguarda coleta, antes de entrar num manifesto (status atual: \"{r.Status}\").");
         r.Status = "solicitado";
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "residuo.aprovacao-desfeita", "Resíduos",
+        await auditoria.RegistrarAsync(solicitante.Email, "residuo.aprovacao-desfeita", "Resíduos",
             $"Desfez a aprovação do descarte do resíduo {id} — {r.Descricao}", RiscoAuditoria.Medium);
         return ToDto(r);
     }
 
-    public async Task<ResiduoDto?> RejeitarAsync(int id, string? motivo, string usuarioEmail)
+    public async Task<ResiduoDto?> RejeitarAsync(int id, string? motivo, Solicitante solicitante)
     {
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
+        GarantirEscopo(r, solicitante);
         if (r.Status != "solicitado")
             throw new ValidationException($"Só é possível rejeitar resíduos com solicitação pendente (status atual: \"{r.Status}\").");
         var motivoInformado = motivo?.Trim() ?? "";
@@ -147,16 +161,17 @@ public class ResiduosService(
         r.MotivoRejeicao = motivoInformado;
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "residuo.rejeitar", "Resíduos",
+        await auditoria.RegistrarAsync(solicitante.Email, "residuo.rejeitar", "Resíduos",
             $"Rejeitou descarte do resíduo {id} — motivo: {motivoInformado}", RiscoAuditoria.Medium);
         return ToDto(r);
     }
 
-    public async Task<ResiduosAnalyticsDto> AnalyticsAsync(int meses)
+    public async Task<ResiduosAnalyticsDto> AnalyticsAsync(int meses, Solicitante solicitante)
     {
         var corte = DateTime.UtcNow.AddMonths(-meses);
         var residuos = (await repo.GetAllAsync())
             .Where(r => r.DataRegistro >= corte)
+            .Where(r => solicitante.VeTudo || solicitante.LaboratorioIds.Contains(r.LaboratorioId))
             .ToList();
 
         var labs = (await labRepo.GetAllAsync()).ToList();
