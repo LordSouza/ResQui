@@ -86,13 +86,20 @@ describe('DetalheScreen', () => {
     expect(screen.queryByText('Compatível')).not.toBeInTheDocument();
   });
 
-  it('compara pela localização completa e lista primeiro o par de maior risco', () => {
+  it('compara por laboratório e armário, ignorando a prateleira, e lista primeiro o par de maior risco', () => {
     const outroArmario = { id: 'R-00003', nome: 'Hidróxido de sódio', local: 'Lab A · Armário 2', classe: 3 };
-    const compativel = { id: 'R-00004', nome: 'Ácido clorídrico', local: 'Lab A · Armário 1', classe: 1 };
+    const compativel = { id: 'R-00004', nome: 'Ácido clorídrico', local: 'Lab A · Armário 1 · Pra. 2', classe: 1 };
     useReagentes.mockReturnValue({ data: { items: [reagente, compativel, outroArmario, vizinho], total: 4 }, isPending: false, isError: false });
     render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={vi.fn()} />);
     const nomes = screen.getAllByText(/^(Ácido nítrico|Ácido clorídrico|Hidróxido de sódio)$/).map(el => el.textContent);
     expect(nomes).toEqual(['Ácido nítrico', 'Ácido clorídrico']);
+  });
+
+  it('não afirma armário vazio quando só parte do inventário foi carregada', () => {
+    useReagentes.mockReturnValue({ data: { items: [reagente], total: 350 }, isPending: false, isError: false });
+    render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={vi.fn()} />);
+    expect(screen.queryByText(/Nenhum outro reagente/)).not.toBeInTheDocument();
+    expect(screen.getByText(/primeiros 1 de 350 reagentes/)).toBeInTheDocument();
   });
 });
 

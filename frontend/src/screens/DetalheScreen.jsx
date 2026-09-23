@@ -100,6 +100,10 @@ function LotesCard({ reagente }) {
   );
 }
 
+function armarioDoLocal(local) {
+  return local.split('·').slice(0, 2).map(trecho => trecho.trim()).join(' · ');
+}
+
 export function DetalheScreen({ state, dispatch }) {
   const { data: r, isPending, isError, refetch } = useReagente(state.detailId);
   const { data: listData } = useReagentes({ pageSize: 200 });
@@ -130,8 +134,10 @@ export function DetalheScreen({ state, dispatch }) {
   if (r === null || !r) return null;  // useEffect handles redirect; just suppress render
 
   const todosReagentes = listData?.items ?? [];
+  const listaParcial = (listData?.total ?? 0) > todosReagentes.length;
+  const armario = armarioDoLocal(r.local);
   const vizinhosDeArmario = todosReagentes
-    .filter(x => x.local.trim() === r.local.trim() && x.id !== r.id)
+    .filter(x => armarioDoLocal(x.local) === armario && x.id !== r.id)
     .map(x => ({ ...x, nivel: piorNivelContra(r.classe, [x.classe], compatMatrix) }))
     .sort((a, b) => b.nivel - a.nivel);
   const vizinhosExibidos = vizinhosDeArmario.slice(0, 5);
@@ -285,8 +291,8 @@ export function DetalheScreen({ state, dispatch }) {
           <div className="card">
             <SectionTitle title="Compatibilidade rápida" sub="vs. itens no mesmo armário"/>
             <div className="card-body" style={{padding: 0}}>
-              {vizinhosDeArmario.length === 0 && (
-                <div className="small muted" style={{padding: '10px 14px'}}>Nenhum outro reagente cadastrado em {r.local}.</div>
+              {vizinhosDeArmario.length === 0 && !listaParcial && (
+                <div className="small muted" style={{padding: '10px 14px'}}>Nenhum outro reagente cadastrado em {armario}.</div>
               )}
               {vizinhosExibidos.map(x => {
                 const kind = x.nivel === 0 ? 'green' : x.nivel === 1 ? 'amber' : 'red';
@@ -302,7 +308,12 @@ export function DetalheScreen({ state, dispatch }) {
               })}
               {vizinhosOcultos > 0 && (
                 <div className="small muted" style={{padding: '8px 14px'}}>
-                  e mais {vizinhosOcultos} {vizinhosOcultos === 1 ? 'item' : 'itens'} neste local, de risco igual ou menor que os listados
+                  e mais {vizinhosOcultos} {vizinhosOcultos === 1 ? 'item' : 'itens'} neste armário, de risco igual ou menor que os listados
+                </div>
+              )}
+              {listaParcial && (
+                <div className="small muted" style={{padding: '8px 14px'}}>
+                  Comparado com os primeiros {todosReagentes.length} de {listData.total} reagentes do inventário.
                 </div>
               )}
             </div>
