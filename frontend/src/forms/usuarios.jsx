@@ -123,7 +123,9 @@ export function FormConvidarUsuario({ onClose }) {
   });
   const convites = useConvites();
 
-  const trocarPapel = (novo) => { setPapel(novo); setGerado(null); setCopiado(false); setFalhaAoCopiar(false); };
+  const descartarLink = () => { setGerado(null); setCopiado(false); setFalhaAoCopiar(false); };
+  const trocarPapel = (novo) => { setPapel(novo); descartarLink(); };
+  const trocarLaboratorios = (novos) => { setLaboratorios(novos); descartarLink(); };
 
   const gerar = () => criar.mutate({ Papel: papel, LaboratorioIds: laboratorios }, {
     onSuccess: (convite) => {
@@ -170,7 +172,7 @@ export function FormConvidarUsuario({ onClose }) {
       <div className="form-row full">
         <div className="field">
           <span className="field-label" id="convite-labs">Laboratórios do convidado</span>
-          <SeletorLaboratorios id="convite-labs" value={laboratorios} onChange={setLaboratorios} />
+          <SeletorLaboratorios id="convite-labs" value={laboratorios} onChange={trocarLaboratorios} />
         </div>
       </div>
 

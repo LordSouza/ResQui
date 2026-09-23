@@ -1,5 +1,3 @@
-// Escopo por laboratório: a autorização é do servidor (400 na entrada, 403 no recurso alheio).
-// A tela só esconde o que a API recusaria — isso é coberto pelos testes de componente.
 import { test, expect } from '@playwright/test';
 import { apiAuth, ensureLab, atribuirLaboratorios } from './seed';
 
@@ -132,5 +130,7 @@ test('admin atribui qualquer laboratório a qualquer usuário', async ({ request
   expect(ok.status()).toBe(204);
 
   const perfil = await (await request.get('/api/usuarios', { headers: adminAuth })).json();
-  expect(perfil.find((u) => u.id === professor.id).laboratorioIds).toEqual([meu.id, alheio.id]);
+  const gravado = perfil.find((u) => u.id === professor.id).laboratorioIds;
+  expect(gravado).toEqual(expect.arrayContaining([meu.id, alheio.id]));
+  expect(gravado).toHaveLength(2);
 });

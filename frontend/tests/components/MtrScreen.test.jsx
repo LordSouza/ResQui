@@ -64,7 +64,6 @@ describe('MtrScreen', () => {
     expect(screen.getAllByText('MTR-2026-0001').length).toBeGreaterThan(0);
   });
 
-  // GET /api/residuos é escopado; o PDF, gerado no servidor, não é.
   it('avisa quando o manifesto tem resíduos de laboratórios fora do escopo', () => {
     renderCom('Professor');
     expect(screen.getByText(/Mais 1 resíduo\(s\) deste manifesto são de laboratórios/)).toBeInTheDocument();

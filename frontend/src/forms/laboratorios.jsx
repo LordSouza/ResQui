@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { useCriarLaboratorio } from '../laboratorios/useCriarLaboratorio';
 import { useAtualizarLaboratorio } from '../laboratorios/useAtualizarLaboratorio';
 import { useDeletarLaboratorio } from '../laboratorios/useDeletarLaboratorio';
+import { useAuth } from '../auth/AuthContext';
 
 const CORES = [['#1465c0', 'Azul'], ['#0d4a8c', 'Azul-escuro'], ['#1f7a3e', 'Verde'], ['#b76e00', 'Âmbar'], ['#5b3c8c', 'Roxo'], ['#b3261e', 'Vermelho']];
 
@@ -18,6 +19,7 @@ export function FormNovoLab({ onClose, dispatch }) {
     cor: '#1465c0',
   });
   const mutation = useCriarLaboratorio();
+  const { user, updateUser } = useAuth();
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
@@ -40,6 +42,9 @@ export function FormNovoLab({ onClose, dispatch }) {
       },
       {
         onSuccess: (lab) => {
+          if (user && user.papel !== 'Admin') {
+            updateUser({ ...user, laboratorioIds: [...(user.laboratorioIds ?? []), lab.id] });
+          }
           dispatch({ type: 'refresh', flashId: lab.id });
           onClose();
         },
