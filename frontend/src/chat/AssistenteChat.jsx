@@ -70,7 +70,7 @@ export function AssistenteChat({ state, dispatch }) {
 
   if (!open) {
     return (
-      <button type="button" className="chat-fab" onClick={() => dispatch({type: 'openChat'})} title="Assistente ResQui">
+      <button type="button" className="chat-fab" onClick={() => dispatch({type: 'openChat'})} title="Assistente ResQui" aria-label="Abrir assistente">
         <span className="pulse"/>
         <Icon name="sparkle" size={22}/>
       </button>
@@ -78,7 +78,8 @@ export function AssistenteChat({ state, dispatch }) {
   }
 
   return (
-    <div className="chat-panel">
+    <div className="chat-panel" role="region" aria-label="Assistente ResQui"
+      onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); dispatch({type: 'closeChat'}); } }}>
       <div className="chat-h">
         <div className="av">R<sub style={{fontSize: '12px'}}>Q</sub></div>
         <div>

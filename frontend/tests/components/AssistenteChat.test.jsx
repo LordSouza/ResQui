@@ -78,4 +78,16 @@ describe('AssistenteChat', () => {
     await waitFor(() => expect(screen.getByText(/não configurado/i)).toBeInTheDocument());
     expect(screen.getByLabelText(/Mensagem para o assistente/i)).toBeDisabled();
   });
+
+  it('fecha com Esc a partir do campo de mensagem', async () => {
+    vi.stubGlobal('fetch', responderCom(json({})));
+    const user = userEvent.setup();
+
+    const { dispatch } = renderChat();
+    await user.click(screen.getByLabelText(/Mensagem para o assistente/i));
+    await user.keyboard('{Escape}');
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'closeChat' });
+  });
 });
+
