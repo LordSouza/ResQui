@@ -14,13 +14,23 @@ public class LaboratoriosServiceTests
     private readonly ILaboratoriosRepository _repo = Substitute.For<ILaboratoriosRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly IResiduosRepository _residuosRepo = Substitute.For<IResiduosRepository>();
+    private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
     private readonly LaboratoriosService _sut;
 
     public LaboratoriosServiceTests()
     {
         _residuosRepo.GetAllAsync().Returns([]);
-        _sut = new LaboratoriosService(_repo, _audit, _residuosRepo);
+        _sut = new LaboratoriosService(_repo, _audit, _residuosRepo, _usuarioLabs);
     }
+
+    private static Solicitante Dono(string email = "admin@lab.com") =>
+        new("u1", email, "Professor", ["Lab-001", "Lab-003"]);
+
+    private static Solicitante Alheio(string email = "outro@lab.com") =>
+        new("u2", email, "Professor", ["Lab-002"]);
+
+    private static Solicitante Admin(string email = "admin@resqui.local") =>
+        new("adm", email, "Admin", []);
 
     private static Laboratorio FakeLab(string id = "Lab-001") => new()
     {
@@ -41,7 +51,7 @@ public class LaboratoriosServiceTests
         _repo.AddAsync(Arg.Any<Laboratorio>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        await _sut.CriarAsync(CriarCmd(), "admin@lab.com");
+        await _sut.CriarAsync(CriarCmd(), Dono("admin@lab.com"));
 
         await _audit.Received(1).RegistrarAsync(
             "admin@lab.com",
@@ -57,7 +67,7 @@ public class LaboratoriosServiceTests
         _repo.GetByIdAsync("Lab-999").Returns((Laboratorio?)null);
 
         var result = await _sut.AtualizarAsync("Lab-999", new AtualizarLaboratorioCmd(
-            "X", "Y", null, [], "S1", [], 10, 20m, "Natural", "#fff"), "admin@lab.com");
+            "X", "Y", null, [], "S1", [], 10, 20m, "Natural", "#fff"), Dono("admin@lab.com"));
 
         result.Should().BeNull();
         await _audit.DidNotReceive().RegistrarAsync(
@@ -75,7 +85,7 @@ public class LaboratoriosServiceTests
 
         await _sut.AtualizarAsync("Lab-001", new AtualizarLaboratorioCmd(
             "Novo Nome", "Profa. Ana", null, ["Síntese"], "B201", ["A1"],
-            30, 60m, "Exaustão forçada", "#3b82f6"), "admin@lab.com");
+            30, 60m, "Exaustão forçada", "#3b82f6"), Dono("admin@lab.com"));
 
         await _audit.Received(1).RegistrarAsync(
             "admin@lab.com", "lab.atualizar", "Laboratórios",
@@ -90,7 +100,7 @@ public class LaboratoriosServiceTests
         _repo.DeleteAsync("Lab-001").Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        var ok = await _sut.DeletarAsync("Lab-001", "admin@lab.com");
+        var ok = await _sut.DeletarAsync("Lab-001", Dono("admin@lab.com"));
 
         ok.Should().BeTrue();
         await _audit.Received(1).RegistrarAsync(
@@ -103,7 +113,7 @@ public class LaboratoriosServiceTests
     {
         _repo.GetByIdAsync("Lab-999").Returns((Laboratorio?)null);
 
-        var ok = await _sut.DeletarAsync("Lab-999", "admin@lab.com");
+        var ok = await _sut.DeletarAsync("Lab-999", Dono("admin@lab.com"));
 
         ok.Should().BeFalse();
         await _audit.DidNotReceive().RegistrarAsync(
@@ -120,21 +130,21 @@ public class LaboratoriosServiceTests
     [InlineData("  ")]
     public async Task CriarAsync_NomeVazio_LancaValidationException(string? nome)
     {
-        var act = () => _sut.CriarAsync(FakeLabCmd(nome: nome!), "u@x.com");
+        var act = () => _sut.CriarAsync(FakeLabCmd(nome: nome!), Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Nome*");
     }
 
     [Fact]
     public async Task CriarAsync_CapacidadeNegativa_LancaValidationException()
     {
-        var act = () => _sut.CriarAsync(FakeLabCmd(capacidade: -1), "u@x.com");
+        var act = () => _sut.CriarAsync(FakeLabCmd(capacidade: -1), Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Capacidade*");
     }
 
     [Fact]
     public async Task CriarAsync_AreaNegativa_LancaValidationException()
     {
-        var act = () => _sut.CriarAsync(FakeLabCmd(areaM2: -5m), "u@x.com");
+        var act = () => _sut.CriarAsync(FakeLabCmd(areaM2: -5m), Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Área*");
     }
 
@@ -148,9 +158,9 @@ public class LaboratoriosServiceTests
             new Residuo { Id = 1, LaboratorioId = "Lab-001" },
             new Residuo { Id = 2, LaboratorioId = "Lab-002" },
         ]);
-        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo);
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>());
 
-        var act = () => svc.DeletarAsync("Lab-001", "gestor@resqui.local");
+        var act = () => svc.DeletarAsync("Lab-001", Dono("gestor@resqui.local"));
 
         await act.Should().ThrowAsync<ValidationException>()
             .WithMessage("*1 resíduo*");
@@ -164,11 +174,75 @@ public class LaboratoriosServiceTests
         labRepo.GetByIdAsync("Lab-003").Returns(new Laboratorio { Id = "Lab-003", Nome = "Vazio" });
         var residuosRepo = Substitute.For<IResiduosRepository>();
         residuosRepo.GetAllAsync().Returns([new Residuo { Id = 1, LaboratorioId = "Lab-001" }]);
-        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo);
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>());
 
-        var ok = await svc.DeletarAsync("Lab-003", "gestor@resqui.local");
+        var ok = await svc.DeletarAsync("Lab-003", Dono("gestor@resqui.local"));
 
         ok.Should().BeTrue();
         await labRepo.Received().DeleteAsync("Lab-003");
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_LaboratorioAlheio_LancaAcessoNegado()
+    {
+        _repo.GetByIdAsync("Lab-001").Returns(FakeLab());
+
+        var act = () => _sut.AtualizarAsync("Lab-001", new AtualizarLaboratorioCmd(
+            "Novo Nome", "Ana", null, [], "B201", [], 30, 60m, "Natural", "#fff"), Alheio());
+
+        await act.Should().ThrowAsync<AcessoNegadoException>().WithMessage("*Lab-001*");
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ComoAdmin_Aceita()
+    {
+        _repo.GetByIdAsync("Lab-001").Returns(FakeLab());
+        _repo.UpdateAsync(Arg.Any<Laboratorio>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        var result = await _sut.AtualizarAsync("Lab-001", new AtualizarLaboratorioCmd(
+            "Novo Nome", "Ana", null, [], "B201", [], 30, 60m, "Natural", "#fff"), Admin());
+
+        result!.Nome.Should().Be("Novo Nome");
+    }
+
+    [Fact]
+    public async Task DeletarAsync_LaboratorioAlheio_LancaAcessoNegado()
+    {
+        _repo.GetByIdAsync("Lab-001").Returns(FakeLab());
+
+        var act = () => _sut.DeletarAsync("Lab-001", Alheio());
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+    }
+
+    [Fact]
+    public async Task DeletarAsync_LaboratorioAlheio_NaoRevelaQuantosResiduosEleTem()
+    {
+        _repo.GetByIdAsync("Lab-001").Returns(FakeLab());
+
+        var act = () => _sut.DeletarAsync("Lab-001", Alheio());
+
+        (await act.Should().ThrowAsync<AcessoNegadoException>())
+            .Which.Message.Should().NotContain("resíduo");
+    }
+
+    [Fact]
+    public async Task CriarAsync_AssociaOCriadorAoLaboratorio()
+    {
+        _repo.AddAsync(Arg.Any<Laboratorio>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        var criado = await _sut.CriarAsync(CriarCmd(), Dono());
+
+        await _usuarioLabs.Received(1).AdicionarAsync("u1", criado.Id);
+    }
+
+    [Fact]
+    public async Task ListarAsync_NaoEscopa_DevolveTodos()
+    {
+        _repo.GetAllAsync().Returns([FakeLab("Lab-001"), FakeLab("Lab-002")]);
+
+        (await _sut.ListarAsync()).Should().HaveCount(2);
     }
 }
