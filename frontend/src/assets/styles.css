@@ -2076,3 +2076,18 @@ button.link { background: transparent; border: 0; padding: 0; font: inherit; }
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+.toast-acao {
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.toast-acao:hover { color: var(--accent-hover); }
+

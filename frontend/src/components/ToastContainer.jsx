@@ -11,6 +11,11 @@ export function ToastContainer() {
         <div key={t.id} className={`toast toast--${t.kind}`} role={t.kind === 'error' ? 'alert' : 'status'}>
           <Icon name={t.kind === 'success' ? 'check' : 'warning'} size={16} />
           <span className="toast-message">{t.message}</span>
+          {t.acao && (
+            <button type="button" className="toast-acao" onClick={() => { removeToast(t.id); t.acao.executar(); }}>
+              {t.acao.rotulo}
+            </button>
+          )}
           <button className="toast-close" onClick={() => removeToast(t.id)} aria-label="Fechar">×</button>
         </div>
       ))}

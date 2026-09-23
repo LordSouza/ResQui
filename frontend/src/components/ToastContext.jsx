@@ -12,10 +12,10 @@ export function ToastProvider({ children }) {
     delete timers.current[id];
   }, []);
 
-  const addToast = useCallback((message, kind = 'error') => {
+  const addToast = useCallback((message, kind = 'error', acao = null) => {
     const id = `${Date.now()}-${Math.random()}`;
     setToasts(prev => {
-      const next = [...prev, { id, message, kind }];
+      const next = [...prev, { id, message, kind, acao }];
       if (next.length > 5) {
         const evicted = next[0];
         clearTimeout(timers.current[evicted.id]);
@@ -24,7 +24,7 @@ export function ToastProvider({ children }) {
       }
       return next;
     });
-    if (kind !== 'error') timers.current[id] = setTimeout(() => removeToast(id), 5000);
+    if (kind !== 'error') timers.current[id] = setTimeout(() => removeToast(id), acao ? 10000 : 5000);
   }, [removeToast]);
 
   return (

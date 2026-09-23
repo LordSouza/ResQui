@@ -60,4 +60,31 @@ describe('ToastContainer', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Regra salva');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
+  it('executa a ação do toast e o fecha', () => {
+    const executar = vi.fn();
+    function ComAcao() {
+      const { addToast } = useToast();
+      return <button onClick={() => addToast('Descarte aprovado', 'success', { rotulo: 'Desfazer', executar })}>add</button>;
+    }
+    renderWithProvider(<><ComAcao /><ToastContainer /></>);
+    act(() => { fireEvent.click(screen.getByText('add')); });
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'Desfazer' })); });
+    expect(executar).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Descarte aprovado')).not.toBeInTheDocument();
+  });
+
+  it('dá mais tempo ao toast que oferece uma ação', () => {
+    function ComAcao() {
+      const { addToast } = useToast();
+      return <button onClick={() => addToast('Descarte aprovado', 'success', { rotulo: 'Desfazer', executar: vi.fn() })}>add</button>;
+    }
+    renderWithProvider(<><ComAcao /><ToastContainer /></>);
+    act(() => { fireEvent.click(screen.getByText('add')); });
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.getByText('Descarte aprovado')).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.queryByText('Descarte aprovado')).not.toBeInTheDocument();
+  });
 });
+
