@@ -7,14 +7,15 @@ import { initialState } from '../../src/store/reducer';
 vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../../src/residuos/useResíduos', () => ({ useResíduos: vi.fn() }));
 vi.mock('../../src/residuos/useAprovarResiduos', () => ({ useAprovarResiduos: vi.fn() }));
-vi.mock('../../src/residuos/useDesfazerAprovacao', () => ({ useDesfazerAprovacao: vi.fn() }));
+vi.mock('../../src/residuos/executarEmLote', () => ({ executarEmCadaResiduo: vi.fn() }));
+vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: vi.fn() }) }));
 vi.mock('../../src/laboratorios/useLaboratorios', () => ({ useLaboratorios: vi.fn() }));
 vi.mock('../../src/components/ToastContext', () => ({ useToast: vi.fn() }));
 
 import { useAuth } from '../../src/auth/AuthContext';
 import { useResíduos } from '../../src/residuos/useResíduos';
 import { useAprovarResiduos } from '../../src/residuos/useAprovarResiduos';
-import { useDesfazerAprovacao } from '../../src/residuos/useDesfazerAprovacao';
+import { executarEmCadaResiduo } from '../../src/residuos/executarEmLote';
 import { useLaboratorios } from '../../src/laboratorios/useLaboratorios';
 import { useToast } from '../../src/components/ToastContext';
 
@@ -39,7 +40,7 @@ const renderCom = (papel) => {
 beforeEach(() => {
   useResíduos.mockReturnValue({ data: [residuo], isPending: false, isError: false, refetch: vi.fn() });
   useAprovarResiduos.mockReturnValue({ mutate: vi.fn(), isPending: false });
-  useDesfazerAprovacao.mockReturnValue({ mutate: vi.fn(), isPending: false });
+  executarEmCadaResiduo.mockResolvedValue({ concluidos: [], falhas: [] });
   useLaboratorios.mockReturnValue({ data: [{ id: 'Lab-001', nome: 'Química Analítica' }] });
   useToast.mockReturnValue({ addToast: vi.fn() });
 });
@@ -186,11 +187,10 @@ describe('ResiduosScreen — fila de aprovação', () => {
     return render(<ResiduosScreen state={initialState} dispatch={vi.fn()} />);
   };
 
-  it('confirma a aprovação e oferece desfazer, que chama o endpoint de desfazer', () => {
+  it('confirma a aprovação e oferece desfazer, que chama o endpoint de desfazer', async () => {
     const addToast = vi.fn();
-    const desfazer = vi.fn();
     useToast.mockReturnValue({ addToast });
-    useDesfazerAprovacao.mockReturnValue({ mutate: desfazer, isPending: false });
+    executarEmCadaResiduo.mockResolvedValue({ concluidos: [7], falhas: [] });
     useAprovarResiduos.mockReturnValue({
       mutate: vi.fn((ids, opts) => opts.onSuccess({ concluidos: ids, falhas: [] })),
       isPending: false,
@@ -204,8 +204,23 @@ describe('ResiduosScreen — fila de aprovação', () => {
       'success',
       expect.objectContaining({ rotulo: 'Desfazer' }),
     );
-    addToast.mock.calls[0][2].executar();
-    expect(desfazer).toHaveBeenCalledWith([7], expect.anything());
+    await addToast.mock.calls[0][2].executar();
+    expect(executarEmCadaResiduo).toHaveBeenCalledWith([7], 'desfazer-aprovacao');
+    expect(addToast).toHaveBeenLastCalledWith(
+      'Aprovação do resíduo #7 desfeita. Ele voltou para a fila de aprovação.', 'success');
+  });
+
+  it('oferece desfazer a aprovação na linha enquanto o resíduo não entrou num manifesto', () => {
+    renderFila([{ ...residuo, id: 5, status: 'aguardando-coleta', mtr_id: null }, { ...residuo, id: 6, status: 'aguardando-coleta', mtr_id: 2 }]);
+    const desfazer = screen.getAllByRole('button', { name: 'Desfazer aprovação' });
+    expect(desfazer).toHaveLength(1);
+    fireEvent.click(desfazer[0]);
+    expect(executarEmCadaResiduo).toHaveBeenCalledWith([5], 'desfazer-aprovacao');
+  });
+
+  it('não oferece desfazer aprovação a quem não aprova', () => {
+    renderFila([{ ...residuo, id: 5, status: 'aguardando-coleta', mtr_id: null }], 'Aluno');
+    expect(screen.queryByRole('button', { name: 'Desfazer aprovação' })).not.toBeInTheDocument();
   });
 
   it('aprova em lote as solicitações selecionadas', () => {

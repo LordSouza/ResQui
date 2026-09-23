@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon, Tag, SectionTitle, Badge, riscoBadge, residuoStatusBadge } from '../components';
 import { exportCsv } from '../utils';
 import { useResíduos } from '../residuos/useResíduos';
 import { useAprovarResiduos } from '../residuos/useAprovarResiduos';
-import { useDesfazerAprovacao } from '../residuos/useDesfazerAprovacao';
+import { executarEmCadaResiduo } from '../residuos/executarEmLote';
 import { useLaboratorios } from '../laboratorios/useLaboratorios';
 import { useToast } from '../components/ToastContext';
 import { usePode } from '../auth/permissoes';
@@ -37,7 +38,7 @@ function mensagemListaVazia(filter, q) {
   if (filter === 'todos') return 'Nenhum resíduo registrado ainda.';
   if (filter === 'solicitado') return 'Nenhuma solicitação aguardando aprovação.';
   if (filter === 'rejeitado') return 'Nenhum descarte rejeitado.';
-  return `Nenhum resíduo em “${CICLO.find(([k]) => k === filter)[1]}”.`;
+  return `Nenhum resíduo em “${CICLO.find(([k]) => k === filter)?.[1] ?? filter}”.`;
 }
 
 function ClassesDoResiduo({ classes }) {
@@ -61,8 +62,9 @@ export function ResiduosScreen({ state, dispatch }) {
   // o edita, e sem este gate o botão só rendia 403 ao salvar.
   const podeEditar = usePode('Operacao');
   const aprovar = useAprovarResiduos();
-  const desfazer = useDesfazerAprovacao();
+  const queryClient = useQueryClient();
   const { addToast } = useToast();
+  const [desfazendo, setDesfazendo] = useState([]);
   const { data: labs = [] } = useLaboratorios();
   const [selecionados, setSelecionados] = useState([]);
 
@@ -82,13 +84,14 @@ export function ResiduosScreen({ state, dispatch }) {
   const relatarFalhas = (falhas) =>
     falhas.forEach(f => addToast(`Resíduo #${f.id}: ${f.mensagem}`, 'error'));
 
-  const desfazerAprovacao = (ids) =>
-    desfazer.mutate(ids, {
-      onSuccess: ({ concluidos, falhas }) => {
-        if (concluidos.length > 0) addToast(mensagemAprovacaoDesfeita(concluidos), 'success');
-        relatarFalhas(falhas);
-      },
-    });
+  const desfazerAprovacao = async (ids) => {
+    setDesfazendo(prev => [...prev, ...ids]);
+    const { concluidos, falhas } = await executarEmCadaResiduo(ids, 'desfazer-aprovacao');
+    await queryClient.invalidateQueries({ queryKey: ['residuos'] });
+    setDesfazendo(prev => prev.filter(id => !ids.includes(id)));
+    if (concluidos.length > 0) addToast(mensagemAprovacaoDesfeita(concluidos), 'success');
+    relatarFalhas(falhas);
+  };
 
   const aprovarResiduos = (ids) =>
     aprovar.mutate(ids, {
@@ -246,6 +249,16 @@ export function ResiduosScreen({ state, dispatch }) {
                         Rejeitar
                       </button>
                     </>
+                  )}
+                  {podeAprovar && r.status === 'aguardando-coleta' && !r.mtr_id && (
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      disabled={desfazendo.includes(r.id)}
+                      onClick={() => desfazerAprovacao([r.id])}
+                    >
+                      {desfazendo.includes(r.id) ? 'Desfazendo…' : 'Desfazer aprovação'}
+                    </button>
                   )}
                   {podeEditar && (
                     <button

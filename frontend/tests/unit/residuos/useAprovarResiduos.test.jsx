@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAprovarResiduos } from '../../../src/residuos/useAprovarResiduos';
-import { useDesfazerAprovacao } from '../../../src/residuos/useDesfazerAprovacao';
 
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
@@ -50,21 +49,5 @@ describe('useAprovarResiduos', () => {
       concluidos: [7],
       falhas: [{ id: 8, mensagem: 'Só é possível aprovar resíduos com solicitação pendente.' }],
     });
-  });
-});
-
-describe('useDesfazerAprovacao', () => {
-  beforeEach(() => {
-    vi.stubGlobal('localStorage', { getItem: () => null, setItem() {}, removeItem() {} });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok));
-  });
-  afterEach(() => vi.unstubAllGlobals());
-
-  it('faz PUT /api/residuos/:id/desfazer-aprovacao', async () => {
-    const { result } = renderHook(() => useDesfazerAprovacao(), { wrapper });
-    act(() => result.current.mutate([7]));
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(fetch.mock.calls[0][0]).toBe('/api/residuos/7/desfazer-aprovacao');
-    expect(fetch.mock.calls[0][1].method).toBe('PUT');
   });
 });

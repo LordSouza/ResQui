@@ -79,8 +79,9 @@ test('aprovar mostra confirmação e o Desfazer devolve o resíduo à fila', asy
   await linha.getByRole('button', { name: 'Aprovar' }).click();
   await expect(page.getByRole('status').filter({ hasText: /aprovado\. Ele já pode entrar num manifesto/ })).toBeVisible();
   await expect(linha.getByText('Aguardando coleta')).toBeVisible();
+  await expect(linha.getByRole('button', { name: 'Desfazer aprovação' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Desfazer' }).click();
+  await page.getByRole('button', { name: 'Desfazer', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /desfeita\. Ele voltou para a fila de aprovação/ })).toBeVisible();
   await expect(linha.getByRole('button', { name: 'Aprovar' })).toBeVisible();
 });
