@@ -13,7 +13,8 @@ public record ResiduoDto(
     string Composicao,
     string Risco,
     string? Destino,
-    IList<int> ClassesReatividade
+    IList<int> ClassesReatividade,
+    string? MotivoRejeicao
 );
 
 public record CriarResiduoCmd(

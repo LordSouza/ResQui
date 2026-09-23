@@ -2,6 +2,8 @@ namespace ResQui.Domain.Entities;
 
 public class Residuo
 {
+    public const int MaxMotivoRejeicao = 1000;
+
     public int Id { get; set; }
     public string Descricao { get; set; } = "";
     public string LaboratorioId { get; set; } = "";
@@ -16,4 +18,5 @@ public class Residuo
     public string Risco { get; set; } = "medio";
     public string? Destino { get; set; }
     public List<int> ClassesReatividade { get; set; } = [];
+    public string? MotivoRejeicao { get; set; }
 }

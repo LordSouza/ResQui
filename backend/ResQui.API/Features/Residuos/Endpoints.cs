@@ -39,6 +39,14 @@ public static class Endpoints
         })
         .RequireAuthorization("Aprovador");
 
+        group.MapPut("/{id:int}/desfazer-aprovacao", async (int id, IResiduosService svc, ClaimsPrincipal user) =>
+        {
+            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
+            var r = await svc.DesfazerAprovacaoAsync(id, email);
+            return r is null ? Results.NotFound() : Results.Ok(r);
+        })
+        .RequireAuthorization("Aprovador");
+
         group.MapPut("/{id:int}/rejeitar", async (int id, RejeitarResiduoCmd cmd, IResiduosService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";

@@ -118,18 +118,37 @@ public class ResiduosService(
         return ToDto(r);
     }
 
+    public async Task<ResiduoDto?> DesfazerAprovacaoAsync(int id, string usuarioEmail)
+    {
+        var r = await repo.GetByIdAsync(id);
+        if (r is null) return null;
+        if (r.Status != "aguardando-coleta" || r.MtrId is not null)
+            throw new ValidationException($"Só é possível desfazer a aprovação enquanto o resíduo aguarda coleta, antes de entrar num manifesto (status atual: \"{r.Status}\").");
+        r.Status = "solicitado";
+        await repo.UpdateAsync(r);
+        await repo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(usuarioEmail, "residuo.aprovacao-desfeita", "Resíduos",
+            $"Desfez a aprovação do descarte do resíduo {id} — {r.Descricao}", RiscoAuditoria.Medium);
+        return ToDto(r);
+    }
+
     public async Task<ResiduoDto?> RejeitarAsync(int id, string? motivo, string usuarioEmail)
     {
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
         if (r.Status != "solicitado")
             throw new ValidationException($"Só é possível rejeitar resíduos com solicitação pendente (status atual: \"{r.Status}\").");
+        var motivoInformado = motivo?.Trim() ?? "";
+        if (motivoInformado.Length == 0)
+            throw new ValidationException("Informe o motivo da rejeição: é ele que quem registrou o resíduo vê na lista.");
+        if (motivoInformado.Length > Residuo.MaxMotivoRejeicao)
+            throw new ValidationException($"O motivo da rejeição deve ter no máximo {Residuo.MaxMotivoRejeicao} caracteres.");
         r.Status = "rejeitado";
+        r.MotivoRejeicao = motivoInformado;
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
-        var sufixo = string.IsNullOrWhiteSpace(motivo) ? "" : $" — motivo: {motivo}";
         await auditoria.RegistrarAsync(usuarioEmail, "residuo.rejeitar", "Resíduos",
-            $"Rejeitou descarte do resíduo {id}{sufixo}", RiscoAuditoria.Medium);
+            $"Rejeitou descarte do resíduo {id} — motivo: {motivoInformado}", RiscoAuditoria.Medium);
         return ToDto(r);
     }
 
@@ -169,5 +188,5 @@ public class ResiduosService(
 
     private static ResiduoDto ToDto(Residuo r) =>
         new(r.Id, r.Descricao, r.LaboratorioId, r.MtrId, r.Status, r.DataRegistro,
-            r.Tipo, r.Volume, r.Unidade, r.Composicao, r.Risco, r.Destino, r.ClassesReatividade);
+            r.Tipo, r.Volume, r.Unidade, r.Composicao, r.Risco, r.Destino, r.ClassesReatividade, r.MotivoRejeicao);
 }

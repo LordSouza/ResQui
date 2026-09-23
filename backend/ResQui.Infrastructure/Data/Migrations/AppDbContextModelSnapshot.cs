@@ -735,6 +735,10 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("MotivoRejeicao")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<int?>("MtrId")
                         .HasColumnType("integer");
 

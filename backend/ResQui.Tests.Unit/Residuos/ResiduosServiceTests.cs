@@ -213,8 +213,74 @@ public class ResiduosServiceTests
         var result = await _sut.RejeitarAsync(1, "fora de conformidade", "prof@lab.com");
 
         result!.Status.Should().Be("rejeitado");
+        result.MotivoRejeicao.Should().Be("fora de conformidade");
         await _audit.Received(1).RegistrarAsync(
             "prof@lab.com", "residuo.rejeitar", "Resíduos", Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RejeitarAsync_SemMotivo_LancaValidationExceptionSemGravar(string? motivo)
+    {
+        var r = FakeResiduo(1, status: "solicitado");
+        _repo.GetByIdAsync(1).Returns(r);
+
+        var act = () => _sut.RejeitarAsync(1, motivo, "prof@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*motivo*");
+        r.Status.Should().Be("solicitado");
+        await _repo.DidNotReceive().SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task RejeitarAsync_MotivoAcimaDoLimite_LancaValidationException()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "solicitado"));
+        var act = () => _sut.RejeitarAsync(1, new string('x', Residuo.MaxMotivoRejeicao + 1), "prof@lab.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*no máximo*");
+    }
+
+    [Fact]
+    public async Task RejeitarAsync_GravaMotivoSemEspacosNasPontas()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "solicitado"));
+        var result = await _sut.RejeitarAsync(1, "  pH fora da faixa  ", "prof@lab.com");
+        result!.MotivoRejeicao.Should().Be("pH fora da faixa");
+    }
+
+    [Fact]
+    public async Task DesfazerAprovacaoAsync_AguardandoColeta_VoltaParaSolicitado()
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1, status: "aguardando-coleta"));
+
+        var result = await _sut.DesfazerAprovacaoAsync(1, "prof@lab.com");
+
+        result!.Status.Should().Be("solicitado");
+        await _repo.Received(1).SaveChangesAsync();
+        await _audit.Received(1).RegistrarAsync(
+            "prof@lab.com", "residuo.aprovacao-desfeita", "Resíduos", Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
+
+    [Theory]
+    [InlineData("solicitado", null)]
+    [InlineData("em-coleta", 3)]
+    [InlineData("aguardando-coleta", 3)]
+    [InlineData("rejeitado", null)]
+    public async Task DesfazerAprovacaoAsync_ForaDaJanela_LancaValidationException(string status, int? mtrId)
+    {
+        _repo.GetByIdAsync(1).Returns(FakeResiduo(1, mtrId: mtrId, status: status));
+        var act = () => _sut.DesfazerAprovacaoAsync(1, "prof@lab.com");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*desfazer a aprovação*");
+        await _repo.DidNotReceive().SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task DesfazerAprovacaoAsync_IdInexistente_RetornaNull()
+    {
+        _repo.GetByIdAsync(999).Returns((Residuo?)null);
+        (await _sut.DesfazerAprovacaoAsync(999, "u@x.com")).Should().BeNull();
     }
 
     [Fact]

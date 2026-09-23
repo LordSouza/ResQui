@@ -15,6 +15,8 @@ public class ResiduoConfiguration : IEntityTypeConfiguration<Residuo>
             .HasForeignKey(r => r.LaboratorioId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(r => r.MotivoRejeicao).HasMaxLength(Residuo.MaxMotivoRejeicao);
+
         builder.HasOne<Mtr>()
             .WithMany()
             .HasForeignKey(r => r.MtrId)
