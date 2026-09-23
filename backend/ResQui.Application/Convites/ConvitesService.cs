@@ -8,7 +8,7 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Convites;
 
-public record CriarConviteCmd(string Papel);
+public record CriarConviteCmd(string Papel, IList<string>? LaboratorioIds = null);
 public record ConviteCriadoDto(int Id, string Token, string Papel, DateTime ExpiraEm);
 public record ConviteDto(int Id, string Papel, string Status, DateTime CriadoEm, DateTime ExpiraEm, DateTime? UsadoEm, string? UsadoPor);
 public record ConvitePublicoDto(string Papel);
@@ -16,36 +16,50 @@ public record AceitarConviteCmd(string Nome, string Email, string? Matricula, st
 
 public interface IConvitesService
 {
-    Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, string? requesterId, string requesterEmail, string requesterPapel);
+    Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, Solicitante solicitante);
     Task<IEnumerable<ConviteDto>> ListarAsync();
     Task<bool> RevogarAsync(int id, string requesterEmail, string requesterPapel);
     Task<ConvitePublicoDto?> ConsultarAsync(string token);
     Task AceitarAsync(string token, AceitarConviteCmd cmd);
 }
 
-public class ConvitesService(IConvitesRepository convites, IAuthRepository usuarios, IAuditoriaService auditoria) : IConvitesService
+public class ConvitesService(
+    IConvitesRepository convites,
+    IAuthRepository usuarios,
+    IAuditoriaService auditoria,
+    IUsuarioLaboratoriosRepository usuarioLabs,
+    ILaboratoriosRepository labRepo) : IConvitesService
 {
     public const int DiasValidade = 7;
     private static readonly string[] PapeisConvidaveis = ["Professor", "Aluno"];
 
-    public async Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, string? requesterId, string requesterEmail, string requesterPapel)
+    public async Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, Solicitante solicitante)
     {
         if (!PapeisConvidaveis.Contains(cmd.Papel))
             throw new ValidationException($"Papel inválido para convite: {cmd.Papel}.");
-        if (cmd.Papel != "Aluno" && requesterPapel != "Admin")
+        if (cmd.Papel != "Aluno" && solicitante.Papel != "Admin")
             throw new ValidationException($"Convidar {cmd.Papel} é só o Admin; você pode convidar Aluno.");
+
+        var laboratorios = (cmd.LaboratorioIds ?? []).Distinct().ToList();
+        var existentes = (await labRepo.GetAllAsync()).Select(l => l.Id).ToHashSet();
+        if (laboratorios.FirstOrDefault(labId => !existentes.Contains(labId)) is { } inexistente)
+            throw new ValidationException($"Laboratório {inexistente} não encontrado.");
+        if (solicitante.Papel != "Admin"
+            && laboratorios.FirstOrDefault(labId => !solicitante.Responde(labId)) is { } alheio)
+            throw new ValidationException($"Você não responde pelo laboratório {alheio}.");
 
         var token = GerarToken();
         var convite = new Convite
         {
             TokenHash = Hash(token),
             Papel = cmd.Papel,
-            CriadoPorId = requesterId,
+            CriadoPorId = solicitante.Id,
             ExpiraEm = DateTime.UtcNow.AddDays(DiasValidade),
         };
         await convites.AddAsync(convite);
         await convites.SaveChangesAsync();
-        await auditoria.RegistrarAsync(requesterEmail, "convite.criar", "Usuários",
+        await usuarioLabs.DefinirDoConviteAsync(convite.Id, laboratorios);
+        await auditoria.RegistrarAsync(solicitante.Email, "convite.criar", "Usuários",
             $"Gerou convite #{convite.Id} para {cmd.Papel}, válido até {convite.ExpiraEm:dd/MM/yyyy}", RiscoAuditoria.Medium);
         return new ConviteCriadoDto(convite.Id, token, convite.Papel, convite.ExpiraEm);
     }
@@ -124,6 +138,7 @@ public class ConvitesService(IConvitesRepository convites, IAuthRepository usuar
         convite.UsadoPorId = id;
         await convites.SaveChangesAsync();
         await usuarios.AddToRoleAsync(id, convite.Papel);
+        await usuarioLabs.DefinirAsync(id, await usuarioLabs.DoConviteAsync(convite.Id));
         await auditoria.RegistrarAsync(email, "convite.aceito", "Usuários",
             $"Aceitou o convite #{convite.Id} e criou conta de {convite.Papel}", RiscoAuditoria.Medium);
     }

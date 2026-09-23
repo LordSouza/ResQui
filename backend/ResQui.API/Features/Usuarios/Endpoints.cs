@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using ResQui.API.Common;
+using ResQui.Domain.Interfaces;
 using ResQui.Application.Auth;
 using ResQui.Application.Usuarios;
 
@@ -11,11 +13,16 @@ public static class Endpoints
         group.MapGet("/", async (IUsuariosService svc) =>
             Results.Ok(await svc.ListarAsync()));
 
-        group.MapPost("/", async (RegisterCmd cmd, IAuthService authSvc, ClaimsPrincipal user) =>
+        group.MapPost("/", async (RegisterCmd cmd, IAuthService authSvc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var profile = await authSvc.RegisterAsync(cmd, email, user.FindFirstValue("papel") ?? "");
+            var profile = await authSvc.RegisterAsync(cmd, await user.ResolverAsync(labs));
             return Results.Created($"/api/usuarios/{profile.Id}", profile);
+        });
+
+        group.MapPut("/{id}/laboratorios", async (string id, DefinirLaboratoriosCmd cmd, IUsuariosService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
+        {
+            await svc.DefinirLaboratoriosAsync(id, cmd, await user.ResolverAsync(labs));
+            return Results.NoContent();
         });
 
         group.MapPut("/{id}/papel", async (string id, AlterarPapelCmd cmd, IUsuariosService svc, ClaimsPrincipal user) =>

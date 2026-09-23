@@ -23,11 +23,15 @@ public class AuthServiceTests
         Audience = "resqui-app",
         ExpirationHours = 8
     };
+    private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
     private readonly AuthService _sut;
+
+    private static Solicitante Quem(string email, string papel, params string[] labs) =>
+        new("quem", email, papel, labs);
 
     public AuthServiceTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle);
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs);
         // Sem isto, TentarConsumir devolve false (default de bool) e todo login destes testes
         // morre no throttle.
         _throttle.TentarConsumir(Arg.Any<string>()).Returns(true);
@@ -85,7 +89,7 @@ public class AuthServiceTests
         _repo.GetRolesAsync("new-user-id").Returns(new List<string> { "Professor" });
 
         var cmd = new RegisterCmd("novo@lab.com", "senha123", null, "Professor", "Novo User");
-        await _sut.RegisterAsync(cmd, "admin@lab.com", "Admin");
+        await _sut.RegisterAsync(cmd, Quem("admin@lab.com", "Admin"));
 
         await _audit.Received(1).RegistrarAsync(
             "admin@lab.com", "user.criar", "Usuários",
@@ -151,7 +155,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_EmailInvalido_LancaValidationException(string email)
     {
         var cmd = new RegisterCmd(email, "Senha@123", null, "Professor", "Ana");
-        var act = () => _sut.RegisterAsync(cmd, "admin@x.com", "Admin");
+        var act = () => _sut.RegisterAsync(cmd, Quem("admin@x.com", "Admin"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*E-mail*");
     }
 
@@ -159,7 +163,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_SenhaVazia_LancaValidationException()
     {
         var cmd = new RegisterCmd("ana@x.com", "", null, "Professor", "Ana");
-        var act = () => _sut.RegisterAsync(cmd, "admin@x.com", "Admin");
+        var act = () => _sut.RegisterAsync(cmd, Quem("admin@x.com", "Admin"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Senha*");
     }
 
@@ -167,7 +171,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_PapelInvalido_LancaValidationException()
     {
         var cmd = new RegisterCmd("ana@x.com", "Senha@123", null, "SuperAdmin", "Ana");
-        var act = () => _sut.RegisterAsync(cmd, "admin@x.com", "Admin");
+        var act = () => _sut.RegisterAsync(cmd, Quem("admin@x.com", "Admin"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Papel*");
     }
 
@@ -179,8 +183,7 @@ public class AuthServiceTests
         _repo.GetRolesAsync("u2").Returns((IList<string>)["Professor"]);
 
         var result = await _sut.RegisterAsync(
-            new RegisterCmd("new@resqui.local", "Pass@123", "MAT-002", "Professor", "Novo Usuário"),
-            "admin@resqui.local", "Admin");
+            new RegisterCmd("new@resqui.local", "Pass@123", "MAT-002", "Professor", "Novo Usuário"), Quem("admin@resqui.local", "Admin"));
 
         result.Email.Should().Be("new@resqui.local");
         result.Papel.Should().Be("Professor");
@@ -199,8 +202,7 @@ public class AuthServiceTests
         _repo.GetRolesAsync("u9").Returns((IList<string>)[papel]);
 
         var result = await _sut.RegisterAsync(
-            new RegisterCmd("novo@resqui.local", "Pass@123", null, papel, "Novo"),
-            "admin@resqui.local", "Admin");
+            new RegisterCmd("novo@resqui.local", "Pass@123", null, papel, "Novo"), Quem("admin@resqui.local", "Admin"));
 
         result.Papel.Should().Be(papel);
         await _repo.Received(1).AddToRoleAsync("u9", papel);
@@ -707,7 +709,7 @@ public class AuthServiceTests
             .Returns("u1");
 
         var perfil = await _sut.RegisterAsync(
-            new RegisterCmd("nova@resqui.local", "Senh@123", null, papel, "Nova"), "admin@resqui.local", "Admin");
+            new RegisterCmd("nova@resqui.local", "Senh@123", null, papel, "Nova"), Quem("admin@resqui.local", "Admin"));
 
         perfil.Papel.Should().Be(papel);
     }
@@ -719,7 +721,7 @@ public class AuthServiceTests
             .Returns("u1");
 
         var perfil = await _sut.RegisterAsync(
-            new RegisterCmd("aluno@resqui.local", "Senh@123", null, "Aluno", "Aluno"), "prof@resqui.local", "Professor");
+            new RegisterCmd("aluno@resqui.local", "Senh@123", null, "Aluno", "Aluno"), Quem("prof@resqui.local", "Professor"));
 
         perfil.Papel.Should().Be("Aluno");
     }
@@ -730,7 +732,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_ProfessorNaoCriaAlemDeAluno(string papelAlvo)
     {
         var act = () => _sut.RegisterAsync(
-            new RegisterCmd("nova@resqui.local", "Senh@123", null, papelAlvo, "Nova"), "prof@resqui.local", "Professor");
+            new RegisterCmd("nova@resqui.local", "Senh@123", null, papelAlvo, "Nova"), Quem("prof@resqui.local", "Professor"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*só o Admin*");
     }
@@ -743,8 +745,60 @@ public class AuthServiceTests
     public async Task RegisterAsync_RecusaOsPapeisExtintos(string papel)
     {
         var act = () => _sut.RegisterAsync(
-            new RegisterCmd("nova@resqui.local", "Senh@123", null, papel, "Nova"), "admin@resqui.local", "Admin");
+            new RegisterCmd("nova@resqui.local", "Senh@123", null, papel, "Nova"), Quem("admin@resqui.local", "Admin"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Papel inválido*");
+    }
+
+    [Fact]
+    public async Task RegisterAsync_GravaOsLaboratoriosPedidos()
+    {
+        _repo.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), "Aluno", Arg.Any<string?>())
+            .Returns("u1");
+
+        var perfil = await _sut.RegisterAsync(
+            new RegisterCmd("aluno@resqui.local", "Senh@123", null, "Aluno", "Aluno", ["Lab-001"]),
+            Quem("prof@resqui.local", "Professor", "Lab-001"));
+
+        perfil.LaboratorioIds.Should().Equal("Lab-001");
+        await _usuarioLabs.Received(1).DefinirAsync("u1",
+            Arg.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "Lab-001" })));
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ProfessorNaoAtribuiLaboratorioQueNaoTem()
+    {
+        var act = () => _sut.RegisterAsync(
+            new RegisterCmd("aluno@resqui.local", "Senh@123", null, "Aluno", "Aluno", ["Lab-002"]),
+            Quem("prof@resqui.local", "Professor", "Lab-001"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-002*");
+        await _repo.DidNotReceive().CreateAsync(Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>());
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ComoAdmin_AtribuiQualquerLaboratorio()
+    {
+        _repo.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), "Aluno", Arg.Any<string?>())
+            .Returns("u1");
+
+        var perfil = await _sut.RegisterAsync(
+            new RegisterCmd("aluno@resqui.local", "Senh@123", null, "Aluno", "Aluno", ["Lab-002"]),
+            Quem("admin@resqui.local", "Admin"));
+
+        perfil.LaboratorioIds.Should().Equal("Lab-002");
+    }
+
+    [Fact]
+    public async Task GetMeAsync_DevolveOsLaboratoriosDoUsuario()
+    {
+        _repo.FindByIdAsync("u1").Returns(new UsuarioInfo(
+            "u1", "ana@lab.com", "Ana", null, "Professor", new List<string> { "Professor" }, false));
+        _usuarioLabs.DoUsuarioAsync("u1").Returns(new List<string> { "Lab-001", "Lab-003" });
+
+        var perfil = await _sut.GetMeAsync("u1");
+
+        perfil!.LaboratorioIds.Should().Equal("Lab-001", "Lab-003");
     }
 }

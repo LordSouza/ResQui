@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using ResQui.API.Common;
+using ResQui.Domain.Interfaces;
 using ResQui.Application.Auth;
 
 namespace ResQui.API.Features.Auth;
@@ -90,10 +92,9 @@ public static class Endpoints
         })
         .RequireAuthorization();
 
-        group.MapPost("/register", async (RegisterCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
+        group.MapPost("/register", async (RegisterCmd cmd, IAuthService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var profile = await svc.RegisterAsync(cmd, email, user.FindFirstValue("papel") ?? "");
+            var profile = await svc.RegisterAsync(cmd, await user.ResolverAsync(labs));
             return Results.Created($"/api/auth/me", profile);
         })
         .RequireAuthorization("GestaoUsuarios")

@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using ResQui.API.Common;
+using ResQui.Domain.Interfaces;
 using ResQui.Application.Convites;
 
 namespace ResQui.API.Features.Convites;
@@ -7,13 +9,8 @@ public static class Endpoints
 {
     public static RouteGroupBuilder MapConvitesEndpoints(this RouteGroupBuilder group)
     {
-        group.MapPost("/", async (CriarConviteCmd cmd, IConvitesService svc, ClaimsPrincipal user) =>
-        {
-            var id = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var papel = user.FindFirstValue("papel") ?? "";
-            return Results.Ok(await svc.CriarAsync(cmd, id, email, papel));
-        })
+        group.MapPost("/", async (CriarConviteCmd cmd, IConvitesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
+            Results.Ok(await svc.CriarAsync(cmd, await user.ResolverAsync(labs))))
         .RequireAuthorization("GestaoUsuarios")
         .WithSummary("Gerar link de convite");
 

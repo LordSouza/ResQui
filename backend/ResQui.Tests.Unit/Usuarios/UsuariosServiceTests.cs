@@ -13,12 +13,29 @@ public class UsuariosServiceTests
 {
     private readonly IAuthRepository _repo = Substitute.For<IAuthRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
+    private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
+    private readonly ILaboratoriosRepository _labRepo = Substitute.For<ILaboratoriosRepository>();
     private readonly UsuariosService _sut;
 
     public UsuariosServiceTests()
     {
-        _sut = new UsuariosService(_repo, _audit);
+        _usuarioLabs.DeTodosAsync().Returns(new Dictionary<string, IReadOnlyList<string>>());
+        _labRepo.GetAllAsync().Returns([
+            new Laboratorio { Id = "Lab-001", Nome = "A" },
+            new Laboratorio { Id = "Lab-002", Nome = "B" },
+        ]);
+        _sut = new UsuariosService(_repo, _audit, _usuarioLabs, _labRepo);
     }
+
+    private static Solicitante Professor(params string[] labs) =>
+        new("prof-1", "prof@lab.com", "Professor", labs);
+
+    private static Solicitante Admin() =>
+        new("adm", "admin@lab.com", "Admin", []);
+
+    private static UsuarioInfo Aluno(string id = "aluno-1") => new(
+        id, "aluno@lab.com", "Aluno Um", "M002", "Aluno",
+        new List<string> { "Aluno" }, false);
 
     private static UsuarioInfo FakeUser(string id = "user-1") => new(
         id, "ana@lab.com", "Ana", "M001", "Professor",
@@ -209,5 +226,118 @@ public class UsuariosServiceTests
         await _sut.ArquivarAsync("prof-1", "admin@lab.com", "Admin");
 
         await _repo.Received(1).SoftDeleteAsync("prof-1");
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_ComoAdmin_AceitaQualquerAlvoEQualquerLaboratorio()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("user-1").Returns(FakeUser());
+
+        await _sut.DefinirLaboratoriosAsync("user-1", new DefinirLaboratoriosCmd(["Lab-001", "Lab-002"]), Admin());
+
+        await _usuarioLabs.Received(1).DefinirAsync("user-1",
+            Arg.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "Lab-001", "Lab-002" })));
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_ProfessorParaAluno_AceitaOsProprios()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("aluno-1").Returns(Aluno());
+
+        await _sut.DefinirLaboratoriosAsync("aluno-1", new DefinirLaboratoriosCmd(["Lab-001"]), Professor("Lab-001"));
+
+        await _usuarioLabs.Received(1).DefinirAsync("aluno-1", Arg.Any<IEnumerable<string>>());
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_ProfessorParaAluno_RecusaLaboratorioQueNaoTem()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("aluno-1").Returns(Aluno());
+
+        var act = () => _sut.DefinirLaboratoriosAsync("aluno-1",
+            new DefinirLaboratoriosCmd(["Lab-002"]), Professor("Lab-001"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-002*");
+        await _usuarioLabs.DidNotReceive().DefinirAsync(Arg.Any<string>(), Arg.Any<IEnumerable<string>>());
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_ProfessorParaProfessor_Recusa()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("user-1").Returns(FakeUser());
+
+        var act = () => _sut.DefinirLaboratoriosAsync("user-1",
+            new DefinirLaboratoriosCmd(["Lab-001"]), Professor("Lab-001"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Professor*");
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_ProfessorParaSiMesmo_Recusa()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("prof-1").Returns(FakeUser("prof-1"));
+
+        var act = () => _sut.DefinirLaboratoriosAsync("prof-1",
+            new DefinirLaboratoriosCmd(["Lab-001", "Lab-002"]), Professor("Lab-001"));
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_LaboratorioInexistente_Recusa()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("user-1").Returns(FakeUser());
+
+        var act = () => _sut.DefinirLaboratoriosAsync("user-1",
+            new DefinirLaboratoriosCmd(["Lab-999"]), Admin());
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-999*");
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_AlvoInexistente_NaoFazNada()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("sumiu").Returns((UsuarioInfo?)null);
+
+        await _sut.DefinirLaboratoriosAsync("sumiu", new DefinirLaboratoriosCmd(["Lab-001"]), Admin());
+
+        await _usuarioLabs.DidNotReceive().DefinirAsync(Arg.Any<string>(), Arg.Any<IEnumerable<string>>());
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_ListaVazia_DeixaUsuarioSemLaboratorio()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("user-1").Returns(FakeUser());
+
+        await _sut.DefinirLaboratoriosAsync("user-1", new DefinirLaboratoriosCmd([]), Admin());
+
+        await _usuarioLabs.Received(1).DefinirAsync("user-1",
+            Arg.Is<IEnumerable<string>>(ids => !ids.Any()));
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_Audita()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("user-1").Returns(FakeUser());
+
+        await _sut.DefinirLaboratoriosAsync("user-1", new DefinirLaboratoriosCmd(["Lab-001"]), Admin());
+
+        await _audit.Received(1).RegistrarAsync(
+            "admin@lab.com", "usuario.laboratorios", "Usuários",
+            Arg.Is<string>(d => d.Contains("user-1") && d.Contains("Lab-001")), RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task ListarAsync_IncluiOsLaboratoriosDeCadaUsuario()
+    {
+        _repo.GetAllAsync().Returns([FakeUser()]);
+        _usuarioLabs.DeTodosAsync().Returns(new Dictionary<string, IReadOnlyList<string>>
+        {
+            ["user-1"] = ["Lab-001", "Lab-002"],
+        });
+
+        var lista = await _sut.ListarAsync();
+
+        lista.Should().ContainSingle().Which.LaboratorioIds.Should().Equal("Lab-001", "Lab-002");
     }
 }

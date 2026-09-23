@@ -10,7 +10,7 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Auth;
 
-public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email, ILoginThrottle throttle) : IAuthService
+public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email, ILoginThrottle throttle, IUsuarioLaboratoriosRepository usuarioLabs) : IAuthService
 {
     private const int QuantidadeCodigosRecuperacao = 10;
 
@@ -233,7 +233,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         return ativas.Count;
     }
 
-    public async Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, string requesterEmail, string requesterPapel)
+    public async Task<UserProfileDto> RegisterAsync(RegisterCmd cmd, Solicitante solicitante)
     {
         if (string.IsNullOrWhiteSpace(cmd.Email) || !cmd.Email.Contains('@'))
             throw new ValidationException("E-mail inválido.");
@@ -242,15 +242,21 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         string[] papeisValidos = ["Admin", "Professor", "Aluno"];
         if (!papeisValidos.Contains(cmd.Papel))
             throw new ValidationException($"Papel inválido: {cmd.Papel}.");
-        if (cmd.Papel != "Aluno" && requesterPapel != "Admin")
+        if (cmd.Papel != "Aluno" && solicitante.Papel != "Admin")
             throw new ValidationException($"Criar conta de {cmd.Papel} é só o Admin; você pode criar Aluno.");
+
+        var laboratorios = (cmd.LaboratorioIds ?? []).Distinct().ToList();
+        if (solicitante.Papel != "Admin"
+            && laboratorios.FirstOrDefault(labId => !solicitante.Responde(labId)) is { } alheio)
+            throw new ValidationException($"Você não responde pelo laboratório {alheio}.");
 
         var id = await repo.CreateAsync(cmd.Email, cmd.Senha, cmd.Matricula, cmd.Papel, cmd.Nome);
         await repo.AddToRoleAsync(id, cmd.Papel);
+        await usuarioLabs.DefinirAsync(id, laboratorios);
         var roles = await repo.GetRolesAsync(id);
-        await auditoria.RegistrarAsync(requesterEmail, "user.criar", "Usuários",
+        await auditoria.RegistrarAsync(solicitante.Email, "user.criar", "Usuários",
             $"Criou usuário {cmd.Email} com papel {cmd.Papel}", RiscoAuditoria.Medium);
-        return new UserProfileDto(id, cmd.Email, cmd.Nome, cmd.Matricula, cmd.Papel, roles);
+        return new UserProfileDto(id, cmd.Email, cmd.Nome, cmd.Matricula, cmd.Papel, roles, laboratorios);
     }
 
     public async Task<UserProfileDto?> GetMeAsync(string userId)
@@ -292,7 +298,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
             ? await repo.ContarCodigosRecuperacaoAsync(user.Id)
             : 0;
         return new UserProfileDto(user.Id, user.Email, user.Nome, user.Matricula,
-            user.Papel, user.Roles, user.TwoFactorEnabled, restantes);
+            user.Papel, user.Roles, await usuarioLabs.DoUsuarioAsync(user.Id), user.TwoFactorEnabled, restantes);
     }
 
     private enum SegundoFator { Invalido, Totp, Recuperacao }

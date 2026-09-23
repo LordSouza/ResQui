@@ -18,11 +18,12 @@ public class AuthSegurancaTests
     private readonly IEmailService _email = Substitute.For<IEmailService>();
     private readonly ILoginThrottle _throttle = Substitute.For<ILoginThrottle>();
     private readonly JwtOptions _jwt = new() { Key = "secret-key-32-chars-long-enough!!", Issuer = "resqui", Audience = "resqui-app", ExpirationHours = 8 };
+    private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
     private readonly AuthService _sut;
 
     public AuthSegurancaTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle);
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs);
         // Sem isto, TentarConsumir devolve false (default de bool) e todo login destes testes
         // morre no throttle.
         _throttle.TentarConsumir(Arg.Any<string>()).Returns(true);

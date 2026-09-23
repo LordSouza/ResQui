@@ -5,9 +5,10 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Usuarios;
 
-public record UsuarioDto(string Id, string Email, string? Nome, string? Matricula, string Papel, IList<string> Roles, bool Arquivado, bool TwoFactorEnabled);
+public record UsuarioDto(string Id, string Email, string? Nome, string? Matricula, string Papel, IList<string> Roles, bool Arquivado, bool TwoFactorEnabled, IReadOnlyList<string> LaboratorioIds);
 public record UsuarioNomeDto(string Id, string Nome, string Email);
 public record AlterarPapelCmd(string NovoPapel);
+public record DefinirLaboratoriosCmd(IList<string> LaboratorioIds);
 
 public interface IUsuariosService
 {
@@ -16,13 +17,22 @@ public interface IUsuariosService
     Task AlterarPapelAsync(string id, AlterarPapelCmd cmd, string usuarioEmail);
     Task ArquivarAsync(string id, string usuarioEmail, string requesterPapel);
     Task ExcluirAsync(string id, string requesterId, string usuarioEmail);
+    Task DefinirLaboratoriosAsync(string id, DefinirLaboratoriosCmd cmd, Solicitante solicitante);
 }
 
-public class UsuariosService(IAuthRepository repo, IAuditoriaService auditoria) : IUsuariosService
+public class UsuariosService(
+    IAuthRepository repo,
+    IAuditoriaService auditoria,
+    IUsuarioLaboratoriosRepository usuarioLabs,
+    ILaboratoriosRepository labRepo) : IUsuariosService
 {
-    public async Task<IEnumerable<UsuarioDto>> ListarAsync() =>
-        (await repo.GetAllAsync())
-            .Select(u => new UsuarioDto(u.Id, u.Email, u.Nome, u.Matricula, u.Papel, u.Roles, u.Arquivado, u.TwoFactorEnabled));
+    public async Task<IEnumerable<UsuarioDto>> ListarAsync()
+    {
+        var porUsuario = await usuarioLabs.DeTodosAsync();
+        return (await repo.GetAllAsync())
+            .Select(u => new UsuarioDto(u.Id, u.Email, u.Nome, u.Matricula, u.Papel, u.Roles, u.Arquivado,
+                u.TwoFactorEnabled, porUsuario.TryGetValue(u.Id, out var labs) ? labs : []));
+    }
 
     public async Task<IEnumerable<UsuarioNomeDto>> ListarNomesAsync() =>
         (await repo.GetAllAsync())
@@ -46,6 +56,30 @@ public class UsuariosService(IAuthRepository repo, IAuditoriaService auditoria) 
         await repo.SoftDeleteAsync(id);
         await auditoria.RegistrarAsync(usuarioEmail, "user.arquivar", "Usuários",
             $"Arquivou usuário {id}", RiscoAuditoria.High);
+    }
+
+    public async Task DefinirLaboratoriosAsync(string id, DefinirLaboratoriosCmd cmd, Solicitante solicitante)
+    {
+        if (await repo.FindByIdIncluindoArquivadosAsync(id) is not { } alvo) return;
+
+        var pedidos = (cmd.LaboratorioIds ?? []).Distinct().ToList();
+        var existentes = (await labRepo.GetAllAsync()).Select(l => l.Id).ToHashSet();
+        if (pedidos.FirstOrDefault(labId => !existentes.Contains(labId)) is { } inexistente)
+            throw new ValidationException($"Laboratório {inexistente} não encontrado.");
+
+        if (solicitante.Papel != "Admin")
+        {
+            if (alvo.Papel != "Aluno")
+                throw new ValidationException(
+                    $"Definir os laboratórios de {alvo.Papel} é só o Admin; você pode definir de Aluno.");
+            if (pedidos.FirstOrDefault(labId => !solicitante.Responde(labId)) is { } alheio)
+                throw new ValidationException($"Você não responde pelo laboratório {alheio}.");
+        }
+
+        await usuarioLabs.DefinirAsync(id, pedidos);
+        var lista = pedidos.Count == 0 ? "nenhum laboratório" : string.Join(", ", pedidos);
+        await auditoria.RegistrarAsync(solicitante.Email, "usuario.laboratorios", "Usuários",
+            $"Definiu os laboratórios do usuário {id}: {lista}", RiscoAuditoria.Medium);
     }
 
     public async Task ExcluirAsync(string id, string requesterId, string usuarioEmail)

@@ -14,18 +14,27 @@ public class ConvitesServiceTests
     private readonly IConvitesRepository _convites = Substitute.For<IConvitesRepository>();
     private readonly IAuthRepository _usuarios = Substitute.For<IAuthRepository>();
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
+    private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
+    private readonly ILaboratoriosRepository _labRepo = Substitute.For<ILaboratoriosRepository>();
     private readonly ConvitesService _sut;
     private readonly List<Convite> _gravados = [];
 
     public ConvitesServiceTests()
     {
         _convites.AddAsync(Arg.Do<Convite>(_gravados.Add)).Returns(Task.CompletedTask);
-        _sut = new ConvitesService(_convites, _usuarios, _audit);
+        _labRepo.GetAllAsync().Returns([
+            new Laboratorio { Id = "Lab-001", Nome = "A" },
+            new Laboratorio { Id = "Lab-002", Nome = "B" },
+        ]);
+        _sut = new ConvitesService(_convites, _usuarios, _audit, _usuarioLabs, _labRepo);
     }
+
+    private static Solicitante Quem(string id, string email, string papel, params string[] labs) =>
+        new(id, email, papel, labs);
 
     private async Task<(string token, Convite convite)> CriarConviteAsync(string papel = "Aluno", string papelDeQuemConvida = "Professor")
     {
-        var dto = await _sut.CriarAsync(new CriarConviteCmd(papel), "prof-1", "prof@lab.com", papelDeQuemConvida);
+        var dto = await _sut.CriarAsync(new CriarConviteCmd(papel), Quem("prof-1", "prof@lab.com", papelDeQuemConvida, "Lab-001"));
         var convite = _gravados[^1];
         _convites.GetByTokenHashAsync(convite.TokenHash).Returns(convite);
         return (dto.Token, convite);
@@ -55,7 +64,7 @@ public class ConvitesServiceTests
     [Fact]
     public async Task CriarAsync_ProfessorConvidandoProfessor_Recusa()
     {
-        var act = () => _sut.CriarAsync(new CriarConviteCmd("Professor"), "prof-1", "prof@lab.com", "Professor");
+        var act = () => _sut.CriarAsync(new CriarConviteCmd("Professor"), Quem("prof-1", "prof@lab.com", "Professor", "Lab-001"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*só o Admin*");
     }
@@ -74,7 +83,7 @@ public class ConvitesServiceTests
     [InlineData("")]
     public async Task CriarAsync_PapelForaDoConjuntoConvidavel_Recusa(string papel)
     {
-        var act = () => _sut.CriarAsync(new CriarConviteCmd(papel), "admin-1", "admin@lab.com", "Admin");
+        var act = () => _sut.CriarAsync(new CriarConviteCmd(papel), Quem("admin-1", "admin@lab.com", "Admin"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Papel inválido*");
     }
@@ -321,5 +330,48 @@ public class ConvitesServiceTests
         lista.Select(c => c.Status).Should().Equal("pendente", "usado", "expirado", "revogado");
         lista[1].UsadoPor.Should().Be("Novo Aluno");
         await _usuarios.DidNotReceive().GetAllAsync();
+    }
+
+    [Fact]
+    public async Task CriarAsync_GravaOsLaboratoriosDoConvite()
+    {
+        await _sut.CriarAsync(new CriarConviteCmd("Aluno", ["Lab-001"]),
+            Quem("prof-1", "prof@lab.com", "Professor", "Lab-001"));
+
+        await _usuarioLabs.Received(1).DefinirDoConviteAsync(Arg.Any<int>(),
+            Arg.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "Lab-001" })));
+    }
+
+    [Fact]
+    public async Task CriarAsync_ProfessorNaoConvidaParaLaboratorioQueNaoTem()
+    {
+        var act = () => _sut.CriarAsync(new CriarConviteCmd("Aluno", ["Lab-002"]),
+            Quem("prof-1", "prof@lab.com", "Professor", "Lab-001"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-002*");
+    }
+
+    [Fact]
+    public async Task CriarAsync_LaboratorioInexistente_Recusa()
+    {
+        var act = () => _sut.CriarAsync(new CriarConviteCmd("Aluno", ["Lab-999"]),
+            Quem("adm", "admin@lab.com", "Admin"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-999*");
+    }
+
+    [Fact]
+    public async Task AceitarAsync_AssociaOsLaboratoriosDoConviteAContaCriada()
+    {
+        var (token, convite) = await CriarConviteAsync();
+        _usuarios.FindByEmailIncluindoArquivadosAsync(Arg.Any<string>()).Returns((UsuarioInfo?)null);
+        _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
+            .Returns("novo-1");
+        _usuarioLabs.DoConviteAsync(convite.Id).Returns(new List<string> { "Lab-001" });
+
+        await _sut.AceitarAsync(token, new AceitarConviteCmd("Novo", "novo@lab.com", null, "Senh@123"));
+
+        await _usuarioLabs.Received(1).DefinirAsync("novo-1",
+            Arg.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "Lab-001" })));
     }
 }
