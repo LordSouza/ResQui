@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { apiAuth, ensureLab } from './seed';
+import { apiAuth, ensureLab, criarResiduoComClasses } from './seed';
 
 async function loginAndNavigate(page, navLabel) {
   await page.goto('/');
@@ -47,7 +47,8 @@ test('new resíduo appears in the list after creation', async ({ page, request }
 test('search filters the residuos list', async ({ page }) => {
   await loginAndNavigate(page, 'Resíduos');
   await page.getByLabel('Buscar resíduo').fill('xxx-sem-resultado-xxx');
-  await expect(page.locator('table.tbl tbody tr')).toHaveCount(0);
+  await expect(page.getByRole('cell', { name: 'Nenhum resíduo corresponde a “xxx-sem-resultado-xxx”.' })).toBeVisible();
+  await expect(page.locator('table.tbl tbody tr')).toHaveCount(1);
 });
 
 test('POST /api/residuos sem classificação é recusado com 400', async ({ request }) => {
@@ -63,3 +64,34 @@ test('POST /api/residuos sem classificação é recusado com 400', async ({ requ
   expect(res.status()).toBe(400);
   expect((await res.json()).message).toContain('Classifique a reatividade');
 });
+
+async function solicitacaoNaTela(page, request) {
+  const composicao = `Fila E2E ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const res = await criarResiduoComClasses(request, await apiAuth(request), [5], { Composicao: composicao });
+  expect(res.status()).toBe(201);
+  await loginAndNavigate(page, 'Resíduos');
+  await page.getByLabel('Buscar resíduo').fill(composicao);
+  return page.getByRole('row').filter({ hasText: composicao });
+}
+
+test('aprovar mostra confirmação e o Desfazer devolve o resíduo à fila', async ({ page, request }) => {
+  const linha = await solicitacaoNaTela(page, request);
+  await linha.getByRole('button', { name: 'Aprovar' }).click();
+  await expect(page.getByRole('status').filter({ hasText: /aprovado\. Ele já pode entrar num manifesto/ })).toBeVisible();
+  await expect(linha.getByText('Aguardando coleta')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Desfazer' }).click();
+  await expect(page.getByRole('status').filter({ hasText: /desfeita\. Ele voltou para a fila de aprovação/ })).toBeVisible();
+  await expect(linha.getByRole('button', { name: 'Aprovar' })).toBeVisible();
+});
+
+test('rejeitar exige motivo e o motivo aparece na linha do resíduo', async ({ page, request }) => {
+  const linha = await solicitacaoNaTela(page, request);
+  await linha.getByRole('button', { name: 'Rejeitar' }).click();
+  const confirmar = page.locator('.modal-foot').getByRole('button', { name: 'Rejeitar descarte' });
+  await expect(confirmar).toBeDisabled();
+  await page.getByLabel(/Motivo/).fill('Frasco sem rótulo de identificação');
+  await confirmar.click();
+  await expect(linha.getByText('Motivo da rejeição: Frasco sem rótulo de identificação')).toBeVisible();
+});
+

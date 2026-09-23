@@ -292,9 +292,11 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
 export function ConfirmRejeitarResiduo({ residuo, onClose, dispatch }) {
   const rejeitar = useRejeitarResiduo();
   const [motivo, setMotivo] = useState('');
+  const motivoInformado = motivo.trim();
   const submit = () => {
+    if (!motivoInformado) return;
     rejeitar.mutate(
-      { id: residuo.id, motivo: motivo.trim() || null },
+      { id: residuo.id, motivo: motivoInformado },
       { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
     );
   };
@@ -302,14 +304,19 @@ export function ConfirmRejeitarResiduo({ residuo, onClose, dispatch }) {
     <Modal title="Rejeitar descarte" sub={`Resíduo #${residuo.id} · ${residuo.tipo}`} onClose={onClose} width={480}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={rejeitar.isPending}>
+        <button type="button" className="btn btn-danger btn-sm" onClick={submit}
+          disabled={rejeitar.isPending || !motivoInformado} aria-describedby="rejeitar-motivo-ajuda">
           {rejeitar.isPending ? 'Rejeitando…' : 'Rejeitar descarte'}
         </button>
       </>}>
       <div className="field">
-        <label htmlFor="rejeitar-motivo">Motivo (opcional)</label>
-        <textarea id="rejeitar-motivo" rows={3} value={motivo} onChange={e => setMotivo(e.target.value)}
-          placeholder="Explique ao solicitante por que o descarte não foi aceito."/>
+        <label htmlFor="rejeitar-motivo">Motivo *</label>
+        <textarea id="rejeitar-motivo" rows={3} maxLength={1000} value={motivo} onChange={e => setMotivo(e.target.value)}
+          aria-describedby="rejeitar-motivo-ajuda"
+          placeholder="Ex.: pH fora da faixa aceita pelo destinador; neutralize antes de registrar de novo."/>
+        <div id="rejeitar-motivo-ajuda" className="small muted" style={{ marginTop: 6 }}>
+          Aparece na lista de resíduos, na linha deste descarte, para quem o registrou. A rejeição não pode ser desfeita.
+        </div>
       </div>
     </Modal>
   );

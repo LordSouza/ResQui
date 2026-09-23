@@ -36,7 +36,7 @@ import { FormEditarReagente } from './forms/FormEditarReagente';
 import { LoginScreen } from './Login';
 import { ConviteScreen } from './Convite';
 import { tokenConviteDaUrl } from './convites/linkConvite';
-import { podeVerTela, motivoTelaRestrita } from './auth/permissoes';
+import { podeVerTela, motivoTelaRestrita, podePor } from './auth/permissoes';
 import { useIdentificacaoPgrs } from './pgrs/useIdentificacaoPgrs';
 
 // Renderizada no lugar de uma tela cujo papel do usuário não alcança. Não é segurança — a
@@ -293,6 +293,8 @@ const notifFootBtn = {
   fontSize: 12, color: 'var(--text-2)', borderRadius: 4,
 };
 
+const DESCRICAO_BADGE = { residuos: 'aguardando aprovação' };
+
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [conviteToken, setConviteToken] = useState(tokenConviteDaUrl);
@@ -300,7 +302,7 @@ export default function App() {
   const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
   const { data: identificacao } = useIdentificacaoPgrs({ enabled: !!token });
   const navBadges = {
-    residuos: residuosNav.filter(r => r.status === 'aguardando-coleta').length,
+    residuos: podePor(user?.papel, 'Aprovador') ? residuosNav.filter(r => r.status === 'solicitado').length : 0,
   };
 
   useAtalhosGlobais({
@@ -367,7 +369,11 @@ export default function App() {
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
               {n.label}
-              {navBadges[n.key] > 0 && <span className="badge-count">{navBadges[n.key]}</span>}
+              {navBadges[n.key] > 0 && (
+                <span className="badge-count" title={`${navBadges[n.key]} ${DESCRICAO_BADGE[n.key]}`}>
+                  {navBadges[n.key]}<span className="sr-only"> {DESCRICAO_BADGE[n.key]}</span>
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -379,7 +385,11 @@ export default function App() {
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
               {n.label}
-              {navBadges[n.key] > 0 && <span className="badge-count">{navBadges[n.key]}</span>}
+              {navBadges[n.key] > 0 && (
+                <span className="badge-count" title={`${navBadges[n.key]} ${DESCRICAO_BADGE[n.key]}`}>
+                  {navBadges[n.key]}<span className="sr-only"> {DESCRICAO_BADGE[n.key]}</span>
+                </span>
+              )}
             </button>
           ))}
         </nav>
