@@ -194,6 +194,11 @@ function NotifBell({ dispatch, papel }) {
     'compat': 'shield', 'coleta': 'clipboard',
   })[tipo] || 'bell';
 
+  const rotuloPara = (tipo) => ({
+    'expiry': 'Vencimento', 'low-stock': 'Estoque mínimo',
+    'compat': 'Compatibilidade', 'coleta': 'Coleta',
+  })[tipo] || tipo;
+
   const navTarget = (n) => {
     if (n.tipo === 'expiry' || n.tipo === 'low-stock') return { screen: 'inventario' };
     if (n.tipo === 'compat') return { screen: 'compat' };
@@ -258,13 +263,9 @@ function NotifBell({ dispatch, papel }) {
                 <div className={`notif-icon sev-${n.severidade === 'red' ? 'red' : n.severidade === 'amber' ? 'amber' : 'other'}`}>
                   <Icon name={iconePara(n.tipo)} size={14}/>
                 </div>
-                <div style={{flex: 1, minWidth: 0}}>
-                  <div style={{fontSize: 12.5, fontWeight: n.lida ? 400 : 500, lineHeight: 1.4, color: 'var(--text)'}}>
-                    {n.mensagem}
-                  </div>
-                  <div style={{fontSize: 12, color: 'var(--text-3)', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center'}}>
-                    <span style={{fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.04em'}}>{n.tipo}</span>
-                  </div>
+                <div className="notif-texto">
+                  <div className="notif-mensagem">{n.mensagem}</div>
+                  <div className="notif-tipo">{rotuloPara(n.tipo)}</div>
                 </div>
               </button>
             ))}
