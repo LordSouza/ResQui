@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon, Tag, SectionTitle, Badge, riscoBadge, residuoStatusBadge } from '../components';
 import { exportCsv } from '../utils';
@@ -41,6 +41,14 @@ function mensagemListaVazia(filter, q) {
   return `Nenhum resíduo em “${CICLO.find(([k]) => k === filter)?.[1] ?? filter}”.`;
 }
 
+function devolverFocoAFila(tabela, { id, indice }) {
+  if (document.activeElement && document.activeElement !== document.body) return;
+  const linhas = [...tabela.querySelectorAll('tbody tr')];
+  const linha = linhas.find(tr => tr.dataset.residuoId === String(id)) ?? linhas[Math.min(indice, linhas.length - 1)];
+  const alvo = linha?.querySelector('button, input') ?? document.querySelector('.filter-pill.active');
+  alvo?.focus();
+}
+
 function ClassesDoResiduo({ classes }) {
   if (classes.length === 0) return <div className="residuo-classes muted">Sem classes informadas</div>;
   const nomes = classes.map(c => `${c}. ${REATIVIDADE_CLASSES[c]}`).join(', ');
@@ -65,6 +73,14 @@ export function ResiduosScreen({ state, dispatch }) {
   const queryClient = useQueryClient();
   const { addToast } = useToast();
   const [desfazendo, setDesfazendo] = useState([]);
+  const tabelaRef = useRef(null);
+  const [focoAposAprovar, setFocoAposAprovar] = useState(null);
+
+  useEffect(() => {
+    if (focoAposAprovar === null) return;
+    devolverFocoAFila(tabelaRef.current, focoAposAprovar);
+    setFocoAposAprovar(null);
+  }, [focoAposAprovar, residuos]);
   const { data: labs = [] } = useLaboratorios();
   const [selecionados, setSelecionados] = useState([]);
 
@@ -97,6 +113,9 @@ export function ResiduosScreen({ state, dispatch }) {
     aprovar.mutate(ids, {
       onSuccess: ({ concluidos, falhas }) => {
         setSelecionados(prev => prev.filter(id => !concluidos.includes(id)));
+        if (concluidos.length > 0) {
+          setFocoAposAprovar({ id: concluidos[0], indice: list.findIndex(r => r.id === concluidos[0]) });
+        }
         if (concluidos.length > 0) {
           addToast(mensagemAprovacao(concluidos), 'success', { rotulo: 'Desfazer', executar: () => desfazerAprovacao(concluidos) });
         }
@@ -185,7 +204,7 @@ export function ResiduosScreen({ state, dispatch }) {
             </button>
           </div>
         )}
-        <table className="tbl">
+        <table className="tbl" ref={tabelaRef}>
           <thead>
             <tr>
               {solicitacoesVisiveis.length > 0 && (
@@ -205,7 +224,7 @@ export function ResiduosScreen({ state, dispatch }) {
               <tr><td colSpan={colunas} className="empty">{mensagemListaVazia(filter, q)}</td></tr>
             )}
             {list.map((r) => (
-              <tr key={r.id} className={state.flashId === r.id ? 'flash selected' : selecaoVisivel.includes(r.id) ? 'selected' : ''}>
+              <tr key={r.id} data-residuo-id={r.id} className={state.flashId === r.id ? 'flash selected' : selecaoVisivel.includes(r.id) ? 'selected' : ''}>
                 {solicitacoesVisiveis.length > 0 && (
                   <td className="col-selecao">
                     {r.status === 'solicitado' && (

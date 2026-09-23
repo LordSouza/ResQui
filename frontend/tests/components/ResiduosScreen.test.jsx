@@ -223,6 +223,16 @@ describe('ResiduosScreen — fila de aprovação', () => {
     expect(screen.queryByRole('button', { name: 'Desfazer aprovação' })).not.toBeInTheDocument();
   });
 
+  it('devolve o foco à linha depois de aprovar, em vez de deixá-lo cair no documento', () => {
+    useAprovarResiduos.mockReturnValue({
+      mutate: vi.fn((ids, opts) => opts.onSuccess({ concluidos: ids, falhas: [] })),
+      isPending: false,
+    });
+    renderFila([solicitado(7)]);
+    fireEvent.click(screen.getByRole('button', { name: 'Aprovar' }));
+    expect(screen.getByLabelText('Selecionar resíduo #7')).toHaveFocus();
+  });
+
   it('aprova em lote as solicitações selecionadas', () => {
     const aprovar = vi.fn();
     useAprovarResiduos.mockReturnValue({ mutate: aprovar, isPending: false });
