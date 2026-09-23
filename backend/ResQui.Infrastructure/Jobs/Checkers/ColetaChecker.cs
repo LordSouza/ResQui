@@ -10,6 +10,7 @@ public class ColetaChecker(
     INotificacoesRepository notifs,
     IAuthRepository auth,
     IEmailService email,
+    IUsuarioLaboratoriosRepository usuarioLabs,
     ILogger<ColetaChecker> logger)
 {
     private static readonly string[] PapeisElegiveis = ["Professor"];
@@ -23,16 +24,24 @@ public class ColetaChecker(
 
         if (atrasados.Count == 0) return;
 
-        var usuarios = (await auth.GetAllAsync())
-            .Where(u => !u.Arquivado && PapeisElegiveis.Contains(u.Papel))
-            .ToList();
+        var ativos = (await auth.GetAllAsync()).Where(u => !u.Arquivado).ToList();
+        var elegiveis = ativos.Where(u => PapeisElegiveis.Contains(u.Papel)).ToList();
+        var admins = ativos.Where(u => u.Papel == "Admin").ToList();
+        var laboratoriosPorUsuario = await usuarioLabs.DeTodosAsync();
 
         bool houveMudanca = false;
 
         foreach (var r in atrasados)
         {
             var refId = r.Id.ToString();
-            foreach (var u in usuarios)
+            var responsaveis = elegiveis
+                .Where(u => laboratoriosPorUsuario.TryGetValue(u.Id, out var labs)
+                            && labs.Contains(r.LaboratorioId))
+                .ToList();
+            // Laboratório sem professor ativo: o aviso cai para os Admins, senão o silêncio
+            // ficaria indistinguível de "não há resíduo atrasado".
+            var destinatarios = responsaveis.Count > 0 ? responsaveis : admins;
+            foreach (var u in destinatarios)
             {
                 if (await notifs.ExisteNaoLidaAsync(u.Id, "coleta", refId)) continue;
 

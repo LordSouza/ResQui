@@ -18,7 +18,7 @@ public class AssistenteService(
 
     private static readonly JsonElement ParamsVazio = JsonDocument.Parse("{}").RootElement.Clone();
 
-    public async Task<RespostaAssistenteDto> ResponderAsync(MensagemAssistenteCmd cmd)
+    public async Task<RespostaAssistenteDto> ResponderAsync(MensagemAssistenteCmd cmd, Solicitante solicitante)
     {
         if (!config.GetValue("Assistente:Enabled", false))
             throw new AssistenteIndisponivelException("O assistente não está configurado nesta instalação.");
@@ -35,6 +35,7 @@ public class AssistenteService(
 
         var residuos = (await residuosRepo.GetAllAsync())
             .Where(r => r.Status == "aguardando-coleta")
+            .Where(r => solicitante.VeTudo || solicitante.LaboratorioIds.Contains(r.LaboratorioId))
             .OrderBy(r => r.Id)
             .ToList();
 

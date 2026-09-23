@@ -29,6 +29,10 @@ public class AssistenteServiceTests
 
     private static MensagemAssistenteCmd Cmd(string mensagem = "oi") => new(mensagem, null);
 
+    private static Solicitante Admin() => new("adm", "admin@x.com", "Admin", []);
+
+    private static Solicitante Professor(params string[] labs) => new("u1", "prof@x.com", "Professor", labs);
+
     private void ProviderResponde(string conteudo) =>
         _provider.CompletarAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<MensagemChat>>(), Arg.Any<string>())
             .Returns(conteudo);
@@ -39,7 +43,7 @@ public class AssistenteServiceTests
     [Fact]
     public async Task ResponderAsync_Desabilitado_LancaAssistenteIndisponivel()
     {
-        var acao = () => Criar(habilitado: false).ResponderAsync(Cmd());
+        var acao = () => Criar(habilitado: false).ResponderAsync(Cmd(), Admin());
 
         await acao.Should().ThrowAsync<AssistenteIndisponivelException>();
     }
@@ -47,7 +51,7 @@ public class AssistenteServiceTests
     [Fact]
     public async Task ResponderAsync_MensagemVazia_LancaValidationException()
     {
-        var acao = () => Criar().ResponderAsync(Cmd("   "));
+        var acao = () => Criar().ResponderAsync(Cmd("   "), Admin());
 
         await acao.Should().ThrowAsync<ValidationException>();
     }
@@ -59,7 +63,7 @@ public class AssistenteServiceTests
         _residuos.GetAllAsync().Returns(new List<Residuo>());
         ProviderResponde("{\"say\":\"abrindo\",\"action\":\"detail\",\"params\":{\"id\":\"R-00001\"}}");
 
-        var dto = await Criar().ResponderAsync(Cmd());
+        var dto = await Criar().ResponderAsync(Cmd(), Admin());
 
         dto.Say.Should().Be("abrindo");
         dto.Action.Should().Be("detail");
@@ -73,7 +77,7 @@ public class AssistenteServiceTests
         _residuos.GetAllAsync().Returns(new List<Residuo>());
         ProviderResponde("```json\n{\"say\":\"oi\",\"action\":\"explain\",\"params\":{}}\n```");
 
-        var dto = await Criar().ResponderAsync(Cmd());
+        var dto = await Criar().ResponderAsync(Cmd(), Admin());
 
         dto.Action.Should().Be("explain");
     }
@@ -85,7 +89,7 @@ public class AssistenteServiceTests
         _residuos.GetAllAsync().Returns(new List<Residuo>());
         ProviderResponde("desculpe, não entendi");
 
-        var acao = () => Criar().ResponderAsync(Cmd());
+        var acao = () => Criar().ResponderAsync(Cmd(), Admin());
 
         await acao.Should().ThrowAsync<ValidationException>().WithMessage("*interpretar*");
     }
@@ -97,7 +101,7 @@ public class AssistenteServiceTests
         _residuos.GetAllAsync().Returns(new List<Residuo>());
         ProviderResponde("{\"say\":\"oi\",\"action\":\"apagarTudo\",\"params\":{}}");
 
-        var dto = await Criar().ResponderAsync(Cmd());
+        var dto = await Criar().ResponderAsync(Cmd(), Admin());
 
         dto.Action.Should().Be("explain");
     }
@@ -109,7 +113,7 @@ public class AssistenteServiceTests
         _residuos.GetAllAsync().Returns(new List<Residuo>());
         ProviderResponde("{\"say\":\"oi\",\"action\":\"explain\"}");
 
-        var dto = await Criar().ResponderAsync(Cmd());
+        var dto = await Criar().ResponderAsync(Cmd(), Admin());
 
         dto.Params.ValueKind.Should().Be(System.Text.Json.JsonValueKind.Object);
     }
@@ -121,7 +125,7 @@ public class AssistenteServiceTests
         _residuos.GetAllAsync().Returns(new List<Residuo>());
         ProviderResponde("{\"say\":\"oi\",\"action\":\"explain\",\"params\":{}}");
 
-        await Criar(maxReagentes: 10).ResponderAsync(Cmd());
+        await Criar(maxReagentes: 10).ResponderAsync(Cmd(), Admin());
 
         PromptEnviado().Should().Contain("R-00010").And.NotContain("R-00011");
     }
@@ -137,7 +141,7 @@ public class AssistenteServiceTests
         });
         ProviderResponde("{\"say\":\"oi\",\"action\":\"explain\",\"params\":{}}");
 
-        await Criar().ResponderAsync(Cmd());
+        await Criar().ResponderAsync(Cmd(), Admin());
 
         PromptEnviado().Should().Contain("W-1").And.NotContain("W-2");
     }
@@ -150,10 +154,42 @@ public class AssistenteServiceTests
         ProviderResponde("{\"say\":\"oi\",\"action\":\"explain\",\"params\":{}}");
         var historico = Enumerable.Range(1, 10).Select(i => new MensagemChat("user", $"mensagem {i}")).ToList();
 
-        await Criar().ResponderAsync(new MensagemAssistenteCmd("oi", historico));
+        await Criar().ResponderAsync(new MensagemAssistenteCmd("oi", historico), Admin());
 
         var enviado = (IReadOnlyList<MensagemChat>)_provider.ReceivedCalls().Single().GetArguments()[1]!;
         enviado.Should().HaveCount(6);
         enviado[0].Texto.Should().Be("mensagem 5");
+    }
+
+    [Fact]
+    public async Task ResponderAsync_CatalogoTrazSoOsResiduosDosLaboratoriosDoSolicitante()
+    {
+        _reagentes.GetAllAsync().Returns(new List<Reagente>());
+        _residuos.GetAllAsync().Returns(new List<Residuo>
+        {
+            new() { Id = 1, Tipo = "Solventes", Volume = 1m, Unidade = "L", LaboratorioId = "Lab-001", Status = "aguardando-coleta" },
+            new() { Id = 2, Tipo = "Ácidos", Volume = 2m, Unidade = "L", LaboratorioId = "Lab-002", Status = "aguardando-coleta" },
+        });
+        ProviderResponde("{\"say\":\"oi\",\"action\":\"explain\",\"params\":{}}");
+
+        await Criar().ResponderAsync(Cmd(), Professor("Lab-001"));
+
+        PromptEnviado().Should().Contain("W-1").And.NotContain("W-2");
+    }
+
+    [Fact]
+    public async Task ResponderAsync_ComoAdmin_CatalogoTrazTodosOsResiduos()
+    {
+        _reagentes.GetAllAsync().Returns(new List<Reagente>());
+        _residuos.GetAllAsync().Returns(new List<Residuo>
+        {
+            new() { Id = 1, Tipo = "Solventes", Volume = 1m, Unidade = "L", LaboratorioId = "Lab-001", Status = "aguardando-coleta" },
+            new() { Id = 2, Tipo = "Ácidos", Volume = 2m, Unidade = "L", LaboratorioId = "Lab-002", Status = "aguardando-coleta" },
+        });
+        ProviderResponde("{\"say\":\"oi\",\"action\":\"explain\",\"params\":{}}");
+
+        await Criar().ResponderAsync(Cmd(), Admin());
+
+        PromptEnviado().Should().Contain("W-1").And.Contain("W-2");
     }
 }
