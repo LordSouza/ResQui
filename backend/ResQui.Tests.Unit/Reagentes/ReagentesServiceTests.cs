@@ -33,19 +33,20 @@ public class ReagentesServiceTests
     };
 
     [Fact]
-    public async Task ListarMovimentacoes_FiltraPorIdNoDetail()
+    public async Task ListarMovimentacoes_PedeIdEtetoAoFiltro_EmVezDeVarrerAAuditoriaInteira()
     {
         _repo.GetByIdAsync("R-001").Returns(FakeReagente("R-001"));
         _audit.ListarAsync(Arg.Any<ResQui.Application.Auditoria.AuditoriaFiltroDto>()).Returns(new[]
         {
             new ResQui.Application.Auditoria.AuditoriaItemDto(Guid.NewGuid(), DateTime.UtcNow, "ana", "reagente.baixa", "Inventário", "Baixa de 1 L (reagente R-001)", "medium"),
-            new ResQui.Application.Auditoria.AuditoriaItemDto(Guid.NewGuid(), DateTime.UtcNow, "ana", "reagente.baixa", "Inventário", "Baixa de 2 L (reagente R-999)", "medium"),
         });
 
-        var movs = await _sut.ListarMovimentacoesAsync("R-001");
+        var movs = await _sut.ListarMovimentacoesAsync("R-001", 20);
 
         movs.Should().NotBeNull();
         movs!.Should().ContainSingle();
+        await _audit.Received(1).ListarAsync(Arg.Is<ResQui.Application.Auditoria.AuditoriaFiltroDto>(
+            f => f.What == "reagente." && f.Detail == "R-001" && f.Limite == 20));
     }
 
     [Fact]

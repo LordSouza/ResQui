@@ -31,101 +31,88 @@ public class AuditoriaServiceTests
         captured.Risk.Should().Be(RiscoAuditoria.Medium);
     }
 
+    private void RepoDevolve(params AuditoriaEntry[] entries) =>
+        _repo.BuscarAsync(
+            Arg.Any<DateTime?>(), Arg.Any<DateTime?>(), Arg.Any<RiscoAuditoria?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<int?>()).Returns(entries);
+
     [Fact]
-    public async Task ListarAsync_SemFiltro_RetornaTodos()
+    public async Task ListarAsync_SemFiltro_NaoRestringeNadaENaoImpoeTeto()
     {
-        var entries = new List<AuditoriaEntry>
-        {
-            new() { Who = "A", What = "x", Where = "y", Detail = "z", Risk = RiscoAuditoria.Low },
-            new() { Who = "B", What = "x", Where = "y", Detail = "z", Risk = RiscoAuditoria.High },
-        };
-        _repo.GetAllAsync().Returns(entries);
+        RepoDevolve(new AuditoriaEntry { Who = "A", What = "x", Where = "y", Detail = "z", Risk = RiscoAuditoria.Low });
 
         var result = (await _sut.ListarAsync(new AuditoriaFiltroDto())).ToList();
 
-        result.Should().HaveCount(2);
+        result.Should().HaveCount(1);
+        await _repo.Received(1).BuscarAsync(null, null, null, null, null, null, null, null);
     }
 
     [Fact]
-    public async Task ListarAsync_FiltroRisk_RetornaApenasCombinantes()
+    public async Task ListarAsync_RiscoTextual_ChegaAoRepositorioComoEnum()
     {
-        var entries = new List<AuditoriaEntry>
-        {
-            new() { Who = "A", What = "x", Where = "y", Detail = "z", Risk = RiscoAuditoria.Low },
-            new() { Who = "B", What = "x", Where = "y", Detail = "z", Risk = RiscoAuditoria.High },
-        };
-        _repo.GetAllAsync().Returns(entries);
+        RepoDevolve();
 
-        var result = (await _sut.ListarAsync(new AuditoriaFiltroDto(Risk: "high"))).ToList();
+        await _sut.ListarAsync(new AuditoriaFiltroDto(Risk: "high"));
 
-        result.Should().HaveCount(1);
-        result[0].Who.Should().Be("B");
+        await _repo.Received(1).BuscarAsync(
+            Arg.Any<DateTime?>(), Arg.Any<DateTime?>(), RiscoAuditoria.High,
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<int?>());
     }
 
     [Fact]
-    public async Task ListarAsync_FiltroTo_IncluiODiaInteiroDoLimite()
+    public async Task ListarAsync_RiscoDesconhecido_NaoRestringePorRisco()
     {
-        var entries = new List<AuditoriaEntry>
-        {
-            new() { Who = "A", What = "x", Where = "y", Detail = "z", Risk = RiscoAuditoria.Low,
-                    Timestamp = new DateTime(2026, 8, 24, 15, 30, 0, DateTimeKind.Utc) },
-            new() { Who = "B", What = "x", Where = "y", Detail = "z", Risk = RiscoAuditoria.Low,
-                    Timestamp = new DateTime(2026, 8, 25, 0, 30, 0, DateTimeKind.Utc) },
-        };
-        _repo.GetAllAsync().Returns(entries);
+        RepoDevolve();
 
-        var result = (await _sut.ListarAsync(new AuditoriaFiltroDto(
-            To: new DateTime(2026, 8, 24, 0, 0, 0, DateTimeKind.Utc)))).ToList();
+        await _sut.ListarAsync(new AuditoriaFiltroDto(Risk: "catastrofico"));
 
-        result.Should().HaveCount(1);
-        result[0].Who.Should().Be("A");
+        await _repo.Received(1).BuscarAsync(
+            Arg.Any<DateTime?>(), Arg.Any<DateTime?>(), null,
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<int?>());
     }
 
     [Fact]
-    public async Task ListarAsync_FiltroWhat_RetornaApenasCombinantes()
+    public async Task ListarAsync_FiltroTo_ViraLimiteExclusivoNoDiaSeguinte()
     {
-        var entries = new List<AuditoriaEntry>
-        {
-            new() { Who = "a@a.com", What = "lab.criar", Where = "Laboratórios", Detail = "Lab-001", Risk = RiscoAuditoria.Low },
-            new() { Who = "b@b.com", What = "reagente.criar", Where = "Inventário", Detail = "R-001", Risk = RiscoAuditoria.Low },
-        };
-        _repo.GetAllAsync().Returns(entries);
+        RepoDevolve();
 
-        var result = (await _sut.ListarAsync(new AuditoriaFiltroDto(What: "lab.criar"))).ToList();
+        await _sut.ListarAsync(new AuditoriaFiltroDto(
+            To: new DateTime(2026, 8, 24, 15, 30, 0, DateTimeKind.Utc)));
 
-        result.Should().HaveCount(1);
-        result[0].Who.Should().Be("a@a.com");
+        await _repo.Received(1).BuscarAsync(
+            Arg.Any<DateTime?>(),
+            new DateTime(2026, 8, 25, 0, 0, 0, DateTimeKind.Utc),
+            Arg.Any<RiscoAuditoria?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>());
     }
 
     [Fact]
-    public async Task ListarAsync_FiltroWhere_RetornaApenasCombinantes()
+    public async Task ListarAsync_DataSemFusoDaQueryString_ChegaMarcadaComoUtc()
     {
-        var entries = new List<AuditoriaEntry>
-        {
-            new() { Who = "a@a.com", What = "lab.criar", Where = "Laboratórios", Detail = "Lab-001", Risk = RiscoAuditoria.Low },
-            new() { Who = "b@b.com", What = "reagente.criar", Where = "Inventário", Detail = "R-001", Risk = RiscoAuditoria.Low },
-        };
-        _repo.GetAllAsync().Returns(entries);
+        RepoDevolve();
 
-        var result = (await _sut.ListarAsync(new AuditoriaFiltroDto(Where: "Laboratórios"))).ToList();
+        await _sut.ListarAsync(new AuditoriaFiltroDto(
+            From: new DateTime(2026, 8, 24, 9, 0, 0, DateTimeKind.Unspecified)));
 
-        result.Should().HaveCount(1);
-        result[0].What.Should().Be("lab.criar");
+        await _repo.Received(1).BuscarAsync(
+            Arg.Is<DateTime?>(d => d!.Value.Kind == DateTimeKind.Utc && d.Value.Hour == 9),
+            Arg.Any<DateTime?>(), Arg.Any<RiscoAuditoria?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>());
     }
 
     [Fact]
-    public async Task ListarAsync_FiltroWhatEWhere_CombinaDoisFiltros()
+    public async Task ListarAsync_FiltrosDeTexto_ChegamIntactosAoRepositorio()
     {
-        var entries = new List<AuditoriaEntry>
-        {
-            new() { Who = "a@a.com", What = "lab.criar", Where = "Laboratórios", Detail = "Lab-001", Risk = RiscoAuditoria.Low },
-            new() { Who = "b@b.com", What = "lab.criar", Where = "Resíduos", Detail = "X", Risk = RiscoAuditoria.Low },
-        };
-        _repo.GetAllAsync().Returns(entries);
+        RepoDevolve();
 
-        var result = (await _sut.ListarAsync(new AuditoriaFiltroDto(What: "lab.criar", Where: "Laboratórios"))).ToList();
+        await _sut.ListarAsync(new AuditoriaFiltroDto(
+            Who: "ana", What: "lab.criar", Where: "Laboratórios", Detail: "Lab-001", Limite: 20));
 
-        result.Should().HaveCount(1);
-        result[0].Who.Should().Be("a@a.com");
+        await _repo.Received(1).BuscarAsync(
+            Arg.Any<DateTime?>(), Arg.Any<DateTime?>(), Arg.Any<RiscoAuditoria?>(),
+            "ana", "lab.criar", "Laboratórios", "Lab-001", 20);
     }
 }
