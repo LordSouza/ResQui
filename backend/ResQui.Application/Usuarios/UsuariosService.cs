@@ -24,8 +24,11 @@ public class UsuariosService(
     IAuthRepository repo,
     IAuditoriaService auditoria,
     IUsuarioLaboratoriosRepository usuarioLabs,
-    ILaboratoriosRepository labRepo) : IUsuariosService
+    ILaboratoriosRepository labRepo,
+    ISessoesRepository sessoes) : IUsuariosService
 {
+    private static readonly string[] PapeisValidos = ["Admin", "Professor", "Aluno"];
+
     public async Task<IEnumerable<UsuarioDto>> ListarAsync()
     {
         var porUsuario = await usuarioLabs.DeTodosAsync();
@@ -42,10 +45,14 @@ public class UsuariosService(
 
     public async Task AlterarPapelAsync(string id, AlterarPapelCmd cmd, string usuarioEmail)
     {
-        if (await repo.FindByIdAsync(id) is null) return;
+        if (!PapeisValidos.Contains(cmd.NovoPapel))
+            throw new ValidationException($"Papel inválido: {cmd.NovoPapel}.");
+        if (await repo.FindByIdIncluindoArquivadosAsync(id) is null) return;
         await repo.UpdateRoleAsync(id, cmd.NovoPapel);
+        var revogadas = await RevogarSessoesAsync(id);
         await auditoria.RegistrarAsync(usuarioEmail, "user.papel", "Usuários",
-            $"Alterou papel do usuário {id} para {cmd.NovoPapel}", RiscoAuditoria.High);
+            $"Alterou papel do usuário {id} para {cmd.NovoPapel}; {revogadas} sessão(ões) revogada(s)",
+            RiscoAuditoria.High);
     }
 
     public async Task ArquivarAsync(string id, string usuarioEmail, string requesterPapel)
@@ -54,8 +61,9 @@ public class UsuariosService(
         if (alvo.Papel != "Aluno" && requesterPapel != "Admin")
             throw new ValidationException($"Arquivar conta de {alvo.Papel} é só o Admin; você pode arquivar Aluno.");
         await repo.SoftDeleteAsync(id);
+        var revogadas = await RevogarSessoesAsync(id);
         await auditoria.RegistrarAsync(usuarioEmail, "user.arquivar", "Usuários",
-            $"Arquivou usuário {id}", RiscoAuditoria.High);
+            $"Arquivou usuário {id}; {revogadas} sessão(ões) revogada(s)", RiscoAuditoria.High);
     }
 
     public async Task DefinirLaboratoriosAsync(string id, DefinirLaboratoriosCmd cmd, Solicitante solicitante)
@@ -94,5 +102,17 @@ public class UsuariosService(
         if (!await repo.HardDeleteAsync(id)) return;
         await auditoria.RegistrarAsync(usuarioEmail, "user.excluir", "Usuários",
             $"Excluiu definitivamente o usuário {id}", RiscoAuditoria.High);
+    }
+
+    private async Task<int> RevogarSessoesAsync(string usuarioId)
+    {
+        var ativas = (await sessoes.GetAtivasByUsuarioAsync(usuarioId)).ToList();
+        foreach (var s in ativas)
+        {
+            s.Revogada = true;
+            await sessoes.UpdateAsync(s);
+        }
+        if (ativas.Count > 0) await sessoes.SaveChangesAsync();
+        return ativas.Count;
     }
 }
