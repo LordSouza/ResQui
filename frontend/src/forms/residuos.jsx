@@ -255,7 +255,11 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
     if (veredito.bloqueia) return;
     if (!f.volume || !f.composicao) { alert('Volume e composição são obrigatórios.'); return; }
     atualizarResiduo.mutate(
-      { id: residuo.id, Tipo: f.tipo, Volume: Number(f.volume), Unidade: f.unidade, Composicao: f.composicao, Risco: f.risco, ClassesReatividade: f.classes },
+      {
+        id: residuo.id, Tipo: f.tipo, Volume: Number(f.volume), Unidade: f.unidade,
+        Composicao: f.composicao, Risco: f.risco,
+        ...(f.classes.length > 0 ? { ClassesReatividade: f.classes } : {}),
+      },
       { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
     );
   };

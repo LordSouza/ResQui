@@ -6,10 +6,16 @@ import { useDefinirLaboratorios } from '../usuarios/useDefinirLaboratorios';
 import { useToast } from '../components/ToastContext';
 
 export function SeletorLaboratorios({ id, value, onChange }) {
-  const { laboratorios } = useLaboratoriosDoUsuario();
+  const { laboratorios, isPending, isError } = useLaboratoriosDoUsuario();
   const alternar = (labId) =>
     onChange(value.includes(labId) ? value.filter(x => x !== labId) : [...value, labId]);
 
+  if (isPending) {
+    return <div className="small muted">Carregando os laboratórios que você pode atribuir…</div>;
+  }
+  if (isError) {
+    return <div className="small muted">Não foi possível carregar os laboratórios.</div>;
+  }
   if (laboratorios.length === 0) {
     return <div className="small muted">Você não responde por nenhum laboratório para atribuir.</div>;
   }
@@ -28,12 +34,12 @@ export function SeletorLaboratorios({ id, value, onChange }) {
 
 export default function FormLaboratoriosUsuario({ onClose, usuario }) {
   const { data: todos = [] } = useLaboratorios();
-  const { respondePor } = useLaboratoriosDoUsuario();
+  const { respondePor, isPending: escopoPendente } = useLaboratoriosDoUsuario();
   const definir = useDefinirLaboratorios();
   const { addToast } = useToast();
   const [selecionados, setSelecionados] = useState(() => usuario?.laboratorioIds ?? []);
 
-  const preservados = todos.filter(l => !respondePor(l.id) && selecionados.includes(l.id));
+  const preservados = escopoPendente ? [] : todos.filter(l => !respondePor(l.id) && selecionados.includes(l.id));
 
   const salvar = () =>
     definir.mutate(
@@ -51,7 +57,7 @@ export default function FormLaboratoriosUsuario({ onClose, usuario }) {
       onClose={onClose} width={560}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={salvar} disabled={definir.isPending}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={salvar} disabled={definir.isPending || escopoPendente}>
           {definir.isPending ? 'Salvando…' : 'Salvar'}
         </button>
       </>}>

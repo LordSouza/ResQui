@@ -4,6 +4,7 @@ import { ROLES } from '../data';
 import { usePode } from '../auth/permissoes';
 import Modal from './Modal';
 import { SeletorLaboratorios } from './FormLaboratoriosUsuario';
+import { useLaboratoriosDoUsuario } from '../laboratorios/useLaboratoriosDoUsuario';
 import ConfirmArquivarUsuario from './ConfirmArquivarUsuario';
 import { useCriarUsuario } from '../usuarios/useCriarUsuario';
 import { useExcluirUsuario } from '../usuarios/useExcluirUsuario';
@@ -27,6 +28,7 @@ export function FormNovoUsuario({ onClose, dispatch }) {
     nome: '', email: '', senha: '', matricula: '', papel: 'Aluno',
   });
   const [laboratorios, setLaboratorios] = useState([]);
+  const { isPending: escopoPendente } = useLaboratoriosDoUsuario();
   const mutation = useCriarUsuario();
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
@@ -58,7 +60,7 @@ export function FormNovoUsuario({ onClose, dispatch }) {
       onClose={onClose} width={520}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={mutation.isPending}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={mutation.isPending || escopoPendente}>
           <Icon name="check" size={12} /> {mutation.isPending ? 'Criando…' : 'Criar usuário'}
         </button>
       </>}>
@@ -116,6 +118,7 @@ export function FormConvidarUsuario({ onClose }) {
   const [gerado, setGerado] = useState(null);
   const [copiado, setCopiado] = useState(false);
   const [falhaAoCopiar, setFalhaAoCopiar] = useState(false);
+  const { isPending: escopoPendente } = useLaboratoriosDoUsuario();
   const criar = useCriarConvite();
   const revogar = useRevogarConvite();
   const revogarConvite = (id) => revogar.mutate(id, {
@@ -152,7 +155,7 @@ export function FormConvidarUsuario({ onClose }) {
       onClose={onClose} width={560}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={gerar} disabled={criar.isPending}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={gerar} disabled={criar.isPending || escopoPendente}>
           <Icon name="plus" size={12} /> {criar.isPending ? 'Gerando…' : 'Gerar link'}
         </button>
       </>}>
