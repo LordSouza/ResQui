@@ -277,7 +277,7 @@ public class ReagentesServiceTests
     {
         var cmds = new[]
         {
-            FakeImportCmd(nome: "Etanol", validade: "amanhã"), // inválida: recusada por ParseValidade
+            FakeImportCmd(nome: "Etanol", validade: "amanhã"),
             FakeImportCmd(nome: "Acetona"),
         };
 
