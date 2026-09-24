@@ -15,6 +15,7 @@ public class UsuariosServiceTests
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
     private readonly ILaboratoriosRepository _labRepo = Substitute.For<ILaboratoriosRepository>();
+    private readonly ISessoesRepository _sessoes = Substitute.For<ISessoesRepository>();
     private readonly UsuariosService _sut;
 
     public UsuariosServiceTests()
@@ -24,7 +25,8 @@ public class UsuariosServiceTests
             new Laboratorio { Id = "Lab-001", Nome = "A" },
             new Laboratorio { Id = "Lab-002", Nome = "B" },
         ]);
-        _sut = new UsuariosService(_repo, _audit, _usuarioLabs, _labRepo);
+        _sessoes.GetAtivasByUsuarioAsync(Arg.Any<string>()).Returns([]);
+        _sut = new UsuariosService(_repo, _audit, _usuarioLabs, _labRepo, _sessoes);
     }
 
     private static Solicitante Professor(params string[] labs) =>
@@ -44,7 +46,7 @@ public class UsuariosServiceTests
     [Fact]
     public async Task AlterarPapelAsync_UsuarioExistente_RegistraAuditoria()
     {
-        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+        _repo.FindByIdIncluindoArquivadosAsync("user-1").Returns(FakeUser());
         _repo.UpdateRoleAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(Task.CompletedTask);
 
         await _sut.AlterarPapelAsync("user-1", new AlterarPapelCmd("Professor"), "admin@lab.com");
@@ -57,13 +59,67 @@ public class UsuariosServiceTests
     [Fact]
     public async Task AlterarPapelAsync_UsuarioInexistente_NaoRegistraAuditoria()
     {
-        _repo.FindByIdAsync("user-999").Returns((UsuarioInfo?)null);
+        _repo.FindByIdIncluindoArquivadosAsync("user-999").Returns((UsuarioInfo?)null);
 
         await _sut.AlterarPapelAsync("user-999", new AlterarPapelCmd("Professor"), "admin@lab.com");
 
         await _audit.DidNotReceive().RegistrarAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Theory]
+    [InlineData("Gestor")]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task AlterarPapelAsync_PapelForaDaLista_NaoRemoveAsRolesDaConta(string? papel)
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("user-1").Returns(FakeUser());
+
+        var act = () => _sut.AlterarPapelAsync("user-1", new AlterarPapelCmd(papel!), "admin@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _repo.DidNotReceive().UpdateRoleAsync(Arg.Any<string>(), Arg.Any<string>());
+        await _audit.DidNotReceive().RegistrarAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task AlterarPapelAsync_UsuarioArquivado_AlteraEmVezDeSairEmSilencio()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("user-arq").Returns(new UsuarioInfo(
+            "user-arq", "arq@lab.com", "Arq", null, "Professor", new List<string> { "Professor" }, true));
+
+        await _sut.AlterarPapelAsync("user-arq", new AlterarPapelCmd("Aluno"), "admin@lab.com");
+
+        await _repo.Received(1).UpdateRoleAsync("user-arq", "Aluno");
+    }
+
+    [Fact]
+    public async Task AlterarPapelAsync_RevogaAsSessoesDoAlvo()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("user-1").Returns(FakeUser());
+        var sessao = new SessaoToken { Jti = "j1", UsuarioId = "user-1" };
+        _sessoes.GetAtivasByUsuarioAsync("user-1").Returns([sessao]);
+
+        await _sut.AlterarPapelAsync("user-1", new AlterarPapelCmd("Aluno"), "admin@lab.com");
+
+        sessao.Revogada.Should().BeTrue();
+        await _sessoes.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task ArquivarAsync_RevogaAsSessoesDoAlvo()
+    {
+        _repo.FindByIdAsync("aluno-1").Returns(Aluno());
+        var sessao = new SessaoToken { Jti = "j2", UsuarioId = "aluno-1" };
+        _sessoes.GetAtivasByUsuarioAsync("aluno-1").Returns([sessao]);
+
+        await _sut.ArquivarAsync("aluno-1", "admin@lab.com", "Admin");
+
+        sessao.Revogada.Should().BeTrue();
+        await _sessoes.Received(1).SaveChangesAsync();
     }
 
     [Fact]
