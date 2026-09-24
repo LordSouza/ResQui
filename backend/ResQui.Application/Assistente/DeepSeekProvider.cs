@@ -50,14 +50,32 @@ public class DeepSeekProvider(HttpClient http, IConfiguration config, ILogger<De
             throw new ValidationException("O serviço do assistente está indisponível agora.");
         }
 
-        var doc = await resposta.Content.ReadFromJsonAsync<JsonElement>(cts.Token);
-        if (!doc.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
+        JsonElement doc;
+        try
         {
-            logger.LogError("Assistente: resposta do provedor sem choices");
+            doc = await resposta.Content.ReadFromJsonAsync<JsonElement>(cts.Token);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError(ex, "Assistente: resposta do provedor não é JSON");
             throw new ValidationException("O serviço do assistente devolveu uma resposta inesperada.");
         }
 
-        var conteudo = choices[0].GetProperty("message").GetProperty("content").GetString();
+        if (doc.ValueKind != JsonValueKind.Object
+            || !doc.TryGetProperty("choices", out var choices)
+            || choices.ValueKind != JsonValueKind.Array
+            || choices.GetArrayLength() == 0
+            || choices[0].ValueKind != JsonValueKind.Object
+            || !choices[0].TryGetProperty("message", out var message)
+            || message.ValueKind != JsonValueKind.Object
+            || !message.TryGetProperty("content", out var content)
+            || content.ValueKind != JsonValueKind.String)
+        {
+            logger.LogError("Assistente: resposta do provedor fora do formato esperado");
+            throw new ValidationException("O serviço do assistente devolveu uma resposta inesperada.");
+        }
+
+        var conteudo = content.GetString();
         if (string.IsNullOrWhiteSpace(conteudo))
         {
             logger.LogError("Assistente: provedor devolveu conteúdo vazio");

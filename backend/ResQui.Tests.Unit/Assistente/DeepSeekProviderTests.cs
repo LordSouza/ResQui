@@ -46,6 +46,35 @@ public class DeepSeekProviderTests
         return new DeepSeekProvider(http, config, NullLogger<DeepSeekProvider>.Instance);
     }
 
+    private static HttpResponseMessage Corpo(string payload, string tipo = "application/json") =>
+        new(HttpStatusCode.OK) { Content = new StringContent(payload, Encoding.UTF8, tipo) };
+
+    [Theory]
+    [InlineData("{\"choices\":null}")]
+    [InlineData("{\"choices\":[]}")]
+    [InlineData("{\"choices\":[{\"delta\":{\"content\":\"oi\"}}]}")]
+    [InlineData("{\"choices\":[{\"message\":{\"content\":42}}]}")]
+    [InlineData("[]")]
+    [InlineData("\"texto\"")]
+    public async Task CompletarAsync_FormatoInesperado_LancaValidationException(string payload)
+    {
+        var handler = new HandlerFalso(_ => Corpo(payload));
+
+        var act = () => Criar(handler).CompletarAsync("prompt", [], "oi");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*inesperada*");
+    }
+
+    [Fact]
+    public async Task CompletarAsync_RespostaOkQueNaoEhJson_LancaValidationException()
+    {
+        var handler = new HandlerFalso(_ => Corpo("<html>proxy</html>", "text/html"));
+
+        var act = () => Criar(handler).CompletarAsync("prompt", [], "oi");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*inesperada*");
+    }
+
     [Fact]
     public async Task CompletarAsync_RespostaOk_DevolveConteudoDoModelo()
     {
