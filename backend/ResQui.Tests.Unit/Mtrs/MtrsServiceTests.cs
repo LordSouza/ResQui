@@ -81,6 +81,27 @@ public class MtrsServiceTests
     }
 
     [Fact]
+    public async Task CriarAsync_IdRepetido_NaoContaOResiduoDuasVezes()
+    {
+        var r = FakeResiduo(10);
+        _residuosRepo.GetByIdAsync(10).Returns(r);
+        _residuosRepo.GetAllAsync().Returns([r]);
+        _repo.AddAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
+        _repo.UpdateAsync(Arg.Any<Mtr>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
+        _residuosRepo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
+        _residuosRepo.SaveChangesAsync().Returns(Task.CompletedTask);
+
+        var result = await _sut.CriarAsync(new CriarMtrCmd("Unifei", "EcoLog", null, null, [10, 10]), "u1", "ana@lab.com");
+
+        result.ResiduoIds.Should().Equal([10]);
+        result.TotalLitros.Should().Be(5.0m);
+        await _audit.Received(1).RegistrarAsync(
+            Arg.Any<string>(), "mtr.criar", Arg.Any<string>(),
+            Arg.Is<string>(d => d.Contains("1 resíduo(s)")), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
     public async Task CriarAsync_ResiduoNaoAprovado_LancaValidationException()
     {
         var r = FakeResiduo(10);
