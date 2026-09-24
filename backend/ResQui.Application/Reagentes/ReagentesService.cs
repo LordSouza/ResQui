@@ -141,13 +141,14 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         if (cmd.Estoque < 0) throw new ValidationException("Estoque não pode ser negativo.");
         if (cmd.EstoqueMin is < 0) throw new ValidationException("Estoque mínimo não pode ser negativo.");
         if (cmd.ClasseReatividade is < 1 or > 12) throw new ValidationException("Classe de reatividade deve estar entre 1 e 12.");
+        var validade = ParseValidade(cmd.Validade);
 
         var r = new Reagente
         {
             Nome = cmd.Nome, Cas = cmd.Cas, Formula = cmd.Formula,
             Sinonimo = cmd.Sinonimo, ClasseReatividade = cmd.ClasseReatividade,
             Estoque = cmd.Estoque, EstoqueMin = cmd.EstoqueMin, Unidade = cmd.Unidade,
-            Validade = cmd.Validade is not null ? DateOnly.Parse(cmd.Validade) : DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            Validade = validade ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
             Local = cmd.Local,
             Responsavel = cmd.Responsavel, Controlado = cmd.Controlado, Lote = cmd.Lote,
             Ghs = cmd.Ghs is null ? null : new ReagenteGhs
@@ -181,10 +182,6 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             {
                 erros.Add(new ErroLinhaDto(i, ex.Message));
             }
-            catch (FormatException)
-            {
-                erros.Add(new ErroLinhaDto(i, "Data de validade inválida (use AAAA-MM-DD)."));
-            }
         }
 
         await auditoria.RegistrarAsync(usuarioEmail, "reagente.bulk-import", "Inventário",
@@ -203,7 +200,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         if (r is null) return null;
         r.Nome = cmd.Nome; r.Estoque = cmd.Estoque; r.EstoqueMin = cmd.EstoqueMin;
         r.Local = cmd.Local; r.Responsavel = cmd.Responsavel;
-        if (cmd.Validade is not null) r.Validade = DateOnly.Parse(cmd.Validade);
+        if (ParseValidade(cmd.Validade) is { } validade) r.Validade = validade;
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
         await auditoria.RegistrarAsync(usuarioEmail, "reagente.atualizar", "Inventário",
@@ -252,6 +249,14 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         await auditoria.RegistrarAsync(usuarioEmail, "reagente.transferencia", "Inventário",
             $"Transferiu {r.Nome} ({r.Id}) de {origem} para {destino}", RiscoAuditoria.Low);
         return ToDetalhe(r);
+    }
+
+    private static DateOnly? ParseValidade(string? valor)
+    {
+        if (valor is null) return null;
+        if (!DateOnly.TryParse(valor, out var data))
+            throw new ValidationException("Data de validade inválida (use AAAA-MM-DD).");
+        return data;
     }
 
     private static string NormalizeSearch(string s)

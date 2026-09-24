@@ -149,6 +149,29 @@ public class ReagentesServiceTests
         (await _sut.CriarAsync(FakeCmd(classe: classe), "ana@lab.com")).ClasseReatividade.Should().Be(classe);
     }
 
+    [Theory]
+    [InlineData("amanhã")]
+    [InlineData("")]
+    public async Task CriarAsync_ValidadeMalFormatada_LancaValidationExceptionEmVezDeFormatException(string validade)
+    {
+        var cmd = FakeCmd() with { Validade = validade };
+
+        var act = () => _sut.CriarAsync(cmd, "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*validade*");
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ValidadeMalFormatada_LancaValidationExceptionEmVezDeFormatException()
+    {
+        _repo.GetByIdAsync("R-001").Returns(FakeReagente());
+
+        var act = () => _sut.AtualizarAsync(
+            "R-001", new AtualizarReagenteCmd("Ácido X", 1m, 0.5m, "Lab-201", "Ana", "31/12/2026 ou nada"), "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*validade*");
+    }
+
     [Fact]
     public async Task BaixaAsync_QuantidadeZero_LancaValidationException()
     {
@@ -255,7 +278,7 @@ public class ReagentesServiceTests
     {
         var cmds = new[]
         {
-            FakeImportCmd(nome: "Etanol", validade: "amanhã"), // inválida: FormatException no DateOnly.Parse
+            FakeImportCmd(nome: "Etanol", validade: "amanhã"),
             FakeImportCmd(nome: "Acetona"),
         };
 
