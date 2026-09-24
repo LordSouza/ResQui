@@ -7,7 +7,7 @@ import { AuthContext } from '../../src/auth/AuthContext';
 
 function renderCom(papel, { convites = [] } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  const user = { id: 'u-1', email: 'quem@lab.com', papel };
+  const user = { id: 'u-1', email: 'quem@lab.com', papel, laboratorioIds: ['Lab-001'] };
   const utils = render(
     <QueryClientProvider client={qc}>
       <AuthContext.Provider value={{ user, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>

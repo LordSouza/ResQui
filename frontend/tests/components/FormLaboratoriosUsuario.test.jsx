@@ -67,6 +67,16 @@ describe('FormLaboratoriosUsuario', () => {
     expect(JSON.parse(put[1].body)).toEqual({ LaboratorioIds: ['Lab-001'] });
   });
 
+  it('escopo ainda não hidratado carrega, em vez de anunciar que não há laboratório', async () => {
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
+    render(<FormLaboratoriosUsuario usuario={aluno(['Lab-001', 'Lab-002'])} onClose={onClose} />, { wrapper });
+
+    expect(await screen.findByText(/Carregando os laboratórios/)).toBeInTheDocument();
+    expect(screen.queryByText(/não responde por nenhum laboratório/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Preservados/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+  });
+
   it('desmarcar um laboratório o remove da lista enviada', async () => {
     useAuth.mockReturnValue({ user: { id: 'adm', papel: 'Admin' } });
     render(<FormLaboratoriosUsuario usuario={aluno(['Lab-001', 'Lab-002'])} onClose={onClose} />, { wrapper });
