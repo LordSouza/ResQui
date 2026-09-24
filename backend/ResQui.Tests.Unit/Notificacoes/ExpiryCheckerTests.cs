@@ -36,6 +36,20 @@ public class ExpiryCheckerTests
     }
 
     [Fact]
+    public async Task RunAsync_ReagenteJaVencido_NaoAnunciaDiasNegativos()
+    {
+        var r = new Reagente { Id = "R-00007", Nome = "Éter", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-45)), Estoque = 5, Unidade = "L", Local = "Lab-201", Responsavel = "Ana" };
+        _reagentes.GetAllAsync().Returns([r]);
+        _auth.GetAllAsync().Returns([Admin]);
+        _notifs.ExisteNaoLidaAsync("u-admin", "expiry", "R-00007").Returns(false);
+
+        await _sut.RunAsync();
+
+        await _notifs.Received(1).AddAsync(Arg.Is<Notificacao>(
+            n => n.Mensagem.Contains("venceu há 45 dia(s)") && !n.Mensagem.Contains("-45")));
+    }
+
+    [Fact]
     public async Task RunAsync_NotifNaoLidaJaExiste_NaoInsere()
     {
         var r = new Reagente { Id = "R-00001", Nome = "Acetona", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)), Estoque = 5, Unidade = "L", Local = "Lab-201", Responsavel = "Ana" };

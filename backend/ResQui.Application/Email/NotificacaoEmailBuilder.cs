@@ -14,13 +14,16 @@ public static class NotificacaoEmailBuilder
         </html>
         """;
 
-    public static (string Subject, string Html) BuildExpiry(string nome, string id, int diasRestantes) =>
-    (
-        $"[ResQui] Reagente prestes a vencer: {nome}",
-        Layout("Vencimento próximo",
-            $"<p>O reagente <strong>{nome}</strong> ({id}) vence em <strong>{diasRestantes} dias</strong>.</p>" +
-            $"<p>Acesse o inventário para tomar providências.</p>")
-    );
+    public static (string Subject, string Html) BuildExpiry(string nome, string id, int diasRestantes)
+    {
+        var vencido = diasRestantes < 0;
+        return (
+            vencido ? $"[ResQui] Reagente vencido: {nome}" : $"[ResQui] Reagente prestes a vencer: {nome}",
+            Layout(vencido ? "Reagente vencido" : "Vencimento próximo",
+                $"<p>O reagente <strong>{nome}</strong> ({id}) <strong>{Common.PrazoValidade.Descrever(diasRestantes)}</strong>.</p>" +
+                $"<p>Acesse o inventário para tomar providências.</p>")
+        );
+    }
 
     public static (string Subject, string Html) BuildLowStock(string nome, string id, decimal estoque, decimal estoqueMin, string unidade) =>
     (

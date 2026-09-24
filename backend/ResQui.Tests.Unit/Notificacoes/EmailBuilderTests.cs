@@ -14,6 +14,15 @@ public class EmailBuilderTests
     }
 
     [Fact]
+    public void BuildExpiry_ReagenteJaVencido_NaoDizPrestesAVencerNemDiasNegativos()
+    {
+        var (subject, html) = NotificacaoEmailBuilder.BuildExpiry("Éter", "R-00007", -45);
+
+        subject.Should().Contain("vencido").And.NotContain("prestes a vencer");
+        html.Should().Contain("venceu há 45 dia(s)").And.NotContain("-45");
+    }
+
+    [Fact]
     public void BuildLowStock_RetornaSubjectEHtmlNaoVazios()
     {
         var (subject, html) = NotificacaoEmailBuilder.BuildLowStock("Etanol", "R-00002", 0.5m, 2m, "L");

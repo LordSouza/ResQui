@@ -79,8 +79,10 @@ public class AssistenteService(
             if (raiz.ValueKind != JsonValueKind.Object)
                 throw new ValidationException("Não consegui interpretar a resposta do assistente. Tente reformular.");
 
-            var say = raiz.TryGetProperty("say", out var s) ? s.GetString() ?? "" : "";
-            var action = raiz.TryGetProperty("action", out var a) ? a.GetString() ?? "explain" : "explain";
+            var say = raiz.TryGetProperty("say", out var s) && s.ValueKind == JsonValueKind.String
+                ? s.GetString() ?? "" : "";
+            var action = raiz.TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.String
+                ? a.GetString() ?? "explain" : "explain";
             if (!AcoesConhecidas.Contains(action)) action = "explain";
 
             var parametros = raiz.TryGetProperty("params", out var p) && p.ValueKind == JsonValueKind.Object

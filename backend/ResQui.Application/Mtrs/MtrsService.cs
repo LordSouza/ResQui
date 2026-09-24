@@ -32,7 +32,7 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
             throw new ValidationException("Selecione ao menos um resíduo.");
 
         var residuos = new List<Residuo>();
-        foreach (var rid in cmd.ResiduoIds)
+        foreach (var rid in cmd.ResiduoIds.Distinct())
         {
             var r = await residuosRepo.GetByIdAsync(rid)
                 ?? throw new ValidationException($"Resíduo {rid} não encontrado.");

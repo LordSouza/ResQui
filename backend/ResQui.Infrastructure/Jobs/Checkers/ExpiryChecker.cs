@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ResQui.Application.Common;
 using ResQui.Application.Email;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
@@ -41,7 +42,7 @@ public class ExpiryChecker(
                 await notifs.AddAsync(new Notificacao
                 {
                     UsuarioId = u.Id,
-                    Mensagem = $"Reagente {r.Nome} ({r.Id}) vence em {diasRestantes} dia(s).",
+                    Mensagem = $"Reagente {r.Nome} ({r.Id}) {PrazoValidade.Descrever(diasRestantes)}.",
                     Tipo = "expiry",
                     ReferenciaId = r.Id,
                     Severidade = diasRestantes <= 7 ? "red" : "amber",

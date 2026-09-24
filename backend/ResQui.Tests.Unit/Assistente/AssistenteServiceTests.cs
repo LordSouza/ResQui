@@ -71,6 +71,19 @@ public class AssistenteServiceTests
     }
 
     [Fact]
+    public async Task ResponderAsync_SayEActionComTipoErrado_DegradaEmVezDeEstourar()
+    {
+        _reagentes.GetAllAsync().Returns(new List<Reagente>());
+        _residuos.GetAllAsync().Returns(new List<Residuo>());
+        ProviderResponde("{\"say\":42,\"action\":7,\"params\":{}}");
+
+        var dto = await Criar().ResponderAsync(Cmd(), Admin());
+
+        dto.Say.Should().BeEmpty();
+        dto.Action.Should().Be("explain");
+    }
+
+    [Fact]
     public async Task ResponderAsync_JsonEnvoltoEmCercasDeMarkdown_AindaEParseado()
     {
         _reagentes.GetAllAsync().Returns(new List<Reagente>());
