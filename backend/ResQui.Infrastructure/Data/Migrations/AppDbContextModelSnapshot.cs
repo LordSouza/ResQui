@@ -821,6 +821,8 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Jti");
+
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("SessoesTokens");
