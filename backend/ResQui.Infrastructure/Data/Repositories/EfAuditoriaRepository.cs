@@ -25,7 +25,7 @@ public class EfAuditoriaRepository(AppDbContext db) : IAuditoriaRepository
         if (!string.IsNullOrEmpty(detalhe)) consulta = consulta.Where(a => EF.Functions.ILike(a.Detail, Curinga(detalhe), Escape));
 
         consulta = consulta.OrderByDescending(a => a.Timestamp);
-        if (limite is { } teto) consulta = consulta.Take(teto);
+        if (limite is { } teto) consulta = consulta.Take(Math.Max(teto, 0));
 
         return await consulta.ToListAsync();
     }
