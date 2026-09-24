@@ -9,6 +9,8 @@ public class SessaoTokenConfiguration : IEntityTypeConfiguration<SessaoToken>
 {
     public void Configure(EntityTypeBuilder<SessaoToken> builder)
     {
+        builder.HasIndex(s => s.Jti);
+
         // Cascade — dado pessoal do usuário, some junto com a conta.
         builder.HasOne<Usuario>()
             .WithMany()
