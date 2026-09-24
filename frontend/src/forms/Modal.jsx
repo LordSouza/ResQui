@@ -29,6 +29,11 @@ function manterFocoDentro(evento, dialogo) {
   if (focaveis.length === 0) { evento.preventDefault(); return; }
   const primeiro = focaveis[0];
   const ultimo = focaveis[focaveis.length - 1];
+  if (!focaveis.includes(document.activeElement)) {
+    evento.preventDefault();
+    (evento.shiftKey ? ultimo : primeiro).focus();
+    return;
+  }
   if (evento.shiftKey && document.activeElement === primeiro) {
     evento.preventDefault();
     ultimo.focus();

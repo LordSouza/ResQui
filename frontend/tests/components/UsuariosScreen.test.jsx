@@ -170,6 +170,18 @@ describe('UsuariosScreen — permissões', () => {
     expect(screen.queryByRole('button', { name: /excluir definitivamente/i })).not.toBeInTheDocument();
   });
 
+  it('desabilita "Excluir definitivamente" na própria linha e mantém nas demais', async () => {
+    renderCom({ id: 'u-1', papel: 'Admin' });
+
+    const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
+    fireEvent.click(within(linhaAna).getByRole('button', { name: /opções do usuário/i }));
+    expect(screen.getByRole('button', { name: /excluir definitivamente/i })).toBeDisabled();
+
+    const linhaBruno = screen.getByText('Bruno Lima').closest('tr');
+    fireEvent.click(within(linhaBruno).getByRole('button', { name: /opções do usuário/i }));
+    expect(screen.getByRole('button', { name: /excluir definitivamente/i })).toBeEnabled();
+  });
+
   // O servidor recusa arquivar quem não é Aluno sem ser Admin; a tela não oferece.
   it('esconde "Arquivar" de colega Professor, mas oferece para Aluno', async () => {
     renderCom({ id: 'p-1', papel: 'Professor' });

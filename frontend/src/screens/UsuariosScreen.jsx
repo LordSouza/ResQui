@@ -359,7 +359,7 @@ export function UsuariosScreen({ state, dispatch }) {
                             )}
                             {souAdmin && (<>
                               <div className="row-menu-sep"/>
-                              <button type="button" className="danger" disabled={u.voce}
+                              <button type="button" className="danger" disabled={u.id === usuarioLogado?.id}
                                 onClick={() => { dispatch({type: 'openModal', kind: 'excluirUsuario', usuario: u}); setMenuOpen(null); }}>
                                 <Icon name="trash" size={12}/> Excluir definitivamente
                               </button>
