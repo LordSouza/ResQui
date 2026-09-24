@@ -44,6 +44,19 @@ describe('Modal', () => {
     expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveFocus();
   });
 
+  it('mantém o Tab dentro do diálogo depois de continuar editando', async () => {
+    renderModal();
+    await userEvent.type(screen.getByLabelText('Composição'), 'Acetona 70%');
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', { name: 'Continuar editando' }));
+
+    await userEvent.tab({ shift: true });
+    expect(screen.getByRole('dialog')).toContainElement(document.activeElement);
+
+    await userEvent.tab();
+    expect(screen.getByRole('dialog')).toContainElement(document.activeElement);
+  });
+
   it('fecha pelo véu quando nada foi preenchido', async () => {
     const onClose = renderModal();
     await clicarNoVeu();
