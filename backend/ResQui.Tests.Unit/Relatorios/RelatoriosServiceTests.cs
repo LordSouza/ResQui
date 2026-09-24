@@ -2,6 +2,7 @@
 using System.Globalization;
 using FluentAssertions;
 using NSubstitute;
+using ResQui.Application.Common;
 using ResQui.Application.Relatorios;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
@@ -178,11 +179,16 @@ public class RelatoriosServiceTests
         result.Should().BeNull();
     }
 
-    [Fact]
-    public async Task GerarAsync_TipoDesconhecido_LancaArgumentException()
+    [Theory]
+    [InlineData("invalido")]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task GerarAsync_TipoForaDoCatalogo_LancaValidationExceptionSemGravar(string? tipo)
     {
-        var act = async () => await _sut.GerarAsync(new GerarRelatorioCmd("invalido"), "u1");
-        await act.Should().ThrowAsync<ArgumentException>();
+        var act = async () => await _sut.GerarAsync(new GerarRelatorioCmd(tipo!), "u1");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _repo.DidNotReceive().AddAsync(Arg.Any<RelatorioGerado>());
     }
 
     // --- DownloadAsync ---

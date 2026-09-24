@@ -30,8 +30,9 @@ public class RelatoriosService(
 
     public async Task<RelatorioGeradoDto> GerarAsync(GerarRelatorioCmd cmd, string? userId)
     {
+        if (cmd.Tipo is null || !Titulos.TryGetValue(cmd.Tipo, out var titulo))
+            throw new ValidationException($"Tipo de relatório desconhecido: {cmd.Tipo}.");
         var (csv, totalLinhas) = await GerarCsvAsync(cmd.Tipo);
-        var titulo = Titulos.TryGetValue(cmd.Tipo, out var t) ? t : cmd.Tipo;
 
         var r = new RelatorioGerado
         {
