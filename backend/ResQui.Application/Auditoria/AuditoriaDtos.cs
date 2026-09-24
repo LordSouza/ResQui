@@ -18,5 +18,7 @@ public record AuditoriaFiltroDto(
     string? Risk = null,
     string? Who = null,
     string? What = null,
-    string? Where = null
+    string? Where = null,
+    string? Detail = null,
+    int? Limite = null
 );

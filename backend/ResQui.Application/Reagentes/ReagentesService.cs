@@ -12,11 +12,8 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
     public async Task<IEnumerable<Auditoria.AuditoriaItemDto>?> ListarMovimentacoesAsync(string id, int limite = 20)
     {
         if (await repo.GetByIdAsync(id) is null) return null;
-        var entries = await auditoria.ListarAsync(new Auditoria.AuditoriaFiltroDto(What: "reagente."));
-        return entries
-            .Where(e => e.Detail.Contains(id, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(e => e.Timestamp)
-            .Take(limite);
+        return await auditoria.ListarAsync(
+            new Auditoria.AuditoriaFiltroDto(What: "reagente.", Detail: id, Limite: limite));
     }
 
     public async Task<byte[]?> GerarRotuloLoteAsync(string reagenteId, int loteId, string usuarioEmail)

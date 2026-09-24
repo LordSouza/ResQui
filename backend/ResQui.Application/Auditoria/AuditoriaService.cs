@@ -23,24 +23,21 @@ public class AuditoriaService(IAuditoriaRepository repo) : IAuditoriaService
 
     public async Task<IEnumerable<AuditoriaItemDto>> ListarAsync(AuditoriaFiltroDto filtro)
     {
-        var entries = await repo.GetAllAsync();
+        RiscoAuditoria? risco =
+            !string.IsNullOrEmpty(filtro.Risk)
+            && Enum.TryParse<RiscoAuditoria>(filtro.Risk, ignoreCase: true, out var r)
+                ? r : null;
 
-        if (filtro.From.HasValue)
-            entries = entries.Where(e => e.Timestamp >= filtro.From.Value);
-        if (filtro.To.HasValue)
-            entries = entries.Where(e => e.Timestamp < filtro.To.Value.Date.AddDays(1));
-        if (!string.IsNullOrEmpty(filtro.Risk) &&
-            Enum.TryParse<RiscoAuditoria>(filtro.Risk, ignoreCase: true, out var r))
-            entries = entries.Where(e => e.Risk == r);
-        if (!string.IsNullOrEmpty(filtro.Who))
-            entries = entries.Where(e => e.Who.Contains(filtro.Who, StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrEmpty(filtro.What))
-            entries = entries.Where(e => e.What.Contains(filtro.What, StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrEmpty(filtro.Where))
-            entries = entries.Where(e => e.Where.Contains(filtro.Where, StringComparison.OrdinalIgnoreCase));
+        var entries = await repo.BuscarAsync(
+            filtro.From is { } de ? ComoUtc(de) : null,
+            filtro.To is { } ate ? ComoUtc(ate.Date.AddDays(1)) : null,
+            risco, filtro.Who, filtro.What, filtro.Where, filtro.Detail, filtro.Limite);
 
         return entries.Select(e => new AuditoriaItemDto(
             e.Id, e.Timestamp, e.Who, e.What, e.Where, e.Detail,
             e.Risk.ToString().ToLower()));
     }
+
+    private static DateTime ComoUtc(DateTime valor) =>
+        valor.Kind == DateTimeKind.Utc ? valor : DateTime.SpecifyKind(valor, DateTimeKind.Utc);
 }
