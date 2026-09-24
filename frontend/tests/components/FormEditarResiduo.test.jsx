@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FormEditarResiduo } from '../../src/forms/residuos';
@@ -43,6 +43,26 @@ describe('FormEditarResiduo — classificação', () => {
   it('mantém editável o resíduo legado que nunca teve classificação', () => {
     render(<FormEditarResiduo residuo={{ ...RESIDUO_CLASSIFICADO, classes: [] }} onClose={onClose} dispatch={dispatch} />, { wrapper });
     expect(screen.getByRole('button', { name: /Salvar alterações/i })).toBeEnabled();
+  });
+
+  it('omite ClassesReatividade ao salvar o resíduo legado, porque a lista vazia explícita é recusada', async () => {
+    render(<FormEditarResiduo residuo={{ ...RESIDUO_CLASSIFICADO, classes: [] }} onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    await userEvent.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const put = fetch.mock.calls.find(c => c[1]?.method === 'PUT');
+    expect(JSON.parse(put[1].body)).not.toHaveProperty('ClassesReatividade');
+  });
+
+  it('envia as classes do resíduo já classificado', async () => {
+    render(<FormEditarResiduo residuo={RESIDUO_CLASSIFICADO} onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    await userEvent.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const put = fetch.mock.calls.find(c => c[1]?.method === 'PUT');
+    expect(JSON.parse(put[1].body).ClassesReatividade).toEqual([5]);
   });
 
   describe('com resíduo gravado antes de uma revisão da matriz', () => {
