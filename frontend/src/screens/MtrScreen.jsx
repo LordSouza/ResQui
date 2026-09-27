@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Icon, Tag, SectionTitle, riscoBadge } from '../components';
 import { useMtrs } from '../mtrs/useMtrs';
 import { useResíduos } from '../residuos/useResíduos';
@@ -88,7 +88,17 @@ export function MtrScreen({ state, dispatch }) {
   const podeEmitir = usePode('Operacao'); // POST /api/mtrs
   const { data: mtrs = [], isPending, isError, refetch } = useMtrs();
 
-  const sel = mtrs.find(m => m.id === selectedId) ?? mtrs[0];
+  const linhaRecemEmitida = useRef(null);
+
+  const sel = mtrs.find(m => m.id === (selectedId ?? state.flashId)) ?? mtrs[0];
+
+  useEffect(() => {
+    if (state.flashId) setSelectedId(null);
+  }, [state.flashId]);
+
+  useEffect(() => {
+    linhaRecemEmitida.current?.scrollIntoView?.({ block: 'center' });
+  }, [state.flashId, mtrs.length]);
 
   if (isPending) return <div className="page-loading"><Icon name="refresh" size={16} /> Carregando...</div>;
   if (isError) return <div className="page-error">Erro ao carregar MTRs. <button onClick={refetch}>Tentar novamente</button></div>;
@@ -121,7 +131,7 @@ export function MtrScreen({ state, dispatch }) {
           </thead>
           <tbody>
             {mtrs.map((m) => (
-              <tr key={m.id} className={`${m.id === sel?.id ? 'selected' : ''} ${state.flashId === m.id ? 'flash' : ''}`.trim()} tabIndex={0}
+              <tr key={m.id} ref={state.flashId === m.id ? linhaRecemEmitida : null} className={`${m.id === sel?.id ? 'selected' : ''} ${state.flashId === m.id ? 'flash' : ''}`.trim()} tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(m.id); } }}
                 onClick={() => setSelectedId(m.id)}>
                 <td className="num">{m.numero}</td>

@@ -53,6 +53,8 @@ test('new MTR appears in the list after creating with a selected resíduo', asyn
   await checkbox.check();
   await page.getByRole('button', { name: /Emitir manifesto \(1\)/ }).click();
   await expect(page.getByRole('button', { name: /Emitir manifesto/ })).not.toBeVisible({ timeout: 3000 });
+  await expect(page.getByRole('status').filter({ hasText: /Manifesto MTR-\d{4}-\d{4} emitido/ })).toBeVisible();
+  await expect(page.locator('.tbl tr.selected.flash')).toBeVisible();
 
   await expect(async () => {
     expect(await mtrTable.count()).toBeGreaterThan(countBefore);
