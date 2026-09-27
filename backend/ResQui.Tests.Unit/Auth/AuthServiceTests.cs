@@ -33,7 +33,7 @@ public class AuthServiceTests
 
     public AuthServiceTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs, _labRepo);
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs, _labRepo, Substitute.For<IFalhasLoginPorIp>());
         // Sem isto, TentarConsumir devolve false (default de bool) e todo login destes testes
         // morre no throttle.
         _throttle.TentarConsumir(Arg.Any<string>()).Returns(true);

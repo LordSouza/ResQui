@@ -4,7 +4,7 @@ namespace ResQui.Application.Auth;
 
 public interface IAuthService
 {
-    Task<LoginResultDto?> LoginAsync(LoginCmd cmd, string? userAgent = null);
+    Task<LoginResultDto?> LoginAsync(LoginCmd cmd, string? userAgent = null, string? ip = null);
     Task AlterarSenhaAsync(string userId, AlterarSenhaCmd cmd, string usuarioEmail);
     Task<Setup2faDto?> Setup2faAsync(string userId, string senha);
     Task<IEnumerable<string>> Ativar2faAsync(string userId, string codigo, string usuarioEmail);

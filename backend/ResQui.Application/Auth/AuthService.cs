@@ -10,12 +10,15 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Auth;
 
-public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email, ILoginThrottle throttle, IUsuarioLaboratoriosRepository usuarioLabs, ILaboratoriosRepository labRepo) : IAuthService
+public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email, ILoginThrottle throttle, IUsuarioLaboratoriosRepository usuarioLabs, ILaboratoriosRepository labRepo, IFalhasLoginPorIp falhasPorIp) : IAuthService
 {
     private const int QuantidadeCodigosRecuperacao = 10;
 
-    public async Task<LoginResultDto?> LoginAsync(LoginCmd cmd, string? userAgent = null)
+    public async Task<LoginResultDto?> LoginAsync(LoginCmd cmd, string? userAgent = null, string? ip = null)
     {
+        if (ip is not null && falhasPorIp.EstaBloqueado(ip))
+            throw new ValidationException("Muitas tentativas de login malsucedidas a partir desta rede. Aguarde alguns minutos e tente novamente.");
+
         // Antes do FindByEmailAsync de propósito: assim a resposta do throttle é idêntica para
         // e-mail existente, arquivado e inexistente, e o vazamento de enumeração fica confinado
         // à mensagem de bloqueio abaixo — que é uma escolha declarada, não um descuido.
@@ -23,7 +26,11 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
             throw new ValidationException("Muitas tentativas de login. Aguarde um momento e tente novamente.");
 
         var user = await repo.FindByEmailAsync(cmd.Email);
-        if (user is null) return null;
+        if (user is null)
+        {
+            await ContabilizarFalhaDoIpAsync(ip, cmd.Email);
+            return null;
+        }
 
         // Depois da busca e antes da senha: conta travada não paga PBKDF2.
         if (await repo.EstaBloqueadoAsync(user.Id))
@@ -33,6 +40,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         if (!valid)
         {
             await ContabilizarFalhaAsync(user.Id, cmd.Email);
+            await ContabilizarFalhaDoIpAsync(ip, cmd.Email);
             return null;
         }
 
@@ -51,6 +59,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
                 // O TOTP de 6 dígitos (10^6) é o alvo mais barato do sistema. Sem contar esta
                 // falha, o lockout protegeria apenas a senha e o segundo fator ficaria livre.
                 await ContabilizarFalhaAsync(user.Id, cmd.Email);
+                await ContabilizarFalhaDoIpAsync(ip, cmd.Email);
                 return null;
             }
             viaRecuperacao = fator == SegundoFator.Recuperacao;
@@ -316,6 +325,14 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         if (await repo.EstaBloqueadoAsync(userId))
             await auditoria.RegistrarAsync(email, "user.login-bloqueado", "Auth",
                 "Conta bloqueada por excesso de tentativas de login", RiscoAuditoria.High);
+    }
+
+    private async Task ContabilizarFalhaDoIpAsync(string? ip, string email)
+    {
+        if (ip is null) return;
+        if (falhasPorIp.RegistrarFalha(ip))
+            await auditoria.RegistrarAsync(email, "auth.ip-bloqueado", "Auth",
+                $"Logins malsucedidos a partir de {ip} atingiram o teto; novas tentativas desse endereço estão recusadas", RiscoAuditoria.High);
     }
 
     private async Task<SegundoFator> VerificarSegundoFatorAsync(string userId, string codigo)

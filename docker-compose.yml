@@ -11,6 +11,8 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - interna
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U resqui"]
       interval: 5s
@@ -23,6 +25,8 @@ services:
       dockerfile: ResQui.API/Dockerfile
     ports:
       - "5000:8080"
+    networks:
+      - interna
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,6 +48,8 @@ services:
       Email__From: ${EMAIL_FROM:-resqui@resqui.local}
       Email__RequireTls: ${EMAIL_REQUIRE_TLS:-true}
       Email__TimeoutSeconds: ${EMAIL_TIMEOUT_SECONDS:-10}
+      Proxy__Confiaveis__0: 10.87.0.10
+      Proxy__Confiaveis__1: 10.87.0.11
 
   frontend:
     build:
@@ -51,8 +57,17 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5173:80"
+    networks:
+      interna:
+        ipv4_address: 10.87.0.10
     depends_on:
       - backend
+
+networks:
+  interna:
+    ipam:
+      config:
+        - subnet: 10.87.0.0/24
 
 volumes:
   pgdata:

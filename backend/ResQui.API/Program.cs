@@ -1,6 +1,8 @@
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -96,6 +98,16 @@ builder.Services.AddRateLimiter(opcoes =>
             new { message = $"Limite de {maxMensagens} mensagens a cada {janela.TotalMinutes:0} minutos atingido. Aguarde um pouco para continuar." }, ct);
     };
 });
+builder.Services.AddSingleton<IFalhasLoginPorIp, FalhasLoginPorIp>();
+builder.Services.Configure<ForwardedHeadersOptions>(opcoes =>
+{
+    opcoes.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+    opcoes.ForwardLimit = 2;
+    opcoes.KnownProxies.Clear();
+    opcoes.KnownIPNetworks.Clear();
+    foreach (var proxy in builder.Configuration.GetSection("Proxy:Confiaveis").Get<string[]>() ?? [])
+        opcoes.KnownProxies.Add(IPAddress.Parse(proxy));
+});
 builder.Services.AddSingleton<ResQui.Application.Pdf.IPdfService, ResQui.Application.Pdf.PdfService>();
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -161,6 +173,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<NotificacoesJob>();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 app.Use(async (ctx, next) =>
 {
