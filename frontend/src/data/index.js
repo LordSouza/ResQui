@@ -29,6 +29,39 @@ export const TIPOS_RESIDUO = [
   'Material biológico contaminado',
 ];
 
+export const CODIGOS_IBAMA = [
+  { codigo: '16 05 06*', descricao: 'Produtos químicos de laboratório contendo ou compostos por substâncias perigosas, incluindo misturas de produtos químicos de laboratório' },
+  { codigo: '16 05 07*', descricao: 'Produtos químicos inorgânicos de laboratório contendo ou compostos por substâncias perigosas' },
+  { codigo: '16 05 08*', descricao: 'Produtos químicos orgânicos fora de uso contendo ou compostos por substâncias perigosas' },
+  { codigo: '14 06 02*', descricao: 'Outros solventes e misturas de solventes halogenados' },
+  { codigo: '14 06 03*', descricao: 'Outros solventes e misturas de solventes' },
+  { codigo: '06 01 06*', descricao: 'Outros ácidos' },
+  { codigo: '06 02 05*', descricao: 'Outras bases' },
+  { codigo: '06 03 11*', descricao: 'Sais no estado sólido e em soluções contendo cianetos' },
+  { codigo: '06 04 04*', descricao: 'Resíduos contendo mercúrio' },
+  { codigo: '06 04 05*', descricao: 'Resíduos contendo outros metais pesados' },
+  { codigo: '16 09 04*', descricao: 'Substâncias oxidantes não anteriormente especificadas' },
+  { codigo: '16 10 01*', descricao: 'Resíduos líquidos aquosos contendo substâncias perigosas' },
+  { codigo: '15 01 10*', descricao: 'Embalagens contendo ou contaminadas por resíduos de substâncias perigosas' },
+  { codigo: '15 02 02*', descricao: 'Absorventes, materiais filtrantes, panos de limpeza e vestuário de proteção contaminados por substâncias perigosas' },
+  { codigo: '18 01 01*', descricao: 'Culturas e estoques de microrganismos, meios de cultura e instrumentais de inoculação; resíduos de laboratórios de manipulação genética' },
+];
+
+export const CODIGO_IBAMA_MISTURA = '16 05 06*';
+
+export const CODIGO_IBAMA_POR_TIPO = {
+  'Solventes orgânicos não-halogenados': '14 06 03*',
+  'Solventes halogenados': '14 06 02*',
+  'Ácidos inorgânicos': '06 01 06*',
+  'Ácidos orgânicos': '06 01 06*',
+  'Bases inorgânicas': '06 02 05*',
+  'Metais pesados': '06 04 05*',
+  'Oxidantes': '16 09 04*',
+  'Compostos cianetos': '06 03 11*',
+  'Vidraria contaminada': '15 01 10*',
+  'Material biológico contaminado': '18 01 01*',
+};
+
 export let PICTOS_GHS = {
   flame: { code: 'GHS02', label: 'Inflamável' },
   flame_circle: { code: 'GHS03', label: 'Oxidante' },

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira, completarMeses } from '../../src/utils';
+import { CODIGOS_IBAMA, CODIGO_IBAMA_POR_TIPO, TIPOS_RESIDUO } from '../../src/data';
+import { codigoIbamaDosResiduos, pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira, completarMeses } from '../../src/utils';
 
 // --- pgrsTs ---
 describe('pgrsTs', () => {
@@ -154,5 +155,34 @@ describe('completarMeses', () => {
     const meses = completarMeses([], 3, new Date(2027, 0, 5));
 
     expect(meses.map(m => m.mes)).toEqual(['2026-11', '2026-12', '2027-01']);
+  });
+});
+
+describe('codigoIbamaDosResiduos', () => {
+  it('sem resíduos devolve null', () => {
+    expect(codigoIbamaDosResiduos([])).toBeNull();
+  });
+
+  it('um tipo só devolve o código dele', () => {
+    expect(codigoIbamaDosResiduos([{ tipo: 'Oxidantes' }, { tipo: 'Oxidantes' }])).toBe('16 09 04*');
+  });
+
+  it('tipos distintos que compartilham código devolvem esse código', () => {
+    expect(codigoIbamaDosResiduos([{ tipo: 'Ácidos inorgânicos' }, { tipo: 'Ácidos orgânicos' }])).toBe('06 01 06*');
+  });
+
+  it('códigos distintos devolvem o de mistura de laboratório', () => {
+    expect(codigoIbamaDosResiduos([{ tipo: 'Oxidantes' }, { tipo: 'Metais pesados' }])).toBe('16 05 06*');
+  });
+
+  it('tipo fora do catálogo devolve o de mistura de laboratório', () => {
+    expect(codigoIbamaDosResiduos([{ tipo: 'Tipo legado' }])).toBe('16 05 06*');
+  });
+});
+
+describe('CODIGO_IBAMA_POR_TIPO', () => {
+  it('cobre todo tipo de resíduo com um código do catálogo', () => {
+    const catalogo = CODIGOS_IBAMA.map(c => c.codigo);
+    for (const tipo of TIPOS_RESIDUO) expect(catalogo).toContain(CODIGO_IBAMA_POR_TIPO[tipo]);
   });
 });

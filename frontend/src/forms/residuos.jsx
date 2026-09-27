@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Icon, Badge, riscoBadge } from '../components';
-import { REATIVIDADE_CLASSES, TIPOS_RESIDUO } from '../data';
+import { REATIVIDADE_CLASSES, TIPOS_RESIDUO, CODIGOS_IBAMA } from '../data';
 import Modal from './Modal';
 import { useCriarResiduo } from '../residuos/useCriarResiduo';
 import { useAtualizarResiduo } from '../residuos/useAtualizarResiduo';
@@ -13,7 +13,7 @@ import { useSalvarConfigPgrs } from '../pgrs/useSalvarConfigPgrs';
 import { useConfirmarDestinacao } from '../mtrs/useConfirmarDestinacao';
 import { useReabrirDestinacao } from '../mtrs/useReabrirDestinacao';
 import { useRejeitarResiduo } from '../residuos/useRejeitarResiduo';
-import { quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira } from '../utils';
+import { codigoIbamaDosResiduos, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira } from '../utils';
 import { useVereditoMistura } from '../compat/useVereditoMistura';
 import { NIVEL_BLOQUEIO_MISTURA, ROTULO_NIVEL, piorNivelContra } from '../compat/avaliarMistura';
 
@@ -346,12 +346,24 @@ export function ConfirmRejeitarResiduo({ residuo, onClose, dispatch }) {
 }
 
 // ---------- Novo manifesto ----------
+function SeletorCodigoIbama({ id, value, onChange }) {
+  const foraDoCatalogo = value && !CODIGOS_IBAMA.some(c => c.codigo === value);
+  return (
+    <select id={id} value={value} onChange={e => onChange(e.target.value)}>
+      <option value="">—</option>
+      {foraDoCatalogo && <option value={value}>{value} (fora da lista IBAMA)</option>}
+      {CODIGOS_IBAMA.map(c => <option key={c.codigo} value={c.codigo}>{c.codigo} — {c.descricao}</option>)}
+    </select>
+  );
+}
+
 export function FormNovoMtr({ onClose, dispatch }) {
   const criarMtr = useCriarMtr();
   const { data: cfg } = useConfigPgrs();
   const { data: residuos = [] } = useResíduos({ status: 'aguardando-coleta' });
   const [selected, setSelected] = useState([]);
-  const [f, setF] = useState({ transp: '', dest: '', codigo: '', gerador: '' });
+  const [f, setF] = useState({ transp: '', dest: '', gerador: '' });
+  const [codigoEscolhido, setCodigoEscolhido] = useState(null);
   const [erro, setErro] = useState('');
 
   useEffect(() => {
@@ -359,22 +371,22 @@ export function FormNovoMtr({ onClose, dispatch }) {
     setF(s => ({
       transp: s.transp || (cfg.transportadorPadrao ?? ''),
       dest: s.dest || (cfg.destinadorPadrao ?? ''),
-      codigo: s.codigo || (cfg.codigoIbamaPadrao ?? ''),
       gerador: s.gerador || (cfg.geradorPadrao ?? ''),
     }));
   }, [cfg]);
 
   const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
-  const quantidade = quantidadesResiduos(
-    selected.map(id => residuos.find(r => r.id === id)).filter(Boolean)
-  );
+  const residuosSelecionados = selected.map(id => residuos.find(r => r.id === id)).filter(Boolean);
+  const quantidade = quantidadesResiduos(residuosSelecionados);
+  const codigoSugerido = codigoIbamaDosResiduos(residuosSelecionados);
+  const codigoIbama = codigoEscolhido ?? codigoSugerido ?? cfg?.codigoIbamaPadrao ?? '';
 
   const submit = () => {
     if (selected.length === 0) { setErro('Selecione ao menos um resíduo.'); return; }
     if (!f.gerador.trim() || !f.transp.trim()) { setErro('Informe gerador e transportador.'); return; }
     setErro('');
     criarMtr.mutate(
-      { Gerador: f.gerador, Transportadora: f.transp, Destinador: f.dest, CodigoIbama: f.codigo, ResiduoIds: selected },
+      { Gerador: f.gerador, Transportadora: f.transp, Destinador: f.dest, CodigoIbama: codigoIbama, ResiduoIds: selected },
       { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
     );
   };
@@ -394,7 +406,10 @@ export function FormNovoMtr({ onClose, dispatch }) {
           <input id="mtr-gerador" value={f.gerador} onChange={e => setF(s => ({ ...s, gerador: e.target.value }))} />
         </div>
         <div className="field"><label htmlFor="mtr-codigo-ibama">Código IBAMA</label>
-          <input id="mtr-codigo-ibama" value={f.codigo} onChange={e => setF(s => ({ ...s, codigo: e.target.value }))} placeholder="Ex: A099" />
+          <SeletorCodigoIbama id="mtr-codigo-ibama" value={codigoIbama} onChange={setCodigoEscolhido} />
+          {codigoEscolhido === null && codigoSugerido && (
+            <div className="small muted" style={{ marginTop: 4 }}>Deduzido do tipo dos resíduos marcados.</div>
+          )}
         </div>
       </div>
       <div className="form-row">
@@ -750,7 +765,7 @@ export function FormConfigurarPgrs({ onClose }) {
             <div className="field"><label htmlFor="pgrs-gerador">Gerador padrão</label>
               <input id="pgrs-gerador" aria-label="Gerador padrão" value={f.geradorPadrao} onChange={e => set('geradorPadrao', e.target.value)}/></div>
             <div className="field"><label htmlFor="pgrs-codigo-ibama">Código IBAMA padrão</label>
-              <input id="pgrs-codigo-ibama" aria-label="Código IBAMA padrão" value={f.codigoIbamaPadrao} onChange={e => set('codigoIbamaPadrao', e.target.value)} className="mono"/></div>
+              <SeletorCodigoIbama id="pgrs-codigo-ibama" value={f.codigoIbamaPadrao} onChange={v => set('codigoIbamaPadrao', v)}/></div>
           </div>
           <div className="form-row">
             <div className="field"><label htmlFor="pgrs-transportador">Transportador padrão</label>

@@ -42,6 +42,20 @@ describe('FormConfigurarPgrs', () => {
     expect(screen.getByLabelText(/Transportador padrão/i)).toHaveValue('Transportadora Teste');
   });
 
+  it('código IBAMA padrão é escolhido da lista e preserva valor antigo fora dela', async () => {
+    const onClose = vi.fn();
+    render(<FormConfigurarPgrs onClose={onClose} />, { wrapper });
+    await waitFor(() => expect(screen.getByLabelText(/Código IBAMA padrão/i)).toHaveValue('A099'));
+    expect(screen.getByRole('option', { name: 'A099 (fora da lista IBAMA)' })).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText(/Código IBAMA padrão/i), '16 05 06*');
+    await userEvent.click(screen.getByRole('button', { name: /Salvar configuração/i }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const put = mockFetch.mock.calls.find(c => c[1]?.method === 'PUT');
+    expect(JSON.parse(put[1].body).CodigoIbamaPadrao).toBe('16 05 06*');
+  });
+
   it('salva via PUT e fecha', async () => {
     const onClose = vi.fn();
     render(<FormConfigurarPgrs onClose={onClose} />, { wrapper });
@@ -104,7 +118,7 @@ describe('FormConfigurarPgrs', () => {
     expect(texto).not.toMatch(/Perfurocortantes/i);
     expect(texto).not.toMatch(/Workflow de assinatura/i);
     expect(texto).not.toMatch(/5 anos/i);
-    expect(texto).not.toMatch(/Meta/i);
+    expect(texto).not.toMatch(/\bMetas?\b/i);
   });
 
   it('não chumba dados de instituição real', async () => {

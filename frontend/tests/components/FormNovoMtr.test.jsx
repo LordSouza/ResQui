@@ -111,4 +111,64 @@ describe('FormNovoMtr — entradas inválidas', () => {
 
     expect(screen.getByText(/5\.00 L · 2\.00 kg/)).toBeInTheDocument();
   });
+
+  function responderComResiduos(residuos, cfg = {}) {
+    mockFetch.mockImplementation((url) => {
+      if (String(url).includes('/api/pgrs-config')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => cfg });
+      }
+      if (String(url).includes('/api/residuos')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => residuos });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] });
+    });
+  }
+
+  it('código IBAMA segue o tipo quando todos os resíduos marcados têm o mesmo código', async () => {
+    responderComResiduos([
+      { id: 1, tipo: 'Solventes halogenados', volume: 5, unidade: 'L' },
+      { id: 2, tipo: 'Solventes halogenados', volume: 1, unidade: 'L' },
+    ], { codigoIbamaPadrao: '16 05 06*' });
+    render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    for (const checkbox of await screen.findAllByRole('checkbox')) await userEvent.click(checkbox);
+
+    expect(screen.getByLabelText(/Código IBAMA/i)).toHaveValue('14 06 02*');
+  });
+
+  it('código IBAMA cai no de mistura de laboratório quando os tipos divergem', async () => {
+    responderComResiduos([
+      { id: 1, tipo: 'Solventes halogenados', volume: 5, unidade: 'L' },
+      { id: 2, tipo: 'Metais pesados', volume: 300, unidade: 'g' },
+    ]);
+    render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    for (const checkbox of await screen.findAllByRole('checkbox')) await userEvent.click(checkbox);
+
+    expect(screen.getByLabelText(/Código IBAMA/i)).toHaveValue('16 05 06*');
+  });
+
+  it('código IBAMA escolhido à mão não muda ao marcar resíduos e é o enviado', async () => {
+    responderComResiduos([
+      { id: 1, tipo: 'Solventes halogenados', volume: 5, unidade: 'L' },
+    ], { geradorPadrao: 'Instituição Teste', transportadorPadrao: 'Transportadora Teste' });
+    render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    await screen.findByDisplayValue('Instituição Teste');
+    await userEvent.selectOptions(screen.getByLabelText(/Código IBAMA/i), '16 10 01*');
+    await userEvent.click(await screen.findByRole('checkbox'));
+    expect(screen.getByLabelText(/Código IBAMA/i)).toHaveValue('16 10 01*');
+
+    await userEvent.click(screen.getByRole('button', { name: /Emitir manifesto/i }));
+    const post = mockFetch.mock.calls.find(c => c[1]?.method === 'POST');
+    expect(JSON.parse(post[1].body).CodigoIbama).toBe('16 10 01*');
+  });
+
+  it('código gravado fora da lista IBAMA continua visível como opção', async () => {
+    responderComResiduos([], { codigoIbamaPadrao: 'A099' });
+    render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    await screen.findByRole('option', { name: 'A099 (fora da lista IBAMA)' });
+    expect(screen.getByLabelText(/Código IBAMA/i)).toHaveValue('A099');
+  });
 });

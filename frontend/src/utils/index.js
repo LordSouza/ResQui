@@ -1,3 +1,11 @@
+import { CODIGO_IBAMA_MISTURA, CODIGO_IBAMA_POR_TIPO } from '../data';
+
+export function codigoIbamaDosResiduos(residuos) {
+  if (!residuos?.length) return null;
+  const codigos = new Set(residuos.map(r => CODIGO_IBAMA_POR_TIPO[r?.tipo] ?? CODIGO_IBAMA_MISTURA));
+  return codigos.size === 1 ? [...codigos][0] : CODIGO_IBAMA_MISTURA;
+}
+
 export function pgrsTs() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
 }
