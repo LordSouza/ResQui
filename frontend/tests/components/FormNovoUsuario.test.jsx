@@ -39,7 +39,8 @@ describe('FormNovoUsuario — entradas inválidas', () => {
   it('bloqueia criação com nome, e-mail e senha vazios', async () => {
     render(<FormNovoUsuario onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Criar usuário/i }));
-    expect(window.alert).toHaveBeenCalledWith('Nome, e-mail e senha são obrigatórios.');
+    expect(await screen.findByText('Nome, e-mail e senha são obrigatórios.')).toBeInTheDocument();
+    expect(window.alert).not.toHaveBeenCalled();
     expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
   });
 

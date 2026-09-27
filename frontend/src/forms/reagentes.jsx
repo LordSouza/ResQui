@@ -3,6 +3,8 @@ import { Icon, Badge, Tag, Picto } from '../components';
 import { REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
 import { useCriarReagente } from '../reagentes/useCriarReagente';
 import { useBaixaReagente } from '../reagentes/useBaixaReagente';
+import { useBaixaLote } from '../reagentes/useBaixaLote';
+import { useDeletarReagente } from '../reagentes/useDeletarReagente';
 import { useTransferirReagente } from '../reagentes/useTransferirReagente';
 import { useLocais } from '../laboratorios/useLocais';
 import { useNomesUsuarios } from '../usuarios/useNomesUsuarios';
@@ -260,6 +262,73 @@ export function FormBaixa({ reagente, onClose, dispatch, quantidadeInicial }) {
   );
 }
 
+// ---------- Baixa de lote ----------
+export function FormBaixaLote({ reagente, lote, onClose }) {
+  const uid = useId();
+  const baixaLote = useBaixaLote(reagente.id);
+  const [q, setQ] = useState('');
+  const [erro, setErro] = useState('');
+  const submit = () => {
+    const n = Number(q);
+    if (!n || n <= 0) { setErro('Informe uma quantidade válida.'); return; }
+    if (n > lote.estoque) {
+      setErro(`Quantidade maior que o disponível no lote (${lote.estoque} ${reagente.unidade}).`);
+      return;
+    }
+    setErro('');
+    baixaLote.mutate({ loteId: lote.id, quantidade: n }, { onSuccess: onClose });
+  };
+  return (
+    <Modal title={`Baixa no lote ${lote.codigo}`} sub={`${reagente.nome} · disponível ${lote.estoque} ${reagente.unidade}`}
+      onClose={onClose} width={420}
+      footer={<>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={baixaLote.isPending}>
+          {baixaLote.isPending ? 'Salvando…' : 'Confirmar baixa'}
+        </button>
+      </>}>
+      {baixaLote.isError && (
+        <div className="login-err" style={{marginBottom: 12}}>{baixaLote.error?.message ?? 'Erro ao registrar baixa do lote.'}</div>
+      )}
+      <div className="form-row full">
+        <div className="field"><label htmlFor={`${uid}-quantidade`}>Quantidade *</label>
+          <div style={{display: 'flex', gap: 6}}>
+            <input id={`${uid}-quantidade`} style={{flex: 1}} type="number" step="0.01" value={q} onChange={e => { setQ(e.target.value); setErro(''); }}/>
+            <span style={{padding: '7px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: 12}}>{reagente.unidade}</span>
+          </div>
+          {erro && <div className="field-error">{erro}</div>}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------- Excluir reagente ----------
+export function ConfirmExcluirReagente({ reagente, onClose, dispatch }) {
+  const deletar = useDeletarReagente();
+  const excluir = () => deletar.mutate(reagente.id, {
+    onSuccess: () => dispatch({ type: 'nav', screen: 'inventario' }),
+  });
+  return (
+    <Modal title={`Excluir ${reagente.nome}?`} sub="A exclusão é permanente e leva junto os lotes do reagente."
+      onClose={onClose} width={440}
+      footer={<>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn-sm" onClick={excluir} disabled={deletar.isPending}
+          style={{background: 'var(--red)', color: '#fff', borderColor: 'var(--red)'}}>
+          <Icon name="trash" size={13}/> {deletar.isPending ? 'Excluindo…' : 'Sim, excluir'}
+        </button>
+      </>}>
+      {deletar.isError && <div className="login-err" style={{marginBottom: 12}}>{deletar.error.message}</div>}
+      <div className="kv" style={{padding: 12, background: 'var(--surface-2)', borderRadius: 'var(--radius)'}}>
+        <div className="k">Identificador</div><div className="v mono">{reagente.id}</div>
+        <div className="k">Nome</div><div className="v">{reagente.nome}</div>
+        <div className="k">Local</div><div className="v small">{reagente.local}</div>
+      </div>
+    </Modal>
+  );
+}
+
 // ---------- Transferência de local ----------
 export function FormTransferirReagente({ reagente, onClose, dispatch }) {
   const uid = useId();
@@ -267,11 +336,13 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
   const transferir = useTransferirReagente(reagente.id);
   const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
   const [destino, setDestino] = useState('');
+  const [erro, setErro] = useState('');
   const submit = () => {
     if (!destino || destino === reagente.local) {
-      alert('Escolha um destino diferente do local atual.');
+      setErro('Escolha um destino diferente do local atual.');
       return;
     }
+    setErro('');
     transferir.mutate({ destino }, {
       onSuccess: () => {
         dispatch({ type: 'refresh', flashId: reagente.id });
@@ -298,10 +369,11 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
       </div>
       <div className="form-row full">
         <div className="field"><label htmlFor={ids.destino}>Destino *</label>
-          <select id={ids.destino} value={destino} onChange={e => setDestino(e.target.value)} disabled={locaisPending}>
+          <select id={ids.destino} value={destino} onChange={e => { setDestino(e.target.value); setErro(''); }} disabled={locaisPending}>
             <option value="">{locaisPending ? 'Carregando…' : locaisError ? 'Erro ao carregar' : 'Selecione…'}</option>
             {locais.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
+          {erro && <div className="field-error">{erro}</div>}
         </div>
       </div>
     </Modal>

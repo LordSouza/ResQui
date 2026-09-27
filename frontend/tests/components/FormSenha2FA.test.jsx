@@ -103,7 +103,6 @@ describe('FormSenha2FA — códigos de recuperação', () => {
   // "2FA ativo" e um botão "Gerar novos códigos" que devolve 400.
   it('desativar reflete no estado da aba sem reload', async () => {
     fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
-    vi.stubGlobal('prompt', vi.fn(() => 'cod-1'));
 
     renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor',
       twoFactorEnabled: true, codigosRecuperacaoRestantes: 5 });
@@ -112,10 +111,43 @@ describe('FormSenha2FA — códigos de recuperação', () => {
     expect(screen.getByText(/2FA ativo/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /^desativar$/i }));
+    fireEvent.change(screen.getByLabelText(/para desativar o 2FA/i), { target: { value: 'cod-1' } });
+    fireEvent.click(screen.getByRole('button', { name: /^desativar 2fa$/i }));
 
     await waitFor(() => expect(screen.getByText(/2FA desativado/i)).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /ativar 2fa/i })).toBeInTheDocument();
     expect(screen.queryByText(/códigos de recuperação restantes/i)).not.toBeInTheDocument();
+  });
+
+  it('gerar novos códigos pede o código na própria aba e o envia ao endpoint', async () => {
+    fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ codigos: ['novo-1', 'novo-2'] }) });
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor',
+      twoFactorEnabled: true, codigosRecuperacaoRestantes: 1 });
+    abrirAbaMfa();
+
+    fireEvent.click(screen.getByRole('button', { name: /gerar novos códigos/i }));
+    const confirmar = screen.getAllByRole('button', { name: /gerar novos códigos/i }).at(-1);
+    expect(confirmar).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/para gerar novos códigos/i), { target: { value: '123456' } });
+    fireEvent.click(confirmar);
+
+    await waitFor(() => expect(screen.getByText('novo-1')).toBeInTheDocument());
+    const [url, opts] = fetch.mock.calls[0];
+    expect(url).toContain('/api/auth/2fa/codigos-recuperacao');
+    expect(JSON.parse(opts.body)).toEqual({ Codigo: '123456' });
+  });
+
+  it('cancelar o pedido de código não chama a API', () => {
+    renderCom({ nome: 'Ana', email: 'ana@lab.com', papel: 'Professor',
+      twoFactorEnabled: true, codigosRecuperacaoRestantes: 5 });
+    abrirAbaMfa();
+
+    fireEvent.click(screen.getByRole('button', { name: /^desativar$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^cancelar$/i }));
+
+    expect(screen.queryByLabelText(/para desativar o 2FA/i)).not.toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 

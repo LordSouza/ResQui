@@ -46,7 +46,8 @@ describe('FormNovoLab — entradas inválidas', () => {
   it('bloqueia cadastro sem nome e sala', async () => {
     render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Cadastrar laboratório/i }));
-    expect(window.alert).toHaveBeenCalledWith('Nome e número da sala são obrigatórios.');
+    expect(await screen.findByText('Nome e número da sala são obrigatórios.')).toBeInTheDocument();
+    expect(window.alert).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
   });
 

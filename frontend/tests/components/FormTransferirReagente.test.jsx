@@ -44,10 +44,11 @@ describe('FormTransferirReagente', () => {
     expect(screen.getByLabelText(/Local atual/i)).toHaveValue('Lab Antigo · Prateleira Z');
   });
 
-  it('alerts when no destination is selected', async () => {
+  it('mostra erro inline, sem alert, quando nenhum destino é selecionado', async () => {
     render(<FormTransferirReagente reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Confirmar transferência/i }));
-    expect(window.alert).toHaveBeenCalledWith('Escolha um destino diferente do local atual.');
+    expect(await screen.findByText('Escolha um destino diferente do local atual.')).toBeInTheDocument();
+    expect(window.alert).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
   });
 

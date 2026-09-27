@@ -1,6 +1,6 @@
 // frontend/tests/components/DetalheScreen.test.jsx
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { DetalheScreen } from '../../src/screens/DetalheScreen';
 import { initialState } from '../../src/store/reducer';
 
@@ -190,5 +190,73 @@ describe('DetalheScreen — rótulo GHS espelha o PDF', () => {
     useQrRotulo.mockReturnValue({ data: 'data:image/png;base64,AAAA' });
     renderRotulo();
     expect(screen.getByAltText('QR code de R-00001')).toHaveAttribute('src', 'data:image/png;base64,AAAA');
+  });
+});
+
+describe('DetalheScreen — confirmações em modal', () => {
+  beforeEach(() => {
+    vi.spyOn(window, 'confirm');
+    vi.spyOn(window, 'prompt');
+    useLotes.mockReturnValue({
+      data: [{ id: 7, codigo: 'L-001', estoque: 4, validade: '2027-01-01', validadeStatus: 'ok' }],
+      isPending: false,
+    });
+  });
+
+  const renderTela = (dispatch = vi.fn()) =>
+    render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={dispatch} />);
+
+  it('excluir abre um modal e só apaga depois de confirmado nele', () => {
+    const mutate = vi.fn();
+    useDeletarReagente.mockReturnValue({ mutate, isPending: false });
+    renderTela();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Excluir$/i }));
+
+    expect(screen.getByRole('dialog', { name: /Excluir Acetona\?/ })).toBeInTheDocument();
+    expect(mutate).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /Sim, excluir/i }));
+    expect(mutate).toHaveBeenCalledWith('R-00001', expect.any(Object));
+    expect(window.confirm).not.toHaveBeenCalled();
+  });
+
+  it('baixa de lote abre um modal com a quantidade e envia o lote certo', () => {
+    const mutate = vi.fn();
+    useBaixaLote.mockReturnValue({ mutate, isPending: false });
+    renderTela();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Baixa$/i }));
+    fireEvent.change(screen.getByLabelText(/Quantidade/i), { target: { value: '1.5' } });
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar baixa/i }));
+
+    expect(mutate).toHaveBeenCalledWith({ loteId: 7, quantidade: 1.5 }, expect.any(Object));
+    expect(window.prompt).not.toHaveBeenCalled();
+  });
+
+  it('baixa de lote acima do disponível mostra erro no modal e não chama a API', () => {
+    const mutate = vi.fn();
+    useBaixaLote.mockReturnValue({ mutate, isPending: false });
+    renderTela();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Baixa$/i }));
+    fireEvent.change(screen.getByLabelText(/Quantidade/i), { target: { value: '5' } });
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar baixa/i }));
+
+    expect(screen.getByText(/maior que o disponível no lote \(4 L\)/)).toBeInTheDocument();
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it('novo lote incompleto mostra o erro na linha, sem alert', () => {
+    vi.spyOn(window, 'alert');
+    const mutate = vi.fn();
+    useCriarLote.mockReturnValue({ mutate, isPending: false });
+    renderTela();
+
+    fireEvent.click(screen.getByRole('button', { name: /Novo lote/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Salvar$/i }));
+
+    expect(screen.getByText('Código, estoque e validade são obrigatórios.')).toBeInTheDocument();
+    expect(mutate).not.toHaveBeenCalled();
+    expect(window.alert).not.toHaveBeenCalled();
   });
 });

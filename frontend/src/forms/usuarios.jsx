@@ -28,15 +28,17 @@ export function FormNovoUsuario({ onClose, dispatch }) {
     nome: '', email: '', senha: '', matricula: '', papel: 'Aluno',
   });
   const [laboratorios, setLaboratorios] = useState([]);
+  const [erro, setErro] = useState('');
   const { isPending: escopoPendente } = useLaboratoriosDoUsuario();
   const mutation = useCriarUsuario();
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
     if (!f.nome.trim() || !f.email.trim() || !f.senha.trim()) {
-      alert('Nome, e-mail e senha são obrigatórios.');
+      setErro('Nome, e-mail e senha são obrigatórios.');
       return;
     }
+    setErro('');
     mutation.mutate(
       {
         Nome: f.nome.trim(),
@@ -64,6 +66,7 @@ export function FormNovoUsuario({ onClose, dispatch }) {
           <Icon name="check" size={12} /> {mutation.isPending ? 'Criando…' : 'Criar usuário'}
         </button>
       </>}>
+      {erro && <div className="login-err" style={{ marginBottom: 12 }}>{erro}</div>}
       {mutation.isError && <div className="login-err" style={{ marginBottom: 12 }}>{mutation.error.message}</div>}
       <div className="form-row">
         <div className="field"><label htmlFor="nu-nome">Nome completo *</label>

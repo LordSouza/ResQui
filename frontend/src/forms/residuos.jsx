@@ -248,12 +248,14 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
     risco: residuo.risco ?? 'medio',
     classes: residuo.classes ?? [],
   });
+  const [erro, setErro] = useState('');
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
   const veredito = useVereditoMistura(f.classes, residuo.classes ?? []);
 
   const submit = () => {
     if (veredito.bloqueia) return;
-    if (!f.volume || !f.composicao) { alert('Volume e composição são obrigatórios.'); return; }
+    if (!f.volume || !f.composicao) { setErro('Volume e composição são obrigatórios.'); return; }
+    setErro('');
     atualizarResiduo.mutate(
       {
         id: residuo.id, Tipo: f.tipo, Volume: Number(f.volume), Unidade: f.unidade,
@@ -274,6 +276,7 @@ export function FormEditarResiduo({ residuo, onClose, dispatch }) {
           {atualizarResiduo.isPending ? 'Salvando…' : 'Salvar alterações'}
         </button>
       </>}>
+      {erro && <div className="login-err" style={{ marginBottom: 12 }}>{erro}</div>}
       <div className="form-row">
         <div className="field"><label htmlFor="edit-tipo">Tipo</label>
           <select id="edit-tipo" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
@@ -349,6 +352,7 @@ export function FormNovoMtr({ onClose, dispatch }) {
   const { data: residuos = [] } = useResíduos({ status: 'aguardando-coleta' });
   const [selected, setSelected] = useState([]);
   const [f, setF] = useState({ transp: '', dest: '', codigo: '', gerador: '' });
+  const [erro, setErro] = useState('');
 
   useEffect(() => {
     if (!cfg) return;
@@ -366,8 +370,9 @@ export function FormNovoMtr({ onClose, dispatch }) {
   );
 
   const submit = () => {
-    if (selected.length === 0) { alert('Selecione ao menos um resíduo.'); return; }
-    if (!f.gerador.trim() || !f.transp.trim()) { alert('Informe gerador e transportador.'); return; }
+    if (selected.length === 0) { setErro('Selecione ao menos um resíduo.'); return; }
+    if (!f.gerador.trim() || !f.transp.trim()) { setErro('Informe gerador e transportador.'); return; }
+    setErro('');
     criarMtr.mutate(
       { Gerador: f.gerador, Transportadora: f.transp, Destinador: f.dest, CodigoIbama: f.codigo, ResiduoIds: selected },
       { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
@@ -383,6 +388,7 @@ export function FormNovoMtr({ onClose, dispatch }) {
           {criarMtr.isPending ? 'Criando…' : `Emitir manifesto (${selected.length})`}
         </button>
       </>}>
+      {erro && <div className="login-err" style={{ marginBottom: 12 }}>{erro}</div>}
       <div className="form-row">
         <div className="field"><label htmlFor="mtr-gerador">Gerador</label>
           <input id="mtr-gerador" value={f.gerador} onChange={e => setF(s => ({ ...s, gerador: e.target.value }))} />

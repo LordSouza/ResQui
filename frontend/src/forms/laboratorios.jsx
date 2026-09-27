@@ -18,15 +18,17 @@ export function FormNovoLab({ onClose, dispatch }) {
     areas: '',
     cor: '#1465c0',
   });
+  const [erro, setErro] = useState('');
   const mutation = useCriarLaboratorio();
   const { user, updateUser } = useAuth();
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
     if (!f.nome.trim() || !f.sala.trim()) {
-      alert('Nome e número da sala são obrigatórios.');
+      setErro('Nome e número da sala são obrigatórios.');
       return;
     }
+    setErro('');
     mutation.mutate(
       {
         Nome: f.nome.trim(),
@@ -61,6 +63,7 @@ export function FormNovoLab({ onClose, dispatch }) {
           {mutation.isPending ? 'Cadastrando…' : 'Cadastrar laboratório'}
         </button>
       </>}>
+      {erro && <div className="login-err" style={{ marginBottom: 12 }}>{erro}</div>}
       {mutation.isError && <div className="login-err" style={{ marginBottom: 12 }}>{mutation.error.message}</div>}
       <div className="form-row">
         <div className="field"><label htmlFor="lab-nome">Nome / área de atuação *</label>

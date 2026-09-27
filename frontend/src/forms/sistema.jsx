@@ -119,6 +119,8 @@ export function FormSenha2FA({ onClose, dispatch }) {
   const [codigo, setCodigo] = useState('');
   const [codigosRecuperacao, setCodigosRecuperacao] = useState(null);
   const [senhaSetup, setSenhaSetup] = useState('');
+  const [acaoComCodigo, setAcaoComCodigo] = useState(null);
+  const [codigoAcao, setCodigoAcao] = useState('');
 
   const forcaSenha = (s) => {
     let score = 0;
@@ -153,22 +155,19 @@ export function FormSenha2FA({ onClose, dispatch }) {
       dispatch({ type: 'refresh' });
     },
   });
-  const desativar = () => {
-    const c = window.prompt('Digite o código do autenticador (ou um código de recuperação) para desativar o 2FA:');
-    if (c) desativar2fa.mutate(c, {
-      onSuccess: () => { setCodigosRecuperacao(null); sincronizar2fa(false, 0); dispatch({ type: 'refresh' }); },
-    });
-  };
-  const regenerar = () => {
-    const c = window.prompt('Digite o código do autenticador (ou um código de recuperação) para gerar novos códigos:');
-    if (!c) return;
-    gerarCodigos.mutate(c, {
-      onSuccess: (data) => {
-        setCodigosRecuperacao(data?.codigos ?? []);
-        sincronizar2fa(true, data?.codigos?.length ?? 0);
-      },
-    });
-  };
+  const pedirCodigo = (acao) => { setAcaoComCodigo(acao); setCodigoAcao(''); };
+  const cancelarCodigo = () => { setAcaoComCodigo(null); setCodigoAcao(''); };
+  const desativar = () => desativar2fa.mutate(codigoAcao, {
+    onSuccess: () => { cancelarCodigo(); setCodigosRecuperacao(null); sincronizar2fa(false, 0); dispatch({ type: 'refresh' }); },
+  });
+  const regenerar = () => gerarCodigos.mutate(codigoAcao, {
+    onSuccess: (data) => {
+      cancelarCodigo();
+      setCodigosRecuperacao(data?.codigos ?? []);
+      sincronizar2fa(true, data?.codigos?.length ?? 0);
+    },
+  });
+  const mutacaoComCodigo = acaoComCodigo === 'desativar' ? desativar2fa : gerarCodigos;
 
   return (
     <Modal title="Senha e autenticação" sub="Credenciais de acesso e MFA"
@@ -237,10 +236,10 @@ export function FormSenha2FA({ onClose, dispatch }) {
             </div>
             {mfaEnabled
               ? <div style={{display: 'flex', gap: 8}}>
-                  <button type="button" className="btn btn-sm" disabled={gerarCodigos.isPending} onClick={regenerar}>
-                    {gerarCodigos.isPending ? '…' : 'Gerar novos códigos'}
+                  <button type="button" className="btn btn-sm" disabled={!!acaoComCodigo} onClick={() => pedirCodigo('regenerar')}>
+                    Gerar novos códigos
                   </button>
-                  <button type="button" className="btn btn-sm" disabled={desativar2fa.isPending} onClick={desativar}>Desativar</button>
+                  <button type="button" className="btn btn-sm" disabled={!!acaoComCodigo} onClick={() => pedirCodigo('desativar')}>Desativar</button>
                 </div>
               : <div style={{display: 'flex', gap: 8, alignItems: 'flex-end'}}>
                   <div className="field" style={{margin: 0}}>
@@ -256,6 +255,28 @@ export function FormSenha2FA({ onClose, dispatch }) {
           </div>
 
           {setup2fa.isError && <div className="login-err" style={{marginBottom: 12}}>{setup2fa.error.message}</div>}
+
+          {mfaEnabled && acaoComCodigo && (
+            <div style={{padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: 12}}>
+              <div className="field" style={{marginBottom: 8}}>
+                <label htmlFor="codigo-acao-2fa">
+                  {acaoComCodigo === 'desativar'
+                    ? 'Código do autenticador (ou de recuperação) para desativar o 2FA'
+                    : 'Código do autenticador (ou de recuperação) para gerar novos códigos'}
+                </label>
+                <input id="codigo-acao-2fa" className="mono" autoComplete="one-time-code" value={codigoAcao}
+                  onChange={e => setCodigoAcao(e.target.value)}/>
+              </div>
+              {mutacaoComCodigo.isError && <div className="login-err" style={{marginBottom: 8}}>{mutacaoComCodigo.error.message}</div>}
+              <div style={{display: 'flex', gap: 8}}>
+                <button type="button" className="btn btn-primary btn-sm" disabled={!codigoAcao.trim() || mutacaoComCodigo.isPending}
+                  onClick={acaoComCodigo === 'desativar' ? desativar : regenerar}>
+                  {mutacaoComCodigo.isPending ? 'Confirmando…' : acaoComCodigo === 'desativar' ? 'Desativar 2FA' : 'Gerar novos códigos'}
+                </button>
+                <button type="button" className="btn btn-sm" onClick={cancelarCodigo}>Cancelar</button>
+              </div>
+            </div>
+          )}
 
           {mfaEnabled && !codigosRecuperacao && (
             <div style={{fontSize: 12, color: restantes <= 2 ? 'var(--amber)' : 'var(--text-2)', marginBottom: 12}}>
