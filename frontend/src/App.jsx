@@ -349,7 +349,8 @@ export default function App() {
     }
   })();
 
-  const crumb = NAV.find(n => n.key === state.screen) || NAV[0];
+  const telaNoMenu = state.screen === 'detalhe' ? 'inventario' : state.screen;
+  const crumb = NAV.find(n => n.key === telaNoMenu) || NAV[0];
 
   return (
     <div className="app">
@@ -367,7 +368,7 @@ export default function App() {
         <div className="sidebar-section" id="nav-secao-dia-a-dia">Dia a dia</div>
         <nav className="nav" aria-labelledby="nav-secao-dia-a-dia">
           {NAV.filter(n => !n.section).filter(n => podeVerTela(user?.papel, n.key)).map(n => (
-            <button type="button" key={n.key} className={`nav-item ${state.screen === n.key || (n.key === 'inventario' && state.screen === 'detalhe') ? 'active' : ''}`}
+            <button type="button" key={n.key} className={`nav-item ${telaNoMenu === n.key ? 'active' : ''}`}
               onClick={() => dispatch({type: 'nav', screen: n.key})}>
               <span className="nav-icon"><Icon name={n.icon} size={15}/></span>
               {n.label}

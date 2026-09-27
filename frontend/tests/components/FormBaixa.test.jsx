@@ -112,6 +112,15 @@ describe('FormBaixa', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
+  it('envia o motivo escolhido junto com a quantidade', async () => {
+    render(<FormBaixa reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await userEvent.type(screen.getAllByRole('spinbutton')[0], '1.5');
+    await userEvent.selectOptions(screen.getByLabelText('Motivo / finalidade'), 'Pesquisa / experimento');
+    await userEvent.click(screen.getByRole('button', { name: /Confirmar baixa/i }));
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ Quantidade: 1.5, Motivo: 'Pesquisa / experimento' });
+  });
+
   it('calls onClose when Cancelar is clicked', async () => {
     render(<FormBaixa reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Cancelar/i }));

@@ -145,4 +145,21 @@ describe('InventarioScreen', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('vencendo=true'))).toBe(true);
   });
+
+  it('concorda em número com um único reagente', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeApiResponse(MOCK_ITEMS.slice(0, 1))));
+
+    render(<InventarioScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+
+    expect(await screen.findByText('1 item cadastrado')).toBeInTheDocument();
+    expect(screen.getByText(/^1 resultado$/)).toBeInTheDocument();
+    expect(screen.getByText('1 resultado · página 1 de 1')).toBeInTheDocument();
+  });
+
+  it('mantém o plural com mais de um reagente', async () => {
+    render(<InventarioScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+
+    expect(await screen.findByText('2 itens cadastrados')).toBeInTheDocument();
+    expect(screen.getByText('2 resultados · página 1 de 1')).toBeInTheDocument();
+  });
 });

@@ -5,6 +5,14 @@ import { validadeBadge } from '../components';
 import { useReagentes } from '../reagentes/useReagentes';
 import { usePode } from '../auth/permissoes';
 
+function contagemDeItens(total) {
+  return total === 1 ? '1 item cadastrado' : `${total} itens cadastrados`;
+}
+
+function contagemDeResultados(total) {
+  return total === 1 ? '1 resultado' : `${total} resultados`;
+}
+
 export function InventarioScreen({ state, dispatch }) {
   const podeCadastrar = usePode('Cadastro'); // POST /api/reagentes e /importar-lote
   const [q, setQ] = useState('');
@@ -41,7 +49,7 @@ export function InventarioScreen({ state, dispatch }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Inventário de reagentes</h1>
-          <p className="page-sub">{total} itens cadastrados</p>
+          <p className="page-sub">{contagemDeItens(total)}</p>
         </div>
         <div className="page-actions">
           {podeCadastrar && (
@@ -69,7 +77,7 @@ export function InventarioScreen({ state, dispatch }) {
             <option value="todos">Vencimento: todos</option>
             <option value="em-breve">≤ 90 dias</option>
           </select>
-          <span className={`filter-pill ${state.flashId ? 'active' : ''}`}><Icon name="filter" size={11}/> {total} resultados</span>
+          <span className={`filter-pill ${state.flashId ? 'active' : ''}`}><Icon name="filter" size={11}/> {contagemDeResultados(total)}</span>
         </div>
 
         {isPending && (
@@ -135,7 +143,7 @@ export function InventarioScreen({ state, dispatch }) {
         )}
 
         <div style={{padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', background: 'var(--surface-2)'}}>
-          <span className="small muted">{total} resultados · página {safePage + 1} de {totalPages}</span>
+          <span className="small muted">{contagemDeResultados(total)} · página {safePage + 1} de {totalPages}</span>
           <div className="row">
             <button type="button" className="btn btn-sm" aria-label="Página anterior" disabled={safePage === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>‹</button>
             <button type="button" className="btn btn-sm" aria-label="Próxima página" disabled={safePage >= totalPages - 1} onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}>›</button>

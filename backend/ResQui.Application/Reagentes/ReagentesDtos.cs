@@ -62,7 +62,10 @@ public record AtualizarReagenteCmd(
     string? Validade
 );
 
-public record BaixaCmd(decimal Quantidade);
+public record BaixaCmd(decimal Quantidade, string? Motivo = null)
+{
+    public const int MaxMotivo = 200;
+}
 
 public record TransferirReagenteCmd(string Destino);
 
