@@ -12,7 +12,8 @@ public record MtrDto(
     decimal TotalQuilos,
     List<int> ResiduoIds,
     string? DataDestinacao,
-    string? DestinadoPorId
+    string? DestinadoPorId,
+    string? DestinadoPorNome = null
 );
 
 public record CriarMtrCmd(

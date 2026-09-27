@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade } from '../../src/utils';
+import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento } from '../../src/utils';
 
 // --- pgrsTs ---
 describe('pgrsTs', () => {
@@ -103,5 +103,23 @@ describe('formatarQuantidade', () => {
 
   it('aceita outro número de casas', () => {
     expect(formatarQuantidade({ litros: 1.234, quilos: 0 }, 1)).toBe('1.2 L');
+  });
+});
+
+describe('formatarQuantidadeDocumento', () => {
+  it('usa 3 casas e vírgula decimal, como QuantidadeResiduos.Formatar do PDF', () => {
+    expect(formatarQuantidadeDocumento({ litros: 4, quilos: 2.5 })).toBe('4,000 L · 2,500 kg');
+  });
+
+  it('omite dimensão zerada e devolve travessão quando ambas são zero', () => {
+    expect(formatarQuantidadeDocumento({ litros: 0, quilos: 1234.5 })).toBe('1234,500 kg');
+    expect(formatarQuantidadeDocumento({ litros: 0, quilos: 0 })).toBe('—');
+  });
+});
+
+describe('decimalDocumento', () => {
+  it('fixa as casas com vírgula decimal e sem separador de milhar', () => {
+    expect(decimalDocumento(4, 2)).toBe('4,00');
+    expect(decimalDocumento(1234.5, 2)).toBe('1234,50');
   });
 });

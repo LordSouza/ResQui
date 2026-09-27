@@ -485,4 +485,42 @@ public class MtrsServiceTests
         _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), null);
         await _auth.DidNotReceive().FindByIdIncluindoArquivadosAsync(Arg.Any<string>());
     }
+
+    [Fact]
+    public async Task ListarAsync_ManifestosDestinadosPelaMesmaPessoa_ResolveONomeUmaVezSo()
+    {
+        var a = FakeMtr(1);
+        var b = FakeMtr(2);
+        var pendente = FakeMtr(3);
+        foreach (var m in new[] { a, b })
+        {
+            m.DataDestinacao = new DateOnly(2026, 8, 5);
+            m.DestinadoPorId = "user9";
+        }
+        _repo.GetAllAsync().Returns([a, b, pendente]);
+        _residuosRepo.GetAllAsync().Returns([]);
+        _auth.FindByIdIncluindoArquivadosAsync("user9").Returns(
+            new UsuarioInfo("user9", "maria@resqui.local", "Maria Souza", null, "Professor", [], false));
+
+        var lista = (await _sut.ListarAsync()).ToList();
+
+        lista.Select(m => m.DestinadoPorNome).Should().Equal("Maria Souza", "Maria Souza", null);
+        await _auth.Received(1).FindByIdIncluindoArquivadosAsync("user9");
+    }
+
+    [Fact]
+    public async Task ObterPorIdAsync_QuemDestinouFoiArquivado_TrazOEmailComoNome()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataDestinacao = new DateOnly(2026, 8, 5);
+        mtr.DestinadoPorId = "user9";
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _residuosRepo.GetAllAsync().Returns([]);
+        _auth.FindByIdIncluindoArquivadosAsync("user9").Returns(
+            new UsuarioInfo("user9", "joao@resqui.local", null, null, "Professor", [], true));
+
+        var dto = await _sut.ObterPorIdAsync(1);
+
+        dto!.DestinadoPorNome.Should().Be("joao@resqui.local");
+    }
 }

@@ -31,7 +31,7 @@ describe('FormPreviewMtrPdf — espelha o MTR real', () => {
     expect(document.body.textContent).toContain('Ecoquímica SA');
     expect(screen.getByText('Solventes orgânicos halogenados')).toBeInTheDocument();
     expect(screen.getByText('Soluções ácidas inorgânicas')).toBeInTheDocument();
-    expect(document.body.textContent).toContain('7.50 L');
+    expect(document.body.textContent).toContain('7,500 L');
   });
 
   it('NÃO fabrica dados sem fonte no backend (CNPJ, hash, número fixo)', () => {
@@ -45,5 +45,33 @@ describe('FormPreviewMtrPdf — espelha o MTR real', () => {
   it('inclui o disclaimer de uso interno (não substitui o MTR oficial)', () => {
     render(<FormPreviewMtrPdf mtr={mtr} residuos={residuos} onClose={vi.fn()} />);
     expect(document.body.textContent).toMatch(/não substitui o MTR oficial/i);
+  });
+
+  it('formata as quantidades das linhas como o PDF, com duas casas e vírgula', () => {
+    render(<FormPreviewMtrPdf mtr={mtr} residuos={residuos} onClose={vi.fn()} />);
+    expect(document.body.textContent).toContain('5,10 L');
+    expect(document.body.textContent).toContain('2,40 L');
+    expect(document.body.textContent).not.toContain('#451');
+  });
+
+  it('manifesto pendente mostra Destinação: Pendente e duas assinaturas', () => {
+    render(<FormPreviewMtrPdf mtr={{ ...mtr, data_destinacao: null }} residuos={residuos} onClose={vi.fn()} />);
+    expect(screen.getByText('Pendente')).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('Destinação confirmada');
+    expect(screen.queryByText('Responsável pelo destinador')).not.toBeInTheDocument();
+  });
+
+  it('manifesto destinado mostra a data, quem confirmou e a assinatura do destinador', () => {
+    render(<FormPreviewMtrPdf mtr={{ ...mtr, data_destinacao: '2026-08-01', destinado_por_nome: 'Maria Souza' }}
+      residuos={residuos} onClose={vi.fn()} />);
+    expect(document.body.textContent).toContain('Destinação confirmada em 01/08/2026 · Maria Souza');
+    expect(screen.getByText('Responsável pelo destinador')).toBeInTheDocument();
+  });
+
+  it('manifesto destinado sem nome resolvido mantém a data e omite o nome', () => {
+    render(<FormPreviewMtrPdf mtr={{ ...mtr, data_destinacao: '2026-08-01', destinado_por_nome: null }}
+      residuos={residuos} onClose={vi.fn()} />);
+    expect(document.body.textContent).toContain('Destinação confirmada em 01/08/2026');
+    expect(document.body.textContent).not.toContain('01/08/2026 ·');
   });
 });
