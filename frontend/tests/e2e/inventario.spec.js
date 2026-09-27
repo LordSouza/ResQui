@@ -42,6 +42,7 @@ test('clicking a reagent opens the detail screen', async ({ page, request }) => 
   await loginAndNavigate(page, 'Inventário');
   await page.getByText('Ácido Clorídrico').first().click();
   await expect(page.getByRole('button', { name: /Baixar consumo/i })).toBeVisible();
+  await expect(page.locator('.crumb .here').first()).toHaveText('Inventário');
 });
 
 test('Novo reagente modal opens, accepts input, and submits', async ({ page }) => {
