@@ -28,6 +28,9 @@ vi.mock('../../src/reagentes/useBaixaLote', () => ({
 vi.mock('../../src/reagentes/useMovimentacoes', () => ({
   useMovimentacoes: vi.fn(),
 }));
+vi.mock('../../src/reagentes/useQrRotulo', () => ({
+  useQrRotulo: vi.fn(),
+}));
 vi.mock('../../src/auth/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
@@ -41,6 +44,7 @@ import { useCriarLote } from '../../src/reagentes/useCriarLote';
 import { useBaixaLote } from '../../src/reagentes/useBaixaLote';
 import { useMovimentacoes } from '../../src/reagentes/useMovimentacoes';
 import { useAuth } from '../../src/auth/AuthContext';
+import { useQrRotulo } from '../../src/reagentes/useQrRotulo';
 
 // r é classe 1; x (mesmo armário) é classe 3 — nível 3 (Proibido) na matriz mockada.
 const reagente = {
@@ -73,6 +77,7 @@ beforeEach(() => {
   useBaixaLote.mockReturnValue({ mutate: vi.fn(), isPending: false });
   useMovimentacoes.mockReturnValue({ data: [], isPending: false });
   useAuth.mockReturnValue({ user: { papel: 'Professor' } });
+  useQrRotulo.mockReturnValue({ data: undefined });
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -143,5 +148,47 @@ describe('DetalheScreen — permissões', () => {
     renderCom('Aluno');
     expect(screen.getByRole('button', { name: /Rótulo PDF/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Resumo de segurança/i })).toBeInTheDocument();
+  });
+});
+
+describe('DetalheScreen — rótulo GHS espelha o PDF', () => {
+  const rotulo = () => document.querySelector('.ghs-label');
+  const renderRotulo = (overrides = {}) => {
+    useReagente.mockReturnValue({ data: { ...reagente, ...overrides }, isPending: false, isError: false, refetch: vi.fn() });
+    render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={vi.fn()} />);
+  };
+
+  it('traz os campos do PDF: classe, datas em dd/MM/yyyy e responsável completo', () => {
+    renderRotulo({ responsavel: 'Ana Maria de Souza' });
+    const texto = rotulo().textContent;
+    expect(texto).toContain('Classe de reatividade: 1');
+    expect(texto).toContain('Validade: 01/01/2027');
+    expect(texto).toContain('Aberto em: 01/01/2026');
+    expect(texto).toContain('Responsável: Ana Maria de Souza');
+    expect(texto).toContain('Lote: L-1');
+    expect(texto).toContain('PERIGO');
+  });
+
+  it('mostra todos os pictogramas com o nome de cada um', () => {
+    renderRotulo({ pictos: ['explosion', 'flame', 'flame_circle', 'bottle', 'corrosion', 'skull', 'exclam', 'health', 'envir'] });
+    expect(rotulo().querySelectorAll('.ghs-picto-item')).toHaveLength(9);
+    expect(rotulo().textContent).toContain('Perigoso ao ambiente');
+  });
+
+  it('omite o que o PDF omite quando o dado está vazio', () => {
+    renderRotulo({ sinonimo: null, lote: null, abertura: '', signal: '', h: [], p: [] });
+    const texto = rotulo().textContent;
+    expect(texto).not.toContain('Lote:');
+    expect(texto).not.toContain('Aberto');
+    expect(texto).not.toContain('Frases H');
+    expect(texto).not.toContain('Frases P');
+    expect(rotulo().querySelector('.ghs-signal')).toBeNull();
+    expect(rotulo().querySelector('.ghs-syn')).toBeNull();
+  });
+
+  it('exibe o QR code servido pelo backend quando ele chega', () => {
+    useQrRotulo.mockReturnValue({ data: 'data:image/png;base64,AAAA' });
+    renderRotulo();
+    expect(screen.getByAltText('QR code de R-00001')).toHaveAttribute('src', 'data:image/png;base64,AAAA');
   });
 });

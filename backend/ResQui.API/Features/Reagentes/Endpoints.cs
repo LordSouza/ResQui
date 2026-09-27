@@ -109,6 +109,12 @@ public static class Endpoints
             return pdf is null ? Results.NotFound() : Results.File(pdf, "application/pdf", $"rotulo-{id.ToLower()}.pdf");
         });
 
+        group.MapGet("/{id}/rotulo/qr", async (string id, IReagentesService svc) =>
+        {
+            var png = await svc.QrDoRotuloAsync(id);
+            return png is null ? Results.NotFound() : Results.File(png, "image/png");
+        });
+
         group.MapGet("/{id}/lotes/{loteId:int}/rotulo", async (string id, int loteId, IReagentesService svc, ClaimsPrincipal user) =>
         {
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";

@@ -90,37 +90,34 @@ public class PdfService : IPdfService
 
             page.Content().PaddingVertical(6).Column(col =>
             {
-                col.Item().Row(row =>
-                {
-                    row.RelativeItem().Column(info =>
-                    {
-                        info.Item().Text($"CAS: {r.Cas}    Fórmula: {r.Formula}");
-                        info.Item().Text($"ID: {r.Id}    Classe de reatividade: {r.ClasseReatividade}");
-                        info.Item().Text($"Validade: {r.Validade:dd/MM/yyyy}    Local: {r.Local}");
-                        info.Item().Text($"Responsável: {r.Responsavel}");
-                        if (!string.IsNullOrEmpty(r.Lote))
-                            info.Item().Text($"Lote: {r.Lote}");
-                    });
+                col.Item().Text($"CAS: {r.Cas}    Fórmula: {r.Formula}");
+                col.Item().Text($"ID: {r.Id}    Classe de reatividade: {r.ClasseReatividade}");
+                col.Item().Text($"Validade: {r.Validade:dd/MM/yyyy}    Local: {r.Local}");
+                col.Item().Text($"Responsável: {r.Responsavel}");
+                if (!string.IsNullOrEmpty(r.Lote))
+                    col.Item().Text($"Lote: {r.Lote}");
+                if (r.AberturaData is not null)
+                    col.Item().Text($"Aberto em: {r.AberturaData:dd/MM/yyyy}");
 
-                    if (ghs is not null && ghs.Pictos.Count > 0)
-                        row.ConstantItem(160).AlignRight().Row(pictos =>
+                if (ghs is not null && ghs.Pictos.Count > 0)
+                    col.Item().PaddingTop(6).Inlined(pictos =>
+                    {
+                        pictos.Spacing(4);
+                        foreach (var p in ghs.Pictos)
                         {
-                            foreach (var p in ghs.Pictos.Take(4))
+                            var (code, label) = PictosGhs.GetValueOrDefault(p, (p, p));
+                            var svg = PictogramaSvg(p);
+                            pictos.Item().Width(38).Column(c =>
                             {
-                                var (code, label) = PictosGhs.GetValueOrDefault(p, (p, p));
-                                var svg = PictogramaSvg(p);
-                                pictos.ConstantItem(38).Padding(2).Column(c =>
-                                {
-                                    if (svg is not null)
-                                        c.Item().Svg(svg);
-                                    else
-                                        c.Item().Border(1.5f).BorderColor(Colors.Red.Darken2)
-                                            .Padding(3).AlignCenter().Text(code).Bold().FontSize(7);
-                                    c.Item().AlignCenter().Text(label).FontSize(5);
-                                });
-                            }
-                        });
-                });
+                                if (svg is not null)
+                                    c.Item().Svg(svg);
+                                else
+                                    c.Item().Border(1.5f).BorderColor(Colors.Red.Darken2)
+                                        .Padding(3).AlignCenter().Text(code).Bold().FontSize(7);
+                                c.Item().AlignCenter().Text(label).FontSize(5);
+                            });
+                        }
+                    });
 
                 if (ghs is not null && ghs.FrasesH.Count > 0)
                 {
