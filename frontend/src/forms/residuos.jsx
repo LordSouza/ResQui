@@ -13,7 +13,7 @@ import { useSalvarConfigPgrs } from '../pgrs/useSalvarConfigPgrs';
 import { useConfirmarDestinacao } from '../mtrs/useConfirmarDestinacao';
 import { useReabrirDestinacao } from '../mtrs/useReabrirDestinacao';
 import { useRejeitarResiduo } from '../residuos/useRejeitarResiduo';
-import { quantidadesResiduos, formatarQuantidade } from '../utils';
+import { quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira } from '../utils';
 import { useVereditoMistura } from '../compat/useVereditoMistura';
 import { NIVEL_BLOQUEIO_MISTURA, ROTULO_NIVEL, piorNivelContra } from '../compat/avaliarMistura';
 
@@ -449,7 +449,11 @@ function RowMtr({ label, value, mono }) {
 
 export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
   // Preview espelha o PDF real do backend (PdfService.ManifestoMtr) — só dados reais do MTR.
-  const emissao = mtr.data_emissao ? mtr.data_emissao.slice(0, 10).split('-').reverse().join('/') : '—';
+  const emissao = dataBrasileira(mtr.data_emissao);
+  const destinado = !!mtr.data_destinacao;
+  const assinaturas = destinado
+    ? ['pelo gerador', 'pelo transporte', 'pelo destinador']
+    : ['pelo gerador', 'pelo transporte'];
   const total = (mtr.residuo_ids ?? []).length;
   const foraDoEscopo = total - residuos.length;
   return (
@@ -522,7 +526,8 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
             <RowMtr label="Transportadora" value={mtr.transportadora}/>
             <RowMtr label="Destinador" value={mtr.destinador || '—'}/>
             <RowMtr label="Código IBAMA" value={mtr.codigo_ibama || '—'} mono/>
-            <RowMtr label="Quantidade total" value={formatarQuantidade({ litros: mtr.total_litros, quilos: mtr.total_quilos })} mono/>
+            <RowMtr label="Destinação" value={destinado ? dataBrasileira(mtr.data_destinacao) : 'Pendente'}/>
+            <RowMtr label="Quantidade total" value={formatarQuantidadeDocumento({ litros: mtr.total_litros, quilos: mtr.total_quilos })} mono/>
           </SectionMtr>
 
           {/* Seção 2 - Resíduos */}
@@ -544,10 +549,10 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
                 )}
                 {residuos.map((r) => (
                   <tr key={r.id}>
-                    <td style={mtrTd}>#{r.id}</td>
+                    <td style={mtrTd}>{r.id}</td>
                     <td style={mtrTd}>{r.descricao}</td>
                     <td style={mtrTd}>{r.tipo}</td>
-                    <td style={{...mtrTd, textAlign: 'right', fontFamily: 'Courier, monospace'}}>{Number(r.volume ?? 0)} {r.unidade}</td>
+                    <td style={{...mtrTd, textAlign: 'right', fontFamily: 'Courier, monospace'}}>{decimalDocumento(r.volume, 2)} {r.unidade}</td>
                     <td style={mtrTd}>{r.risco}</td>
                     <td style={mtrTd}>{(r.classes ?? []).length > 0 ? r.classes.join(', ') : '—'}</td>
                   </tr>
@@ -561,9 +566,15 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
             </table>
           </SectionMtr>
 
+          {destinado && (
+            <div style={{marginTop: 16, fontSize: 12, fontWeight: 700}}>
+              Destinação confirmada em {dataBrasileira(mtr.data_destinacao)}{mtr.destinado_por_nome ? ` · ${mtr.destinado_por_nome}` : ''}
+            </div>
+          )}
+
           {/* Assinaturas */}
-          <div style={{marginTop: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12}}>
-            {['pelo gerador', 'pelo transporte'].map(t => (
+          <div style={{marginTop: 18, display: 'grid', gridTemplateColumns: `repeat(${assinaturas.length}, 1fr)`, gap: 12, fontSize: 12}}>
+            {assinaturas.map(t => (
               <div key={t}>
                 <div style={{marginTop: 22, height: 1, background: '#111'}}/>
                 <div style={{fontSize: 12, color: '#666', textAlign: 'center', marginTop: 4}}>Responsável {t}</div>

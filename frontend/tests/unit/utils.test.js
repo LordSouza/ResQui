@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade } from '../../src/utils';
+import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira } from '../../src/utils';
 
 // --- pgrsTs ---
 describe('pgrsTs', () => {
@@ -103,5 +103,35 @@ describe('formatarQuantidade', () => {
 
   it('aceita outro número de casas', () => {
     expect(formatarQuantidade({ litros: 1.234, quilos: 0 }, 1)).toBe('1.2 L');
+  });
+});
+
+describe('formatarQuantidadeDocumento', () => {
+  it('usa 3 casas e vírgula decimal, como QuantidadeResiduos.Formatar do PDF', () => {
+    expect(formatarQuantidadeDocumento({ litros: 4, quilos: 2.5 })).toBe('4,000 L · 2,500 kg');
+  });
+
+  it('omite dimensão zerada e devolve travessão quando ambas são zero', () => {
+    expect(formatarQuantidadeDocumento({ litros: 0, quilos: 1234.5 })).toBe('1234,500 kg');
+    expect(formatarQuantidadeDocumento({ litros: 0, quilos: 0 })).toBe('—');
+  });
+});
+
+describe('decimalDocumento', () => {
+  it('fixa as casas com vírgula decimal e sem separador de milhar', () => {
+    expect(decimalDocumento(4, 2)).toBe('4,00');
+    expect(decimalDocumento(1234.5, 2)).toBe('1234,50');
+  });
+});
+
+describe('dataBrasileira', () => {
+  it('converte yyyy-MM-dd em dd/MM/yyyy sem passar por Date, então sem deslocamento de fuso', () => {
+    expect(dataBrasileira('2026-08-01')).toBe('01/08/2026');
+    expect(dataBrasileira('2026-07-24T00:00:00Z')).toBe('24/07/2026');
+  });
+
+  it('devolve travessão para valor ausente', () => {
+    expect(dataBrasileira(null)).toBe('—');
+    expect(dataBrasileira('')).toBe('—');
   });
 });

@@ -11,9 +11,13 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
 {
     public async Task<IEnumerable<MtrDto>> ListarAsync()
     {
-        var mtrs = await repo.GetAllAsync();
+        var mtrs = (await repo.GetAllAsync()).ToList();
         var residuos = await residuosRepo.GetAllAsync();
-        return mtrs.Select(m => ToDto(m, residuos));
+        var nomes = new Dictionary<string, string?>();
+        foreach (var id in mtrs.Select(m => m.DestinadoPorId).OfType<string>().Distinct())
+            nomes[id] = await NomeDeQuemDestinouAsync(id);
+        return mtrs.Select(m => ToDto(m, residuos,
+            m.DestinadoPorId is null ? null : nomes[m.DestinadoPorId]));
     }
 
     public async Task<MtrDto?> ObterPorIdAsync(int id)
@@ -21,7 +25,7 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         var m = await repo.GetByIdAsync(id);
         if (m is null) return null;
         var residuos = await residuosRepo.GetAllAsync();
-        return ToDto(m, residuos);
+        return ToDto(m, residuos, await NomeDeQuemDestinouAsync(m.DestinadoPorId));
     }
 
     public async Task<MtrDto> CriarAsync(CriarMtrCmd cmd, string? usuarioId, string usuarioEmail)
@@ -126,7 +130,7 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         await auditoria.RegistrarAsync(usuarioEmail, "mtr.destinacao", "MTR",
             $"Destinação do MTR {m.Numero} confirmada em {data:yyyy-MM-dd} — {emColeta.Count} resíduo(s) encerrado(s)",
             RiscoAuditoria.Medium);
-        return ToDto(m, todos);
+        return ToDto(m, todos, await NomeDeQuemDestinouAsync(m.DestinadoPorId));
     }
 
     public async Task<bool> ReabrirDestinacaoAsync(int id, string usuarioEmail)
@@ -162,14 +166,7 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         if (m is null) return null;
         var residuos = (await residuosRepo.GetAllAsync()).Where(r => r.MtrId == m.Id).ToList();
 
-        string? destinadoPor = null;
-        if (m.DestinadoPorId is not null)
-        {
-            var u = await auth.FindByIdIncluindoArquivadosAsync(m.DestinadoPorId);
-            destinadoPor = u?.Nome ?? u?.Email;
-        }
-
-        var bytes = pdf.ManifestoMtr(m, residuos, destinadoPor);
+        var bytes = pdf.ManifestoMtr(m, residuos, await NomeDeQuemDestinouAsync(m.DestinadoPorId));
         await auditoria.RegistrarAsync(usuarioEmail, "mtr.pdf", "MTR",
             $"Gerou PDF do MTR {m.Numero}", RiscoAuditoria.Low);
         return (bytes, $"{m.Numero.ToLower()}.pdf");
@@ -194,13 +191,20 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         return string.Join(", ", itens);
     }
 
-    private static MtrDto ToDto(Mtr m, IEnumerable<Residuo> todosResíduos)
+    private async Task<string?> NomeDeQuemDestinouAsync(string? usuarioId)
+    {
+        if (usuarioId is null) return null;
+        var u = await auth.FindByIdIncluindoArquivadosAsync(usuarioId);
+        return u?.Nome ?? u?.Email;
+    }
+
+    private static MtrDto ToDto(Mtr m, IEnumerable<Residuo> todosResíduos, string? destinadoPorNome = null)
     {
         var doMtr = todosResíduos.Where(r => r.MtrId == m.Id).ToList();
         var quantidade = QuantidadeResiduos.Somar(doMtr);
         return new MtrDto(m.Id, m.Numero, m.Gerador, m.Transportadora,
             m.DataEmissao, m.Destinador, m.CodigoIbama, quantidade.Litros, quantidade.Quilos,
             doMtr.Select(r => r.Id).ToList(),
-            m.DataDestinacao?.ToString("yyyy-MM-dd"), m.DestinadoPorId);
+            m.DataDestinacao?.ToString("yyyy-MM-dd"), m.DestinadoPorId, destinadoPorNome);
     }
 }

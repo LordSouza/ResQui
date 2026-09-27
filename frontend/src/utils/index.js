@@ -33,9 +33,24 @@ export function quantidadesResiduos(residuos) {
   }, { litros: 0, quilos: 0 });
 }
 
+export function dataBrasileira(iso) {
+  return iso ? iso.slice(0, 10).split('-').reverse().join('/') : '—';
+}
+
 export function formatarQuantidade({ litros = 0, quilos = 0 } = {}, casas = 2) {
   const partes = [];
   if (litros > 0) partes.push(`${litros.toFixed(casas)} L`);
   if (quilos > 0) partes.push(`${quilos.toFixed(casas)} kg`);
+  return partes.length > 0 ? partes.join(' · ') : '—';
+}
+
+export function decimalDocumento(valor, casas) {
+  return Number(valor ?? 0).toFixed(casas).replace('.', ',');
+}
+
+export function formatarQuantidadeDocumento({ litros = 0, quilos = 0 } = {}) {
+  const partes = [];
+  if (litros > 0) partes.push(`${decimalDocumento(litros, 3)} L`);
+  if (quilos > 0) partes.push(`${decimalDocumento(quilos, 3)} kg`);
   return partes.length > 0 ? partes.join(' · ') : '—';
 }

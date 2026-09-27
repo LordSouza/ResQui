@@ -34,10 +34,10 @@ describe('useMtrs', () => {
     expect(m.residuo_ids).toEqual([1, 2]);
   });
 
-  it('normaliza dataDestinacao e destinadoPorId', async () => {
+  it('normaliza dataDestinacao, destinadoPorId e destinadoPorNome', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => [{ ...fakeMtr, dataDestinacao: '2026-08-04', destinadoPorId: 'u-1' }],
+      json: async () => [{ ...fakeMtr, dataDestinacao: '2026-08-04', destinadoPorId: 'u-1', destinadoPorNome: 'Maria Souza' }],
     });
 
     const { result } = renderHook(() => useMtrs(), { wrapper });
@@ -45,6 +45,7 @@ describe('useMtrs', () => {
 
     expect(result.current.data[0].data_destinacao).toBe('2026-08-04');
     expect(result.current.data[0].destinado_por_id).toBe('u-1');
+    expect(result.current.data[0].destinado_por_nome).toBe('Maria Souza');
   });
 
   it('deixa data_destinacao nula em manifesto ainda não destinado', async () => {

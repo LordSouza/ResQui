@@ -9,6 +9,7 @@ function normalize(m) {
     residuo_ids: m.residuoIds ?? [],
     data_destinacao: m.dataDestinacao ?? null,
     destinado_por_id: m.destinadoPorId ?? null,
+    destinado_por_nome: m.destinadoPorNome ?? null,
     total_litros: m.totalLitros ?? 0,
     total_quilos: m.totalQuilos ?? 0,
   };

@@ -1,3 +1,4 @@
+using System.Globalization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -145,6 +146,8 @@ public class PdfService : IPdfService
         })).GeneratePdf();
     }
 
+    private static readonly CultureInfo CulturaDocumento = CultureInfo.GetCultureInfo("pt-BR");
+
     public byte[] ManifestoMtr(Mtr m, IList<Residuo> residuos, string? destinadoPor)
     {
         return Document.Create(doc => doc.Page(page =>
@@ -155,7 +158,7 @@ public class PdfService : IPdfService
 
             page.Header().Column(col =>
             {
-                col.Item().Text("Manifesto de Transporte de Resíduos (Pré-MTR)").Bold().FontSize(16);
+                col.Item().Text("Manifesto de Transporte de Resíduos (uso interno)").Bold().FontSize(16);
                 col.Item().Text(m.Numero).FontSize(12).FontColor(Colors.Blue.Darken2);
             });
 
@@ -202,7 +205,7 @@ public class PdfService : IPdfService
                         t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(r.Id.ToString()).FontSize(8);
                         t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(r.Descricao).FontSize(8);
                         t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(r.Tipo).FontSize(8);
-                        t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text($"{r.Volume:F2} {r.Unidade}").FontSize(8);
+                        t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text($"{r.Volume.ToString("F2", CulturaDocumento)} {r.Unidade}").FontSize(8);
                         t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(r.Risco).FontSize(8);
                         t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3)
                             .Text(r.ClassesReatividade.Count > 0 ? string.Join(", ", r.ClassesReatividade) : "—").FontSize(8);
