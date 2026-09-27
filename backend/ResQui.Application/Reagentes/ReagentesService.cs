@@ -156,7 +156,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             Estoque = cmd.Estoque, EstoqueMin = cmd.EstoqueMin, Unidade = cmd.Unidade,
             Validade = validade ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
             Local = cmd.Local,
-            Responsavel = cmd.Responsavel, Controlado = cmd.Controlado, Lote = cmd.Lote,
+            Controlado = cmd.Controlado, Lote = cmd.Lote,
             Ghs = cmd.Ghs is null ? null : new ReagenteGhs
             {
                 Pictos = cmd.Ghs.Pictos, Signal = cmd.Ghs.Signal,
@@ -205,7 +205,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
         r.Nome = cmd.Nome; r.Estoque = cmd.Estoque; r.EstoqueMin = cmd.EstoqueMin;
-        r.Local = cmd.Local; r.Responsavel = cmd.Responsavel;
+        r.Local = cmd.Local;
         if (ParseValidade(cmd.Validade) is { } validade) r.Validade = validade;
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
@@ -281,7 +281,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         r.Id, r.Nome, r.Cas, r.Formula, r.Sinonimo, r.ClasseReatividade,
         r.Estoque, r.EstoqueMin, r.Unidade,
         r.Validade.ToString("yyyy-MM-dd"), r.ValidadeStatus,
-        r.Local, r.Responsavel, r.Controlado,
+        r.Local, r.Controlado,
         r.Lote, r.AberturaData?.ToString("yyyy-MM-dd"),
         r.Ghs is null ? null : new GhsDto(r.Ghs.Pictos, r.Ghs.Signal, r.Ghs.FrasesH, r.Ghs.FrasesP));
 }

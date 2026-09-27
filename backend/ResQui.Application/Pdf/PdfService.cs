@@ -54,7 +54,6 @@ public class PdfService : IPdfService
                     if (lote.Abertura is not null)
                         col.Item().Text($"Aberto em: {lote.Abertura:dd/MM/yyyy}");
                     col.Item().Text($"Local: {r.Local}");
-                    col.Item().Text($"Resp.: {r.Responsavel}");
                 });
                 row.ConstantItem(80).AlignMiddle().Column(c =>
                 {
@@ -94,7 +93,6 @@ public class PdfService : IPdfService
                 col.Item().Text($"CAS: {r.Cas}    Fórmula: {r.Formula}");
                 col.Item().Text($"ID: {r.Id}    Classe de reatividade: {r.ClasseReatividade}");
                 col.Item().Text($"Validade: {r.Validade:dd/MM/yyyy}    Local: {r.Local}");
-                col.Item().Text($"Responsável: {r.Responsavel}");
                 if (!string.IsNullOrEmpty(r.Lote))
                     col.Item().Text($"Lote: {r.Lote}");
                 if (r.AberturaData is not null)

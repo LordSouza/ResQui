@@ -215,40 +215,6 @@ public class UsuariosServiceTests
     }
 
     [Fact]
-    public async Task ListarNomesAsync_OmiteArquivados()
-    {
-        _repo.GetAllAsync().Returns(new List<UsuarioInfo>
-        {
-            new("u-1", "ativa@lab.com", "Ana Lima", null, "Professor", new List<string>(), false, false),
-            new("u-2", "saiu@lab.com", "Renan Costa", null, "Professor", new List<string>(), true, false),
-        });
-
-        var nomes = (await _sut.ListarNomesAsync()).ToList();
-
-        nomes.Should().ContainSingle().Which.Nome.Should().Be("Ana Lima");
-    }
-
-    [Fact]
-    public async Task ListarNomesAsync_UsaEmailQuandoNomeEstaVazio()
-    {
-        _repo.GetAllAsync().Returns(new List<UsuarioInfo>
-        {
-            new("u-1", "sem.nome@lab.com", null, null, "Professor", new List<string>(), false, false),
-        });
-
-        var nomes = (await _sut.ListarNomesAsync()).ToList();
-
-        nomes.Single().Nome.Should().Be("sem.nome@lab.com");
-    }
-
-    [Fact]
-    public void UsuarioNomeDto_NaoExpoePapelNem2fa()
-    {
-        typeof(UsuarioNomeDto).GetProperties().Select(p => p.Name)
-            .Should().BeEquivalentTo("Id", "Nome", "Email");
-    }
-
-    [Fact]
     public async Task ArquivarAsync_ProfessorArquivaAluno()
     {
         _repo.FindByIdAsync("aluno-1").Returns(new UsuarioInfo(

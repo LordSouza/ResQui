@@ -22,7 +22,7 @@ public class LowStockCheckerTests
     [Fact]
     public async Task RunAsync_EstoqueAbaixoMinimo_InsereNotificacao()
     {
-        var r = new Reagente { Id = "R-00002", Nome = "Etanol", Estoque = 0.5m, EstoqueMin = 2m, Unidade = "L", Validade = DateOnly.MaxValue, Local = "Lab-201", Responsavel = "Ana" };
+        var r = new Reagente { Id = "R-00002", Nome = "Etanol", Estoque = 0.5m, EstoqueMin = 2m, Unidade = "L", Validade = DateOnly.MaxValue, Local = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
         _notifs.ExisteNaoLidaAsync("u-admin", "low-stock", "R-00002").Returns(false);
@@ -35,7 +35,7 @@ public class LowStockCheckerTests
     [Fact]
     public async Task RunAsync_EstoqueMinNulo_NaoInsere()
     {
-        var r = new Reagente { Id = "R-00003", Nome = "Acetona", Estoque = 5m, EstoqueMin = null, Unidade = "L", Validade = DateOnly.MaxValue, Local = "Lab-201", Responsavel = "Ana" };
+        var r = new Reagente { Id = "R-00003", Nome = "Acetona", Estoque = 5m, EstoqueMin = null, Unidade = "L", Validade = DateOnly.MaxValue, Local = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
 

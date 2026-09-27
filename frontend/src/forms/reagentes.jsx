@@ -7,13 +7,11 @@ import { useBaixaLote } from '../reagentes/useBaixaLote';
 import { useDeletarReagente } from '../reagentes/useDeletarReagente';
 import { useTransferirReagente } from '../reagentes/useTransferirReagente';
 import { useLocais } from '../laboratorios/useLocais';
-import { useNomesUsuarios } from '../usuarios/useNomesUsuarios';
 import Modal from './Modal';
 import { useCompatOverrides } from '../compat/useCompatOverrides';
 import { useSalvarCompatOverride } from '../compat/useSalvarCompatOverride';
 import { useRemoverCompatOverride } from '../compat/useRemoverCompatOverride';
 import { useToast } from '../components/ToastContext';
-import { useAuth } from '../auth/AuthContext';
 import { useImportarReagentes } from '../reagentes/useImportarReagentes';
 import { parseCsv, analisarImportacao, mapearColunas } from '../lib/csv';
 
@@ -26,17 +24,16 @@ export function FormNovoReagente({ onClose, dispatch }) {
     classe: `${uid}-classe`, lote: `${uid}-lote`,
     estoque: `${uid}-estoque`, unidade: `${uid}-unidade`,
     validade: `${uid}-validade`, local: `${uid}-local`,
-    responsavel: `${uid}-responsavel`, signal: `${uid}-signal`,
+    signal: `${uid}-signal`,
     controlado: `${uid}-controlado`, pictos: `${uid}-pictos`,
     h: `${uid}-h`, p: `${uid}-p`,
   };
   const criarMutation = useCriarReagente();
   const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
-  const { data: responsaveis = [], isPending: usuariosPending, isError: usuariosError } = useNomesUsuarios();
   const [f, setF] = useState({
     nome: '', sinonimo: '', cas: '', formula: '', classe: 1,
     estoque: '', unidade: 'L', validade: '', local: '',
-    responsavel: '', controlado: false, lote: '',
+    controlado: false, lote: '',
     pictos: [], signal: 'Atenção',
     h: '', p: '',
   });
@@ -61,7 +58,6 @@ export function FormNovoReagente({ onClose, dispatch }) {
       Unidade: f.unidade,
       Validade: f.validade || null,
       Local: f.local,
-      Responsavel: f.responsavel,
       Controlado: f.controlado,
       Lote: f.lote || null,
       Ghs: {
@@ -124,14 +120,6 @@ export function FormNovoReagente({ onClose, dispatch }) {
             {locais.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
-        <div className="field"><label htmlFor={ids.responsavel}>Responsável</label>
-          <select id={ids.responsavel} value={f.responsavel} onChange={e => upd('responsavel', e.target.value)} disabled={usuariosPending}>
-            <option value="">{usuariosPending ? 'Carregando…' : usuariosError ? 'Erro ao carregar' : 'Selecione…'}</option>
-            {responsaveis.map(u => <option key={u.id ?? u.email ?? u.nome} value={u.nome}>{u.nome}</option>)}
-          </select>
-        </div>
-      </div>
-      <div className="form-row">
         <div className="field"><label htmlFor={ids.lote}>Lote</label><input id={ids.lote} aria-label="Número do lote do reagente" value={f.lote} onChange={e => upd('lote', e.target.value)} placeholder="L-1234-A"/></div>
       </div>
 
@@ -382,7 +370,6 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
 
 // ---------- Importar CSV (real) ----------
 export function FormImportarCSV({ onClose, dispatch }) {
-  const { user } = useAuth();
   const { addToast } = useToast();
   const importar = useImportarReagentes();
   const [step, setStep] = useState('pick');   // pick | review | done
@@ -400,7 +387,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
     reader.onload = (e) => {
       const { headers, rows } = parseCsv(String(e.target.result));
       setHeaders(headers);
-      setItens(analisarImportacao(headers, rows, { responsavelDefault: user?.nome || '' }));
+      setItens(analisarImportacao(headers, rows));
       setStep('review');
     };
     reader.onerror = () => {

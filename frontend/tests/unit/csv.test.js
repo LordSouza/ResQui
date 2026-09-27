@@ -38,12 +38,12 @@ describe('analisarImportacao', () => {
 
   it('monta cmd com defaults para linha completa', () => {
     const rows = [['Etanol', '64-17-5', '2.5', 'L', 'Lab-201', '2027-01-01', '5']];
-    const [item] = analisarImportacao(headers, rows, { responsavelDefault: 'Ana' });
+    const [item] = analisarImportacao(headers, rows);
     expect(item.bloqueada).toBe(false);
     expect(item.linhaCsv).toBe(2);
     expect(item.cmd).toMatchObject({
       Nome: 'Etanol', Cas: '64-17-5', Estoque: 2.5, Unidade: 'L', Local: 'Lab-201',
-      Responsavel: 'Ana', ClasseReatividade: 5, Controlado: false, Formula: '', Id: null,
+      ClasseReatividade: 5, Controlado: false, Formula: '', Id: null,
     });
   });
 

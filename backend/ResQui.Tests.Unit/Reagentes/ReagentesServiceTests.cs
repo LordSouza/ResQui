@@ -29,7 +29,7 @@ public class ReagentesServiceTests
         Formula = "HCl", ClasseReatividade = 1,
         Estoque = 2.4m, Unidade = "L",
         Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(200)),
-        Local = "Lab-201", Responsavel = "Ana", Controlado = true
+        Local = "Lab-201", Controlado = true
     };
 
     [Fact]
@@ -105,7 +105,7 @@ public class ReagentesServiceTests
     }
 
     private static CriarReagenteCmd FakeCmd(string nome = "Ácido X", decimal estoque = 1m, decimal? estoqueMin = 0.5m, int classe = 1) =>
-        new(null, nome, "123-45-6", "HX", null, classe, estoque, estoqueMin, "L", null, "Lab-201", "Ana", false, null, null);
+        new(null, nome, "123-45-6", "HX", null, classe, estoque, estoqueMin, "L", null, "Lab-201", false, null, null);
 
     [Theory]
     [InlineData(null)]
@@ -167,7 +167,7 @@ public class ReagentesServiceTests
         _repo.GetByIdAsync("R-001").Returns(FakeReagente());
 
         var act = () => _sut.AtualizarAsync(
-            "R-001", new AtualizarReagenteCmd("Ácido X", 1m, 0.5m, "Lab-201", "Ana", "31/12/2026 ou nada"), "ana@lab.com");
+            "R-001", new AtualizarReagenteCmd("Ácido X", 1m, 0.5m, "Lab-201", "31/12/2026 ou nada"), "ana@lab.com");
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*validade*");
     }
@@ -252,7 +252,7 @@ public class ReagentesServiceTests
     // Nome distinto de FakeCmd (já existente acima, com 3 parâmetros) para evitar
     // ambiguidade de overload — mesmos valores/semântica especificados na brief.
     private static CriarReagenteCmd FakeImportCmd(string nome = "Reagente", decimal estoque = 1m, string? validade = null) =>
-        new(null, nome, "64-17-5", "C2H6O", null, 12, estoque, null, "L", validade, "Lab-201", "Ana", false, null, null);
+        new(null, nome, "64-17-5", "C2H6O", null, 12, estoque, null, "L", validade, "Lab-201", false, null, null);
 
     [Fact]
     public async Task ImportarLoteAsync_ImportaValidasEReportaInvalidas()

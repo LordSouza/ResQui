@@ -5,7 +5,7 @@ import { usePode } from '../auth/permissoes';
 import { useCompatMatriz } from '../compat/useCompatMatriz';
 import { useCompatOverrides } from '../compat/useCompatOverrides';
 import { useRegistrarParecer } from '../compat/useRegistrarParecer';
-import { useNotificarResponsaveis } from '../compat/useNotificarResponsaveis';
+import { useNotificarProfessores } from '../compat/useNotificarProfessores';
 import { useToast } from '../components/ToastContext';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useReagente } from '../reagentes/useReagente';
@@ -30,7 +30,7 @@ export function CompatScreen({ state, dispatch }) {
   const podeEditarRegras = usePode('Cadastro');    // PUT/DELETE /api/compat/overrides/:a/:b
   const [parecer, setParecer] = useState('');
   const registrarParecer = useRegistrarParecer();
-  const notificar = useNotificarResponsaveis();
+  const notificar = useNotificarProfessores();
   const overrideSet = new Set(overrides.map(o => `${o.classeA}-${o.classeB}`));
 
   const score = ra && rb && matrix ? (matrix[ra.classe]?.[rb.classe - 1] ?? 0) : 0;
@@ -151,20 +151,16 @@ export function CompatScreen({ state, dispatch }) {
                     onClick={async () => {
                       try {
                         const r = await notificar.mutateAsync({ reagenteAId: a, reagenteBId: b });
-                        const pendencias = (r.naoResolvidos ?? [])
-                          .map(n => `${n.responsavel} (${n.motivo})`).join('; ');
                         if ((r.notificados ?? []).length === 0) {
-                          addToast(`Ninguém foi notificado: ${pendencias}`, 'error');
+                          addToast('Ninguém foi notificado: não há Professor ativo.', 'error');
                         } else {
                           const nomes = r.notificados.map(n => n.nome).join(', ');
-                          addToast(
-                            `Notificados no sistema: ${nomes}.${pendencias ? ` Não resolvido: ${pendencias}` : ''}`,
-                            'success');
+                          addToast(`Notificados no sistema: ${nomes}.`, 'success');
                         }
                       } catch (e) {
                         addToast(e.message, 'error');
                       }
-                    }}><Icon name="bell" size={13}/> Notificar responsáveis</button>
+                    }}><Icon name="bell" size={13}/> Notificar professores</button>
                 </div>
               </div>
             )}

@@ -20,7 +20,7 @@ export const DESCRICAO_POLICY = {
   GestaoUsuarios: 'Listar, criar e arquivar usuários',
   Cadastro: 'Cadastrar, editar e excluir reagentes e laboratórios, importar CSV, gerar relatórios, configurar o PGRS',
   Operacao: 'Emitir manifesto, confirmar destinação, cadastrar lotes e editar resíduo',
-  Operacional: 'Solicitar descarte, registrar baixa de reagente e de lote, transferir reagente, registrar parecer e notificar responsáveis na compatibilidade',
+  Operacional: 'Solicitar descarte, registrar baixa de reagente e de lote, transferir reagente, registrar parecer e notificar professores na compatibilidade',
   Aprovador: 'Aprovar e rejeitar solicitações de descarte',
   Supervisao: 'Consultar o log de auditoria',
 };

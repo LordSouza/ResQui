@@ -30,15 +30,6 @@ describe('FormNovoReagente', () => {
           { nome: 'Química Orgânica', armarios: ['Inflamáveis'] },
         ] });
       }
-      if (String(url) === '/api/usuarios/nomes') {
-        return Promise.resolve({ ok: true, status: 200, json: async () => [
-          { id: 'u-1', nome: 'Ana Lima', email: 'ana@x.com' },
-          { id: 'u-2', nome: 'Zara Nunes', email: 'zara@x.com' },
-        ] });
-      }
-      if (String(url).startsWith('/api/usuarios')) {
-        return Promise.resolve({ ok: false, status: 403, text: async () => '' });
-      }
       return Promise.resolve({ ok: true, status: 201, json: async () => ({ id: 'R-999' }) });
     }));
   });
@@ -103,26 +94,10 @@ describe('FormNovoReagente', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('popula Localização e Responsável a partir da API (sem literais hardcoded)', async () => {
+  it('popula Localização a partir da API e não pede responsável', async () => {
     render(<FormNovoReagente onClose={onClose} dispatch={dispatch} />, { wrapper });
     expect(await screen.findByRole('option', { name: 'Química Orgânica · Inflamáveis' })).toBeInTheDocument();
-    expect(await screen.findByRole('option', { name: 'Ana Lima' })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'Profa. Ana Lima' })).toBeNull();
-  });
-
-  it('busca responsáveis no endpoint enxuto, não na listagem restrita a Admin', async () => {
-    render(<FormNovoReagente onClose={onClose} dispatch={dispatch} />, { wrapper });
-    await screen.findByRole('option', { name: 'Ana Lima' });
-    const chamadas = fetch.mock.calls.map(c => String(c[0]));
-    expect(chamadas).toContain('/api/usuarios/nomes');
-    expect(chamadas.filter(u => u === '/api/usuarios')).toHaveLength(0);
-  });
-
-  it('preserva a ordem de responsáveis devolvida pela API', async () => {
-    render(<FormNovoReagente onClose={onClose} dispatch={dispatch} />, { wrapper });
-    const select = await screen.findByLabelText('Responsável');
-    await waitFor(() => expect(select.options.length).toBeGreaterThan(1));
-    const nomes = Array.from(select.options).map(o => o.textContent);
-    expect(nomes.indexOf('Ana Lima')).toBeLessThan(nomes.indexOf('Zara Nunes'));
+    expect(screen.queryByLabelText('Responsável')).toBeNull();
+    expect(fetch.mock.calls.map(c => String(c[0])).filter(u => u.startsWith('/api/usuarios'))).toHaveLength(0);
   });
 });

@@ -566,10 +566,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("Responsavel")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Sinonimo")
                         .HasColumnType("text");
 
