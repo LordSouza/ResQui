@@ -7,11 +7,14 @@ namespace ResQui.API.Features.Assistente;
 
 public static class Endpoints
 {
+    public const string PoliticaLimite = "assistente";
+
     public static RouteGroupBuilder MapAssistenteEndpoints(this RouteGroupBuilder group)
     {
         group.MapPost("/mensagem", async (MensagemAssistenteCmd cmd, IAssistenteService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
             Results.Ok(await svc.ResponderAsync(cmd, await user.ResolverAsync(labs))))
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting(PoliticaLimite);
 
         return group;
     }
