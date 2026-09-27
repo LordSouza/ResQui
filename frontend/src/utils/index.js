@@ -54,3 +54,12 @@ export function formatarQuantidadeDocumento({ litros = 0, quilos = 0 } = {}) {
   if (quilos > 0) partes.push(`${decimalDocumento(quilos, 3)} kg`);
   return partes.length > 0 ? partes.join(' · ') : '—';
 }
+
+export function completarMeses(mensal, quantidade, hoje = new Date()) {
+  const porMes = new Map(mensal.map(m => [m.mes, m]));
+  return Array.from({ length: quantidade }, (_, i) => {
+    const data = new Date(hoje.getFullYear(), hoje.getMonth() - (quantidade - 1 - i), 1);
+    const mes = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+    return porMes.get(mes) ?? { mes, litros: 0, quilos: 0 };
+  });
+}
