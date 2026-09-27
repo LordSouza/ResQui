@@ -5,10 +5,9 @@ import { useCompatMatriz } from '../compat/useCompatMatriz';
 import { useReagente } from '../reagentes/useReagente';
 import { useReagentes } from '../reagentes/useReagentes';
 import { ROTULO_NIVEL, piorNivelContra } from '../compat/avaliarMistura';
-import { useDeletarReagente } from '../reagentes/useDeletarReagente';
 import { useLotes } from '../reagentes/useLotes';
 import { useCriarLote } from '../reagentes/useCriarLote';
-import { useBaixaLote } from '../reagentes/useBaixaLote';
+import { FormBaixaLote, ConfirmExcluirReagente } from '../forms/reagentes';
 import { useMovimentacoes } from '../reagentes/useMovimentacoes';
 import { downloadRotulo, downloadRotuloLote } from '../reagentes/downloadRotulo';
 import { useQrRotulo } from '../reagentes/useQrRotulo';
@@ -43,28 +42,26 @@ function LotesCard({ reagente }) {
   const podeBaixarLote = usePode('Operacional'); // POST /api/reagentes/:id/lotes/:loteId/baixa
   const { data: lotes = [], isPending } = useLotes(reagente.id);
   const criarLote = useCriarLote(reagente.id);
-  const baixaLote = useBaixaLote(reagente.id);
   const [novo, setNovo] = useState(null); // null = fechado; {codigo, estoque, validade}
+  const [erroNovo, setErroNovo] = useState('');
+  const [loteEmBaixa, setLoteEmBaixa] = useState(null);
+
+  const abrirNovo = () => { setNovo({ codigo: '', estoque: '', validade: '' }); setErroNovo(''); };
 
   const salvar = () => {
-    if (!novo.codigo || !novo.estoque || !novo.validade) { alert('Código, estoque e validade são obrigatórios.'); return; }
+    if (!novo.codigo || !novo.estoque || !novo.validade) { setErroNovo('Código, estoque e validade são obrigatórios.'); return; }
+    setErroNovo('');
     criarLote.mutate(
       { Codigo: novo.codigo, Estoque: Number(novo.estoque), Validade: novo.validade, Abertura: null },
       { onSuccess: () => setNovo(null) }
     );
   };
 
-  const baixar = (lote) => {
-    const q = window.prompt(`Baixa no lote ${lote.codigo} (disponível: ${lote.estoque} ${reagente.unidade}):`);
-    if (!q) return;
-    baixaLote.mutate({ loteId: lote.id, quantidade: Number(q) });
-  };
-
   return (
     <div className="card">
       <SectionTitle title="Lotes / frascos" sub={`${lotes.length} registrado(s)`}
         right={podeCriarLote && (
-          <button type="button" className="btn btn-sm" onClick={() => setNovo({ codigo: '', estoque: '', validade: '' })}>
+          <button type="button" className="btn btn-sm" onClick={abrirNovo}>
             <Icon name="plus" size={12}/> Novo lote
           </button>
         )}/>
@@ -81,7 +78,7 @@ function LotesCard({ reagente }) {
               <span className="mono tnum">{Number(l.estoque).toFixed(2)} {reagente.unidade}</span>
               <button type="button" className="btn btn-sm" title="Etiqueta com QR" onClick={() => downloadRotuloLote(reagente.id, l.id)}>QR</button>
               {podeBaixarLote && (
-                <button type="button" className="btn btn-sm" disabled={baixaLote.isPending || l.estoque <= 0} onClick={() => baixar(l)}>Baixa</button>
+                <button type="button" className="btn btn-sm" disabled={l.estoque <= 0} onClick={() => setLoteEmBaixa(l)}>Baixa</button>
               )}
             </div>
           </div>
@@ -95,9 +92,11 @@ function LotesCard({ reagente }) {
               {criarLote.isPending ? 'Salvando…' : 'Salvar'}
             </button>
             <button type="button" className="btn btn-sm" aria-label="Cancelar novo lote" onClick={() => setNovo(null)}>×</button>
+            {erroNovo && <div className="field-error" style={{ flexBasis: '100%' }}>{erroNovo}</div>}
           </div>
         )}
       </div>
+      {loteEmBaixa && <FormBaixaLote reagente={reagente} lote={loteEmBaixa} onClose={() => setLoteEmBaixa(null)}/>}
     </div>
   );
 }
@@ -165,7 +164,7 @@ function RotuloGhs({ r }) {
 export function DetalheScreen({ state, dispatch }) {
   const { data: r, isPending, isError, refetch } = useReagente(state.detailId);
   const { data: listData } = useReagentes({ pageSize: 200 });
-  const deletarMutation = useDeletarReagente();
+  const [excluindo, setExcluindo] = useState(false);
   const podeMovimentar = usePode('Operacional'); // POST /:id/baixa e /:id/transferencia
   const podeEditar = usePode('Cadastro');          // PUT /api/reagentes/:id
   const podeExcluir = usePode('Cadastro');               // DELETE /api/reagentes/:id
@@ -201,13 +200,6 @@ export function DetalheScreen({ state, dispatch }) {
   const vizinhosExibidos = vizinhosDeArmario.slice(0, 5);
   const vizinhosOcultos = vizinhosDeArmario.length - vizinhosExibidos.length;
 
-  const handleDeletar = () => {
-    if (!window.confirm(`Excluir ${r.nome} (${r.id}) permanentemente?`)) return;
-    deletarMutation.mutate(r.id, {
-      onSuccess: () => dispatch({ type: 'nav', screen: 'inventario' }),
-    });
-  };
-
   return (
     <>
       <div className="page-header">
@@ -234,7 +226,7 @@ export function DetalheScreen({ state, dispatch }) {
             <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'editarReagente', reagente: r})}><Icon name="settings" size={13}/> Editar</button>
           )}
           {podeExcluir && (
-            <button type="button" className="btn btn-sm" style={{color: 'var(--red)'}} onClick={handleDeletar} disabled={deletarMutation.isPending}>
+            <button type="button" className="btn btn-sm" style={{color: 'var(--red)'}} onClick={() => setExcluindo(true)}>
               <Icon name="trash" size={13}/> Excluir
             </button>
           )}
@@ -351,6 +343,7 @@ export function DetalheScreen({ state, dispatch }) {
           </div>
         </div>
       </div>
+      {excluindo && <ConfirmExcluirReagente reagente={r} onClose={() => setExcluindo(false)} dispatch={dispatch}/>}
     </>
   );
 }

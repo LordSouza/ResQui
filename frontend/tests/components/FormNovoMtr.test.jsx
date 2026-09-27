@@ -32,7 +32,8 @@ describe('FormNovoMtr — entradas inválidas', () => {
   it('bloqueia criação sem resíduos selecionados', async () => {
     render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Emitir manifesto/i }));
-    expect(window.alert).toHaveBeenCalledWith('Selecione ao menos um resíduo.');
+    expect(await screen.findByText('Selecione ao menos um resíduo.')).toBeInTheDocument();
+    expect(window.alert).not.toHaveBeenCalled();
     expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
   });
 
@@ -85,7 +86,8 @@ describe('FormNovoMtr — entradas inválidas', () => {
     expect(screen.getByLabelText(/Transportador/i)).toHaveValue('');
 
     await userEvent.click(screen.getByRole('button', { name: /Emitir manifesto/i }));
-    expect(window.alert).toHaveBeenCalledWith('Informe gerador e transportador.');
+    expect(await screen.findByText('Informe gerador e transportador.')).toBeInTheDocument();
+    expect(window.alert).not.toHaveBeenCalled();
     expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
   });
 
