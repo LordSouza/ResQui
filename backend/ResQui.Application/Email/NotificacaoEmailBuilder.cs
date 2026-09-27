@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace ResQui.Application.Email;
 
 public static class NotificacaoEmailBuilder
@@ -14,13 +16,15 @@ public static class NotificacaoEmailBuilder
         </html>
         """;
 
+    private static string Escapar(string texto) => WebUtility.HtmlEncode(texto);
+
     public static (string Subject, string Html) BuildExpiry(string nome, string id, int diasRestantes)
     {
         var vencido = diasRestantes < 0;
         return (
             vencido ? $"[ResQui] Reagente vencido: {nome}" : $"[ResQui] Reagente prestes a vencer: {nome}",
             Layout(vencido ? "Reagente vencido" : "Vencimento próximo",
-                $"<p>O reagente <strong>{nome}</strong> ({id}) <strong>{Common.PrazoValidade.Descrever(diasRestantes)}</strong>.</p>" +
+                $"<p>O reagente <strong>{Escapar(nome)}</strong> ({Escapar(id)}) <strong>{Common.PrazoValidade.Descrever(diasRestantes)}</strong>.</p>" +
                 $"<p>Acesse o inventário para tomar providências.</p>")
         );
     }
@@ -29,15 +33,15 @@ public static class NotificacaoEmailBuilder
     (
         $"[ResQui] Estoque mínimo atingido: {nome}",
         Layout("Estoque abaixo do mínimo",
-            $"<p>O reagente <strong>{nome}</strong> ({id}) está com estoque <strong>{estoque:F2} {unidade}</strong>, " +
-            $"abaixo do mínimo configurado de <strong>{estoqueMin:F2} {unidade}</strong>.</p>")
+            $"<p>O reagente <strong>{Escapar(nome)}</strong> ({Escapar(id)}) está com estoque <strong>{estoque:F2} {Escapar(unidade)}</strong>, " +
+            $"abaixo do mínimo configurado de <strong>{estoqueMin:F2} {Escapar(unidade)}</strong>.</p>")
     );
 
-    public static (string Subject, string Html) BuildColeta(int quantidade) =>
+    public static (string Subject, string Html) BuildColeta(int residuoId, string descricao) =>
     (
-        $"[ResQui] {quantidade} resíduo(s) aguardando coleta",
-        Layout("Resíduos aguardando coleta",
-            $"<p><strong>{quantidade} resíduo(s)</strong> estão aguardando coleta há mais de 7 dias.</p>" +
+        $"[ResQui] Resíduo #{residuoId} aguardando coleta",
+        Layout("Resíduo aguardando coleta",
+            $"<p>O resíduo <strong>#{residuoId}</strong> ({Escapar(descricao)}) aguarda coleta há mais de 7 dias.</p>" +
             $"<p>Acesse a tela de Resíduos para verificar.</p>")
     );
 
@@ -45,16 +49,9 @@ public static class NotificacaoEmailBuilder
     (
         $"[ResQui] Armazenamento incompatível em {local}",
         Layout("Armazenamento incompatível",
-            $"<p>Os reagentes <strong>{nomeA}</strong> e <strong>{nomeB}</strong> estão armazenados em <strong>{local}</strong> " +
-            $"com nível de compatibilidade <strong>{nivel}</strong>.</p>" +
+            $"<p>Os reagentes <strong>{Escapar(nomeA)}</strong> e <strong>{Escapar(nomeB)}</strong> estão armazenados em <strong>{Escapar(local)}</strong> " +
+            $"com nível de compatibilidade <strong>{Escapar(nivel)}</strong>.</p>" +
             $"<p>Verifique a segregação física desses itens.</p>")
-    );
-
-    public static (string Subject, string Html) BuildCompat(string nomeA, string nomeB) =>
-    (
-        $"[ResQui] Tentativa de compatibilidade bloqueada",
-        Layout("Incompatibilidade detectada",
-            $"<p>Uma tentativa de combinar <strong>{nomeA}</strong> com <strong>{nomeB}</strong> foi bloqueada pelo sistema de compatibilidade.</p>")
     );
 
     public static (string Subject, string Html) BuildCodigoRecuperacaoUsado(int restantes) =>
@@ -70,7 +67,7 @@ public static class NotificacaoEmailBuilder
     (
         "[ResQui] Autenticação em dois fatores resetada",
         Layout("2FA resetado por um administrador",
-            $"<p>O administrador <strong>{adminEmail}</strong> resetou a autenticação em dois fatores da sua conta.</p>" +
+            $"<p>O administrador <strong>{Escapar(adminEmail)}</strong> resetou a autenticação em dois fatores da sua conta.</p>" +
             $"<p>Seu aplicativo autenticador e seus códigos de recuperação <strong>deixaram de valer</strong>, " +
             $"e todas as sessões abertas foram encerradas.</p>" +
             $"<p>Entre com sua senha e configure o 2FA novamente em <em>Senha e autenticação</em>.</p>" +

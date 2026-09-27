@@ -58,7 +58,7 @@ public class ColetaChecker(
                     var prefsJson = await auth.GetNotificacaoPrefsJsonAsync(u.Id);
                     if (NotificacaoPrefs.Habilitada(prefsJson, "coleta", logger, u.Id))
                     {
-                        var (subject, html) = NotificacaoEmailBuilder.BuildColeta(1);
+                        var (subject, html) = NotificacaoEmailBuilder.BuildColeta(r.Id, r.Descricao);
                         await email.SendAsync(u.Email, subject, html);
                     }
                 }
