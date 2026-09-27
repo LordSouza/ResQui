@@ -71,7 +71,7 @@ export async function escolher(page, campo, opcao) {
   await pausa(page, 700);
 }
 
-async function moverAte(page, alvo) {
+export async function moverAte(page, alvo) {
   await alvo.scrollIntoViewIfNeeded();
   const caixa = await alvo.boundingBox();
   await page.mouse.move(caixa.x + caixa.width / 2, caixa.y + caixa.height / 2, { steps: 25 });

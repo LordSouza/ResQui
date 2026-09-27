@@ -67,3 +67,15 @@ export async function numeroDoManifestoDoResiduo(request, composicao) {
   const manifestos = await (await request.get('/api/mtrs', { headers: cabecalho })).json();
   return manifestos.find(manifesto => manifesto.id === residuo.mtrId).numero;
 }
+
+export async function definirLaboratoriosDoProfessor(request, nomesDosLaboratorios) {
+  const cabecalho = await cabecalhoDoAdmin(request);
+  const professor = await usuarioPorEmail(request, cabecalho, PROFESSOR.email);
+  const laboratorios = await (await request.get('/api/laboratorios', { headers: cabecalho })).json();
+  const laboratorioIds = laboratorios.filter(lab => nomesDosLaboratorios.includes(lab.nome)).map(lab => lab.id);
+  const resposta = await request.put(`/api/usuarios/${professor.id}/laboratorios`, {
+    headers: cabecalho,
+    data: { LaboratorioIds: laboratorioIds },
+  });
+  await falharSeRecusado(resposta, 'definir os laboratórios do professor');
+}
