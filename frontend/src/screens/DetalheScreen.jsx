@@ -11,7 +11,7 @@ import { FormBaixaLote, ConfirmExcluirReagente } from '../forms/reagentes';
 import { useMovimentacoes } from '../reagentes/useMovimentacoes';
 import { downloadRotulo, downloadRotuloLote } from '../reagentes/downloadRotulo';
 import { useQrRotulo } from '../reagentes/useQrRotulo';
-import { dataBrasileira } from '../utils';
+import { dataBrasileira, residuoInicialDoReagente } from '../utils';
 import { usePode } from '../auth/permissoes';
 
 function MovimentacoesCard({ reagenteId }) {
@@ -219,6 +219,7 @@ export function DetalheScreen({ state, dispatch }) {
             <>
               <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'baixa', reagente: r})}><Icon name="trash" size={13}/> Baixar consumo</button>
               <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'transferirReagente', reagente: r})}><Icon name="location" size={13}/> Transferir</button>
+              <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'novoResiduo', residuoInicial: residuoInicialDoReagente(r)})}><Icon name="trash" size={13}/> Descartar como resíduo</button>
             </>
           )}
           {podeEditar && (

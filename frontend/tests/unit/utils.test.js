@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CODIGOS_IBAMA, CODIGO_IBAMA_POR_TIPO, TIPOS_RESIDUO } from '../../src/data';
-import { codigoIbamaDosResiduos, pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira, completarMeses } from '../../src/utils';
+import { CODIGOS_IBAMA, CODIGO_IBAMA_POR_TIPO, TIPOS_RESIDUO, CLASSE_POR_TIPO, UNIDADE_POR_TIPO, REATIVIDADE_CLASSES } from '../../src/data';
+import { residuoInicialDoReagente, codigoIbamaDosResiduos, pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira, completarMeses } from '../../src/utils';
 
 // --- pgrsTs ---
 describe('pgrsTs', () => {
@@ -184,5 +184,29 @@ describe('CODIGO_IBAMA_POR_TIPO', () => {
   it('cobre todo tipo de resíduo com um código do catálogo', () => {
     const catalogo = CODIGOS_IBAMA.map(c => c.codigo);
     for (const tipo of TIPOS_RESIDUO) expect(catalogo).toContain(CODIGO_IBAMA_POR_TIPO[tipo]);
+  });
+});
+
+describe('CLASSE_POR_TIPO e UNIDADE_POR_TIPO', () => {
+  it('só mapeiam tipos do catálogo, e classes que existem', () => {
+    for (const [tipo, classe] of Object.entries(CLASSE_POR_TIPO)) {
+      expect(TIPOS_RESIDUO).toContain(tipo);
+      expect(REATIVIDADE_CLASSES).toHaveProperty(String(classe));
+    }
+    for (const tipo of Object.keys(UNIDADE_POR_TIPO)) expect(TIPOS_RESIDUO).toContain(tipo);
+  });
+});
+
+describe('residuoInicialDoReagente', () => {
+  it('leva classe, tipo equivalente, unidade e nome com CAS', () => {
+    expect(residuoInicialDoReagente({ nome: 'Tolueno P.A.', cas: '108-88-3', classe: 5, unidade: 'L' })).toEqual({
+      tipo: 'Solventes orgânicos não-halogenados', unidade: 'L', composicao: 'Tolueno P.A. (CAS 108-88-3)', classes: [5],
+    });
+  });
+
+  it('classe sem tipo equivalente e unidade fora do conjunto de resíduo ficam de fora', () => {
+    expect(residuoInicialDoReagente({ nome: 'Peróxido', cas: '', classe: 11, unidade: 'frasco' })).toEqual({
+      composicao: 'Peróxido', classes: [11],
+    });
   });
 });

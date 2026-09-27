@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Icon, Badge, riscoBadge } from '../components';
-import { REATIVIDADE_CLASSES, TIPOS_RESIDUO, CODIGOS_IBAMA } from '../data';
+import { REATIVIDADE_CLASSES, TIPOS_RESIDUO, CODIGOS_IBAMA, CLASSE_POR_TIPO, UNIDADE_POR_TIPO, UNIDADE_PADRAO_RESIDUO } from '../data';
 import Modal from './Modal';
 import { useCriarResiduo } from '../residuos/useCriarResiduo';
 import { useAtualizarResiduo } from '../residuos/useAtualizarResiduo';
@@ -18,7 +18,17 @@ import { useVereditoMistura } from '../compat/useVereditoMistura';
 import { NIVEL_BLOQUEIO_MISTURA, ROTULO_NIVEL, piorNivelContra } from '../compat/avaliarMistura';
 
 // Seletor de classes de reatividade da mistura — o backend bloqueia pares Perigo/Proibido na matriz
-function ClassesSelector({ idPrefix, value, onChange, veredito, obrigatorio = false }) {
+function unidadeDoTipo(tipo) {
+  return UNIDADE_POR_TIPO[tipo] ?? UNIDADE_PADRAO_RESIDUO;
+}
+
+function trocarClasseDoTipo(classes, tipoAnterior, tipoNovo) {
+  const semAnterior = classes.filter(c => c !== CLASSE_POR_TIPO[tipoAnterior]);
+  const nova = CLASSE_POR_TIPO[tipoNovo];
+  return nova && !semAnterior.includes(nova) ? [...semAnterior, nova] : semAnterior;
+}
+
+function ClassesSelector({ idPrefix, value, onChange, veredito, obrigatorio = false, dica = null }) {
   const toggle = (n) =>
     onChange(value.includes(n) ? value.filter(c => c !== n) : [...value, n]);
   return (
@@ -54,6 +64,7 @@ function ClassesSelector({ idPrefix, value, onChange, veredito, obrigatorio = fa
             Selecione ao menos uma classe — é ela que determina quais misturas o sistema bloqueia.
           </div>
         )}
+        {dica && value.length > 0 && <div className="small muted" style={{ marginTop: 6 }}>{dica}</div>}
         <VereditoMistura id={`${idPrefix}-veredito`} classes={value} veredito={veredito} />
       </div>
     </div>
@@ -128,12 +139,14 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
   const { laboratorios: labs, isPending: labsPendentes } = useLaboratoriosDoUsuario();
   const idsPermitidos = labs.map(l => l.id).join(',');
   const semLaboratorio = !labsPendentes && labs.length === 0;
+  const tipoInicial = inicial?.tipo || TIPOS_RESIDUO[0];
   const [f, setF] = useState({
-    tipo: inicial?.tipo || TIPOS_RESIDUO[0],
-    volume: inicial?.volume ?? '', unidade: inicial?.unidade || 'L',
+    tipo: tipoInicial,
+    volume: inicial?.volume ?? '', unidade: inicial?.unidade || unidadeDoTipo(tipoInicial),
     laboratorioId: inicial?.laboratorioId || '', composicao: inicial?.composicao || '', risco: inicial?.risco || 'medio',
-    classes: [],
+    classes: inicial?.classes ?? (CLASSE_POR_TIPO[tipoInicial] ? [CLASSE_POR_TIPO[tipoInicial]] : []),
   });
+  const [unidadeEscolhida, setUnidadeEscolhida] = useState(!!inicial?.unidade);
 
   const [erros, setErros] = useState({});
 
@@ -149,6 +162,18 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
 
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
   const veredito = useVereditoMistura(f.classes);
+
+  const trocarTipo = tipo => setF(s => ({
+    ...s,
+    tipo,
+    classes: trocarClasseDoTipo(s.classes, s.tipo, tipo),
+    unidade: unidadeEscolhida ? s.unidade : unidadeDoTipo(tipo),
+  }));
+
+  const escolherUnidade = unidade => {
+    setUnidadeEscolhida(true);
+    upd('unidade', unidade);
+  };
 
   const submit = () => {
     if (veredito.bloqueia) return;
@@ -189,7 +214,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
       </>}>
       <div className="form-row">
         <div className="field"><label htmlFor="residuo-tipo">Tipo de resíduo *</label>
-          <select id="residuo-tipo" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
+          <select id="residuo-tipo" value={f.tipo} onChange={e => trocarTipo(e.target.value)}>
             {TIPOS_RESIDUO.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
@@ -205,7 +230,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
         <div className="field"><label htmlFor="residuo-volume">Volume / massa *</label>
           <div style={{ display: 'flex', gap: 6 }}>
             <input id="residuo-volume" style={{ flex: 1 }} type="number" step="0.1" value={f.volume} onChange={e => upd('volume', e.target.value)} aria-label="Volume" />
-            <select style={{ width: 80 }} value={f.unidade} onChange={e => upd('unidade', e.target.value)} aria-label="Unidade de volume">
+            <select style={{ width: 80 }} value={f.unidade} onChange={e => escolherUnidade(e.target.value)} aria-label="Unidade de volume">
               <option>L</option><option>mL</option><option>kg</option><option>g</option><option>m³</option>
             </select>
           </div>
@@ -228,7 +253,8 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
           {erros.composicao && <div className="field-error">{erros.composicao}</div>}
         </div>
       </div>
-      <ClassesSelector idPrefix="residuo" value={f.classes} onChange={v => upd('classes', v)} veredito={veredito} obrigatorio />
+      <ClassesSelector idPrefix="residuo" value={f.classes} onChange={v => upd('classes', v)} veredito={veredito} obrigatorio
+        dica={CLASSE_POR_TIPO[f.tipo] && 'A classe do tipo já vem marcada. Marque também as classes dos outros componentes da mistura — é o conjunto que o sistema confere.'} />
       <div className="residuo-warning-banner">
         <Icon name="warning" size={14} />
         <span>O registro entra como solicitação de descarte e aguarda aprovação antes de ir para a coleta.</span>

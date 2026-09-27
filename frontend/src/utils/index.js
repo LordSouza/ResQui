@@ -1,4 +1,16 @@
-import { CODIGO_IBAMA_MISTURA, CODIGO_IBAMA_POR_TIPO } from '../data';
+import { CODIGO_IBAMA_MISTURA, CODIGO_IBAMA_POR_TIPO, CLASSE_POR_TIPO } from '../data';
+
+const UNIDADES_RESIDUO = ['L', 'mL', 'kg', 'g', 'm³'];
+
+export function residuoInicialDoReagente(reagente) {
+  const tipo = Object.keys(CLASSE_POR_TIPO).find(t => CLASSE_POR_TIPO[t] === reagente.classe);
+  return {
+    ...(tipo && { tipo }),
+    ...(UNIDADES_RESIDUO.includes(reagente.unidade) && { unidade: reagente.unidade }),
+    composicao: reagente.cas ? `${reagente.nome} (CAS ${reagente.cas})` : reagente.nome,
+    classes: [reagente.classe],
+  };
+}
 
 export function codigoIbamaDosResiduos(residuos) {
   if (!residuos?.length) return null;
