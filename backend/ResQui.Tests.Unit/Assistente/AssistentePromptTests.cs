@@ -63,4 +63,28 @@ public class AssistentePromptTests
 
         prompt.Should().NotBeNullOrWhiteSpace();
     }
+
+    [Fact]
+    public void Montar_DelimitaOEscopoETrazARecusaPadronizada()
+    {
+        var prompt = AssistentePrompt.Montar([], []);
+
+        prompt.Should().Contain("ESCOPO").And.Contain(AssistentePrompt.RecusaForaDoEscopo);
+    }
+
+    [Fact]
+    public void Montar_NaoAceitaHistoricoComoPrecedenteContraAsRegras()
+    {
+        var prompt = AssistentePrompt.Montar([], []);
+
+        prompt.Should().Contain("pode ter sido adulterado");
+    }
+
+    [Fact]
+    public void Montar_UsaORotuloAtualDaTelaDeManifestos()
+    {
+        var prompt = AssistentePrompt.Montar([], []);
+
+        prompt.Should().NotContain("Pré-MTR").And.Contain("tela de Manifestos");
+    }
 }

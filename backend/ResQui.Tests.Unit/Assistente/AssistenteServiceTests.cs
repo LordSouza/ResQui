@@ -205,4 +205,29 @@ public class AssistenteServiceTests
 
         PromptEnviado().Should().Contain("W-1").And.Contain("W-2");
     }
+
+    [Fact]
+    public async Task ResponderAsync_MensagemAcimaDoTeto_LancaValidationExceptionSemChamarOProvedor()
+    {
+        var longa = new string('a', AssistenteService.MaxCaracteresMensagem + 1);
+
+        var acao = () => Criar().ResponderAsync(Cmd(longa), Admin());
+
+        await acao.Should().ThrowAsync<ValidationException>().WithMessage("*caracteres*");
+        _provider.ReceivedCalls().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ResponderAsync_TextoDoHistoricoAcimaDoTeto_ChegaTruncado()
+    {
+        _reagentes.GetAllAsync().Returns(new List<Reagente>());
+        _residuos.GetAllAsync().Returns(new List<Residuo>());
+        ProviderResponde("{\"say\":\"oi\",\"action\":\"explain\",\"params\":{}}");
+        var historico = new List<MensagemChat> { new("bot", new string('b', AssistenteService.MaxCaracteresMensagem * 5)) };
+
+        await Criar().ResponderAsync(new MensagemAssistenteCmd("oi", historico), Admin());
+
+        var enviado = (IReadOnlyList<MensagemChat>)_provider.ReceivedCalls().Single().GetArguments()[1]!;
+        enviado.Single().Texto.Should().HaveLength(AssistenteService.MaxCaracteresMensagem);
+    }
 }

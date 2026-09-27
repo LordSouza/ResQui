@@ -125,6 +125,7 @@ export function AssistenteChat({ state, dispatch }) {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
             }}
             rows={1}
+            maxLength={1000}
             disabled={indisponivel}
           />
           <button type="button" className="send" aria-label="Enviar mensagem" onClick={() => send()} disabled={!effectiveInput.trim() || busy || indisponivel}>

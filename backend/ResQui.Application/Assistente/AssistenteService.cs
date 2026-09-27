@@ -16,6 +16,8 @@ public class AssistenteService(
 
     private const int MaxHistorico = 6;
 
+    public const int MaxCaracteresMensagem = 1000;
+
     private static readonly JsonElement ParamsVazio = JsonDocument.Parse("{}").RootElement.Clone();
 
     public async Task<RespostaAssistenteDto> ResponderAsync(MensagemAssistenteCmd cmd, Solicitante solicitante)
@@ -25,6 +27,9 @@ public class AssistenteService(
 
         if (string.IsNullOrWhiteSpace(cmd.Mensagem))
             throw new ValidationException("Envie uma mensagem para o assistente.");
+
+        if (cmd.Mensagem.Length > MaxCaracteresMensagem)
+            throw new ValidationException($"A mensagem passa de {MaxCaracteresMensagem} caracteres. Resuma o pedido.");
 
         var maxReagentes = config.GetValue("Assistente:MaxReagentesCatalogo", 200);
 
@@ -44,12 +49,16 @@ public class AssistenteService(
         var historico = (cmd.Historico ?? [])
             .Where(m => !string.IsNullOrWhiteSpace(m.Texto))
             .TakeLast(MaxHistorico)
+            .Select(m => m with { Texto = Truncar(m.Texto) })
             .ToList();
 
         var conteudo = await provider.CompletarAsync(prompt, historico, cmd.Mensagem);
 
         return Interpretar(conteudo);
     }
+
+    private static string Truncar(string texto) =>
+        texto.Length > MaxCaracteresMensagem ? texto[..MaxCaracteresMensagem] : texto;
 
     private static RespostaAssistenteDto Interpretar(string conteudo)
     {

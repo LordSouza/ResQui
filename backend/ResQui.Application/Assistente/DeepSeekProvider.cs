@@ -12,6 +12,7 @@ public class DeepSeekProvider(HttpClient http, IConfiguration config, ILogger<De
     {
         var modelo = config["Assistente:Model"] ?? "deepseek-v4-flash";
         var timeout = TimeSpan.FromSeconds(config.GetValue("Assistente:TimeoutSeconds", 20));
+        var maxTokens = config.GetValue("Assistente:MaxTokens", 600);
 
         var mensagens = new List<object> { new { role = "system", content = systemPrompt } };
         foreach (var m in historico)
@@ -23,6 +24,7 @@ public class DeepSeekProvider(HttpClient http, IConfiguration config, ILogger<De
             model = modelo,
             messages = mensagens,
             response_format = new { type = "json_object" },
+            max_tokens = maxTokens,
             stream = false,
         };
 

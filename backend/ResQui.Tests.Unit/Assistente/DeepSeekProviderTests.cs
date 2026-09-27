@@ -155,4 +155,14 @@ public class DeepSeekProviderTests
 
         await acao.Should().ThrowAsync<ValidationException>();
     }
+
+    [Fact]
+    public async Task CompletarAsync_LimitaOTamanhoDaResposta()
+    {
+        var handler = new HandlerFalso(_ => Ok("{}"));
+
+        await Criar(handler).CompletarAsync("SYS", [], "atual");
+
+        handler.CorpoEnviado.Should().Contain("\"max_tokens\":600");
+    }
 }
