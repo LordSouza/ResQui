@@ -62,8 +62,8 @@ public static class DemoDataSeeder
         if (!await db.Mtrs.AnyAsync())
         {
             db.Mtrs.AddRange(
-                new Mtr { Gerador = "Unifei", Transportadora = "EcoLog Transportes", Destinador = "EcoQuímica SA", CodigoIbama = "A099", ResponsavelId = adminId, DataEmissao = DateTime.UtcNow.AddDays(-5) },
-                new Mtr { Gerador = "Unifei", Transportadora = "CleanWaste", Destinador = "Resitec Ambiental", CodigoIbama = "A104", ResponsavelId = adminId, DataEmissao = DateTime.UtcNow.AddDays(-20) });
+                new Mtr { Gerador = "Unifei", Transportadora = "EcoLog Transportes", Destinador = "EcoQuímica SA", CodigoIbama = "16 05 06*", ResponsavelId = adminId, DataEmissao = DateTime.UtcNow.AddDays(-5) },
+                new Mtr { Gerador = "Unifei", Transportadora = "CleanWaste", Destinador = "Resitec Ambiental", CodigoIbama = "16 05 06*", ResponsavelId = adminId, DataEmissao = DateTime.UtcNow.AddDays(-20) });
             await db.SaveChangesAsync();
         }
 
@@ -111,7 +111,7 @@ public static class DemoDataSeeder
                 GeradorPadrao = "Instituição Demo de Ensino",
                 TransportadorPadrao = "Transportadora Demo Ltda",
                 DestinadorPadrao = "Destinadora Demo SA",
-                CodigoIbamaPadrao = "A099",
+                CodigoIbamaPadrao = "16 05 06*",
             });
             await db.SaveChangesAsync();
         }
