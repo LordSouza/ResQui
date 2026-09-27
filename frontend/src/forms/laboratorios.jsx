@@ -10,7 +10,7 @@ import { useAuth } from '../auth/AuthContext';
 const CORES = ['#1465c0', '#0d4a8c', '#1f7a3e', '#b76e00', '#5b3c8c', '#b3261e'];
 
 export function FormNovoLab({ onClose, dispatch }) {
-  const [f, setF] = useState({ nome: '', sala: '', armarios: '' });
+  const [f, setF] = useState({ nome: '', sala: '', armarios: [], armarioPendente: '' });
   const [erro, setErro] = useState('');
   const mutation = useCriarLaboratorio();
   const { data: labs = [] } = useLaboratorios();
@@ -28,7 +28,7 @@ export function FormNovoLab({ onClose, dispatch }) {
         Nome: f.nome.trim(),
         Responsavel: user?.nome || user?.email || '',
         Sala: f.sala.trim(),
-        Armarios: f.armarios.split(',').flatMap(s => s.trim() ? [s.trim()] : []),
+        Armarios: comArmarioPendente(f.armarios, f.armarioPendente),
         Cor: corMenosUsada(labs),
       },
       {
@@ -64,12 +64,70 @@ export function FormNovoLab({ onClose, dispatch }) {
           <input id="lab-sala" value={f.sala} onChange={e => upd('sala', e.target.value)} placeholder="ex: Bloco IMC · Sala 213" />
         </div>
       </div>
-      <div className="form-row full">
-        <div className="field"><label htmlFor="lab-armarios">Armários (separados por vírgula)</label>
-          <input id="lab-armarios" value={f.armarios} onChange={e => upd('armarios', e.target.value)} placeholder="Armário A, Armário B" />
-        </div>
-      </div>
+      <ListaArmarios id="lab-armarios" armarios={f.armarios} pendente={f.armarioPendente}
+        onArmariosChange={v => upd('armarios', v)} onPendenteChange={v => upd('armarioPendente', v)} />
     </Modal>
+  );
+}
+
+function jaListado(armarios, nome) {
+  return armarios.some(armario => armario.toLowerCase() === nome.toLowerCase());
+}
+
+function comArmarioPendente(armarios, pendente) {
+  const nome = pendente.trim();
+  return nome && !jaListado(armarios, nome) ? [...armarios, nome] : armarios;
+}
+
+function ListaArmarios({ id, armarios, pendente, onArmariosChange, onPendenteChange }) {
+  const [erro, setErro] = useState('');
+
+  const adicionar = () => {
+    const nome = pendente.trim();
+    if (!nome) return;
+    if (jaListado(armarios, nome)) {
+      setErro('Esse armário já está na lista.');
+      return;
+    }
+    onArmariosChange([...armarios, nome]);
+    onPendenteChange('');
+    setErro('');
+  };
+
+  const adicionarComEnter = (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    adicionar();
+  };
+
+  return (
+    <div className="form-row full">
+      <div className="field"><label htmlFor={id}>Armários</label>
+        <div className="armarios-entrada">
+          <input id={id} value={pendente} placeholder="ex: Armário A"
+            onChange={e => { onPendenteChange(e.target.value); setErro(''); }} onKeyDown={adicionarComEnter} />
+          <button type="button" className="btn btn-sm" onClick={adicionar} disabled={!pendente.trim()}>
+            <Icon name="plus" size={13} /> Adicionar
+          </button>
+        </div>
+        {erro && <div className="field-error">{erro}</div>}
+        {armarios.length === 0
+          ? <div className="armarios-vazio">Nenhum armário adicionado.</div>
+          : (
+            <ul className="armarios-lista" aria-label="Armários adicionados">
+              {armarios.map(armario => (
+                <li key={armario}>
+                  <span>{armario}</span>
+                  <button type="button" className="btn btn-ghost btn-sm" aria-label={`Remover ${armario}`}
+                    onClick={() => onArmariosChange(armarios.filter(item => item !== armario))}>
+                    <Icon name="close" size={12} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+      </div>
+    </div>
   );
 }
 
@@ -83,7 +141,8 @@ export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
   const [f, setF] = useState({
     nome: lab.nome,
     sala: lab.sala,
-    armarios: lab.armarios.join(', '),
+    armarios: lab.armarios,
+    armarioPendente: '',
   });
   const mutation = useAtualizarLaboratorio();
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
@@ -95,7 +154,7 @@ export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
         id: lab.id,
         Nome: f.nome.trim(),
         Sala: f.sala.trim(),
-        Armarios: f.armarios.split(',').flatMap(s => s.trim() ? [s.trim()] : []),
+        Armarios: comArmarioPendente(f.armarios, f.armarioPendente),
       },
       {
         onSuccess: () => {
@@ -126,11 +185,8 @@ export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
           <input id="edit-lab-sala" value={f.sala} onChange={e => upd('sala', e.target.value)} />
         </div>
       </div>
-      <div className="form-row full">
-        <div className="field"><label htmlFor="edit-lab-armarios">Armários (separados por vírgula)</label>
-          <input id="edit-lab-armarios" value={f.armarios} onChange={e => upd('armarios', e.target.value)} />
-        </div>
-      </div>
+      <ListaArmarios id="edit-lab-armarios" armarios={f.armarios} pendente={f.armarioPendente}
+        onArmariosChange={v => upd('armarios', v)} onPendenteChange={v => upd('armarioPendente', v)} />
     </Modal>
   );
 }

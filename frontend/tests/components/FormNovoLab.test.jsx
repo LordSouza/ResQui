@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FormNovoLab, FormEditarLaboratorio } from '../../src/forms/laboratorios';
@@ -82,7 +82,9 @@ describe('FormNovoLab — entradas inválidas', () => {
     render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/laboratorios'), expect.anything()));
     await preencherEssencial();
-    await userEvent.type(screen.getByLabelText(/Armários/i), 'Armário A, Armário B');
+    await userEvent.type(screen.getByLabelText('Armários'), 'Armário A');
+    await userEvent.click(screen.getByRole('button', { name: /Adicionar/i }));
+    await userEvent.type(screen.getByLabelText('Armários'), 'Armário B{Enter}');
     await userEvent.click(screen.getByRole('button', { name: /Cadastrar laboratório/i }));
 
     await waitFor(() => expect(posts(mockFetch)).toHaveLength(1));
@@ -93,6 +95,40 @@ describe('FormNovoLab — entradas inválidas', () => {
       Armarios: ['Armário A', 'Armário B'],
       Cor: '#1f7a3e',
     });
+  });
+
+  it('lista os armários adicionados e remove um deles', async () => {
+    render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
+    expect(screen.getByText('Nenhum armário adicionado.')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Armários'), 'Armário A{Enter}');
+    await userEvent.type(screen.getByLabelText('Armários'), 'Armário B{Enter}');
+
+    const lista = screen.getByRole('list', { name: 'Armários adicionados' });
+    expect(within(lista).getAllByRole('listitem').map(item => item.textContent)).toEqual(['Armário A', 'Armário B']);
+    expect(screen.getByLabelText('Armários')).toHaveValue('');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remover Armário A' }));
+    expect(within(lista).getAllByRole('listitem').map(item => item.textContent)).toEqual(['Armário B']);
+  });
+
+  it('recusa armário repetido, ignorando maiúsculas', async () => {
+    render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await userEvent.type(screen.getByLabelText('Armários'), 'Armário A{Enter}');
+    await userEvent.type(screen.getByLabelText('Armários'), 'armário a{Enter}');
+
+    expect(screen.getByText('Esse armário já está na lista.')).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+  });
+
+  it('envia o armário digitado e não adicionado ao cadastrar', async () => {
+    render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await preencherEssencial();
+    await userEvent.type(screen.getByLabelText('Armários'), 'Armário A{Enter}');
+    await userEvent.type(screen.getByLabelText('Armários'), 'Armário B');
+    await userEvent.click(screen.getByRole('button', { name: /Cadastrar laboratório/i }));
+
+    await waitFor(() => expect(posts(mockFetch)).toHaveLength(1));
+    expect(JSON.parse(posts(mockFetch)[0][1].body).Armarios).toEqual(['Armário A', 'Armário B']);
   });
 
   it('exibe mensagem de erro do servidor (400 de validação)', async () => {
@@ -158,9 +194,11 @@ describe('FormEditarLaboratorio', () => {
     const localizacao = screen.getByLabelText(/Localização/i);
     await userEvent.clear(localizacao);
     await userEvent.type(localizacao, 'Sala 9');
+    await userEvent.click(screen.getByRole('button', { name: 'Remover A1' }));
+    await userEvent.type(screen.getByLabelText('Armários'), 'A3{Enter}');
     await userEvent.click(screen.getByRole('button', { name: /Salvar alterações/i }));
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalled());
-    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ Nome: 'Química', Sala: 'Sala 9', Armarios: ['A1', 'A2'] });
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ Nome: 'Química', Sala: 'Sala 9', Armarios: ['A2', 'A3'] });
   });
 });
