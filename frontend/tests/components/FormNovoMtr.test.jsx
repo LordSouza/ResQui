@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FormNovoMtr } from '../../src/forms/residuos';
+
+const { addToast } = vi.hoisted(() => ({ addToast: vi.fn() }));
+vi.mock('../../src/components/ToastContext', () => ({ useToast: () => ({ addToast }) }));
 
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -170,5 +173,29 @@ describe('FormNovoMtr — entradas inválidas', () => {
 
     await screen.findByRole('option', { name: 'A099 (fora da lista IBAMA)' });
     expect(screen.getByLabelText(/Código IBAMA/i)).toHaveValue('A099');
+  });
+
+  it('ao emitir, anuncia o número, leva à tela de manifestos e destaca o novo', async () => {
+    mockFetch.mockImplementation((url, opts) => {
+      if (opts?.method === 'POST') {
+        return Promise.resolve({ ok: true, status: 201, json: async () => ({ id: 58, numero: 'MTR-2026-0058' }) });
+      }
+      if (String(url).includes('/api/pgrs-config')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ geradorPadrao: 'Instituição Teste', transportadorPadrao: 'Transportadora Teste' }) });
+      }
+      if (String(url).includes('/api/residuos')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ([{ id: 1, tipo: 'Oxidantes', volume: 1, unidade: 'L' }]) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] });
+    });
+    render(<FormNovoMtr onClose={onClose} dispatch={dispatch} />, { wrapper });
+
+    await screen.findByDisplayValue('Instituição Teste');
+    await userEvent.click(await screen.findByRole('checkbox'));
+    await userEvent.click(screen.getByRole('button', { name: /Emitir manifesto/i }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(dispatch).toHaveBeenCalledWith({ type: 'nav', screen: 'mtr', flashId: 58 });
+    expect(addToast).toHaveBeenCalledWith('Manifesto MTR-2026-0058 emitido com 1 resíduo(s).', 'success');
   });
 });

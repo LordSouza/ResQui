@@ -38,6 +38,21 @@ beforeEach(() => {
 });
 
 describe('MtrScreen', () => {
+  it('seleciona, destaca e rola até o manifesto recém-emitido', () => {
+    const novo = { ...mtr, id: 2, numero: 'MTR-2026-0002' };
+    useMtrs.mockReturnValue({ data: [mtr, novo], isPending: false, isError: false, refetch: vi.fn() });
+    const scrollIntoView = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
+    render(<MtrScreen state={{ ...initialState, screen: 'mtr', flashId: 2 }} dispatch={vi.fn()} />);
+
+    const linha = screen.getByRole('cell', { name: 'MTR-2026-0002' }).closest('tr');
+    expect(linha).toHaveClass('selected');
+    expect(linha).toHaveClass('flash');
+    expect(scrollIntoView).toHaveBeenCalled();
+    delete window.HTMLElement.prototype.scrollIntoView;
+  });
+
   it('lista os MTRs emitidos', () => {
     renderCom('Professor');
     expect(screen.getAllByText('MTR-2026-0001').length).toBeGreaterThan(0);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Icon, Badge, riscoBadge } from '../components';
 import { REATIVIDADE_CLASSES, TIPOS_RESIDUO, CODIGOS_IBAMA, CLASSE_POR_TIPO, UNIDADE_POR_TIPO, UNIDADE_PADRAO_RESIDUO } from '../data';
 import Modal from './Modal';
+import { useToast } from '../components/ToastContext';
 import { useCriarResiduo } from '../residuos/useCriarResiduo';
 import { useAtualizarResiduo } from '../residuos/useAtualizarResiduo';
 import { useLaboratoriosDoUsuario } from '../laboratorios/useLaboratoriosDoUsuario';
@@ -385,6 +386,7 @@ function SeletorCodigoIbama({ id, value, onChange }) {
 
 export function FormNovoMtr({ onClose, dispatch }) {
   const criarMtr = useCriarMtr();
+  const { addToast } = useToast();
   const { data: cfg } = useConfigPgrs();
   const { data: residuos = [] } = useResíduos({ status: 'aguardando-coleta' });
   const [selected, setSelected] = useState([]);
@@ -413,7 +415,13 @@ export function FormNovoMtr({ onClose, dispatch }) {
     setErro('');
     criarMtr.mutate(
       { Gerador: f.gerador, Transportadora: f.transp, Destinador: f.dest, CodigoIbama: codigoIbama, ResiduoIds: selected },
-      { onSuccess: () => { dispatch({ type: 'refresh' }); onClose(); } }
+      {
+        onSuccess: mtr => {
+          dispatch({ type: 'nav', screen: 'mtr', flashId: mtr.id });
+          addToast(`Manifesto ${mtr.numero} emitido com ${selected.length} resíduo(s).`, 'success');
+          onClose();
+        },
+      }
     );
   };
 
