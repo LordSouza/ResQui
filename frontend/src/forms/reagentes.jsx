@@ -201,7 +201,7 @@ export function FormBaixa({ reagente, onClose, dispatch, quantidadeInicial }) {
       return;
     }
     setErro('');
-    baixaMutation.mutate({ quantidade: n }, {
+    baixaMutation.mutate({ quantidade: n, motivo }, {
       onSuccess: () => {
         dispatch({ type: 'refresh', flashId: reagente.id });
         onClose();

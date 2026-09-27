@@ -40,6 +40,16 @@ describe('useBaixaReagente', () => {
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ Quantidade: 0.5 });
   });
 
+  it('envia o Motivo quando informado', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
+
+    const { result } = renderHook(() => useBaixaReagente('R-001'), { wrapper });
+    act(() => result.current.mutate({ quantidade: 0.5, motivo: 'Uso em prática didática' }));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ Quantidade: 0.5, Motivo: 'Uso em prática didática' });
+  });
+
   it('sets isError on non-ok response', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 422, text: async () => JSON.stringify({ message: 'Erro ao registrar baixa' }) });
 

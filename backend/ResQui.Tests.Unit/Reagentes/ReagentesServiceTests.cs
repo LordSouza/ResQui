@@ -199,6 +199,43 @@ public class ReagentesServiceTests
     }
 
     [Fact]
+    public async Task BaixaAsync_ComMotivo_GravaOMotivoNoDetalheDaAuditoria()
+    {
+        _repo.GetByIdAsync("R-001").Returns(FakeReagente());
+
+        await _sut.BaixaAsync("R-001", new BaixaCmd(0.5m, "  Uso em prática didática  "), "ana@lab.com");
+
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "reagente.baixa", "Inventário",
+            Arg.Is<string>(d => d.Contains("(reagente R-001)") && d.EndsWith("· motivo: Uso em prática didática")),
+            RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task BaixaAsync_SemMotivo_NaoAcrescentaMotivoAoDetalhe()
+    {
+        _repo.GetByIdAsync("R-001").Returns(FakeReagente());
+
+        await _sut.BaixaAsync("R-001", new BaixaCmd(0.5m, "   "), "ana@lab.com");
+
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "reagente.baixa", "Inventário",
+            Arg.Is<string>(d => !d.Contains("motivo")), RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task BaixaAsync_MotivoAcimaDoLimite_LancaValidationExceptionSemDescontar()
+    {
+        var r = FakeReagente();
+        _repo.GetByIdAsync("R-001").Returns(r);
+        var motivoLongo = new string('x', BaixaCmd.MaxMotivo + 1);
+
+        var act = () => _sut.BaixaAsync("R-001", new BaixaCmd(0.5m, motivoLongo), "ana@lab.com");
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*motivo*");
+        r.Estoque.Should().Be(2.4m);
+        await _repo.DidNotReceive().SaveChangesAsync();
+    }
+
+    [Fact]
     public async Task TransferirAsync_MudaLocalMantemEstoqueERegistraAuditoria()
     {
         var r = FakeReagente("R-001");

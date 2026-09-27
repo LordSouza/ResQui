@@ -228,6 +228,9 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
     public async Task<ReagenteDetalheDto?> BaixaAsync(string id, BaixaCmd cmd, string usuarioEmail)
     {
         if (cmd.Quantidade <= 0) throw new ValidationException("Quantidade deve ser maior que zero.");
+        var motivo = cmd.Motivo?.Trim();
+        if (motivo?.Length > BaixaCmd.MaxMotivo)
+            throw new ValidationException($"O motivo da baixa aceita até {BaixaCmd.MaxMotivo} caracteres.");
         var r = await repo.GetByIdAsync(id);
         if (r is null) return null;
         if (cmd.Quantidade > r.Estoque)
@@ -235,8 +238,9 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         r.Estoque = Math.Round(r.Estoque - cmd.Quantidade, 3);
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
+        var sufixoDoMotivo = string.IsNullOrEmpty(motivo) ? "" : $" · motivo: {motivo}";
         await auditoria.RegistrarAsync(usuarioEmail, "reagente.baixa", "Inventário",
-            $"Baixa de {cmd.Quantidade} {r.Unidade} de {r.Nome} (reagente {r.Id})", RiscoAuditoria.Medium);
+            $"Baixa de {cmd.Quantidade} {r.Unidade} de {r.Nome} (reagente {r.Id}){sufixoDoMotivo}", RiscoAuditoria.Medium);
         return ToDetalhe(r);
     }
 
