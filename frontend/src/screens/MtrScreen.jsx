@@ -93,7 +93,7 @@ export function MtrScreen({ state, dispatch }) {
   const sel = mtrs.find(m => m.id === (selectedId ?? state.flashId)) ?? mtrs[0];
 
   useEffect(() => {
-    if (state.flashId) setSelectedId(null);
+    if (state.flashId) setSelectedId(state.flashId);
   }, [state.flashId]);
 
   useEffect(() => {
