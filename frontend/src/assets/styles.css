@@ -547,27 +547,27 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   background: #fff;
   font-family: var(--font);
 }
-.ghs-label .ghs-h {
-  display: flex; justify-content: space-between;
-  border-bottom: 1px solid var(--text);
-  padding-bottom: 8px; margin-bottom: 10px;
-  font-family: var(--mono); font-size: 10px;
-  text-transform: uppercase; letter-spacing: 0.08em;
+.ghs-topo {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  margin-bottom: 8px;
 }
-.ghs-name { font-size: 18px; font-weight: 700; margin: 4px 0 2px; }
-.ghs-syn { font-size: 12px; color: var(--text-2); margin-bottom: 10px; }
-.ghs-pictos { display: flex; gap: 6px; margin-bottom: 10px; }
-.ghs-picto { display: block; }
+.ghs-name { font-size: 18px; font-weight: 700; }
+.ghs-syn { font-size: 12px; color: var(--text-2); font-style: italic; }
 .ghs-signal {
-  display: inline-block;
   background: #c00;
   color: #fff;
   font-weight: 700;
   font-size: 13px;
   padding: 3px 8px;
   letter-spacing: 0.04em;
-  margin-bottom: 8px;
+  white-space: nowrap;
 }
+.ghs-info { font-size: 12px; margin-bottom: 10px; }
+.ghs-info > div { display: flex; flex-wrap: wrap; column-gap: 16px; }
+.ghs-pictos { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ghs-picto { display: block; }
+.ghs-picto-item { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ghs-picto-item figcaption { font-size: 9px; color: var(--text-2); text-align: center; max-width: 64px; }
 .ghs-h-statements, .ghs-p-statements {
   font-size: 11px;
   margin-bottom: 8px;
@@ -583,13 +583,14 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
 .ghs-foot {
   border-top: 1px dashed var(--border);
   padding-top: 8px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
   font-family: var(--mono);
   font-size: 10px;
   color: var(--text-2);
 }
+.ghs-qr { width: 56px; height: 56px; image-rendering: pixelated; }
 
 /* === Compat matrix === */
 .compat-matrix {

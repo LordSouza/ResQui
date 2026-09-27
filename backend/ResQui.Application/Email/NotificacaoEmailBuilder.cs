@@ -1,9 +1,12 @@
+using System.Globalization;
 using System.Net;
 
 namespace ResQui.Application.Email;
 
 public static class NotificacaoEmailBuilder
 {
+    private static readonly CultureInfo PortuguesBrasil = CultureInfo.GetCultureInfo("pt-BR");
+
     private static string Layout(string titulo, string corpo) => $"""
         <!DOCTYPE html>
         <html lang="pt-BR">
@@ -33,8 +36,9 @@ public static class NotificacaoEmailBuilder
     (
         $"[ResQui] Estoque mínimo atingido: {nome}",
         Layout("Estoque abaixo do mínimo",
-            $"<p>O reagente <strong>{Escapar(nome)}</strong> ({Escapar(id)}) está com estoque <strong>{estoque:F2} {Escapar(unidade)}</strong>, " +
-            $"abaixo do mínimo configurado de <strong>{estoqueMin:F2} {Escapar(unidade)}</strong>.</p>")
+            string.Create(PortuguesBrasil,
+                $"<p>O reagente <strong>{Escapar(nome)}</strong> ({Escapar(id)}) está com estoque <strong>{estoque:F2} {Escapar(unidade)}</strong>, " +
+                $"abaixo do mínimo configurado de <strong>{estoqueMin:F2} {Escapar(unidade)}</strong>.</p>"))
     );
 
     public static (string Subject, string Html) BuildColeta(int residuoId, string descricao) =>

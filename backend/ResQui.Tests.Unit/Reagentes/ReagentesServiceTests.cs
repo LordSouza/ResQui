@@ -430,4 +430,24 @@ public class ReagentesServiceTests
         lote.Estoque.Should().Be(2.999m);
         r.Estoque.Should().Be(4.999m);
     }
+
+    [Fact]
+    public async Task QrDoRotuloAsync_ReagenteInexistente_DevolveNull()
+    {
+        _repo.GetByIdAsync("R-99999").Returns((Reagente?)null);
+
+        var png = await _sut.QrDoRotuloAsync("R-99999");
+
+        png.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task QrDoRotuloAsync_ReagenteExistente_DevolvePng()
+    {
+        _repo.GetByIdAsync("R-00007").Returns(new Reagente { Id = "R-00007", Nome = "Metanol" });
+
+        var png = await _sut.QrDoRotuloAsync("R-00007");
+
+        png.Should().StartWith(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+    }
 }

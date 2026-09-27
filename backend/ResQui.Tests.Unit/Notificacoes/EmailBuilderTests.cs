@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentAssertions;
 using ResQui.Application.Email;
 
@@ -28,6 +29,23 @@ public class EmailBuilderTests
         var (subject, html) = NotificacaoEmailBuilder.BuildLowStock("Etanol", "R-00002", 0.5m, 2m, "L");
         subject.Should().Contain("Etanol");
         html.Should().Contain("Etanol").And.Contain("2");
+    }
+
+    [Fact]
+    public void BuildLowStock_FormataQuantidadesComVirgulaDecimalIndependenteDaCulturaDoProcesso()
+    {
+        var culturaOriginal = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+        try
+        {
+            var (_, html) = NotificacaoEmailBuilder.BuildLowStock("Ácido sulfúrico", "R-00003", 0.4m, 1m, "L");
+
+            html.Should().Contain("0,40 L").And.Contain("1,00 L").And.NotContain("0.40");
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culturaOriginal;
+        }
     }
 
     [Fact]
