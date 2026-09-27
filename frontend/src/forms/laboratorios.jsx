@@ -7,7 +7,7 @@ import { useDeletarLaboratorio } from '../laboratorios/useDeletarLaboratorio';
 import { useLaboratorios } from '../laboratorios/useLaboratorios';
 import { useAuth } from '../auth/AuthContext';
 
-const CORES = [['#1465c0', 'Azul'], ['#0d4a8c', 'Azul-escuro'], ['#1f7a3e', 'Verde'], ['#b76e00', 'Âmbar'], ['#5b3c8c', 'Roxo'], ['#b3261e', 'Vermelho']];
+const CORES = ['#1465c0', '#0d4a8c', '#1f7a3e', '#b76e00', '#5b3c8c', '#b3261e'];
 
 export function FormNovoLab({ onClose, dispatch }) {
   const [f, setF] = useState({ nome: '', sala: '', armarios: '' });
@@ -27,13 +27,8 @@ export function FormNovoLab({ onClose, dispatch }) {
       {
         Nome: f.nome.trim(),
         Responsavel: user?.nome || user?.email || '',
-        Email: null,
-        Areas: [],
         Sala: f.sala.trim(),
         Armarios: f.armarios.split(',').flatMap(s => s.trim() ? [s.trim()] : []),
-        Capacidade: 0,
-        AreaM2: 0,
-        Ventilacao: '',
         Cor: corMenosUsada(labs),
       },
       {
@@ -49,7 +44,7 @@ export function FormNovoLab({ onClose, dispatch }) {
   };
 
   return (
-    <Modal title="Novo laboratório" sub="Os demais dados ficam no “Editar laboratório”"
+    <Modal title="Novo laboratório" sub="Cadastro de unidade física"
       onClose={onClose} width={520}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -79,23 +74,16 @@ export function FormNovoLab({ onClose, dispatch }) {
 }
 
 function corMenosUsada(labs) {
-  const usos = new Map(CORES.map(([cor]) => [cor, 0]));
+  const usos = new Map(CORES.map(cor => [cor, 0]));
   labs.forEach(lab => { if (usos.has(lab.cor)) usos.set(lab.cor, usos.get(lab.cor) + 1); });
-  return CORES.reduce((menos, [cor]) => (usos.get(cor) < usos.get(menos) ? cor : menos), CORES[0][0]);
+  return CORES.reduce((menos, cor) => (usos.get(cor) < usos.get(menos) ? cor : menos));
 }
 
 export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
   const [f, setF] = useState({
     nome: lab.nome,
-    responsavel: lab.responsavel,
-    email: lab.email ?? '',
     sala: lab.sala,
-    capacidade: lab.capacidade,
-    area_m2: lab.area_m2,
-    ventilacao: lab.ventilacao,
     armarios: lab.armarios.join(', '),
-    areas: lab.areas.join(', '),
-    cor: lab.cor,
   });
   const mutation = useAtualizarLaboratorio();
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
@@ -106,15 +94,8 @@ export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
       {
         id: lab.id,
         Nome: f.nome.trim(),
-        Responsavel: f.responsavel.trim(),
-        Email: f.email.trim() || null,
-        Areas: f.areas.split(',').flatMap(s => s.trim() ? [s.trim()] : []),
         Sala: f.sala.trim(),
         Armarios: f.armarios.split(',').flatMap(s => s.trim() ? [s.trim()] : []),
-        Capacidade: Number(f.capacidade) || 0,
-        AreaM2: Number(f.area_m2) || 0,
-        Ventilacao: f.ventilacao,
-        Cor: f.cor,
       },
       {
         onSuccess: () => {
@@ -127,7 +108,7 @@ export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
 
   return (
     <Modal title="Editar laboratório" sub={`${lab.nome} · ${lab.id}`}
-      onClose={onClose} width={620}
+      onClose={onClose} width={520}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
         <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={mutation.isPending}>
@@ -135,26 +116,9 @@ export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
         </button>
       </>}>
       {mutation.isError && <div className="login-err" style={{ marginBottom: 12 }}>{mutation.error.message}</div>}
-      <div className="form-row">
+      <div className="form-row full">
         <div className="field"><label htmlFor="edit-lab-nome">Nome *</label>
           <input id="edit-lab-nome" value={f.nome} onChange={e => upd('nome', e.target.value)} />
-        </div>
-        <div className="field"><label htmlFor="edit-lab-responsavel">Responsável</label>
-          <input id="edit-lab-responsavel" value={f.responsavel} onChange={e => upd('responsavel', e.target.value)} />
-        </div>
-      </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor="edit-lab-email">E-mail</label>
-          <input id="edit-lab-email" type="email" value={f.email} onChange={e => upd('email', e.target.value)} />
-        </div>
-        <div className="field"><label htmlFor="edit-lab-cor">Cor</label>
-          <div className="lab-cor-swatches">
-            {CORES.map(([c, nomeCor]) => (
-              <button type="button" key={c} aria-label={`Cor ${nomeCor}`} onClick={() => upd('cor', c)}
-                style={{ width: 26, height: 26, borderRadius: 6, background: c, cursor: 'pointer', padding: 0,
-                  border: f.cor === c ? '2px solid var(--text)' : '1px solid var(--border)' }} />
-            ))}
-          </div>
         </div>
       </div>
       <div className="form-row full">
@@ -162,34 +126,9 @@ export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
           <input id="edit-lab-sala" value={f.sala} onChange={e => upd('sala', e.target.value)} />
         </div>
       </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor="edit-lab-area">Área (m²)</label>
-          <input id="edit-lab-area" type="number" value={f.area_m2} onChange={e => upd('area_m2', e.target.value)} />
-        </div>
-        <div className="field"><label htmlFor="edit-lab-capacidade">Capacidade</label>
-          <input id="edit-lab-capacidade" type="number" value={f.capacidade} onChange={e => upd('capacidade', e.target.value)} />
-        </div>
-      </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor="edit-lab-ventilacao">Ventilação</label>
-          <select id="edit-lab-ventilacao" value={f.ventilacao} onChange={e => upd('ventilacao', e.target.value)}>
-            <option value="">Não informada</option>
-            <option>capela + exaustão</option>
-            <option>capela compartilhada</option>
-            <option>capela individual por bancada</option>
-            <option>ventilação natural + exaustor</option>
-            <option>sala selada + filtro HEPA</option>
-          </select>
-        </div>
-      </div>
       <div className="form-row full">
-        <div className="field"><label htmlFor="edit-lab-armarios">Armários</label>
+        <div className="field"><label htmlFor="edit-lab-armarios">Armários (separados por vírgula)</label>
           <input id="edit-lab-armarios" value={f.armarios} onChange={e => upd('armarios', e.target.value)} />
-        </div>
-      </div>
-      <div className="form-row full">
-        <div className="field"><label htmlFor="edit-lab-areas">Áreas de armazenamento</label>
-          <input id="edit-lab-areas" value={f.areas} onChange={e => upd('areas', e.target.value)} />
         </div>
       </div>
     </Modal>

@@ -8,16 +8,14 @@ const mockReturn = {
   data: [
     {
       id: 'Lab-001', nome: 'Química Inorgânica', responsavel: 'Profa. Ana Lima',
-      email: null, sala: 'Bloco IMC · 2º andar · Sala 201',
-      areas: ['Ácidos'], armarios: ['Armário A', 'Armário B'],
-      capacidade: 30, area_m2: 52.5, ventilacao: 'chapel', cor: '#1465c0',
+      sala: 'Bloco IMC · 2º andar · Sala 201',
+      armarios: ['Armário A', 'Armário B'], cor: '#1465c0',
       criado: '2024-01-01',
     },
     {
       id: 'Lab-002', nome: 'Química Orgânica', responsavel: 'Prof. Renan Costa',
-      email: null, sala: 'Bloco IMC · 2º andar · Sala 203',
-      areas: [], armarios: ['Armário Inflamáveis'],
-      capacidade: 40, area_m2: 58.0, ventilacao: 'chapel', cor: '#b76e00',
+      sala: 'Bloco IMC · 2º andar · Sala 203',
+      armarios: ['Armário Inflamáveis'], cor: '#b76e00',
       criado: '2024-01-01',
     },
   ],
@@ -60,20 +58,21 @@ describe('LaboratoriosScreen', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'openModal', kind: 'novoLab' });
   });
 
-  it('omite área, capacidade, responsável e ventilação de laboratório cadastrado só com o essencial', () => {
+  it('card mostra só localização, responsável e armários', () => {
+    render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
+    expect(screen.getByText('Bloco IMC · 2º andar · Sala 201')).toBeInTheDocument();
+    expect(screen.getByText('resp. Ana Lima')).toBeInTheDocument();
+    expect(screen.getByText('Armário Inflamáveis')).toBeInTheDocument();
+    expect(screen.queryByText(/m²|alunos|Capacidade/)).not.toBeInTheDocument();
+  });
+
+  it('omite a tag de responsável quando ele está em branco', () => {
     useLaboratorios.mockReturnValue({
       ...mockReturn,
-      data: [{
-        id: 'Lab-003', nome: 'Lab Novo', responsavel: '', email: null, sala: 'Bloco IMC · Sala 12',
-        areas: [], armarios: ['Armário A'], capacidade: 0, area_m2: 0, ventilacao: '', cor: '#1465c0',
-        criado: '2026-09-27',
-      }],
+      data: [{ ...mockReturn.data[0], responsavel: '' }],
     });
     render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
-    expect(screen.queryByText('área')).not.toBeInTheDocument();
-    expect(screen.queryByText('cap. alunos')).not.toBeInTheDocument();
     expect(screen.queryByText(/^resp\./)).not.toBeInTheDocument();
-    expect(screen.getByText('armários')).toBeInTheDocument();
   });
 
   it('exibe estado de loading quando isPending=true', () => {

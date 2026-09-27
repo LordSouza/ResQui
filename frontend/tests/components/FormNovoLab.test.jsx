@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { FormNovoLab } from '../../src/forms/laboratorios';
+import { FormNovoLab, FormEditarLaboratorio } from '../../src/forms/laboratorios';
 import { AuthContext } from '../../src/auth/AuthContext';
 
 let updateUser;
@@ -78,7 +78,7 @@ describe('FormNovoLab — entradas inválidas', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('envia o criador como responsável, a cor ainda não usada e o restante em branco', async () => {
+  it('envia o criador como responsável e a cor ainda não usada', async () => {
     render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/laboratorios'), expect.anything()));
     await preencherEssencial();
@@ -89,13 +89,8 @@ describe('FormNovoLab — entradas inválidas', () => {
     expect(JSON.parse(posts(mockFetch)[0][1].body)).toEqual({
       Nome: 'Lab X',
       Responsavel: 'Profa. Ana Lima',
-      Email: null,
-      Areas: [],
       Sala: 'Bloco IMC · Sala 12',
       Armarios: ['Armário A', 'Armário B'],
-      Capacidade: 0,
-      AreaM2: 0,
-      Ventilacao: '',
       Cor: '#1f7a3e',
     });
   });
@@ -134,5 +129,38 @@ describe('FormNovoLab — entradas inválidas', () => {
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(updateUser).not.toHaveBeenCalled();
+  });
+});
+
+describe('FormEditarLaboratorio', () => {
+  let mockFetch;
+
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      data: {},
+      setItem(k, v) { this.data[k] = String(v); },
+      getItem(k) { return this.data[k] ?? null; },
+      removeItem(k) { delete this.data[k]; },
+      clear() { this.data = {}; },
+    });
+    mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'Lab-001' }) });
+    vi.stubGlobal('fetch', mockFetch);
+  });
+
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  const lab = { id: 'Lab-001', nome: 'Química', responsavel: 'Profa. Ana', sala: 'Sala 1', armarios: ['A1', 'A2'], cor: '#1465c0' };
+
+  it('edita só nome, localização e armários', async () => {
+    render(<FormEditarLaboratorio lab={lab} onClose={vi.fn()} dispatch={vi.fn()} />, { wrapper });
+    expect(screen.getAllByRole('textbox').map(campo => campo.id)).toEqual(['edit-lab-nome', 'edit-lab-sala', 'edit-lab-armarios']);
+
+    const localizacao = screen.getByLabelText(/Localização/i);
+    await userEvent.clear(localizacao);
+    await userEvent.type(localizacao, 'Sala 9');
+    await userEvent.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ Nome: 'Química', Sala: 'Sala 9', Armarios: ['A1', 'A2'] });
   });
 });

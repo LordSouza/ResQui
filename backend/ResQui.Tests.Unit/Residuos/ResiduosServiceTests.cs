@@ -379,8 +379,8 @@ public class ResiduosServiceTests
 
     private static Laboratorio FakeLab(string id, string nome) => new()
     {
-        Id = id, Nome = nome, Responsavel = "", Sala = "", Ventilacao = "",
-        Areas = [], Armarios = [], Criado = DateOnly.FromDateTime(DateTime.Today),
+        Id = id, Nome = nome, Responsavel = "", Sala = "",
+        Armarios = [], Criado = DateOnly.FromDateTime(DateTime.Today),
     };
 
     [Fact]

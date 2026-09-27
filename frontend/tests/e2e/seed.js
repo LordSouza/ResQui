@@ -16,8 +16,7 @@ export async function ensureLab(request, auth) {
     headers: auth,
     data: {
       Nome: 'Lab E2E', Responsavel: 'Playwright', Sala: 'S-01',
-      Armarios: [], Areas: [], Capacidade: 10, AreaM2: 20, Ventilacao: 'natural',
-      Cor: '#3b82f6',
+      Armarios: [], Cor: '#3b82f6',
     },
   });
   return res.json();

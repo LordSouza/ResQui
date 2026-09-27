@@ -21,15 +21,11 @@ public class LaboratoriosService(
     public async Task<LaboratorioDto> CriarAsync(CriarLaboratorioCmd cmd, Solicitante solicitante)
     {
         if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
-        if (cmd.Capacidade < 0) throw new ValidationException("Capacidade não pode ser negativa.");
-        if (cmd.AreaM2 < 0) throw new ValidationException("Área não pode ser negativa.");
 
         var l = new Laboratorio
         {
-            Nome = cmd.Nome, Responsavel = cmd.Responsavel, Email = cmd.Email,
-            Areas = cmd.Areas, Sala = cmd.Sala, Armarios = cmd.Armarios,
-            Capacidade = cmd.Capacidade, AreaM2 = cmd.AreaM2,
-            Ventilacao = cmd.Ventilacao, Cor = cmd.Cor,
+            Nome = cmd.Nome, Responsavel = cmd.Responsavel,
+            Sala = cmd.Sala, Armarios = cmd.Armarios, Cor = cmd.Cor,
             Criado = DateOnly.FromDateTime(DateTime.UtcNow),
         };
         await repo.AddAsync(l);
@@ -43,16 +39,11 @@ public class LaboratoriosService(
     public async Task<LaboratorioDto?> AtualizarAsync(string id, AtualizarLaboratorioCmd cmd, Solicitante solicitante)
     {
         if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
-        if (cmd.Capacidade < 0) throw new ValidationException("Capacidade não pode ser negativa.");
-        if (cmd.AreaM2 < 0) throw new ValidationException("Área não pode ser negativa.");
 
         var l = await repo.GetByIdAsync(id);
         if (l is null) return null;
         GarantirEscopo(id, solicitante);
-        l.Nome = cmd.Nome; l.Responsavel = cmd.Responsavel; l.Email = cmd.Email;
-        l.Areas = cmd.Areas; l.Sala = cmd.Sala; l.Armarios = cmd.Armarios;
-        l.Capacidade = cmd.Capacidade; l.AreaM2 = cmd.AreaM2;
-        l.Ventilacao = cmd.Ventilacao; l.Cor = cmd.Cor;
+        l.Nome = cmd.Nome; l.Sala = cmd.Sala; l.Armarios = cmd.Armarios;
         await repo.UpdateAsync(l);
         await repo.SaveChangesAsync();
         await auditoria.RegistrarAsync(solicitante.Email, "lab.atualizar", "Laboratórios",
@@ -87,7 +78,5 @@ public class LaboratoriosService(
     }
 
     private static LaboratorioDto ToDto(Laboratorio l) =>
-        new(l.Id, l.Nome, l.Responsavel, l.Email,
-            l.Areas, l.Sala, l.Armarios,
-            l.Capacidade, l.AreaM2, l.Ventilacao, l.Cor, l.Criado);
+        new(l.Id, l.Nome, l.Responsavel, l.Sala, l.Armarios, l.Cor, l.Criado);
 }

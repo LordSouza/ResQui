@@ -29,8 +29,7 @@ describe('useAtualizarLaboratorio', () => {
     });
     const { result } = renderHook(() => useAtualizarLaboratorio(), { wrapper });
     act(() => result.current.mutate({
-      id: 'Lab-001', Nome: 'Atualizado', Responsavel: 'Prof.', Email: null,
-      Areas: [], Sala: 'Sala 201', Armarios: [], Capacidade: 30, AreaM2: 50, Ventilacao: 'chapel', Cor: '#1465c0',
+      id: 'Lab-001', Nome: 'Atualizado', Sala: 'Sala 201', Armarios: [],
     }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockFetch.mock.calls[0][0]).toBe('/api/laboratorios/Lab-001');

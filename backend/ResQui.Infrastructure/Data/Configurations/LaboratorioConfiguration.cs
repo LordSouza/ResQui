@@ -15,10 +15,7 @@ public class LaboratorioConfiguration : IEntityTypeConfiguration<Laboratorio>
             .ValueGeneratedOnAdd();
         builder.Property(l => l.Nome).HasMaxLength(200).IsRequired();
         builder.Property(l => l.Sala).HasMaxLength(200);
-        builder.Property(l => l.Ventilacao).HasMaxLength(200);
         builder.Property(l => l.Cor).HasMaxLength(20);
-        builder.Property(l => l.AreaM2).HasPrecision(8, 2);
-        builder.Property(l => l.Areas).HasColumnType("text[]");
         builder.Property(l => l.Armarios).HasColumnType("text[]");
     }
 }

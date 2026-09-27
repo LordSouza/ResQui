@@ -1150,60 +1150,6 @@ input, select, textarea { font-family: inherit; font-size: 13px; }
   padding: 14px 14px 12px 14px;
   border-bottom: 1px solid var(--border);
 }
-.lab-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-}
-.lab-stat {
-  padding: 8px 10px;
-  border-right: 1px solid var(--border);
-  text-align: center;
-}
-.lab-stat:last-child { border-right: 0; }
-.lab-stat-val {
-  font-size: 16px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-  line-height: 1.1;
-}
-.lab-stat-val .unit {
-  font-size: 10px;
-  color: var(--text-3);
-  margin-left: 2px;
-  font-weight: 400;
-}
-.lab-stat-lbl {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-top: 2px;
-}
-
-.lab-reag-list {
-  display: flex;
-  flex-direction: column;
-}
-.lab-reag-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 14px;
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
-  font-family: var(--mono);
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-3);
-}
 .lab-reag-tbl thead { display: none; }
 .lab-reag-tbl tbody td {
   padding: 7px 10px;
@@ -1728,12 +1674,6 @@ button.link { background: transparent; border: 0; padding: 0; font: inherit; }
 }
 
 /* laboratorios.jsx extracted styles */
-.lab-cor-swatches {
-  display: flex;
-  gap: 6px;
-  padding-top: 5px;
-}
-
 .lab-form-hint {
   padding: 10px;
   background: var(--accent-soft);
