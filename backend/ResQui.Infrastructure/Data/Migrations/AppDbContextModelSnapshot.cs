@@ -389,20 +389,9 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(20)")
                         .HasDefaultValueSql("'Lab-' || lpad(nextval('laboratorios_id_seq')::text, 3, '0')");
 
-                    b.Property<decimal>("AreaM2")
-                        .HasPrecision(8, 2)
-                        .HasColumnType("numeric(8,2)");
-
-                    b.PrimitiveCollection<List<string>>("Areas")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
                     b.PrimitiveCollection<List<string>>("Armarios")
                         .IsRequired()
                         .HasColumnType("text[]");
-
-                    b.Property<int>("Capacidade")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Cor")
                         .IsRequired()
@@ -411,9 +400,6 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.Property<DateOnly>("Criado")
                         .HasColumnType("date");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("text");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -425,11 +411,6 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Sala")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Ventilacao")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");

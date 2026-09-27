@@ -31,7 +31,7 @@ async function doisLaboratorios(request, adminAuth) {
     headers: adminAuth,
     data: {
       Nome: `Lab Escopo ${Date.now()}`, Responsavel: 'Playwright', Sala: 'S-02',
-      Armarios: [], Areas: [], Capacidade: 10, AreaM2: 20, Ventilacao: 'natural', Cor: '#ef4444',
+      Armarios: [], Cor: '#ef4444',
     },
   })).json();
   return [primeiro, segundo];
@@ -97,8 +97,7 @@ test('professor não responde por laboratório alheio ao editá-lo', async ({ re
   const negado = await request.put(`/api/laboratorios/${alheio.id}`, {
     headers: await professor.autenticar(),
     data: {
-      Nome: 'Renomeado indevidamente', Responsavel: 'X', Sala: 'S-02',
-      Armarios: [], Areas: [], Capacidade: 10, AreaM2: 20, Ventilacao: 'natural', Cor: '#ef4444',
+      Nome: 'Renomeado indevidamente', Sala: 'S-02', Armarios: [],
     },
   });
   expect(negado.status()).toBe(403);

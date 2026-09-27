@@ -35,15 +35,12 @@ public class LaboratoriosServiceTests
     private static Laboratorio FakeLab(string id = "Lab-001") => new()
     {
         Id = id, Nome = "Química Geral", Responsavel = "Profa. Ana",
-        Sala = "B201", Areas = ["Síntese"], Armarios = ["A1"],
-        Capacidade = 30, AreaM2 = 60m, Ventilacao = "Exaustão forçada",
+        Sala = "B201", Armarios = ["A1"],
         Cor = "#3b82f6", Criado = DateOnly.FromDateTime(DateTime.UtcNow),
     };
 
-    private static CriarLaboratorioCmd CriarCmd() => new(
-        "Química Geral", "Profa. Ana", null,
-        ["Síntese"], "B201", ["A1"],
-        30, 60m, "Exaustão forçada", "#3b82f6");
+    private static CriarLaboratorioCmd CriarCmd(string nome = "Química Geral") =>
+        new(nome, "Profa. Ana", "B201", ["A1"], "#3b82f6");
 
     [Fact]
     public async Task CriarAsync_RegistraAuditoria()
@@ -66,8 +63,7 @@ public class LaboratoriosServiceTests
     {
         _repo.GetByIdAsync("Lab-999").Returns((Laboratorio?)null);
 
-        var result = await _sut.AtualizarAsync("Lab-999", new AtualizarLaboratorioCmd(
-            "X", "Y", null, [], "S1", [], 10, 20m, "Natural", "#fff"), Dono("admin@lab.com"));
+        var result = await _sut.AtualizarAsync("Lab-999", new AtualizarLaboratorioCmd("X", "S1", []), Dono("admin@lab.com"));
 
         result.Should().BeNull();
         await _audit.DidNotReceive().RegistrarAsync(
@@ -83,9 +79,7 @@ public class LaboratoriosServiceTests
         _repo.UpdateAsync(Arg.Any<Laboratorio>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        await _sut.AtualizarAsync("Lab-001", new AtualizarLaboratorioCmd(
-            "Novo Nome", "Profa. Ana", null, ["Síntese"], "B201", ["A1"],
-            30, 60m, "Exaustão forçada", "#3b82f6"), Dono("admin@lab.com"));
+        await _sut.AtualizarAsync("Lab-001", new AtualizarLaboratorioCmd("Novo Nome", "B201", ["A1"]), Dono("admin@lab.com"));
 
         await _audit.Received(1).RegistrarAsync(
             "admin@lab.com", "lab.atualizar", "Laboratórios",
@@ -121,31 +115,30 @@ public class LaboratoriosServiceTests
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
 
-    private static CriarLaboratorioCmd FakeLabCmd(string nome = "Lab Teste", int capacidade = 10, decimal areaM2 = 40m) =>
-        new(nome, "Ana", null, [], "Sala 1", [], capacidade, areaM2, "capela", "#1465c0");
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("  ")]
     public async Task CriarAsync_NomeVazio_LancaValidationException(string? nome)
     {
-        var act = () => _sut.CriarAsync(FakeLabCmd(nome: nome!), Dono("u@x.com"));
+        var act = () => _sut.CriarAsync(CriarCmd(nome!), Dono("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Nome*");
     }
 
     [Fact]
-    public async Task CriarAsync_CapacidadeNegativa_LancaValidationException()
+    public async Task AtualizarAsync_PreservaResponsavelECor()
     {
-        var act = () => _sut.CriarAsync(FakeLabCmd(capacidade: -1), Dono("u@x.com"));
-        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Capacidade*");
-    }
+        _repo.GetByIdAsync("Lab-001").Returns(FakeLab());
+        _repo.UpdateAsync(Arg.Any<Laboratorio>()).Returns(Task.CompletedTask);
+        _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-    [Fact]
-    public async Task CriarAsync_AreaNegativa_LancaValidationException()
-    {
-        var act = () => _sut.CriarAsync(FakeLabCmd(areaM2: -5m), Dono("u@x.com"));
-        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Área*");
+        var result = await _sut.AtualizarAsync("Lab-001",
+            new AtualizarLaboratorioCmd("Novo Nome", "Sala 9", ["A2"]), Dono());
+
+        result!.Responsavel.Should().Be("Profa. Ana");
+        result.Cor.Should().Be("#3b82f6");
+        result.Sala.Should().Be("Sala 9");
+        result.Armarios.Should().Equal("A2");
     }
 
     [Fact]
@@ -187,8 +180,7 @@ public class LaboratoriosServiceTests
     {
         _repo.GetByIdAsync("Lab-001").Returns(FakeLab());
 
-        var act = () => _sut.AtualizarAsync("Lab-001", new AtualizarLaboratorioCmd(
-            "Novo Nome", "Ana", null, [], "B201", [], 30, 60m, "Natural", "#fff"), Alheio());
+        var act = () => _sut.AtualizarAsync("Lab-001", new AtualizarLaboratorioCmd("Novo Nome", "B201", []), Alheio());
 
         await act.Should().ThrowAsync<AcessoNegadoException>().WithMessage("*Lab-001*");
     }
@@ -200,8 +192,7 @@ public class LaboratoriosServiceTests
         _repo.UpdateAsync(Arg.Any<Laboratorio>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        var result = await _sut.AtualizarAsync("Lab-001", new AtualizarLaboratorioCmd(
-            "Novo Nome", "Ana", null, [], "B201", [], 30, 60m, "Natural", "#fff"), Admin());
+        var result = await _sut.AtualizarAsync("Lab-001", new AtualizarLaboratorioCmd("Novo Nome", "B201", []), Admin());
 
         result!.Nome.Should().Be("Novo Nome");
     }

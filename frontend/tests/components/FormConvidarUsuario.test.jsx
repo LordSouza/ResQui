@@ -96,7 +96,7 @@ describe('FormConvidarUsuario', () => {
           { id: 2, papel: 'Aluno', status: 'usado', criadoEm: '2026-09-20T10:00:00Z', expiraEm: '2026-09-27T10:00:00Z', usadoEm: '2026-09-21T10:00:00Z', usadoPor: 'Novo Aluno' },
         ]) };
       }
-      return { ok: true, status: 200, json: async () => ({}) };
+      return { ok: true, status: 200, json: async () => [] };
     });
     renderCom('Professor');
 
@@ -113,7 +113,7 @@ describe('FormConvidarUsuario', () => {
           { id: 2, papel: 'Aluno', status: 'pendente', criadoEm: '2026-09-22T10:00:00Z', expiraEm: '2026-09-29T10:00:00Z', usadoEm: null, usadoPor: null },
         ]) };
       }
-      return { ok: true, status: 200, json: async () => ({}) };
+      return { ok: true, status: 200, json: async () => [] };
     });
     renderCom('Professor');
 

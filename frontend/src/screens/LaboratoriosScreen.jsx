@@ -34,36 +34,11 @@ function LabCard({ lab, onRemove, onEdit, dispatch, flash, podeEditar, podeRemov
           </div>
         </div>
 
-        <div className="lab-stats">
-          <div className="lab-stat">
-            <div className="lab-stat-val tnum">{lab.armarios.length}</div>
-            <div className="lab-stat-lbl">armários</div>
-          </div>
-          <div className="lab-stat">
-            <div className="lab-stat-val tnum">{lab.area_m2}<span className="unit">m²</span></div>
-            <div className="lab-stat-lbl">área</div>
-          </div>
-          <div className="lab-stat">
-            <div className="lab-stat-val tnum">{lab.capacidade}</div>
-            <div className="lab-stat-lbl">cap. alunos</div>
-          </div>
-        </div>
-
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-          <Tag>resp. {lab.responsavel.split(' ').slice(-2).join(' ')}</Tag>
-          <Tag>{lab.ventilacao}</Tag>
+          {lab.responsavel && <Tag>resp. {lab.responsavel.split(' ').slice(-2).join(' ')}</Tag>}
           {lab.armarios.map(a => <Tag key={a}>{a}</Tag>)}
         </div>
       </div>
-
-      {lab.areas.length > 0 && (
-        <div className="lab-reag-list">
-          <div className="lab-reag-head"><span>Áreas de armazenamento</span></div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 14px' }}>
-            {lab.areas.map(a => <Tag key={a}>{a}</Tag>)}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -75,8 +50,6 @@ export function LaboratoriosScreen({ state, dispatch }) {
   const podeRemover = usePode('Cadastro');       // DELETE /api/laboratorios/:id
 
   const totalArmarios = labs.reduce((s, l) => s + l.armarios.length, 0);
-  const totalArea = labs.reduce((s, l) => s + l.area_m2, 0);
-  const totalCap = labs.reduce((s, l) => s + l.capacidade, 0);
 
   return (
     <>
@@ -87,8 +60,8 @@ export function LaboratoriosScreen({ state, dispatch }) {
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => {
-            const rows = [['Lab', 'Nome', 'Responsável', 'Sala', 'Capacidade', 'Área (m²)', 'Armários']];
-            labs.forEach(l => rows.push([l.id, l.nome, l.responsavel, l.sala, l.capacidade, l.area_m2, l.armarios.join(';')]));
+            const rows = [['Lab', 'Nome', 'Responsável', 'Localização', 'Armários']];
+            labs.forEach(l => rows.push([l.id, l.nome, l.responsavel, l.sala, l.armarios.join(';')]));
             exportCsv(rows, `planta-laboratorios-${new Date().toISOString().slice(0, 10)}.csv`);
           }}><Icon name="download" size={13} /> Exportar planta</button>
           {podeGerir && (
@@ -113,13 +86,7 @@ export function LaboratoriosScreen({ state, dispatch }) {
               <div className="kpi-stripe" />
               <div className="label">Laboratórios ativos</div>
               <div className="value tnum">{labs.length}<span className="unit">salas</span></div>
-              <div className="delta">{totalArea.toFixed(1)} m² · {totalArmarios} armários</div>
-            </div>
-            <div className="kpi">
-              <div className="kpi-stripe" />
-              <div className="label">Capacidade combinada</div>
-              <div className="value tnum">{totalCap}<span className="unit">alunos</span></div>
-              <div className="delta">média {labs.length ? Math.round(totalCap / labs.length) : 0} por sala</div>
+              <div className="delta">{totalArmarios} armários</div>
             </div>
           </div>
 

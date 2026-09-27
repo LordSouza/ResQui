@@ -26,9 +26,8 @@ describe('useCriarLaboratorio', () => {
     mockFetch.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ id: 'Lab-001' }) });
     const { result } = renderHook(() => useCriarLaboratorio(), { wrapper });
     const cmd = {
-      Nome: 'Novo Lab', Responsavel: 'Prof. X', Email: null,
-      Areas: [], Sala: 'Bloco A · 2º andar · Sala 201', Armarios: ['Armário A'],
-      Capacidade: 30, AreaM2: 50.0, Ventilacao: 'chapel', Cor: '#1465c0',
+      Nome: 'Novo Lab', Responsavel: 'Prof. X',
+      Sala: 'Bloco A · 2º andar · Sala 201', Armarios: ['Armário A'], Cor: '#1465c0',
     };
     act(() => result.current.mutate(cmd));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

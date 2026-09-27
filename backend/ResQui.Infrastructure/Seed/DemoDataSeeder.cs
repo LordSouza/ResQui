@@ -30,9 +30,9 @@ public static class DemoDataSeeder
         if (!await db.Laboratorios.AnyAsync())
         {
             db.Laboratorios.AddRange(
-                new Laboratorio { Nome = "Química Analítica", Responsavel = "Profa. Ana Lima", Email = "ana.lima@instituto.example", Sala = "Bloco IMC · 2º andar · Sala 201", Armarios = ["Armário A", "Armário B"], Areas = ["Análise instrumental", "Cromatografia"], Capacidade = 30, AreaM2 = 55m, Ventilacao = "capela + exaustão", Cor = "#1465c0", Criado = hoje.AddMonths(-8) },
-                new Laboratorio { Nome = "Síntese Orgânica", Responsavel = "Prof. Renan Costa", Email = "renan.costa@instituto.example", Sala = "Bloco IMC · 2º andar · Sala 203", Armarios = ["Armário C"], Areas = ["Síntese", "Purificação"], Capacidade = 20, AreaM2 = 42m, Ventilacao = "capela", Cor = "#0d9457", Criado = hoje.AddMonths(-6) },
-                new Laboratorio { Nome = "Físico-Química", Responsavel = "Profa. Júlia Mendes", Email = "julia.mendes@instituto.example", Sala = "Bloco IMC · 3º andar · Sala 205", Armarios = ["Armário A"], Areas = ["Eletroquímica"], Capacidade = 15, AreaM2 = 38m, Ventilacao = "exaustão", Cor = "#b3551c", Criado = hoje.AddMonths(-4) });
+                new Laboratorio { Nome = "Química Analítica", Responsavel = "Profa. Ana Lima", Sala = "Bloco IMC · 2º andar · Sala 201", Armarios = ["Armário A", "Armário B"], Cor = "#1465c0", Criado = hoje.AddMonths(-8) },
+                new Laboratorio { Nome = "Síntese Orgânica", Responsavel = "Prof. Renan Costa", Sala = "Bloco IMC · 2º andar · Sala 203", Armarios = ["Armário C"], Cor = "#0d9457", Criado = hoje.AddMonths(-6) },
+                new Laboratorio { Nome = "Físico-Química", Responsavel = "Profa. Júlia Mendes", Sala = "Bloco IMC · 3º andar · Sala 205", Armarios = ["Armário A"], Cor = "#b3551c", Criado = hoje.AddMonths(-4) });
             await db.SaveChangesAsync();
         }
 
