@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Icon, Badge, SectionTitle, Picto, Empty, validadeBadge } from '../components';
-import { REATIVIDADE_CLASSES } from '../data';
+import { REATIVIDADE_CLASSES, PICTOS_GHS } from '../data';
 import { useCompatMatriz } from '../compat/useCompatMatriz';
 import { useReagente } from '../reagentes/useReagente';
 import { useReagentes } from '../reagentes/useReagentes';
@@ -11,6 +11,8 @@ import { useCriarLote } from '../reagentes/useCriarLote';
 import { useBaixaLote } from '../reagentes/useBaixaLote';
 import { useMovimentacoes } from '../reagentes/useMovimentacoes';
 import { downloadRotulo, downloadRotuloLote } from '../reagentes/downloadRotulo';
+import { useQrRotulo } from '../reagentes/useQrRotulo';
+import { dataBrasileira } from '../utils';
 import { usePode } from '../auth/permissoes';
 
 function MovimentacoesCard({ reagenteId }) {
@@ -102,6 +104,62 @@ function LotesCard({ reagente }) {
 
 function armarioDoLocal(local) {
   return local.split('·').slice(0, 2).map(trecho => trecho.trim()).join(' · ');
+}
+
+function RotuloGhs({ r }) {
+  const { data: qr } = useQrRotulo(r.id);
+  const pictos = r.pictos ?? [];
+  const frasesH = r.h ?? [];
+  const frasesP = r.p ?? [];
+  return (
+    <div className="ghs-label">
+      <div className="ghs-topo">
+        <div>
+          <div className="ghs-name">{r.nome}</div>
+          {r.sinonimo && <div className="ghs-syn">{r.sinonimo}</div>}
+        </div>
+        {r.signal && (
+          <div className="ghs-signal" style={{background: r.signal === 'Perigo' ? '#c00' : '#b76e00'}}>
+            {r.signal.toUpperCase()}
+          </div>
+        )}
+      </div>
+      <div className="ghs-info">
+        <div><span>CAS: {r.cas}</span><span>Fórmula: {r.formula}</span></div>
+        <div><span>ID: {r.id}</span><span>Classe de reatividade: {r.classe}</span></div>
+        <div><span>Validade: {dataBrasileira(r.validade)}</span><span>Local: {r.local}</span></div>
+        <div><span>Responsável: {r.responsavel}</span></div>
+        {r.lote && <div><span>Lote: {r.lote}</span></div>}
+        {r.abertura && <div><span>Aberto em: {dataBrasileira(r.abertura)}</span></div>}
+      </div>
+      {pictos.length > 0 && (
+        <div className="ghs-pictos">
+          {pictos.map((p) => (
+            <figure key={p} className="ghs-picto-item">
+              <Picto kind={p}/>
+              <figcaption>{PICTOS_GHS[p]?.label ?? p}</figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+      {frasesH.length > 0 && (
+        <div className="ghs-h-statements">
+          <div className="lbl">Frases H</div>
+          {frasesH.map((h) => <div key={h}>{h}</div>)}
+        </div>
+      )}
+      {frasesP.length > 0 && (
+        <div className="ghs-p-statements">
+          <div className="lbl">Frases P</div>
+          {frasesP.map((p) => <div key={p}>{p}</div>)}
+        </div>
+      )}
+      <div className="ghs-foot">
+        <span>ResQui</span>
+        {qr && <img className="ghs-qr" src={qr} alt={`QR code de ${r.id}`}/>}
+      </div>
+    </div>
+  );
 }
 
 export function DetalheScreen({ state, dispatch }) {
@@ -253,34 +311,7 @@ export function DetalheScreen({ state, dispatch }) {
           <div className="card">
             <SectionTitle title="Rótulo GHS"/>
             <div className="card-body" style={{background: 'var(--surface-2)'}}>
-              <div className="ghs-label">
-                <div className="ghs-h">
-                  <span>ResQui</span>
-                  <span>{r.id} · {r.lote}</span>
-                </div>
-                <div className="ghs-name">{r.nome}</div>
-                <div className="ghs-syn">{r.sinonimo} · CAS {r.cas} · {r.formula}</div>
-                <div className="ghs-pictos">
-                  {(r.pictos ?? []).map((p) => <Picto key={p} kind={p}/>)}
-                </div>
-                <div className="ghs-signal" style={{background: r.signal === 'Perigo' ? '#c00' : '#b76e00'}}>
-                  {r.signal}
-                </div>
-                <div className="ghs-h-statements">
-                  <div className="lbl">Frases H</div>
-                  {(r.h ?? []).map((h) => <div key={h}>{h}</div>)}
-                </div>
-                <div className="ghs-p-statements">
-                  <div className="lbl">Frases P</div>
-                  {(r.p ?? []).map((p) => <div key={p}>{p}</div>)}
-                </div>
-                <div className="ghs-foot">
-                  <span>Validade: {r.validade}</span>
-                  <span style={{textAlign: 'right'}}>Aberto: {r.abertura}</span>
-                  <span>{r.local}</span>
-                  <span style={{textAlign: 'right'}}>Resp: {r.responsavel?.split(' ').slice(0, 2).join(' ')}</span>
-                </div>
-              </div>
+              <RotuloGhs r={r}/>
             </div>
           </div>
         </div>

@@ -184,7 +184,7 @@ function ChatCard({ card, dispatch }) {
   if (card.kind === 'label') {
     return (
       <div className="chat-card">
-        <div className="cc-h"><span className="ttl">Rótulo GHS gerado</span><span className="tag">{card.r.id}</span></div>
+        <div className="cc-h"><span className="ttl">Rótulo GHS</span><span className="tag">{card.r.id}</span></div>
         <div className="cc-body">
           <div style={{fontSize: 12}}>{card.r.nome} · {card.r.signal}</div>
           <div style={{display: 'flex', gap: 4, marginTop: 6}}>
@@ -200,10 +200,9 @@ function ChatCard({ card, dispatch }) {
   if (card.kind === 'mtr') {
     return (
       <div className="chat-card">
-        <div className="cc-h"><span className="ttl">Manifesto gerado</span><span className="tag">rascunho</span></div>
+        <div className="cc-h"><span className="ttl">Resíduos aguardando coleta</span><span className="tag">{card.count}</span></div>
         <div className="cc-body">
-          <div style={{fontSize: 12, fontWeight: 600}}>Manifesto (rascunho)</div>
-          <div className="small muted" style={{marginTop: 4}}>{card.count} resíduos consolidados · {card.quantidade}</div>
+          <div className="small muted">{card.count} resíduos prontos para um manifesto · {card.quantidade}</div>
         </div>
         <div className="cc-actions">
           <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'nav', screen: 'mtr'})}>Abrir manifestos</button>

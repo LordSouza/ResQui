@@ -98,6 +98,12 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         return bytes;
     }
 
+    public async Task<byte[]?> QrDoRotuloAsync(string id)
+    {
+        var r = await repo.GetByIdAsync(id);
+        return r is null ? null : QrCode.Png(r.Id);
+    }
+
     public async Task<(IEnumerable<ReagenteListItemDto> Items, int Total)> ListarAsync(ReagentesFiltroDto filtro)
     {
         var all = (await repo.GetAllAsync()).AsEnumerable();
