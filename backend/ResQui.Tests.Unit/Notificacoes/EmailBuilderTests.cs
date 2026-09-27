@@ -49,18 +49,29 @@ public class EmailBuilderTests
     }
 
     [Fact]
-    public void BuildColeta_RetornaSubjectEHtmlComContagem()
+    public void BuildColeta_IdentificaOResiduo()
     {
-        var (subject, html) = NotificacaoEmailBuilder.BuildColeta(3);
-        subject.Should().Contain("coleta");
-        html.Should().Contain("3");
+        var (subject, html) = NotificacaoEmailBuilder.BuildColeta(42, "Solvente halogenado");
+        subject.Should().Contain("#42").And.NotContain("(s)");
+        html.Should().Contain("#42").And.Contain("Solvente halogenado");
     }
 
     [Fact]
-    public void BuildCompat_RetornaSubjectEHtmlComNomesReagentes()
+    public void BuildCompatLocal_EscapaTextoLivreNoHtml()
     {
-        var (subject, html) = NotificacaoEmailBuilder.BuildCompat("H₂O₂", "Etanol");
-        subject.Should().Contain("compatibilidade");
-        html.Should().Contain("H₂O₂").And.Contain("Etanol");
+        var (_, html) = NotificacaoEmailBuilder.BuildCompatLocal(
+            "<a href=\"https://x\">Armario 3</a>", "<img src=x>", "Etanol & Cia", "Perigo");
+
+        html.Should().NotContain("<a href").And.NotContain("<img")
+            .And.Contain("&lt;a href=&quot;https://x&quot;&gt;Armario 3&lt;/a&gt;")
+            .And.Contain("&lt;img src=x&gt;")
+            .And.Contain("Etanol &amp; Cia");
+    }
+
+    [Fact]
+    public void BuildColeta_EscapaDescricaoNoHtml()
+    {
+        var (_, html) = NotificacaoEmailBuilder.BuildColeta(1, "<script>alert(1)</script>");
+        html.Should().NotContain("<script>").And.Contain("&lt;script&gt;");
     }
 }
