@@ -79,3 +79,21 @@ export const ROLES = {
   Professor: { label: 'Professor',     desc: 'Responsável pelo laboratório · aprova descarte, cadastra e gere os alunos', cor: '#0f6e6e' },
   Aluno:     { label: 'Aluno',         desc: 'Solicita descarte e registra consumo',                                     cor: '#8c5b1f' },
 };
+
+export const CLASSE_POR_TIPO = {
+  'Solventes orgânicos não-halogenados': 5,
+  'Solventes halogenados': 6,
+  'Ácidos inorgânicos': 1,
+  'Ácidos orgânicos': 2,
+  'Bases inorgânicas': 3,
+  'Metais pesados': 7,
+  'Oxidantes': 4,
+  'Compostos cianetos': 8,
+};
+
+export const UNIDADE_PADRAO_RESIDUO = 'L';
+
+export const UNIDADE_POR_TIPO = {
+  'Vidraria contaminada': 'kg',
+  'Material biológico contaminado': 'kg',
+};

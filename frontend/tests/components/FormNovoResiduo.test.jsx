@@ -57,7 +57,6 @@ describe('FormNovoResiduo — entradas inválidas', () => {
     await userEvent.selectOptions(screen.getByLabelText(/Laboratório/i), 'Lab-001');
     await userEvent.type(screen.getByLabelText('Volume'), '2');
     await userEvent.type(screen.getByLabelText(/Composição declarada/i), 'Acetona 70%');
-    await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
     await userEvent.click(screen.getByRole('button', { name: /Registrar resíduo/i }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     const postCall = mockFetch.mock.calls.find(c => c[1]?.method === 'POST');
@@ -66,15 +65,57 @@ describe('FormNovoResiduo — entradas inválidas', () => {
 
   it('mantém o botão desabilitado enquanto nenhuma classe estiver marcada', async () => {
     render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await screen.findByRole('option', { name: 'Lab Teste' });
     const botao = screen.getByRole('button', { name: /Registrar resíduo/i });
-    expect(botao).toBeDisabled();
-    await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
     expect(botao).toBeEnabled();
+    await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
+    expect(botao).toBeDisabled();
   });
 
-  it('avisa que a classificação alimenta o bloqueio de mistura', () => {
+  it('avisa que a classificação alimenta o bloqueio de mistura', async () => {
     render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await userEvent.click(screen.getByLabelText(/5\. Solventes orgânicos/));
     expect(screen.getByText(/determina quais misturas o sistema bloqueia/i)).toBeInTheDocument();
+  });
+
+  it('nasce com a classe do tipo marcada e pede as dos outros componentes', () => {
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    expect(screen.getByLabelText(/5\. Solventes orgânicos/)).toBeChecked();
+    expect(screen.getByText(/Marque também as classes dos outros componentes/i)).toBeInTheDocument();
+  });
+
+  it('trocar o tipo troca a classe dele e preserva as marcadas à mão', async () => {
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await userEvent.click(screen.getByLabelText(/^7\./));
+    await userEvent.selectOptions(screen.getByLabelText(/Tipo de resíduo/i), 'Solventes halogenados');
+    expect(screen.getByLabelText(/^5\./)).not.toBeChecked();
+    expect(screen.getByLabelText(/^6\./)).toBeChecked();
+    expect(screen.getByLabelText(/^7\./)).toBeChecked();
+  });
+
+  it('tipo sem classe equivalente não marca nenhuma', async () => {
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await userEvent.selectOptions(screen.getByLabelText(/Tipo de resíduo/i), 'Vidraria contaminada');
+    expect(screen.getAllByRole('checkbox').filter(c => c.checked)).toHaveLength(0);
+    expect(screen.getByRole('button', { name: /Registrar resíduo/i })).toBeDisabled();
+  });
+
+  it('a unidade segue o tipo até ser escolhida à mão', async () => {
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
+    const unidade = screen.getByLabelText('Unidade de volume');
+    expect(unidade).toHaveValue('L');
+    await userEvent.selectOptions(screen.getByLabelText(/Tipo de resíduo/i), 'Vidraria contaminada');
+    expect(unidade).toHaveValue('kg');
+    await userEvent.selectOptions(unidade, 'g');
+    await userEvent.selectOptions(screen.getByLabelText(/Tipo de resíduo/i), 'Oxidantes');
+    expect(unidade).toHaveValue('g');
+  });
+
+  it('unidade vinda do assistente não é trocada pelo tipo', async () => {
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} inicial={{ tipo: 'Oxidantes', unidade: 'mL' }} />, { wrapper });
+    const unidade = screen.getByLabelText('Unidade de volume');
+    await userEvent.selectOptions(screen.getByLabelText(/Tipo de resíduo/i), 'Vidraria contaminada');
+    expect(unidade).toHaveValue('mL');
   });
 
   it('diz que o registro aguarda aprovação, sem prometer rotulagem automática', () => {
@@ -122,7 +163,6 @@ describe('FormNovoResiduo — entradas inválidas', () => {
     it('aceita mistura em cautela, avisando', async () => {
       render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} />, { wrapper });
       await userEvent.click(screen.getByLabelText(/^1\./));
-      await userEvent.click(screen.getByLabelText(/^5\./));
       expect(await screen.findByText(/Cautela: 1\. Ácidos inorgânicos × 5\. Solventes/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Registrar resíduo/i })).toBeEnabled();
     });
