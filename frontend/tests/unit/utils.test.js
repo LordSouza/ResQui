@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira } from '../../src/utils';
+import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira, completarMeses } from '../../src/utils';
 
 // --- pgrsTs ---
 describe('pgrsTs', () => {
@@ -133,5 +133,26 @@ describe('dataBrasileira', () => {
   it('devolve travessão para valor ausente', () => {
     expect(dataBrasileira(null)).toBe('—');
     expect(dataBrasileira('')).toBe('—');
+  });
+});
+
+describe('completarMeses', () => {
+  const hoje = new Date(2026, 8, 27);
+
+  it('devolve os N meses até o atual, em ordem, zerando os que não vieram da API', () => {
+    const meses = completarMeses([
+      { mes: '2026-08', litros: 9, quilos: 2.5 },
+      { mes: '2026-09', litros: 270.5, quilos: 0.3 },
+    ], 7, hoje);
+
+    expect(meses.map(m => m.mes)).toEqual(['2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09']);
+    expect(meses[0]).toEqual({ mes: '2026-03', litros: 0, quilos: 0 });
+    expect(meses[5]).toEqual({ mes: '2026-08', litros: 9, quilos: 2.5 });
+  });
+
+  it('atravessa a virada do ano', () => {
+    const meses = completarMeses([], 3, new Date(2027, 0, 5));
+
+    expect(meses.map(m => m.mes)).toEqual(['2026-11', '2026-12', '2027-01']);
   });
 });

@@ -1,5 +1,5 @@
 import { Icon, Tag, SectionTitle, riscoBadge } from '../components';
-import { quantidadesResiduos, formatarQuantidade } from '../utils';
+import { quantidadesResiduos, formatarQuantidade, completarMeses } from '../utils';
 import { useReagentes } from '../reagentes/useReagentes';
 import { useResíduos } from '../residuos/useResíduos';
 import { useMtrs } from '../mtrs/useMtrs';
@@ -16,7 +16,7 @@ export function DashboardScreen({ state, dispatch }) {
   const { data: notifData = [] } = useNotificacoes();
   const { data: analytics } = useResiduosAnalytics({ meses: 6 });
   const { data: identificacao } = useIdentificacaoPgrs();
-  const geracaoMensal = analytics?.mensal ?? [];
+  const geracaoMensal = completarMeses(analytics?.mensal ?? [], 7);
   const geracaoPorLab = analytics?.porLab ?? [];
   const totalReagentes = totalData?.total;
   const expirando = expirData?.total;
@@ -105,20 +105,24 @@ export function DashboardScreen({ state, dispatch }) {
         <div className="col">
           {/* Geração de resíduos */}
           <div className="card">
-            <SectionTitle title="Geração de resíduos por mês" sub="líquidos (L) · sólidos (kg)" right={<Tag>últimos 7 meses</Tag>}/>
+            <SectionTitle title="Geração de resíduos por mês" sub="cada série na própria escala" right={<Tag>últimos 7 meses</Tag>}/>
             <div className="card-body">
+              <div className="spark-legenda">
+                <span><i className="b litros"/>Líquidos (L)</span>
+                <span><i className="b quilos"/>Sólidos (kg)</span>
+              </div>
               <div className="spark" style={{height: 100}}>
                 {geracaoMensal.map((m, i) => {
                   const maxLitros = Math.max(...geracaoMensal.map(x => x.litros), 1);
                   const maxQuilos = Math.max(...geracaoMensal.map(x => x.quilos), 1);
-                  const ultimo = i === geracaoMensal.length - 1;
+                  const atual = i === geracaoMensal.length - 1;
                   return (
                     <div key={m.mes} style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4}}>
                       <div style={{height: 56, width: '70%', display: 'flex', alignItems: 'flex-end', gap: 3}}>
-                        <div className={`b ${ultimo ? 'active' : ''}`} style={{height: `${(m.litros / maxLitros) * 100}%`, flex: 1}}/>
-                        <div className="b" style={{height: `${(m.quilos / maxQuilos) * 100}%`, flex: 1, opacity: 0.5}}/>
+                        <div className="b litros" style={{height: `${(m.litros / maxLitros) * 100}%`, flex: 1}}/>
+                        <div className="b quilos" style={{height: `${(m.quilos / maxQuilos) * 100}%`, flex: 1}}/>
                       </div>
-                      <div className="mono" style={{fontSize: 12, color: 'var(--text-3)'}}>{m.mes}</div>
+                      <div className="mono" style={{fontSize: 12, color: atual ? 'var(--text)' : 'var(--text-3)', fontWeight: atual ? 600 : 400}}>{m.mes}</div>
                       <div className="mono tnum" style={{fontSize: 11}}>{m.litros.toFixed(1)}L</div>
                       <div className="mono tnum" style={{fontSize: 11, color: 'var(--text-3)'}}>{m.quilos.toFixed(1)}kg</div>
                     </div>
