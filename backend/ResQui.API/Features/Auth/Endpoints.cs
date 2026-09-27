@@ -11,7 +11,7 @@ public static class Endpoints
     {
         group.MapPost("/login", async (LoginCmd cmd, IAuthService svc, HttpContext ctx) =>
         {
-            var result = await svc.LoginAsync(cmd, ctx.Request.Headers.UserAgent.ToString());
+            var result = await svc.LoginAsync(cmd, ctx.Request.Headers.UserAgent.ToString(), ctx.Connection.RemoteIpAddress?.ToString());
             if (result is null) return Results.Unauthorized();
             // 2FA habilitado e sem código: o cliente deve reenviar com Codigo2fa
             if (result.Requires2fa) return Results.Ok(new { requires2fa = true });

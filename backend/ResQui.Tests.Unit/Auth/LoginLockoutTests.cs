@@ -16,6 +16,7 @@ public class LoginLockoutTests
     private readonly ISessoesRepository _sessoes = Substitute.For<ISessoesRepository>();
     private readonly IEmailService _email = Substitute.For<IEmailService>();
     private readonly ILoginThrottle _throttle = Substitute.For<ILoginThrottle>();
+    private readonly IFalhasLoginPorIp _falhasPorIp = Substitute.For<IFalhasLoginPorIp>();
     private readonly JwtOptions _jwt = new()
     {
         Key = "secret-key-32-chars-long-enough!!",
@@ -27,7 +28,7 @@ public class LoginLockoutTests
 
     public LoginLockoutTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, Substitute.For<IUsuarioLaboratoriosRepository>(), Substitute.For<ILaboratoriosRepository>());
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, Substitute.For<IUsuarioLaboratoriosRepository>(), Substitute.For<ILaboratoriosRepository>(), _falhasPorIp);
         _throttle.TentarConsumir(Arg.Any<string>()).Returns(true);
     }
 
@@ -160,5 +161,84 @@ public class LoginLockoutTests
         await _repo.DidNotReceive().RegistrarFalhaLoginAsync(Arg.Any<string>());
         await _repo.DidNotReceive().ZerarFalhasLoginAsync(Arg.Any<string>());
         _throttle.DidNotReceive().Zerar(Arg.Any<string>());
+    }
+
+    private const string Ip = "203.0.113.7";
+
+    [Fact]
+    public async Task Login_IpBloqueado_RecusaSemConsultarUsuario()
+    {
+        _falhasPorIp.EstaBloqueado(Ip).Returns(true);
+
+        var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "qualquer", null), ip: Ip);
+
+        (await act.Should().ThrowAsync<ValidationException>()).WithMessage("*desta rede*");
+        await _repo.DidNotReceive().FindByEmailAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Login_EmailInexistente_ContaFalhaDoIp()
+    {
+        _repo.FindByEmailAsync("fantasma@lab.com").Returns((UsuarioInfo?)null);
+
+        await _sut.LoginAsync(new LoginCmd("fantasma@lab.com", "qualquer", null), ip: Ip);
+
+        _falhasPorIp.Received(1).RegistrarFalha(Ip);
+    }
+
+    [Fact]
+    public async Task Login_SenhaErrada_ContaFalhaDoIp()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(User());
+        _repo.CheckPasswordAsync("user-1", "errada").Returns(false);
+
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada", null), ip: Ip);
+
+        _falhasPorIp.Received(1).RegistrarFalha(Ip);
+    }
+
+    [Fact]
+    public async Task Login_CodigoDoisFatoresInvalido_ContaFalhaDoIp()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(User(doisFatores: true));
+        _repo.CheckPasswordAsync("user-1", "certa").Returns(true);
+
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "certa", "000000"), ip: Ip);
+
+        _falhasPorIp.Received(1).RegistrarFalha(Ip);
+    }
+
+    [Fact]
+    public async Task Login_PrimeiraEtapaDoDoisFatores_NaoContaFalhaDoIp()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(User(doisFatores: true));
+        _repo.CheckPasswordAsync("user-1", "certa").Returns(true);
+
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "certa", null), ip: Ip);
+
+        _falhasPorIp.DidNotReceive().RegistrarFalha(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Login_FalhaQueAtingeOTetoDoIp_AuditaComoHigh()
+    {
+        _repo.FindByEmailAsync("fantasma@lab.com").Returns((UsuarioInfo?)null);
+        _falhasPorIp.RegistrarFalha(Ip).Returns(true);
+
+        await _sut.LoginAsync(new LoginCmd("fantasma@lab.com", "qualquer", null), ip: Ip);
+
+        await _audit.Received(1).RegistrarAsync("fantasma@lab.com", "auth.ip-bloqueado", "Auth",
+            Arg.Is<string>(d => d.Contains(Ip)), RiscoAuditoria.High);
+    }
+
+    [Fact]
+    public async Task Login_SemIp_NaoConsultaNemContaPorIp()
+    {
+        _repo.FindByEmailAsync("fantasma@lab.com").Returns((UsuarioInfo?)null);
+
+        await _sut.LoginAsync(new LoginCmd("fantasma@lab.com", "qualquer", null));
+
+        _falhasPorIp.DidNotReceive().EstaBloqueado(Arg.Any<string>());
+        _falhasPorIp.DidNotReceive().RegistrarFalha(Arg.Any<string>());
     }
 }

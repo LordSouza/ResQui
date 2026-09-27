@@ -1,4 +1,6 @@
+using System.Net;
 using System.Text;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -74,6 +76,16 @@ builder.Services.AddHttpClient<IAssistenteProvider, DeepSeekProvider>(http =>
 });
 // Singleton: o estado do throttle vive em memória e precisa sobreviver entre requisições.
 builder.Services.AddSingleton<ILoginThrottle, LoginThrottle>();
+builder.Services.AddSingleton<IFalhasLoginPorIp, FalhasLoginPorIp>();
+builder.Services.Configure<ForwardedHeadersOptions>(opcoes =>
+{
+    opcoes.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+    opcoes.ForwardLimit = 2;
+    opcoes.KnownProxies.Clear();
+    opcoes.KnownIPNetworks.Clear();
+    foreach (var proxy in builder.Configuration.GetSection("Proxy:Confiaveis").Get<string[]>() ?? [])
+        opcoes.KnownProxies.Add(IPAddress.Parse(proxy));
+});
 builder.Services.AddSingleton<ResQui.Application.Pdf.IPdfService, ResQui.Application.Pdf.PdfService>();
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -139,6 +151,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<NotificacoesJob>();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 app.Use(async (ctx, next) =>
 {
