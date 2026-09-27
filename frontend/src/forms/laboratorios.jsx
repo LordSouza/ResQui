@@ -4,43 +4,37 @@ import Modal from './Modal';
 import { useCriarLaboratorio } from '../laboratorios/useCriarLaboratorio';
 import { useAtualizarLaboratorio } from '../laboratorios/useAtualizarLaboratorio';
 import { useDeletarLaboratorio } from '../laboratorios/useDeletarLaboratorio';
+import { useLaboratorios } from '../laboratorios/useLaboratorios';
 import { useAuth } from '../auth/AuthContext';
 
 const CORES = [['#1465c0', 'Azul'], ['#0d4a8c', 'Azul-escuro'], ['#1f7a3e', 'Verde'], ['#b76e00', 'Âmbar'], ['#5b3c8c', 'Roxo'], ['#b3261e', 'Vermelho']];
 
 export function FormNovoLab({ onClose, dispatch }) {
-  const [f, setF] = useState({
-    nome: '', responsavel: '', email: '',
-    bloco: 'Bloco IMC', andar: '2º andar', sala: '',
-    capacidade: 30, area_m2: 50,
-    ventilacao: 'capela + exaustão',
-    armarios: 'Armário Principal',
-    areas: '',
-    cor: '#1465c0',
-  });
+  const [f, setF] = useState({ nome: '', sala: '', armarios: '' });
   const [erro, setErro] = useState('');
   const mutation = useCriarLaboratorio();
+  const { data: labs = [] } = useLaboratorios();
   const { user, updateUser } = useAuth();
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
     if (!f.nome.trim() || !f.sala.trim()) {
-      setErro('Nome e número da sala são obrigatórios.');
+      setErro('Nome e localização são obrigatórios.');
       return;
     }
     setErro('');
     mutation.mutate(
       {
         Nome: f.nome.trim(),
-        Responsavel: f.responsavel.trim(),
-        Email: f.email.trim() || null,
-        Areas: f.areas.split(',').flatMap(s => s.trim() ? [s.trim()] : []),
-        Sala: `${f.bloco} · ${f.andar} · Sala ${f.sala.trim()}`,
+        Responsavel: user?.nome || user?.email || '',
+        Email: null,
+        Areas: [],
+        Sala: f.sala.trim(),
         Armarios: f.armarios.split(',').flatMap(s => s.trim() ? [s.trim()] : []),
-        Capacidade: Number(f.capacidade) || 0,
-        AreaM2: Number(f.area_m2) || 0,
-        Ventilacao: f.ventilacao,
-        Cor: f.cor,
+        Capacidade: 0,
+        AreaM2: 0,
+        Ventilacao: '',
+        Cor: corMenosUsada(labs),
       },
       {
         onSuccess: (lab) => {
@@ -55,8 +49,8 @@ export function FormNovoLab({ onClose, dispatch }) {
   };
 
   return (
-    <Modal title="Novo laboratório" sub="Cadastro de unidade física"
-      onClose={onClose} width={620}
+    <Modal title="Novo laboratório" sub="Os demais dados ficam no “Editar laboratório”"
+      onClose={onClose} width={520}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
         <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={mutation.isPending}>
@@ -65,60 +59,14 @@ export function FormNovoLab({ onClose, dispatch }) {
       </>}>
       {erro && <div className="login-err" style={{ marginBottom: 12 }}>{erro}</div>}
       {mutation.isError && <div className="login-err" style={{ marginBottom: 12 }}>{mutation.error.message}</div>}
-      <div className="form-row">
+      <div className="form-row full">
         <div className="field"><label htmlFor="lab-nome">Nome / área de atuação *</label>
           <input id="lab-nome" value={f.nome} onChange={e => upd('nome', e.target.value)} placeholder="ex: Química Analítica" />
         </div>
-        <div className="field"><label htmlFor="lab-responsavel">Responsável</label>
-          <input id="lab-responsavel" value={f.responsavel} onChange={e => upd('responsavel', e.target.value)} placeholder="Profa. Ana Lima" />
-        </div>
       </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor="lab-email">E-mail do responsável</label>
-          <input id="lab-email" type="email" value={f.email} onChange={e => upd('email', e.target.value)} placeholder="ana.lima@instituto.example" />
-        </div>
-        <div className="field"><label htmlFor="lab-cor">Cor identificadora</label>
-          <div id="lab-cor" className="lab-cor-swatches">
-            {CORES.map(([c, nomeCor]) => (
-              <button type="button" key={c} aria-label={`Cor ${nomeCor}`} onClick={() => upd('cor', c)}
-                style={{ width: 26, height: 26, borderRadius: 6, background: c, cursor: 'pointer', padding: 0,
-                  border: f.cor === c ? '2px solid var(--text)' : '1px solid var(--border)' }} />
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor="lab-bloco">Bloco</label>
-          <select id="lab-bloco" value={f.bloco} onChange={e => upd('bloco', e.target.value)}>
-            <option>Bloco IMC</option><option>Bloco IRN</option><option>Bloco ICE</option>
-          </select>
-        </div>
-        <div className="field"><label htmlFor="lab-andar">Andar</label>
-          <select id="lab-andar" value={f.andar} onChange={e => upd('andar', e.target.value)}>
-            <option>Térreo</option><option>1º andar</option><option>2º andar</option><option>3º andar</option>
-          </select>
-        </div>
-      </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor="lab-sala">Nº da sala *</label>
-          <input id="lab-sala" value={f.sala} onChange={e => upd('sala', e.target.value)} placeholder="213" />
-        </div>
-        <div className="field"><label htmlFor="lab-ventilacao">Ventilação</label>
-          <select id="lab-ventilacao" value={f.ventilacao} onChange={e => upd('ventilacao', e.target.value)}>
-            <option>capela + exaustão</option>
-            <option>capela compartilhada</option>
-            <option>capela individual por bancada</option>
-            <option>ventilação natural + exaustor</option>
-            <option>sala selada + filtro HEPA</option>
-          </select>
-        </div>
-      </div>
-      <div className="form-row">
-        <div className="field"><label htmlFor="lab-area">Área (m²)</label>
-          <input id="lab-area" type="number" value={f.area_m2} onChange={e => upd('area_m2', e.target.value)} />
-        </div>
-        <div className="field"><label htmlFor="lab-capacidade">Capacidade (alunos)</label>
-          <input id="lab-capacidade" type="number" value={f.capacidade} onChange={e => upd('capacidade', e.target.value)} />
+      <div className="form-row full">
+        <div className="field"><label htmlFor="lab-sala">Localização *</label>
+          <input id="lab-sala" value={f.sala} onChange={e => upd('sala', e.target.value)} placeholder="ex: Bloco IMC · Sala 213" />
         </div>
       </div>
       <div className="form-row full">
@@ -126,13 +74,14 @@ export function FormNovoLab({ onClose, dispatch }) {
           <input id="lab-armarios" value={f.armarios} onChange={e => upd('armarios', e.target.value)} placeholder="Armário A, Armário B" />
         </div>
       </div>
-      <div className="form-row full">
-        <div className="field"><label htmlFor="lab-areas">Áreas de armazenamento (separadas por vírgula)</label>
-          <input id="lab-areas" value={f.areas} onChange={e => upd('areas', e.target.value)} placeholder="Inflamáveis, Oxidantes, Corrosivos" />
-        </div>
-      </div>
     </Modal>
   );
+}
+
+function corMenosUsada(labs) {
+  const usos = new Map(CORES.map(([cor]) => [cor, 0]));
+  labs.forEach(lab => { if (usos.has(lab.cor)) usos.set(lab.cor, usos.get(lab.cor) + 1); });
+  return CORES.reduce((menos, [cor]) => (usos.get(cor) < usos.get(menos) ? cor : menos), CORES[0][0]);
 }
 
 export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
@@ -224,6 +173,7 @@ export function FormEditarLaboratorio({ lab, onClose, dispatch }) {
       <div className="form-row">
         <div className="field"><label htmlFor="edit-lab-ventilacao">Ventilação</label>
           <select id="edit-lab-ventilacao" value={f.ventilacao} onChange={e => upd('ventilacao', e.target.value)}>
+            <option value="">Não informada</option>
             <option>capela + exaustão</option>
             <option>capela compartilhada</option>
             <option>capela individual por bancada</option>

@@ -20,7 +20,28 @@ function contexto(user) {
   };
 }
 
-const wrapper = contexto({ id: 'u-1', papel: 'Professor', laboratorioIds: ['Lab-001'] });
+const wrapper = contexto({ id: 'u-1', nome: 'Profa. Ana Lima', email: 'ana@x', papel: 'Professor', laboratorioIds: ['Lab-001'] });
+
+const LABS_EXISTENTES = [
+  { id: 'Lab-001', cor: '#1465c0', armarios: [], areas: [] },
+  { id: 'Lab-002', cor: '#0d4a8c', armarios: [], areas: [] },
+];
+
+function rotear(respostaDoPost) {
+  return vi.fn(async (url, opts = {}) => {
+    if ((opts.method ?? 'GET') === 'GET') return { ok: true, status: 200, json: async () => LABS_EXISTENTES };
+    return respostaDoPost;
+  });
+}
+
+function posts(mockFetch) {
+  return mockFetch.mock.calls.filter(([, opts = {}]) => opts.method === 'POST');
+}
+
+async function preencherEssencial() {
+  await userEvent.type(screen.getByLabelText(/Nome \/ área de atuação/i), 'Lab X');
+  await userEvent.type(screen.getByLabelText(/Localização/i), 'Bloco IMC · Sala 12');
+}
 
 describe('FormNovoLab — entradas inválidas', () => {
   let onClose, dispatch, mockFetch;
@@ -37,40 +58,66 @@ describe('FormNovoLab — entradas inválidas', () => {
       clear() { this.data = {}; },
     });
     updateUser = vi.fn();
-    mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
+    mockFetch = rotear({ ok: true, status: 201, json: async () => ({ id: 'Lab-009', nome: 'Lab X' }) });
     vi.stubGlobal('fetch', mockFetch);
   });
 
   afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-  it('bloqueia cadastro sem nome e sala', async () => {
+  it('bloqueia cadastro sem nome e localização', async () => {
     render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Cadastrar laboratório/i }));
-    expect(await screen.findByText('Nome e número da sala são obrigatórios.')).toBeInTheDocument();
+    expect(await screen.findByText('Nome e localização são obrigatórios.')).toBeInTheDocument();
     expect(window.alert).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(posts(mockFetch)).toHaveLength(0);
+  });
+
+  it('pede só nome, localização e armários', () => {
+    render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
+    expect(screen.getAllByRole('textbox').map(campo => campo.id)).toEqual(['lab-nome', 'lab-sala', 'lab-armarios']);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it('envia o criador como responsável, a cor ainda não usada e o restante em branco', async () => {
+    render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/laboratorios'), expect.anything()));
+    await preencherEssencial();
+    await userEvent.type(screen.getByLabelText(/Armários/i), 'Armário A, Armário B');
+    await userEvent.click(screen.getByRole('button', { name: /Cadastrar laboratório/i }));
+
+    await waitFor(() => expect(posts(mockFetch)).toHaveLength(1));
+    expect(JSON.parse(posts(mockFetch)[0][1].body)).toEqual({
+      Nome: 'Lab X',
+      Responsavel: 'Profa. Ana Lima',
+      Email: null,
+      Areas: [],
+      Sala: 'Bloco IMC · Sala 12',
+      Armarios: ['Armário A', 'Armário B'],
+      Capacidade: 0,
+      AreaM2: 0,
+      Ventilacao: '',
+      Cor: '#1f7a3e',
+    });
   });
 
   it('exibe mensagem de erro do servidor (400 de validação)', async () => {
-    mockFetch.mockResolvedValue({
+    mockFetch = rotear({
       ok: false,
       status: 400,
-      text: async () => JSON.stringify({ message: 'Capacidade não pode ser negativa.' }),
+      text: async () => JSON.stringify({ message: 'Nome obrigatório.' }),
     });
+    vi.stubGlobal('fetch', mockFetch);
     render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
-    await userEvent.type(screen.getByLabelText(/Nome \/ área de atuação/i), 'Lab X');
-    await userEvent.type(screen.getByLabelText(/Nº da sala/i), '12');
+    await preencherEssencial();
     await userEvent.click(screen.getByRole('button', { name: /Cadastrar laboratório/i }));
-    expect(await screen.findByText('Capacidade não pode ser negativa.')).toBeInTheDocument();
+    expect(await screen.findByText('Nome obrigatório.')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
 
   it('passa a responder pelo laboratório que acabou de criar, sem recarregar', async () => {
-    mockFetch.mockResolvedValue({ ok: true, status: 201, json: async () => ({ id: 'Lab-009', nome: 'Lab X' }) });
     render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, { wrapper });
 
-    await userEvent.type(screen.getByLabelText(/Nome \/ área de atuação/i), 'Lab X');
-    await userEvent.type(screen.getByLabelText(/Nº da sala/i), '12');
+    await preencherEssencial();
     await userEvent.click(screen.getByRole('button', { name: /Cadastrar laboratório/i }));
 
     await waitFor(() => expect(updateUser).toHaveBeenCalled());
@@ -78,13 +125,11 @@ describe('FormNovoLab — entradas inválidas', () => {
   });
 
   it('Admin não ganha vínculo — ele já atravessa o escopo', async () => {
-    mockFetch.mockResolvedValue({ ok: true, status: 201, json: async () => ({ id: 'Lab-009', nome: 'Lab X' }) });
     render(<FormNovoLab onClose={onClose} dispatch={dispatch} />, {
       wrapper: contexto({ id: 'adm', papel: 'Admin' }),
     });
 
-    await userEvent.type(screen.getByLabelText(/Nome \/ área de atuação/i), 'Lab X');
-    await userEvent.type(screen.getByLabelText(/Nº da sala/i), '12');
+    await preencherEssencial();
     await userEvent.click(screen.getByRole('button', { name: /Cadastrar laboratório/i }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());

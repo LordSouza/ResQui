@@ -39,19 +39,23 @@ function LabCard({ lab, onRemove, onEdit, dispatch, flash, podeEditar, podeRemov
             <div className="lab-stat-val tnum">{lab.armarios.length}</div>
             <div className="lab-stat-lbl">armários</div>
           </div>
-          <div className="lab-stat">
-            <div className="lab-stat-val tnum">{lab.area_m2}<span className="unit">m²</span></div>
-            <div className="lab-stat-lbl">área</div>
-          </div>
-          <div className="lab-stat">
-            <div className="lab-stat-val tnum">{lab.capacidade}</div>
-            <div className="lab-stat-lbl">cap. alunos</div>
-          </div>
+          {lab.area_m2 > 0 && (
+            <div className="lab-stat">
+              <div className="lab-stat-val tnum">{lab.area_m2}<span className="unit">m²</span></div>
+              <div className="lab-stat-lbl">área</div>
+            </div>
+          )}
+          {lab.capacidade > 0 && (
+            <div className="lab-stat">
+              <div className="lab-stat-val tnum">{lab.capacidade}</div>
+              <div className="lab-stat-lbl">cap. alunos</div>
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-          <Tag>resp. {lab.responsavel.split(' ').slice(-2).join(' ')}</Tag>
-          <Tag>{lab.ventilacao}</Tag>
+          {lab.responsavel && <Tag>resp. {lab.responsavel.split(' ').slice(-2).join(' ')}</Tag>}
+          {lab.ventilacao && <Tag>{lab.ventilacao}</Tag>}
           {lab.armarios.map(a => <Tag key={a}>{a}</Tag>)}
         </div>
       </div>

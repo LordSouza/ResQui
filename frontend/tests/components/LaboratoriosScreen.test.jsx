@@ -60,6 +60,22 @@ describe('LaboratoriosScreen', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'openModal', kind: 'novoLab' });
   });
 
+  it('omite área, capacidade, responsável e ventilação de laboratório cadastrado só com o essencial', () => {
+    useLaboratorios.mockReturnValue({
+      ...mockReturn,
+      data: [{
+        id: 'Lab-003', nome: 'Lab Novo', responsavel: '', email: null, sala: 'Bloco IMC · Sala 12',
+        areas: [], armarios: ['Armário A'], capacidade: 0, area_m2: 0, ventilacao: '', cor: '#1465c0',
+        criado: '2026-09-27',
+      }],
+    });
+    render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
+    expect(screen.queryByText('área')).not.toBeInTheDocument();
+    expect(screen.queryByText('cap. alunos')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^resp\./)).not.toBeInTheDocument();
+    expect(screen.getByText('armários')).toBeInTheDocument();
+  });
+
   it('exibe estado de loading quando isPending=true', () => {
     useLaboratorios.mockReturnValue({ data: [], isPending: true, isError: false, refetch: vi.fn() });
     render(<LaboratoriosScreen state={initialState} dispatch={vi.fn()} />);
