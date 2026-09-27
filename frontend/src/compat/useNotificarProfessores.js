@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../lib/api';
 
-export function useNotificarResponsaveis() {
+export function useNotificarProfessores() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (cmd) => {

@@ -49,7 +49,7 @@ import { useQrRotulo } from '../../src/reagentes/useQrRotulo';
 // r é classe 1; x (mesmo armário) é classe 3 — nível 3 (Proibido) na matriz mockada.
 const reagente = {
   id: 'R-00001', nome: 'Acetona', cas: '67-64-1', formula: 'C3H6O', sinonimo: 'Propanona',
-  classe: 1, local: 'Lab A · Armário 1', responsavel: 'Fulano', estoque: 10, unidade: 'L',
+  classe: 1, local: 'Lab A · Armário 1', estoque: 10, unidade: 'L',
   estoque_min: 5, validade: '2027-01-01', validade_status: 'ok', lote: 'L-1', controlado: false,
   pictos: [], signal: 'Perigo', h: [], p: [], abertura: '2026-01-01',
 };
@@ -158,13 +158,13 @@ describe('DetalheScreen — rótulo GHS espelha o PDF', () => {
     render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={vi.fn()} />);
   };
 
-  it('traz os campos do PDF: classe, datas em dd/MM/yyyy e responsável completo', () => {
-    renderRotulo({ responsavel: 'Ana Maria de Souza' });
+  it('traz os campos do PDF: classe, datas em dd/MM/yyyy e sem responsável', () => {
+    renderRotulo();
     const texto = rotulo().textContent;
     expect(texto).toContain('Classe de reatividade: 1');
     expect(texto).toContain('Validade: 01/01/2027');
     expect(texto).toContain('Aberto em: 01/01/2026');
-    expect(texto).toContain('Responsável: Ana Maria de Souza');
+    expect(texto).not.toContain('Responsável');
     expect(texto).toContain('Lote: L-1');
     expect(texto).toContain('PERIGO');
   });

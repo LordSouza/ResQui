@@ -76,9 +76,9 @@ public class RelatoriosService(
     {
         var reagentes = (await reagentesRepo.GetAllAsync()).OrderBy(r => r.Nome).ToList();
         var sb = new StringBuilder();
-        sb.AppendLine("Id,Nome,Local,Responsavel,Estoque,EstoqueMin,Validade,Classe,Status");
+        sb.AppendLine("Id,Nome,Local,Estoque,EstoqueMin,Validade,Classe,Status");
         foreach (var r in reagentes)
-            sb.AppendLine($"{r.Id},{Esc(r.Nome)},{Esc(r.Local)},{Esc(r.Responsavel)}," +
+            sb.AppendLine($"{r.Id},{Esc(r.Nome)},{Esc(r.Local)}," +
                           $"{r.Estoque.ToString("F3", CultureInfo.InvariantCulture)}," +
                           $"{r.EstoqueMin?.ToString("F3", CultureInfo.InvariantCulture)}," +
                           $"{r.Validade:yyyy-MM-dd},{r.ClasseReatividade},{r.ValidadeStatus}");

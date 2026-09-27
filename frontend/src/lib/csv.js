@@ -37,7 +37,6 @@ export const CAMPOS_IMPORT = [
   { campo: 'Local', aliases: ['local', 'localizacao', 'localização'], obrigatorio: true },
   { campo: 'Formula', aliases: ['formula', 'fórmula'], obrigatorio: false },
   { campo: 'Validade', aliases: ['validade'], obrigatorio: false },
-  { campo: 'Responsavel', aliases: ['responsavel', 'responsável'], obrigatorio: false },
   { campo: 'ClasseReatividade', aliases: ['classe', 'classereatividade', 'reatividade'], obrigatorio: true },
   { campo: 'Controlado', aliases: ['controlado'], obrigatorio: false },
   { campo: 'Sinonimo', aliases: ['sinonimo', 'sinônimo'], obrigatorio: false },
@@ -54,7 +53,7 @@ export function mapearColunas(headers) {
   return mapa;
 }
 
-export function analisarImportacao(headers, rows, { responsavelDefault = '' } = {}) {
+export function analisarImportacao(headers, rows) {
   const mapa = mapearColunas(headers);
   const hoje = new Date().toISOString().slice(0, 10);
   const get = (row, campo) => {
@@ -99,7 +98,6 @@ export function analisarImportacao(headers, rows, { responsavelDefault = '' } = 
       Unidade: unidade,
       Validade: validade || null,
       Local: local,
-      Responsavel: get(row, 'Responsavel') || responsavelDefault,
       Controlado: controlado,
       Lote: null,
       Ghs: null,

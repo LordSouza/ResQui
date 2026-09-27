@@ -46,7 +46,7 @@ export async function ensureReagente(request, auth, { nome, cas, classe = 1 }) {
     data: {
       Nome: nome, Cas: cas, Formula: '-', ClasseReatividade: classe,
       Estoque: 10, EstoqueMin: 1, Unidade: 'L',
-      Local: 'Armário A1', Responsavel: 'Playwright', Controlado: false,
+      Local: 'Armário A1', Controlado: false,
     },
   });
   return created.json();

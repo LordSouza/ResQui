@@ -29,7 +29,6 @@ public record ReagenteDetalheDto(
     string Validade,
     string ValidadeStatus,
     string Local,
-    string Responsavel,
     bool Controlado,
     string? Lote,
     string? AberturaData,
@@ -50,7 +49,6 @@ public record CriarReagenteCmd(
     string Unidade,
     string? Validade,
     string Local,
-    string Responsavel,
     bool Controlado,
     string? Lote,
     GhsDto? Ghs
@@ -61,7 +59,6 @@ public record AtualizarReagenteCmd(
     decimal Estoque,
     decimal? EstoqueMin,
     string Local,
-    string Responsavel,
     string? Validade
 );
 

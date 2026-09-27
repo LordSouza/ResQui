@@ -4,10 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FormImportarCSV } from '../../src/forms/reagentes';
 
-// AuthContext não é exportado; mockamos o hook useAuth diretamente.
-vi.mock('../../src/auth/AuthContext', () => ({
-  useAuth: () => ({ user: { nome: 'Ana Lima' }, token: 't' }),
-}));
 vi.mock('../../src/components/ToastContext', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
 
 const CSV = 'Nome,CAS,Quantidade,Unid.,Local,Classe\nEtanol,64-17-5,2.5,L,Lab-201,5\n,,,,,\n';
@@ -79,7 +75,8 @@ describe('FormImportarCSV', () => {
     expect(mockFetch.mock.calls[0][0]).toBe('/api/reagentes/importar-lote');
     const enviado = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(enviado).toHaveLength(1);
-    expect(enviado[0]).toMatchObject({ Nome: 'Etanol', Responsavel: 'Ana Lima' });
+    expect(enviado[0]).toMatchObject({ Nome: 'Etanol' });
+    expect(enviado[0]).not.toHaveProperty('Responsavel');
     await waitFor(() => expect(screen.getByText(/1 reagentes importados|1 importado/i)).toBeInTheDocument());
   });
 

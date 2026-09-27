@@ -162,7 +162,6 @@ export function ResumoSeguranca({ onClose, reagente }) {
 
           <BlocoResumo titulo="Armazenamento">
             <LinhaResumo label="Local" value={r.local}/>
-            <LinhaResumo label="Responsável" value={r.responsavel}/>
             <LinhaResumo label="Estoque atual" value={`${r.estoque} ${r.unidade}`}/>
             {r.estoque_min != null && <LinhaResumo label="Estoque mínimo" value={`${r.estoque_min} ${r.unidade}`}/>}
             <LinhaResumo label="Validade" value={`${r.validade}${r.validade_status ? ` (${VALIDADE_LABEL[r.validade_status] ?? r.validade_status})` : ''}`}/>

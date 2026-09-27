@@ -127,7 +127,6 @@ function RotuloGhs({ r }) {
         <div><span>CAS: {r.cas}</span><span>Fórmula: {r.formula}</span></div>
         <div><span>ID: {r.id}</span><span>Classe de reatividade: {r.classe}</span></div>
         <div><span>Validade: {dataBrasileira(r.validade)}</span><span>Local: {r.local}</span></div>
-        <div><span>Responsável: {r.responsavel}</span></div>
         {r.lote && <div><span>Lote: {r.lote}</span></div>}
         {r.abertura && <div><span>Aberto em: {dataBrasileira(r.abertura)}</span></div>}
       </div>
@@ -279,7 +278,6 @@ export function DetalheScreen({ state, dispatch }) {
             <div className="card-body">
               <div className="kv">
                 <div className="k">Local</div><div className="v">{r.local}</div>
-                <div className="k">Responsável</div><div className="v">{r.responsavel}</div>
                 <div className="k">Estoque atual</div>
                 <div className="v" style={{display:'flex', flexWrap:'wrap', alignItems:'center', gap:6}}>
                   <span className="mono tnum" style={{fontSize: 16, fontWeight: 600}}>{r.estoque?.toFixed(2)} {r.unidade}</span>

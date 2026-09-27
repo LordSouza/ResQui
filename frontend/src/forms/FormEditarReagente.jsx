@@ -2,7 +2,6 @@ import { useState } from 'react';
 import Modal from './Modal';
 import { useAtualizarReagente } from '../reagentes/useAtualizarReagente';
 import { useLocais } from '../laboratorios/useLocais';
-import { useNomesUsuarios } from '../usuarios/useNomesUsuarios';
 
 export function FormEditarReagente({ reagente, onClose, dispatch }) {
   const [f, setF] = useState({
@@ -10,16 +9,12 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
     Estoque: reagente.estoque,
     EstoqueMin: reagente.estoque_min ?? '',
     Local: reagente.local,
-    Responsavel: reagente.responsavel,
     Validade: reagente.validade ?? '',
   });
   const mutation = useAtualizarReagente();
   const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
-  const { data: responsaveis = [], isPending: usuariosPending, isError: usuariosError } = useNomesUsuarios();
-  const respNomes = responsaveis.map(u => u.nome);
   // preserva valor legado (fora da lista derivada) como opção selecionável
   const localOptions = f.Local && !locais.includes(f.Local) ? [f.Local, ...locais] : locais;
-  const respOptions = f.Responsavel && !respNomes.includes(f.Responsavel) ? [f.Responsavel, ...respNomes] : respNomes;
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
@@ -31,7 +26,6 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
         Estoque: Number(f.Estoque) || 0,
         EstoqueMin: f.EstoqueMin !== '' ? Number(f.EstoqueMin) : null,
         Local: f.Local,
-        Responsavel: f.Responsavel,
         Validade: f.Validade || null,
       },
       {
@@ -85,15 +79,6 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
             {localOptions.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
-        <div className="field">
-          <label htmlFor="edit-responsavel">Responsável</label>
-          <select id="edit-responsavel" aria-label="Responsável pelo reagente" value={f.Responsavel} onChange={e => upd('Responsavel', e.target.value)} disabled={usuariosPending}>
-            <option value="">{usuariosPending ? 'Carregando…' : usuariosError ? 'Erro ao carregar' : 'Selecione…'}</option>
-            {respOptions.map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </div>
-      </div>
-      <div className="form-row">
         <div className="field">
           <label htmlFor="edit-validade">Validade</label>
           <input id="edit-validade" aria-label="Data de validade" type="date" value={f.Validade} onChange={e => upd('Validade', e.target.value)}/>

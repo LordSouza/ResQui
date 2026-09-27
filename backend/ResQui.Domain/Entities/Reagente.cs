@@ -13,7 +13,6 @@ public class Reagente
     public string Unidade { get; set; } = "";
     public DateOnly Validade { get; set; }
     public string Local { get; set; } = "";
-    public string Responsavel { get; set; } = "";
     public bool Controlado { get; set; }
     public string? Lote { get; set; }
     public DateOnly? AberturaData { get; set; }

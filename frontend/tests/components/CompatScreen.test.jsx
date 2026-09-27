@@ -7,7 +7,7 @@ import { initialState } from '../../src/store/reducer';
 vi.mock('../../src/components/ToastContext', () => ({ useToast: vi.fn() }));
 vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../../src/compat/useRegistrarParecer', () => ({ useRegistrarParecer: vi.fn() }));
-vi.mock('../../src/compat/useNotificarResponsaveis', () => ({ useNotificarResponsaveis: vi.fn() }));
+vi.mock('../../src/compat/useNotificarProfessores', () => ({ useNotificarProfessores: vi.fn() }));
 
 vi.mock('../../src/compat/useCompatMatriz', () => ({
   useCompatMatriz: vi.fn(),
@@ -30,7 +30,7 @@ import { exportCsv } from '../../src/utils';
 import { useToast } from '../../src/components/ToastContext';
 import { useAuth } from '../../src/auth/AuthContext';
 import { useRegistrarParecer } from '../../src/compat/useRegistrarParecer';
-import { useNotificarResponsaveis } from '../../src/compat/useNotificarResponsaveis';
+import { useNotificarProfessores } from '../../src/compat/useNotificarProfessores';
 import { useCompatMatriz } from '../../src/compat/useCompatMatriz';
 import { useCompatOverrides } from '../../src/compat/useCompatOverrides';
 import { useReagentes } from '../../src/reagentes/useReagentes';
@@ -52,8 +52,8 @@ beforeEach(() => {
   useToast.mockReturnValue({ addToast });
   useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
   useRegistrarParecer.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false });
-  useNotificarResponsaveis.mockReturnValue({
-    mutateAsync: vi.fn().mockResolvedValue({ notificados: [{ usuarioId: 'u-2', nome: 'Ana Souza' }], naoResolvidos: [] }),
+  useNotificarProfessores.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue({ notificados: [{ usuarioId: 'u-2', nome: 'Ana Souza' }] }),
     isPending: false,
   });
   useCompatMatriz.mockReturnValue({ data: { matrix: baseMatrix, fonte: baseFonte }, isPending: false, isError: false });
@@ -71,8 +71,8 @@ function comParSelecionado() {
   });
   useReagente.mockImplementation((id) => ({
     data: id === 'R-1'
-      ? { id: 'R-1', nome: 'Metanol', classe: 1, responsavel: 'Ana Souza', pictos: [], h: [] }
-      : { id: 'R-2', nome: 'Ácido', classe: 3, responsavel: 'Bruno Lima', pictos: [], h: [] },
+      ? { id: 'R-1', nome: 'Metanol', classe: 1, pictos: [], h: [] }
+      : { id: 'R-2', nome: 'Ácido', classe: 3, pictos: [], h: [] },
   }));
 }
 
@@ -161,7 +161,7 @@ describe('CompatScreen — ações reais', () => {
 
   it('lista quem foi notificado', async () => {
     render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: /Notificar responsáveis/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Notificar professores/i }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalled());
     expect(addToast.mock.calls[0][0]).toMatch(/Ana Souza/);
@@ -169,20 +169,19 @@ describe('CompatScreen — ações reais', () => {
   });
 
   it('não anuncia sucesso quando ninguém foi notificado', async () => {
-    useNotificarResponsaveis.mockReturnValue({
+    useNotificarProfessores.mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue({
         notificados: [],
-        naoResolvidos: [{ responsavel: 'Ana Souza', motivo: 'não corresponde a nenhum usuário ativo' }],
       }),
       isPending: false,
     });
 
     render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: /Notificar responsáveis/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Notificar professores/i }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalled());
     expect(addToast.mock.calls[0][1]).toBe('error');
-    expect(addToast.mock.calls[0][0]).toMatch(/Ana Souza/);
+    expect(addToast.mock.calls[0][0]).toMatch(/Professor ativo/);
   });
 
   // "Editar regras" salva overrides (PUT/DELETE /api/compat/overrides), que exigem Cadastro —

@@ -32,7 +32,7 @@ describe('useAtualizarReagente', () => {
     });
 
     const { result } = renderHook(() => useAtualizarReagente(), { wrapper });
-    const payload = { id: 'R-001', Nome: 'Atualizado', Estoque: 2.5, Local: 'Lab-201', Responsavel: 'Prof X', Validade: '2028-01-01' };
+    const payload = { id: 'R-001', Nome: 'Atualizado', Estoque: 2.5, Local: 'Lab-201', Validade: '2028-01-01' };
 
     act(() => result.current.mutate(payload));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

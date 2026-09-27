@@ -16,7 +16,6 @@ const REAGENTE = {
   validade: '2027-03-01',
   validade_status: 'ok',
   local: 'Lab A · Armário 2',
-  responsavel: 'Ana Lima',
   controlado: true,
   lote: 'L-22',
   abertura: '2026-01-10',
@@ -86,7 +85,7 @@ describe('ResumoSeguranca', () => {
     expect(screen.getAllByText('7647-01-0').length).toBeGreaterThan(0);
     expect(screen.getByText('HCl')).toBeInTheDocument();
     expect(screen.getByText('Lab A · Armário 2')).toBeInTheDocument();
-    expect(screen.getByText('Ana Lima')).toBeInTheDocument();
+    expect(screen.queryByText('Responsável')).toBeNull();
     expect(screen.getByText('L-22')).toBeInTheDocument();
   });
 

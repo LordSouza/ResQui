@@ -23,7 +23,6 @@ public class RotuloReagenteTests
         ClasseReatividade = 1,
         Validade = new DateOnly(2027, 1, 1),
         Local = "Lab-001",
-        Responsavel = "Ana Lima",
         Ghs = new ReagenteGhs { Pictos = pictos.ToList(), Signal = "Perigo", FrasesH = ["H225"], FrasesP = ["P210"] },
     };
 
