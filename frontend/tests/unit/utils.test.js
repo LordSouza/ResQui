@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento } from '../../src/utils';
+import { pgrsTs, exportCsv, quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira } from '../../src/utils';
 
 // --- pgrsTs ---
 describe('pgrsTs', () => {
@@ -121,5 +121,17 @@ describe('decimalDocumento', () => {
   it('fixa as casas com vírgula decimal e sem separador de milhar', () => {
     expect(decimalDocumento(4, 2)).toBe('4,00');
     expect(decimalDocumento(1234.5, 2)).toBe('1234,50');
+  });
+});
+
+describe('dataBrasileira', () => {
+  it('converte yyyy-MM-dd em dd/MM/yyyy sem passar por Date, então sem deslocamento de fuso', () => {
+    expect(dataBrasileira('2026-08-01')).toBe('01/08/2026');
+    expect(dataBrasileira('2026-07-24T00:00:00Z')).toBe('24/07/2026');
+  });
+
+  it('devolve travessão para valor ausente', () => {
+    expect(dataBrasileira(null)).toBe('—');
+    expect(dataBrasileira('')).toBe('—');
   });
 });

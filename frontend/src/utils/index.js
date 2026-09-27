@@ -33,6 +33,10 @@ export function quantidadesResiduos(residuos) {
   }, { litros: 0, quilos: 0 });
 }
 
+export function dataBrasileira(iso) {
+  return iso ? iso.slice(0, 10).split('-').reverse().join('/') : '—';
+}
+
 export function formatarQuantidade({ litros = 0, quilos = 0 } = {}, casas = 2) {
   const partes = [];
   if (litros > 0) partes.push(`${litros.toFixed(casas)} L`);

@@ -13,7 +13,7 @@ import { useSalvarConfigPgrs } from '../pgrs/useSalvarConfigPgrs';
 import { useConfirmarDestinacao } from '../mtrs/useConfirmarDestinacao';
 import { useReabrirDestinacao } from '../mtrs/useReabrirDestinacao';
 import { useRejeitarResiduo } from '../residuos/useRejeitarResiduo';
-import { quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento } from '../utils';
+import { quantidadesResiduos, formatarQuantidade, formatarQuantidadeDocumento, decimalDocumento, dataBrasileira } from '../utils';
 import { useVereditoMistura } from '../compat/useVereditoMistura';
 import { NIVEL_BLOQUEIO_MISTURA, ROTULO_NIVEL, piorNivelContra } from '../compat/avaliarMistura';
 
@@ -445,10 +445,6 @@ function RowMtr({ label, value, mono }) {
       <div style={{fontFamily: mono ? 'Courier, monospace' : 'inherit'}}>{value}</div>
     </div>
   );
-}
-
-function dataBrasileira(iso) {
-  return iso ? iso.slice(0, 10).split('-').reverse().join('/') : '—';
 }
 
 export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
