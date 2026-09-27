@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -49,6 +51,11 @@ if (jwtValidation.Failed)
     throw new InvalidOperationException($"Configuração JWT inválida: {jwtValidation.FailureMessage}");
 builder.Services.AddSingleton(jwtOpts);
 
+var assistenteOpts = builder.Configuration.GetSection("Assistente").Get<AssistenteOptions>() ?? new AssistenteOptions();
+var assistenteValidation = new AssistenteOptionsValidator().Validate(null, assistenteOpts);
+if (assistenteValidation.Failed)
+    throw new InvalidOperationException($"Configuração do assistente inválida: {assistenteValidation.FailureMessage}");
+
 // Application services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
@@ -74,6 +81,21 @@ builder.Services.AddHttpClient<IAssistenteProvider, DeepSeekProvider>(http =>
 });
 // Singleton: o estado do throttle vive em memória e precisa sobreviver entre requisições.
 builder.Services.AddSingleton<ILoginThrottle, LoginThrottle>();
+builder.Services.AddRateLimiter(opcoes =>
+{
+    var maxMensagens = builder.Configuration.GetValue("Assistente:Limite:MaxMensagens", 20);
+    var janela = TimeSpan.FromMinutes(builder.Configuration.GetValue("Assistente:Limite:JanelaMinutos", 10));
+    opcoes.AddPolicy(ResQui.API.Features.Assistente.Endpoints.PoliticaLimite, ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = maxMensagens, Window = janela, QueueLimit = 0 }));
+    opcoes.OnRejected = async (ctx, ct) =>
+    {
+        ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await ctx.HttpContext.Response.WriteAsJsonAsync(
+            new { message = $"Limite de {maxMensagens} mensagens a cada {janela.TotalMinutes:0} minutos atingido. Aguarde um pouco para continuar." }, ct);
+    };
+});
 builder.Services.AddSingleton<ResQui.Application.Pdf.IPdfService, ResQui.Application.Pdf.PdfService>();
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -197,6 +219,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // Endpoints
 app.MapGroup("/api/auth").MapAuthEndpoints();
