@@ -111,6 +111,12 @@ describe('FormNovoResiduo — entradas inválidas', () => {
     expect(unidade).toHaveValue('g');
   });
 
+  it('classes recebidas no preenchimento inicial substituem a do tipo', () => {
+    render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} inicial={{ classes: [11] }} />, { wrapper });
+    expect(screen.getByLabelText(/^11\./)).toBeChecked();
+    expect(screen.getByLabelText(/^5\./)).not.toBeChecked();
+  });
+
   it('unidade vinda do assistente não é trocada pelo tipo', async () => {
     render(<FormNovoResiduo onClose={onClose} dispatch={dispatch} inicial={{ tipo: 'Oxidantes', unidade: 'mL' }} />, { wrapper });
     const unidade = screen.getByLabelText('Unidade de volume');

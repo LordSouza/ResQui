@@ -127,6 +127,7 @@ describe('DetalheScreen — permissões', () => {
     renderCom('Professor');
     expect(screen.getByRole('button', { name: /Baixar consumo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Transferir/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Descartar como resíduo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Novo lote/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Baixa$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Editar$/i })).toBeInTheDocument();
@@ -139,9 +140,21 @@ describe('DetalheScreen — permissões', () => {
     expect(screen.getByRole('button', { name: /Baixar consumo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Transferir/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Baixa$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Descartar como resíduo/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Novo lote/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Editar$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Excluir/i })).not.toBeInTheDocument();
+  });
+
+  it('descartar como resíduo abre o registro com classe, tipo, unidade e composição do reagente', () => {
+    const dispatch = vi.fn();
+    useAuth.mockReturnValue({ user: { papel: 'Aluno' } });
+    render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole('button', { name: /Descartar como resíduo/i }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'openModal', kind: 'novoResiduo',
+      residuoInicial: { tipo: 'Ácidos inorgânicos', unidade: 'L', composicao: 'Acetona (CAS 67-64-1)', classes: [1] },
+    });
   });
 
   it('mantém leitura para todos: rótulo PDF e resumo de segurança', () => {

@@ -144,7 +144,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
     tipo: tipoInicial,
     volume: inicial?.volume ?? '', unidade: inicial?.unidade || unidadeDoTipo(tipoInicial),
     laboratorioId: inicial?.laboratorioId || '', composicao: inicial?.composicao || '', risco: inicial?.risco || 'medio',
-    classes: CLASSE_POR_TIPO[tipoInicial] ? [CLASSE_POR_TIPO[tipoInicial]] : [],
+    classes: inicial?.classes ?? (CLASSE_POR_TIPO[tipoInicial] ? [CLASSE_POR_TIPO[tipoInicial]] : []),
   });
   const [unidadeEscolhida, setUnidadeEscolhida] = useState(!!inicial?.unidade);
 
