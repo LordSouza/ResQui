@@ -1,6 +1,6 @@
 ---
-titulo: Como configurar os dados da instituição e gerar o relatório PGRS
-resumo: Preencha os dados institucionais uma vez e gere os relatórios do Plano de Gerenciamento de Resíduos.
+titulo: Como gerar o relatório PGRS e configurar os dados da instituição
+resumo: Gere os relatórios do Plano de Gerenciamento de Resíduos; os dados institucionais são preenchidos uma vez pelo Administrador.
 secao: gestao
 ordem: 1
 quem: Professor e Administrador
@@ -8,10 +8,16 @@ video: 15-configurar-pgrs-e-gerar-relatorio.mp4
 ---
 ## Passo a passo
 
-1. No menu lateral, abra **Relatórios** e clique em **Configurar PGRS**.
+1. No menu lateral, abra **Relatórios**.
+2. No cartão do relatório desejado, clique em **Gerar**. O arquivo é baixado na hora.
+
+## Dados da instituição
+
+Os dados da instituição valem para todos os laboratórios, por isso só o **Administrador** os edita:
+
+1. Em **Relatórios**, clique em **Configurar PGRS**.
 2. Preencha os dados da instituição (razão social, CNPJ, unidade, endereço), do **Responsável técnico** e os **Padrões do manifesto**.
 3. Clique em **Salvar configuração**.
-4. No cartão do relatório desejado, clique em **Gerar**. O arquivo é baixado na hora.
 
 ## Os relatórios
 
