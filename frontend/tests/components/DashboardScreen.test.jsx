@@ -90,6 +90,15 @@ describe('DashboardScreen', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'nav', screen: 'residuos', residuosStatus: 'solicitado' });
   });
 
+  it('não conta como pendência o manifesto com resíduo de outro laboratório, que o usuário não pode confirmar', async () => {
+    const original = fetch.getMockImplementation();
+    fetch.mockImplementation((url) => String(url).startsWith('/api/mtrs')
+      ? Promise.resolve({ ok: true, status: 200, json: async () => [{}, { residuosDeOutrosLaboratorios: [{ volume: 1, unidade: 'L' }] }] })
+      : original(url));
+    render(<DashboardScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    expect(await screen.findByText('1 manifesto sem destinação confirmada')).toBeInTheDocument();
+  });
+
   it('não oferece exportar CSV de métricas', async () => {
     render(<DashboardScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Início' })).toBeInTheDocument());

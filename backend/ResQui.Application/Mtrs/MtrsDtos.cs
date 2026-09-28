@@ -13,8 +13,11 @@ public record MtrDto(
     List<int> ResiduoIds,
     string? DataDestinacao,
     string? DestinadoPorId,
-    string? DestinadoPorNome = null
+    string? DestinadoPorNome = null,
+    List<ResiduoDeOutroLaboratorioDto>? ResiduosDeOutrosLaboratorios = null
 );
+
+public record ResiduoDeOutroLaboratorioDto(decimal Volume, string Unidade);
 
 public record CriarMtrCmd(
     string Gerador,

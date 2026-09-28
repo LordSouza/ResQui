@@ -14,12 +14,14 @@ function MtrDetalhe({ mtr }) {
   const [reabrindo, setReabrindo] = useState(false);
   const podeDestinar = usePode('Operacao');   // POST /api/mtrs/:id/destinacao
   const podeReabrir = usePode('Cadastro');     // DELETE /api/mtrs/:id/destinacao
-  const foraDoEscopo = (mtr.residuo_ids ?? []).length - residuos.length;
+  const foraDoEscopo = (mtr.residuos_de_outros_laboratorios ?? []).length;
+  const respondePorTodos = foraDoEscopo === 0;
+  const totalDeResiduos = (mtr.residuo_ids ?? []).length + foraDoEscopo;
   return (
     <>
     <div className="detail-grid">
       <div className="card card-tight">
-        <SectionTitle title="Resíduos vinculados" sub={`${(mtr.residuo_ids ?? []).length} item(ns) neste manifesto`} />
+        <SectionTitle title="Resíduos vinculados" sub={`${totalDeResiduos} item(ns) neste manifesto`} />
         <table className="tbl">
           <thead><tr><th>#</th><th>Descrição</th><th>Tipo</th><th className="right">Volume</th><th>Risco</th></tr></thead>
           <tbody>
@@ -27,7 +29,7 @@ function MtrDetalhe({ mtr }) {
             {!isPending && residuos.length === 0 && foraDoEscopo === 0 && <tr><td colSpan={5} className="muted">Nenhum resíduo vinculado.</td></tr>}
             {!isPending && foraDoEscopo > 0 && (
               <tr><td colSpan={5} className="muted small">
-                {residuos.length === 0 ? 'Os' : 'Mais'} {foraDoEscopo} resíduo(s) deste manifesto são de laboratórios pelos quais você não responde. O PDF traz todos.
+                {residuos.length === 0 ? 'Os' : 'Mais'} {foraDoEscopo} resíduo(s) deste manifesto são de laboratórios pelos quais você não responde. No PDF eles aparecem só com a quantidade, e confirmar ou reabrir a destinação fica com quem responde por todos os laboratórios do manifesto.
               </td></tr>
             )}
             {residuos.map((r) => (
@@ -62,12 +64,12 @@ function MtrDetalhe({ mtr }) {
             <button type="button" className="btn btn-sm" onClick={() => downloadMtrPdf(mtr.id, mtr.numero)}>
               <Icon name="download" size={12} /> PDF
             </button>
-            {podeDestinar && !mtr.data_destinacao && (
+            {podeDestinar && respondePorTodos && !mtr.data_destinacao && (
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setConfirmando(true)}>
                 <Icon name="check" size={12} /> Confirmar destinação
               </button>
             )}
-            {podeReabrir && mtr.data_destinacao && (
+            {podeReabrir && respondePorTodos && mtr.data_destinacao && (
               <button type="button" className="btn btn-sm" onClick={() => setReabrindo(true)}>
                 <Icon name="refresh" size={12} /> Reabrir manifesto
               </button>
@@ -136,7 +138,12 @@ export function MtrScreen({ state, dispatch }) {
                 onClick={() => setSelectedId(m.id)}>
                 <td className="num">{m.numero}</td>
                 <td className="mono small">{m.data_emissao?.slice(0, 10)}</td>
-                <td className="small">{(m.residuo_ids ?? []).map((id) => <Tag key={id}>#{id}</Tag>)}</td>
+                <td className="small">
+                  {(m.residuo_ids ?? []).map((id) => <Tag key={id}>#{id}</Tag>)}
+                  {(m.residuos_de_outros_laboratorios ?? []).length > 0 && (
+                    <span className="muted"> +{m.residuos_de_outros_laboratorios.length} de outros laboratórios</span>
+                  )}
+                </td>
                 <td className="num right">{formatarQuantidade({ litros: m.total_litros, quilos: m.total_quilos })}</td>
                 <td className="mono">{m.codigo_ibama ?? '-'}</td>
                 <td>{m.transportadora}</td>

@@ -18,11 +18,10 @@ public static class Endpoints
             return m is null ? Results.NotFound() : Results.Ok(m);
         });
 
-        group.MapPost("/", async (CriarMtrCmd cmd, IMtrsService svc, ClaimsPrincipal user) =>
+        group.MapPost("/", async (CriarMtrCmd cmd, IMtrsService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var m = await svc.CriarAsync(cmd, userId, email);
+            var m = await svc.CriarAsync(cmd, userId, await user.ResolverAsync(labs));
             return Results.Created($"/api/mtrs/{m.Id}", m);
         })
         .RequireAuthorization("Operacao");
@@ -35,20 +34,18 @@ public static class Endpoints
             return Results.File(pdf, "application/pdf", filename);
         });
 
-        group.MapPost("/{id:int}/destinacao", async (int id, ConfirmarDestinacaoCmd cmd, IMtrsService svc, ClaimsPrincipal user) =>
+        group.MapPost("/{id:int}/destinacao", async (int id, ConfirmarDestinacaoCmd cmd, IMtrsService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
             // Sem fallback ?? "": DestinadoPorId tem FK, e "" seria violação de constraint.
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var m = await svc.ConfirmarDestinacaoAsync(id, cmd, userId, email);
+            var m = await svc.ConfirmarDestinacaoAsync(id, cmd, userId, await user.ResolverAsync(labs));
             return m is null ? Results.NotFound() : Results.Ok(m);
         })
         .RequireAuthorization("Operacao");
 
-        group.MapDelete("/{id:int}/destinacao", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
+        group.MapDelete("/{id:int}/destinacao", async (int id, IMtrsService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            return await svc.ReabrirDestinacaoAsync(id, email)
+            return await svc.ReabrirDestinacaoAsync(id, await user.ResolverAsync(labs))
                 ? Results.NoContent()
                 : Results.NotFound();
         })

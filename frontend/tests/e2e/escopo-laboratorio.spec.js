@@ -262,3 +262,71 @@ test('reagente de laboratório alheio não aparece, não abre e não recebe baix
   });
   expect(transferirParaAlheio.status()).toBe(400);
 });
+
+async function residuoAprovado(request, adminAuth, labId) {
+  const residuo = await (await criarResiduo(request, adminAuth, labId)).json();
+  await request.put(`/api/residuos/${residuo.id}/aprovar`, { headers: adminAuth });
+  return residuo;
+}
+
+async function emitirManifesto(request, auth, residuoIds) {
+  return request.post('/api/mtrs', {
+    headers: auth,
+    data: { Gerador: 'Gerador E2E', Transportadora: 'Transportadora E2E', ResiduoIds: residuoIds },
+  });
+}
+
+test('manifesto misto mascara as linhas alheias, e só quem responde por todos confirma a destinação', async ({ request }) => {
+  const adminAuth = await apiAuth(request);
+  const [meu, alheio] = await doisLaboratorios(request, adminAuth);
+  const professor = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
+  const headers = await professor.autenticar();
+
+  const doMeu = await residuoAprovado(request, adminAuth, meu.id);
+  const doAlheio = await residuoAprovado(request, adminAuth, alheio.id);
+  const misto = await (await emitirManifesto(request, adminAuth, [doMeu.id, doAlheio.id])).json();
+
+  const visto = await (await request.get(`/api/mtrs/${misto.id}`, { headers })).json();
+  expect(visto.residuoIds).toEqual([doMeu.id]);
+  expect(visto.residuosDeOutrosLaboratorios).toHaveLength(1);
+  expect(visto.totalLitros).toBe(2);
+  expect((await request.get(`/api/mtrs/${misto.id}/pdf`, { headers })).ok()).toBeTruthy();
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const confirmar = await request.post(`/api/mtrs/${misto.id}/destinacao`, { headers, data: { Data: hoje } });
+  expect(confirmar.status()).toBe(403);
+
+  const soAlheio = await (await emitirManifesto(request, adminAuth, [(await residuoAprovado(request, adminAuth, alheio.id)).id])).json();
+  expect((await request.get(`/api/mtrs/${soAlheio.id}`, { headers })).status()).toBe(403);
+  const lista = await (await request.get('/api/mtrs', { headers })).json();
+  expect(lista.map(m => m.id)).toContain(misto.id);
+  expect(lista.map(m => m.id)).not.toContain(soAlheio.id);
+
+  const recusado = await emitirManifesto(request, headers, [(await residuoAprovado(request, adminAuth, alheio.id)).id]);
+  expect(recusado.status()).toBe(403);
+});
+
+test('relatório sai recortado pelo escopo de quem gera, e só o autor e o Admin o baixam', async ({ request }) => {
+  const adminAuth = await apiAuth(request);
+  const [meu, alheio] = await doisLaboratorios(request, adminAuth);
+  const professor = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
+  const colega = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
+  const headers = await professor.autenticar();
+  const sufixo = Date.now();
+  const reagenteBase = { Cas: '64-17-5', Formula: 'C2H6O', ClasseReatividade: 5, Estoque: 5, Unidade: 'L', Controlado: false };
+  await request.post('/api/reagentes', { headers: adminAuth, data: { ...reagenteBase, Nome: `Do meu ${sufixo}`, LaboratorioId: meu.id, Armario: meu.armarios?.[0] ?? '' } });
+  await request.post('/api/reagentes', { headers: adminAuth, data: { ...reagenteBase, Nome: `Do alheio ${sufixo}`, LaboratorioId: alheio.id, Armario: '' } });
+
+  const relatorio = await (await request.post('/api/relatorios/gerar', { headers, data: { Tipo: 'inventario' } })).json();
+  const csv = await (await request.get(`/api/relatorios/${relatorio.id}/download`, { headers })).text();
+  expect(csv).toContain(`Do meu ${sufixo}`);
+  expect(csv).not.toContain(`Do alheio ${sufixo}`);
+
+  const csvDoAdmin = await (await request.get(`/api/relatorios/${relatorio.id}/download`, { headers: adminAuth })).text();
+  expect(csvDoAdmin).not.toContain(`Do alheio ${sufixo}`);
+
+  const headersDoColega = await colega.autenticar();
+  expect((await request.get(`/api/relatorios/${relatorio.id}/download`, { headers: headersDoColega })).status()).toBe(403);
+  const historicoDoColega = await (await request.get('/api/relatorios', { headers: headersDoColega })).json();
+  expect(historicoDoColega.map(r => r.id)).not.toContain(relatorio.id);
+});

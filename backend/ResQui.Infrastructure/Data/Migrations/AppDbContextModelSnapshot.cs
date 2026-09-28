@@ -685,6 +685,9 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<string>("GeradoPorId")
                         .HasColumnType("text");
 
+                    b.PrimitiveCollection<List<string>>("LaboratorioIds")
+                        .HasColumnType("text[]");
+
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasColumnType("text");

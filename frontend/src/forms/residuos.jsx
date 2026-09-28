@@ -502,6 +502,8 @@ function RowMtr({ label, value, mono }) {
   );
 }
 
+const RESIDUO_DE_OUTRO_LABORATORIO = 'Resíduo de outro laboratório';
+
 export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
   // Preview espelha o PDF real do backend (PdfService.ManifestoMtr) — só dados reais do MTR.
   const emissao = dataBrasileira(mtr.data_emissao);
@@ -509,8 +511,8 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
   const assinaturas = destinado
     ? ['pelo gerador', 'pelo transporte', 'pelo destinador']
     : ['pelo gerador', 'pelo transporte'];
-  const total = (mtr.residuo_ids ?? []).length;
-  const foraDoEscopo = total - residuos.length;
+  const deOutrosLaboratorios = mtr.residuos_de_outros_laboratorios ?? [];
+  const proprios = [...residuos].sort((a, b) => a.id - b.id);
   return (
     <Modal title={`Pré-visualização · ${mtr.numero}`} sub="Manifesto de uso interno — não substitui o MTR oficial emitido pelo órgão ambiental"
       onClose={onClose} width={920}
@@ -586,7 +588,7 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
           </SectionMtr>
 
           {/* Seção 2 - Resíduos */}
-          <SectionMtr num="2" title={`RESÍDUOS (${foraDoEscopo > 0 ? `${residuos.length} de ${total}` : residuos.length})`}>
+          <SectionMtr num="2" title={`RESÍDUOS (${proprios.length + deOutrosLaboratorios.length})`}>
             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 6}}>
               <thead>
                 <tr style={{background: '#f0f0f0'}}>
@@ -599,10 +601,10 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
                 </tr>
               </thead>
               <tbody>
-                {residuos.length === 0 && (
+                {proprios.length === 0 && deOutrosLaboratorios.length === 0 && (
                   <tr><td style={mtrTd} colSpan={6}>Nenhum resíduo vinculado.</td></tr>
                 )}
-                {residuos.map((r) => (
+                {proprios.map((r) => (
                   <tr key={r.id}>
                     <td style={mtrTd}>{r.id}</td>
                     <td style={mtrTd}>{r.descricao}</td>
@@ -612,11 +614,16 @@ export function FormPreviewMtrPdf({ mtr, residuos = [], onClose }) {
                     <td style={mtrTd}>{(r.classes ?? []).length > 0 ? r.classes.join(', ') : '—'}</td>
                   </tr>
                 ))}
-                {foraDoEscopo > 0 && (
-                  <tr><td style={mtrTd} colSpan={6}>
-                    Mais {foraDoEscopo} resíduo(s) de laboratórios pelos quais você não responde — eles entram na quantidade total acima e saem no PDF.
-                  </td></tr>
-                )}
+                {deOutrosLaboratorios.map((r, i) => (
+                  <tr key={`outro-${i}`}>
+                    <td style={mtrTd}>—</td>
+                    <td style={{...mtrTd, fontStyle: 'italic'}}>{RESIDUO_DE_OUTRO_LABORATORIO}</td>
+                    <td style={mtrTd}>—</td>
+                    <td style={{...mtrTd, textAlign: 'right', fontFamily: 'Courier, monospace'}}>{decimalDocumento(r.volume, 2)} {r.unidade}</td>
+                    <td style={mtrTd}>—</td>
+                    <td style={mtrTd}>—</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </SectionMtr>

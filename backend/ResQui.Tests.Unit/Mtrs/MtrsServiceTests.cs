@@ -24,6 +24,8 @@ public class MtrsServiceTests
 
     private static readonly Solicitante Admin = new("adm", "admin@resqui.local", "Admin", []);
 
+    private static Solicitante Quem(string email) => new("u-quem", email, "Admin", []);
+
     public MtrsServiceTests()
     {
         _sut = new MtrsService(_repo, _residuosRepo, _audit, _compat, _pdf, _auth,
@@ -74,7 +76,7 @@ public class MtrsServiceTests
         _residuosRepo.SaveChangesAsync().Returns(Task.CompletedTask);
 
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", "EcoQuímica SA", "A099", [10, 11]);
-        var result = await _sut.CriarAsync(cmd, "user1", "user1@lab.com");
+        var result = await _sut.CriarAsync(cmd, "user1", Quem("user1@lab.com"));
 
         r1.Status.Should().Be("em-coleta");
         r2.Status.Should().Be("em-coleta");
@@ -96,7 +98,7 @@ public class MtrsServiceTests
         _residuosRepo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _residuosRepo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        var result = await _sut.CriarAsync(new CriarMtrCmd("Unifei", "EcoLog", null, null, [10, 10]), "u1", "ana@lab.com");
+        var result = await _sut.CriarAsync(new CriarMtrCmd("Unifei", "EcoLog", null, null, [10, 10]), "u1", Quem("ana@lab.com"));
 
         result.ResiduoIds.Should().Equal([10]);
         result.TotalLitros.Should().Be(5.0m);
@@ -112,7 +114,7 @@ public class MtrsServiceTests
         r.Status = "solicitado"; // descarte ainda não aprovado (RF06 gate)
         _residuosRepo.GetByIdAsync(10).Returns(r);
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [10]);
-        var act = () => _sut.CriarAsync(cmd, "u1", "u@x.com");
+        var act = () => _sut.CriarAsync(cmd, "u1", Quem("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*não está aprovado para coleta*");
         await _repo.DidNotReceive().AddAsync(Arg.Any<Mtr>());
     }
@@ -130,7 +132,7 @@ public class MtrsServiceTests
         _residuosRepo.SaveChangesAsync().Returns(Task.CompletedTask);
 
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", "EcoQuím", "A099", [10]);
-        await _sut.CriarAsync(cmd, "user-1", "ana@lab.com");
+        await _sut.CriarAsync(cmd, "user-1", Quem("ana@lab.com"));
 
         await _audit.Received(1).RegistrarAsync(
             "ana@lab.com", "mtr.criar", "MTR",
@@ -150,7 +152,7 @@ public class MtrsServiceTests
         _residuosRepo.UpdateAsync(Arg.Any<Residuo>()).Returns(Task.CompletedTask);
         _residuosRepo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        await _sut.CriarAsync(new CriarMtrCmd("Unifei", "EcoLog", null, null, [10]), "u1", "ana@lab.com");
+        await _sut.CriarAsync(new CriarMtrCmd("Unifei", "EcoLog", null, null, [10]), "u1", Quem("ana@lab.com"));
 
         // O número é DEFAULT da coluna (sequência mtrs_numero_seq): o serviço não pode inventá-lo,
         // senão o valor sorteado sobrescreve o do banco e a unicidade volta a depender de sorte.
@@ -164,7 +166,7 @@ public class MtrsServiceTests
     public async Task CriarAsync_GeradorOuTransportadoraVazios_LancaValidationException(string gerador, string transp)
     {
         var cmd = new CriarMtrCmd(gerador, transp, null, null, [1]);
-        var act = () => _sut.CriarAsync(cmd, "u1", "u@x.com");
+        var act = () => _sut.CriarAsync(cmd, "u1", Quem("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>();
     }
 
@@ -172,7 +174,7 @@ public class MtrsServiceTests
     public async Task CriarAsync_ResiduoIdsVazio_LancaValidationException()
     {
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, []);
-        var act = () => _sut.CriarAsync(cmd, "u1", "u@x.com");
+        var act = () => _sut.CriarAsync(cmd, "u1", Quem("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*resíduo*");
     }
 
@@ -181,7 +183,7 @@ public class MtrsServiceTests
     {
         _residuosRepo.GetByIdAsync(7).Returns((Residuo?)null);
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [7]);
-        var act = () => _sut.CriarAsync(cmd, "u1", "u@x.com");
+        var act = () => _sut.CriarAsync(cmd, "u1", Quem("u@x.com"));
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*7*");
         await _repo.DidNotReceive().AddAsync(Arg.Any<Mtr>());
     }
@@ -198,7 +200,7 @@ public class MtrsServiceTests
             .Returns(new CompatResultDto(5, 12, 3, "Proibido"));
 
         var act = () => _sut.CriarAsync(
-            new CriarMtrCmd("Unifei", "EcoLog", null, null, [18]), "user1", "ana@lab.com");
+            new CriarMtrCmd("Unifei", "EcoLog", null, null, [18]), "user1", Quem("ana@lab.com"));
 
         var ex = await act.Should().ThrowAsync<ValidationException>();
         ex.Which.Message.Should().Contain("resíduo #18 (classes 5, 12)");
@@ -217,7 +219,7 @@ public class MtrsServiceTests
             .Returns(new CompatResultDto(5, 12, 3, "Proibido"));
 
         var act = () => _sut.CriarAsync(
-            new CriarMtrCmd("Unifei", "EcoLog", null, null, [10, 11]), "user1", "ana@lab.com");
+            new CriarMtrCmd("Unifei", "EcoLog", null, null, [10, 11]), "user1", Quem("ana@lab.com"));
 
         var ex = await act.Should().ThrowAsync<ValidationException>();
         ex.Which.Message.Should().Contain("resíduo #10 (classe 5)");
@@ -240,7 +242,7 @@ public class MtrsServiceTests
             .Returns(new CompatResultDto(5, 12, 3, "Proibido"));
 
         var act = () => _sut.CriarAsync(
-            new CriarMtrCmd("Unifei", "EcoLog", null, null, [10, 11, 12]), "user1", "ana@lab.com");
+            new CriarMtrCmd("Unifei", "EcoLog", null, null, [10, 11, 12]), "user1", Quem("ana@lab.com"));
 
         var ex = await act.Should().ThrowAsync<ValidationException>();
         ex.Which.Message.Should().NotContain("#12");
@@ -256,7 +258,7 @@ public class MtrsServiceTests
             .Returns(new CompatResultDto(5, 12, 3, "Proibido"));
 
         var act = () => _sut.CriarAsync(
-            new CriarMtrCmd("Unifei", "EcoLog", null, null, [18]), "user1", "ana@lab.com");
+            new CriarMtrCmd("Unifei", "EcoLog", null, null, [18]), "user1", Quem("ana@lab.com"));
         await act.Should().ThrowAsync<ValidationException>();
 
         await _audit.Received(1).RegistrarAsync(
@@ -278,7 +280,7 @@ public class MtrsServiceTests
         _repo.GetByIdAsync(1).Returns(mtr);
         _residuosRepo.GetAllAsync().Returns([emColeta, rejeitado, deOutroMtr]);
 
-        var dto = await _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+        var dto = await _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", Quem("user1@lab.com"));
 
         emColeta.Status.Should().Be("destinado");
         rejeitado.Status.Should().Be("rejeitado", "a confirmação não arrasta resíduo que saiu do fluxo por outro caminho");
@@ -293,7 +295,7 @@ public class MtrsServiceTests
     {
         _repo.GetByIdAsync(99).Returns((Mtr?)null);
 
-        var dto = await _sut.ConfirmarDestinacaoAsync(99, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+        var dto = await _sut.ConfirmarDestinacaoAsync(99, new ConfirmarDestinacaoCmd(Hoje()), "user1", Quem("user1@lab.com"));
 
         dto.Should().BeNull();
     }
@@ -307,7 +309,7 @@ public class MtrsServiceTests
         var r = FakeResiduo(10, mtrId: 1); r.Status = "destinado";
         _residuosRepo.GetAllAsync().Returns([r]);
 
-        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", Quem("user1@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*já destinado*");
     }
@@ -317,7 +319,7 @@ public class MtrsServiceTests
     {
         _repo.GetByIdAsync(1).Returns(FakeMtr(1));
 
-        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd("ontem"), "user1", "user1@lab.com");
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd("ontem"), "user1", Quem("user1@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*inválida*");
     }
@@ -328,7 +330,7 @@ public class MtrsServiceTests
         _repo.GetByIdAsync(1).Returns(FakeMtr(1));
         var amanha = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1).ToString("yyyy-MM-dd");
 
-        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(amanha), "user1", "user1@lab.com");
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(amanha), "user1", Quem("user1@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*futuro*");
     }
@@ -341,7 +343,7 @@ public class MtrsServiceTests
         _repo.GetByIdAsync(1).Returns(mtr);
         var ontem = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-3).ToString("yyyy-MM-dd");
 
-        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(ontem), "user1", "user1@lab.com");
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(ontem), "user1", Quem("user1@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*anterior à emissão*");
     }
@@ -356,7 +358,7 @@ public class MtrsServiceTests
         var r = FakeResiduo(10, mtrId: 1); r.Status = "em-coleta";
         _residuosRepo.GetAllAsync().Returns([r]);
 
-        var dto = await _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+        var dto = await _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", Quem("user1@lab.com"));
 
         dto.Should().NotBeNull();
         r.Status.Should().Be("destinado");
@@ -369,7 +371,7 @@ public class MtrsServiceTests
         var r = FakeResiduo(10, mtrId: 1); r.Status = "destinado";
         _residuosRepo.GetAllAsync().Returns([r]);
 
-        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+        var act = () => _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", Quem("user1@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*em coleta*");
     }
@@ -382,7 +384,7 @@ public class MtrsServiceTests
         var r = FakeResiduo(10, mtrId: 1); r.Status = "em-coleta";
         _residuosRepo.GetAllAsync().Returns([r]);
 
-        await _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", "user1@lab.com");
+        await _sut.ConfirmarDestinacaoAsync(1, new ConfirmarDestinacaoCmd(Hoje()), "user1", Quem("user1@lab.com"));
 
         await _audit.Received(1).RegistrarAsync("user1@lab.com", "mtr.destinacao", "MTR",
             Arg.Is<string>(d => d.Contains(mtr.Numero) && d.Contains("1 resíduo")), RiscoAuditoria.Medium);
@@ -399,7 +401,7 @@ public class MtrsServiceTests
         var rejeitado = FakeResiduo(11, mtrId: 1); rejeitado.Status = "rejeitado";
         _residuosRepo.GetAllAsync().Returns([destinado, rejeitado]);
 
-        var ok = await _sut.ReabrirDestinacaoAsync(1, "gestor@lab.com");
+        var ok = await _sut.ReabrirDestinacaoAsync(1, Quem("gestor@lab.com"));
 
         ok.Should().BeTrue();
         destinado.Status.Should().Be("em-coleta");
@@ -413,7 +415,7 @@ public class MtrsServiceTests
     {
         _repo.GetByIdAsync(99).Returns((Mtr?)null);
 
-        (await _sut.ReabrirDestinacaoAsync(99, "gestor@lab.com")).Should().BeFalse();
+        (await _sut.ReabrirDestinacaoAsync(99, Quem("gestor@lab.com"))).Should().BeFalse();
     }
 
     [Fact]
@@ -421,7 +423,7 @@ public class MtrsServiceTests
     {
         _repo.GetByIdAsync(1).Returns(FakeMtr(1));
 
-        var act = () => _sut.ReabrirDestinacaoAsync(1, "gestor@lab.com");
+        var act = () => _sut.ReabrirDestinacaoAsync(1, Quem("gestor@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*não está destinado*");
     }
@@ -435,7 +437,7 @@ public class MtrsServiceTests
         var r = FakeResiduo(10, mtrId: 1); r.Status = "destinado";
         _residuosRepo.GetAllAsync().Returns([r]);
 
-        await _sut.ReabrirDestinacaoAsync(1, "gestor@lab.com");
+        await _sut.ReabrirDestinacaoAsync(1, Quem("gestor@lab.com"));
 
         await _audit.Received(1).RegistrarAsync("gestor@lab.com", "mtr.destinacao-reaberta", "MTR",
             Arg.Is<string>(d => d.Contains(mtr.Numero)), RiscoAuditoria.High);
@@ -451,11 +453,11 @@ public class MtrsServiceTests
         _residuosRepo.GetAllAsync().Returns([FakeResiduo(10, mtrId: 1)]);
         _auth.FindByIdIncluindoArquivadosAsync("user9").Returns(
             new UsuarioInfo("user9", "maria@resqui.local", "Maria Souza", null, "Professor", [], false));
-        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
+        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
 
         await _sut.GerarPdfAsync(1, Admin);
 
-        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), "Maria Souza");
+        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), Arg.Any<IList<Residuo>>(), "Maria Souza");
     }
 
     [Fact]
@@ -468,11 +470,11 @@ public class MtrsServiceTests
         _residuosRepo.GetAllAsync().Returns([FakeResiduo(10, mtrId: 1)]);
         _auth.FindByIdIncluindoArquivadosAsync("user9").Returns(
             new UsuarioInfo("user9", "joao@resqui.local", null, null, "Professor", [], true));
-        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
+        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
 
         await _sut.GerarPdfAsync(1, Admin);
 
-        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), "joao@resqui.local");
+        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), Arg.Any<IList<Residuo>>(), "joao@resqui.local");
         await _auth.DidNotReceive().FindByIdAsync(Arg.Any<string>());
     }
 
@@ -482,11 +484,11 @@ public class MtrsServiceTests
         var mtr = FakeMtr(1);
         _repo.GetByIdAsync(1).Returns(mtr);
         _residuosRepo.GetAllAsync().Returns([FakeResiduo(10, mtrId: 1)]);
-        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
+        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
 
         await _sut.GerarPdfAsync(1, Admin);
 
-        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), null);
+        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), Arg.Any<IList<Residuo>>(), null);
         await _auth.DidNotReceive().FindByIdIncluindoArquivadosAsync(Arg.Any<string>());
     }
 
@@ -539,13 +541,127 @@ public class MtrsServiceTests
         _auth.FindByIdIncluindoArquivadosAsync("user9").Returns(
             new UsuarioInfo("user9", "maria@resqui.local", "Maria Souza", null, "Professor", [], false));
         _usuarioLabs.DoUsuarioAsync("user9").Returns(new List<string> { "Lab-002" });
-        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
+        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1, 2, 3 });
         var aluno = new Solicitante("aluno-1", "aluno@resqui.local", "Aluno", ["Lab-001"]);
 
         await _sut.GerarPdfAsync(1, aluno);
         var dto = await _sut.ObterPorIdAsync(1, aluno);
 
-        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), null);
+        _pdf.Received(1).ManifestoMtr(mtr, Arg.Any<IList<Residuo>>(), Arg.Any<IList<Residuo>>(), null);
         dto!.DestinadoPorNome.Should().BeNull();
+    }
+
+    private static readonly Solicitante ProfessorDoLab1 = new("prof-1", "prof1@resqui.local", "Professor", ["Lab-001"]);
+
+    private static Residuo ResiduoDe(int id, string laboratorioId, int mtrId = 1, string status = "em-coleta")
+    {
+        var r = FakeResiduo(id, mtrId);
+        r.LaboratorioId = laboratorioId;
+        r.Status = status;
+        return r;
+    }
+
+    [Fact]
+    public async Task ListarAsync_MostraSoOsManifestosComResiduoDoEscopo_EMascaraAsLinhasAlheias()
+    {
+        var misto = FakeMtr(1);
+        var alheio = FakeMtr(2);
+        var vazio = FakeMtr(3);
+        _repo.GetAllAsync().Returns([misto, alheio, vazio]);
+        var alheioNoMisto = ResiduoDe(11, "Lab-002");
+        alheioNoMisto.Volume = 2m;
+        alheioNoMisto.Unidade = "kg";
+        _residuosRepo.GetAllAsync().Returns([ResiduoDe(10, "Lab-001"), alheioNoMisto, ResiduoDe(20, "Lab-002", mtrId: 2)]);
+
+        var result = (await _sut.ListarAsync(ProfessorDoLab1)).ToList();
+
+        result.Select(m => m.Id).Should().Equal(1);
+        result[0].ResiduoIds.Should().Equal(10);
+        result[0].ResiduosDeOutrosLaboratorios.Should().Equal(new ResiduoDeOutroLaboratorioDto(2m, "kg"));
+        result[0].TotalLitros.Should().Be(5m);
+        result[0].TotalQuilos.Should().Be(2m);
+        (await _sut.ListarAsync(Admin)).Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task ObterPorIdAsync_ManifestoSemResiduoDoEscopo_LancaAcessoNegado()
+    {
+        _repo.GetByIdAsync(2).Returns(FakeMtr(2));
+        _residuosRepo.GetAllAsync().Returns([ResiduoDe(20, "Lab-002", mtrId: 2)]);
+
+        var act = () => _sut.ObterPorIdAsync(2, ProfessorDoLab1);
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+    }
+
+    [Fact]
+    public async Task GerarPdfAsync_SeparaAsLinhasDeOutrosLaboratorios()
+    {
+        var mtr = FakeMtr(1);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _residuosRepo.GetAllAsync().Returns([ResiduoDe(11, "Lab-002"), ResiduoDe(10, "Lab-001")]);
+        _pdf.ManifestoMtr(Arg.Any<Mtr>(), Arg.Any<IList<Residuo>>(), Arg.Any<IList<Residuo>>(), Arg.Any<string?>()).Returns(new byte[] { 1 });
+
+        await _sut.GerarPdfAsync(1, ProfessorDoLab1);
+
+        _pdf.Received(1).ManifestoMtr(mtr,
+            Arg.Is<IList<Residuo>>(l => l.Select(r => r.Id).SequenceEqual(new[] { 10 })),
+            Arg.Is<IList<Residuo>>(l => l.Select(r => r.Id).SequenceEqual(new[] { 11 })),
+            null);
+    }
+
+    [Fact]
+    public async Task CriarAsync_ResiduoDeOutroLaboratorio_LancaAcessoNegadoSemCriar()
+    {
+        _residuosRepo.GetByIdAsync(20).Returns(ResiduoDe(20, "Lab-002", mtrId: 0, status: "aguardando-coleta"));
+
+        var act = () => _sut.CriarAsync(new CriarMtrCmd("Unifei", "EcoLog", null, null, [20]), "prof-1", ProfessorDoLab1);
+
+        await act.Should().ThrowAsync<AcessoNegadoException>().WithMessage("*20*");
+        await _repo.DidNotReceive().AddAsync(Arg.Any<Mtr>());
+    }
+
+    [Fact]
+    public async Task ConfirmarDestinacaoAsync_ManifestoComResiduoAlheio_LancaAcessoNegadoSemGravar()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataEmissao = DateTime.UtcNow.AddDays(-2);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _residuosRepo.GetAllAsync().Returns([ResiduoDe(10, "Lab-001"), ResiduoDe(11, "Lab-002")]);
+
+        var act = () => _sut.ConfirmarDestinacaoAsync(1,
+            new ConfirmarDestinacaoCmd(DateTime.UtcNow.ToString("yyyy-MM-dd")), "prof-1", ProfessorDoLab1);
+
+        await act.Should().ThrowAsync<AcessoNegadoException>().WithMessage("*responde por todos*");
+        mtr.DataDestinacao.Should().BeNull();
+        await _repo.DidNotReceive().SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task ConfirmarDestinacaoAsync_ProfessorQueRespondePorTodos_Confirma()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataEmissao = DateTime.UtcNow.AddDays(-2);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _residuosRepo.GetAllAsync().Returns([ResiduoDe(10, "Lab-001")]);
+
+        var dto = await _sut.ConfirmarDestinacaoAsync(1,
+            new ConfirmarDestinacaoCmd(DateTime.UtcNow.ToString("yyyy-MM-dd")), "prof-1", ProfessorDoLab1);
+
+        dto!.DataDestinacao.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ReabrirDestinacaoAsync_ManifestoComResiduoAlheio_LancaAcessoNegado()
+    {
+        var mtr = FakeMtr(1);
+        mtr.DataDestinacao = new DateOnly(2026, 8, 5);
+        _repo.GetByIdAsync(1).Returns(mtr);
+        _residuosRepo.GetAllAsync().Returns([ResiduoDe(10, "Lab-001", status: "destinado"), ResiduoDe(11, "Lab-002", status: "destinado")]);
+
+        var act = () => _sut.ReabrirDestinacaoAsync(1, ProfessorDoLab1);
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+        mtr.DataDestinacao.Should().NotBeNull();
     }
 }

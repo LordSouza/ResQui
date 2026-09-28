@@ -30,6 +30,7 @@ Os dados da instituição valem para todos os laboratórios, por isso só o **Ad
 ## Bom saber
 
 - Os relatórios saem em CSV, que abre direto no Excel.
-- Os relatórios já gerados ficam em **Histórico de relatórios gerados** e podem ser baixados de novo em **Baixar**.
+- O relatório traz os dados dos laboratórios pelos quais você responde; o do administrador consolida a instituição.
+- Os relatórios que você gerou ficam em **Histórico de relatórios gerados** e podem ser baixados de novo em **Baixar**, sempre com o mesmo recorte de quando foram gerados.
 - Campos em branco são omitidos do relatório. O CNPJ, se preenchido, precisa ter 14 dígitos.
 - Se outra pessoa salvar a configuração enquanto você edita, o sistema avisa e oferece **Recarregar** — nada é sobrescrito sem você ver.
