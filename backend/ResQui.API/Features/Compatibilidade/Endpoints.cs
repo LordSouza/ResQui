@@ -24,7 +24,7 @@ public static class Endpoints
         group.MapPut("/overrides/{classeA:int}/{classeB:int}",
             async (int classeA, int classeB, SalvarOverrideCmd cmd, ICompatService svc) =>
                 Results.Ok(await svc.SalvarOverrideAsync(classeA, classeB, cmd)))
-            .RequireAuthorization("Cadastro");
+            .RequireAuthorization("Administracao");
 
         group.MapDelete("/overrides/{classeA:int}/{classeB:int}",
             async (int classeA, int classeB, ICompatService svc) =>
@@ -32,7 +32,7 @@ public static class Endpoints
                 await svc.RemoverOverrideAsync(classeA, classeB);
                 return Results.NoContent();
             })
-            .RequireAuthorization("Cadastro");
+            .RequireAuthorization("Administracao");
 
         group.MapPost("/parecer", async (RegistrarParecerCmd cmd, ICompatAcoesService svc, ClaimsPrincipal user) =>
         {

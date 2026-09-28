@@ -3,7 +3,7 @@
 // servidor — coberta por seguranca.spec.js, que exercita os endpoints direto. Aqui o que se
 // verifica é a UI não oferecer o que o papel não alcança, e não esconder o que ele alcança.
 import { test, expect } from '@playwright/test';
-import { apiAuth, todosLaboratorios } from './seed.js';
+import { ADMIN, apiAuth, todosLaboratorios } from './seed.js';
 
 const SENHA = 'Perm@2026x';
 
@@ -73,5 +73,19 @@ test('Professor alcança gestão, aprovação e supervisão', async ({ page, req
   await expect(page.getByRole('button', { name: /Novo manifesto/i })).toBeVisible();
 
   await irPara(page, 'Relatórios');
+  await expect(page.getByRole('button', { name: /^Gerar$/i }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /Configurar PGRS/i })).toHaveCount(0);
+
+  await irPara(page, 'Compatibilidade');
+  await expect(page.getByRole('button', { name: /Editar regras/i })).toHaveCount(0);
+});
+
+test('só o Admin configura o PGRS e edita as regras da matriz', async ({ page }) => {
+  await login(page, ADMIN.email, ADMIN.senha);
+
+  await irPara(page, 'Relatórios');
   await expect(page.getByRole('button', { name: /Configurar PGRS/i })).toBeVisible();
+
+  await irPara(page, 'Compatibilidade');
+  await expect(page.getByRole('button', { name: /Editar regras/i })).toBeVisible();
 });
