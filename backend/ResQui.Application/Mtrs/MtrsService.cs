@@ -11,12 +11,12 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
 {
     public async Task<IEnumerable<MtrDto>> ListarAsync(Solicitante solicitante)
     {
-        var mtrs = (await repo.GetAllAsync()).ToList();
-        var residuos = await residuosRepo.GetAllAsync();
+        var residuos = (await residuosRepo.GetAllAsync()).ToList();
+        var mtrs = (await repo.GetAllAsync()).Where(m => Enxerga(m, residuos, solicitante)).ToList();
         var nomes = new Dictionary<string, string?>();
         foreach (var id in mtrs.Select(m => m.DestinadoPorId).OfType<string>().Distinct())
             nomes[id] = await NomeDeQuemDestinouAsync(id, solicitante);
-        return mtrs.Select(m => ToDto(m, residuos,
+        return mtrs.Select(m => ToDto(m, residuos, solicitante,
             m.DestinadoPorId is null ? null : nomes[m.DestinadoPorId]));
     }
 
@@ -24,11 +24,12 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
     {
         var m = await repo.GetByIdAsync(id);
         if (m is null) return null;
-        var residuos = await residuosRepo.GetAllAsync();
-        return ToDto(m, residuos, await NomeDeQuemDestinouAsync(m.DestinadoPorId, solicitante));
+        var residuos = (await residuosRepo.GetAllAsync()).ToList();
+        GarantirQueEnxerga(m, residuos, solicitante);
+        return ToDto(m, residuos, solicitante, await NomeDeQuemDestinouAsync(m.DestinadoPorId, solicitante));
     }
 
-    public async Task<MtrDto> CriarAsync(CriarMtrCmd cmd, string? usuarioId, string usuarioEmail)
+    public async Task<MtrDto> CriarAsync(CriarMtrCmd cmd, string? usuarioId, Solicitante solicitante)
     {
         if (string.IsNullOrWhiteSpace(cmd.Gerador)) throw new ValidationException("Gerador é obrigatório.");
         if (string.IsNullOrWhiteSpace(cmd.Transportadora)) throw new ValidationException("Transportadora é obrigatória.");
@@ -40,6 +41,8 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         {
             var r = await residuosRepo.GetByIdAsync(rid)
                 ?? throw new ValidationException($"Resíduo {rid} não encontrado.");
+            if (!solicitante.Responde(r.LaboratorioId))
+                throw new AcessoNegadoException($"O resíduo {rid} é de um laboratório pelo qual você não responde.");
             // RF06 gate: só resíduos com descarte aprovado ("aguardando-coleta") podem ser coletados.
             if (r.Status != "aguardando-coleta")
                 throw new ValidationException(
@@ -54,7 +57,7 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         if (pior is not null && pior.Nivel >= 3)
         {
             var envolvidos = DescreverEnvolvidos(residuos, pior);
-            await auditoria.RegistrarAsync(usuarioEmail, "mtr.agrupamento-bloqueado", "MTR",
+            await auditoria.RegistrarAsync(solicitante.Email, "mtr.agrupamento-bloqueado", "MTR",
                 $"Agrupamento bloqueado — classes {pior.ClasseA} e {pior.ClasseB} (Proibido): {envolvidos}",
                 RiscoAuditoria.High);
             throw new ValidationException(
@@ -84,15 +87,17 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         await repo.UpdateAsync(m);
         await residuosRepo.SaveChangesAsync();
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "mtr.criar", "MTR",
+        await auditoria.RegistrarAsync(solicitante.Email, "mtr.criar", "MTR",
             $"Criou MTR {m.Numero} com {residuos.Count} resíduo(s)", RiscoAuditoria.Medium);
-        return ToDto(m, residuos);
+        return ToDto(m, residuos, solicitante);
     }
 
-    public async Task<MtrDto?> ConfirmarDestinacaoAsync(int id, ConfirmarDestinacaoCmd cmd, string? usuarioId, string usuarioEmail)
+    public async Task<MtrDto?> ConfirmarDestinacaoAsync(int id, ConfirmarDestinacaoCmd cmd, string? usuarioId, Solicitante solicitante)
     {
         var m = await repo.GetByIdAsync(id);
         if (m is null) return null;
+        var todos = (await residuosRepo.GetAllAsync()).ToList();
+        GarantirQueRespondePorTodos(m, todos, solicitante);
 
         if (m.DataDestinacao is not null)
             throw new ValidationException(
@@ -109,7 +114,6 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
             throw new ValidationException(
                 $"A destinação não pode ser anterior à emissão do manifesto ({m.DataEmissao:dd/MM/yyyy}).");
 
-        var todos = (await residuosRepo.GetAllAsync()).ToList();
         // Só os que estão de fato em coleta: um resíduo pode ter saído do fluxo por outro
         // caminho e não deve ser arrastado de volta.
         var emColeta = todos.Where(r => r.MtrId == m.Id && r.Status == "em-coleta").ToList();
@@ -127,21 +131,22 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         await residuosRepo.SaveChangesAsync();
         await repo.SaveChangesAsync();
 
-        await auditoria.RegistrarAsync(usuarioEmail, "mtr.destinacao", "MTR",
+        await auditoria.RegistrarAsync(solicitante.Email, "mtr.destinacao", "MTR",
             $"Destinação do MTR {m.Numero} confirmada em {data:yyyy-MM-dd} — {emColeta.Count} resíduo(s) encerrado(s)",
             RiscoAuditoria.Medium);
-        return ToDto(m, todos, await NomeDeQuemDestinouAsync(m.DestinadoPorId));
+        return ToDto(m, todos, solicitante, await NomeDeQuemDestinouAsync(m.DestinadoPorId));
     }
 
-    public async Task<bool> ReabrirDestinacaoAsync(int id, string usuarioEmail)
+    public async Task<bool> ReabrirDestinacaoAsync(int id, Solicitante solicitante)
     {
         var m = await repo.GetByIdAsync(id);
         if (m is null) return false;
+        var todos = (await residuosRepo.GetAllAsync()).ToList();
+        GarantirQueRespondePorTodos(m, todos, solicitante);
         if (m.DataDestinacao is null)
             throw new ValidationException("Manifesto não está destinado.");
 
-        var destinados = (await residuosRepo.GetAllAsync())
-            .Where(r => r.MtrId == m.Id && r.Status == "destinado").ToList();
+        var destinados = todos.Where(r => r.MtrId == m.Id && r.Status == "destinado").ToList();
         foreach (var r in destinados)
         {
             r.Status = "em-coleta";
@@ -154,7 +159,7 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         await repo.SaveChangesAsync();
 
         // High: desfazer um registro de rastreabilidade não é operação corriqueira.
-        await auditoria.RegistrarAsync(usuarioEmail, "mtr.destinacao-reaberta", "MTR",
+        await auditoria.RegistrarAsync(solicitante.Email, "mtr.destinacao-reaberta", "MTR",
             $"Reabriu o MTR {m.Numero} — {destinados.Count} resíduo(s) de volta para coleta",
             RiscoAuditoria.High);
         return true;
@@ -164,9 +169,11 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
     {
         var m = await repo.GetByIdAsync(id);
         if (m is null) return null;
-        var residuos = (await residuosRepo.GetAllAsync()).Where(r => r.MtrId == m.Id).ToList();
+        var todos = (await residuosRepo.GetAllAsync()).ToList();
+        GarantirQueEnxerga(m, todos, solicitante);
+        var (proprios, deOutrosLaboratorios) = SepararPorEscopo(todos.Where(r => r.MtrId == m.Id), solicitante);
 
-        var bytes = pdf.ManifestoMtr(m, residuos, await NomeDeQuemDestinouAsync(m.DestinadoPorId, solicitante));
+        var bytes = pdf.ManifestoMtr(m, proprios, deOutrosLaboratorios, await NomeDeQuemDestinouAsync(m.DestinadoPorId, solicitante));
         await auditoria.RegistrarAsync(solicitante.Email, "mtr.pdf", "MTR",
             $"Gerou PDF do MTR {m.Numero}", RiscoAuditoria.Low);
         return (bytes, $"{m.Numero.ToLower()}.pdf");
@@ -199,13 +206,40 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         return u.Nome ?? u.Email;
     }
 
-    private static MtrDto ToDto(Mtr m, IEnumerable<Residuo> todosResíduos, string? destinadoPorNome = null)
+    private static bool Enxerga(Mtr m, IEnumerable<Residuo> todosResíduos, Solicitante solicitante) =>
+        solicitante.VeTudo || todosResíduos.Any(r => r.MtrId == m.Id && solicitante.Responde(r.LaboratorioId));
+
+    private static void GarantirQueEnxerga(Mtr m, IEnumerable<Residuo> todosResíduos, Solicitante solicitante)
+    {
+        if (!Enxerga(m, todosResíduos, solicitante))
+            throw new AcessoNegadoException($"O manifesto {m.Numero} não tem resíduo de laboratório pelo qual você responde.");
+    }
+
+    private static void GarantirQueRespondePorTodos(Mtr m, IEnumerable<Residuo> todosResíduos, Solicitante solicitante)
+    {
+        GarantirQueEnxerga(m, todosResíduos, solicitante);
+        if (todosResíduos.Any(r => r.MtrId == m.Id && !solicitante.Responde(r.LaboratorioId)))
+            throw new AcessoNegadoException(
+                $"O manifesto {m.Numero} tem resíduos de laboratórios pelos quais você não responde; só quem responde por todos confirma ou reabre a destinação.");
+    }
+
+    private static (List<Residuo> Proprios, List<Residuo> DeOutrosLaboratorios) SepararPorEscopo(
+        IEnumerable<Residuo> doMtr, Solicitante solicitante)
+    {
+        var ordenados = doMtr.OrderBy(r => r.Id).ToList();
+        return (ordenados.Where(r => solicitante.Responde(r.LaboratorioId)).ToList(),
+                ordenados.Where(r => !solicitante.Responde(r.LaboratorioId)).ToList());
+    }
+
+    private static MtrDto ToDto(Mtr m, IEnumerable<Residuo> todosResíduos, Solicitante solicitante, string? destinadoPorNome = null)
     {
         var doMtr = todosResíduos.Where(r => r.MtrId == m.Id).ToList();
         var quantidade = QuantidadeResiduos.Somar(doMtr);
+        var (proprios, deOutrosLaboratorios) = SepararPorEscopo(doMtr, solicitante);
         return new MtrDto(m.Id, m.Numero, m.Gerador, m.Transportadora,
             m.DataEmissao, m.Destinador, m.CodigoIbama, quantidade.Litros, quantidade.Quilos,
-            doMtr.Select(r => r.Id).ToList(),
-            m.DataDestinacao?.ToString("yyyy-MM-dd"), m.DestinadoPorId, destinadoPorNome);
+            proprios.Select(r => r.Id).ToList(),
+            m.DataDestinacao?.ToString("yyyy-MM-dd"), m.DestinadoPorId, destinadoPorNome,
+            deOutrosLaboratorios.Select(r => new ResiduoDeOutroLaboratorioDto(r.Volume, r.Unidade)).ToList());
     }
 }

@@ -143,7 +143,9 @@ public class PdfService : IPdfService
 
     private static readonly CultureInfo CulturaDocumento = CultureInfo.GetCultureInfo("pt-BR");
 
-    public byte[] ManifestoMtr(Mtr m, IList<Residuo> residuos, string? destinadoPor)
+    public const string ResiduoDeOutroLaboratorio = "Resíduo de outro laboratório";
+
+    public byte[] ManifestoMtr(Mtr m, IList<Residuo> residuos, IList<Residuo> residuosDeOutrosLaboratorios, string? destinadoPor)
     {
         return Document.Create(doc => doc.Page(page =>
         {
@@ -175,10 +177,10 @@ public class PdfService : IPdfService
                     Linha("Destinação", m.DataDestinacao is null
                         ? "Pendente"
                         : m.DataDestinacao.Value.ToString("dd/MM/yyyy"));
-                    Linha("Quantidade total", QuantidadeResiduos.Formatar(QuantidadeResiduos.Somar(residuos)));
+                    Linha("Quantidade total", QuantidadeResiduos.Formatar(QuantidadeResiduos.Somar(residuos.Concat(residuosDeOutrosLaboratorios))));
                 });
 
-                col.Item().PaddingTop(12).Text($"Resíduos ({residuos.Count})").Bold().FontSize(12);
+                col.Item().PaddingTop(12).Text($"Resíduos ({residuos.Count + residuosDeOutrosLaboratorios.Count})").Bold().FontSize(12);
                 col.Item().PaddingTop(4).Table(t =>
                 {
                     t.ColumnsDefinition(c =>
@@ -204,6 +206,15 @@ public class PdfService : IPdfService
                         t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(r.Risco).FontSize(8);
                         t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3)
                             .Text(r.ClassesReatividade.Count > 0 ? string.Join(", ", r.ClassesReatividade) : "—").FontSize(8);
+                    }
+                    foreach (var r in residuosDeOutrosLaboratorios)
+                    {
+                        t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text("—").FontSize(8);
+                        t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(ResiduoDeOutroLaboratorio).Italic().FontSize(8);
+                        t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text("—").FontSize(8);
+                        t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text($"{r.Volume.ToString("F2", CulturaDocumento)} {r.Unidade}").FontSize(8);
+                        t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text("—").FontSize(8);
+                        t.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text("—").FontSize(8);
                     }
                 });
 

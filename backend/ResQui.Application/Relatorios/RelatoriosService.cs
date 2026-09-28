@@ -25,14 +25,17 @@ public class RelatoriosService(
         ["indicadores"]    = "Indicadores de geração",
     };
 
-    public async Task<IEnumerable<RelatorioGeradoDto>> ListarAsync() =>
-        (await relatoriosRepo.GetAllAsync()).Select(ToDto);
+    public async Task<IEnumerable<RelatorioGeradoDto>> ListarAsync(Solicitante solicitante) =>
+        (await relatoriosRepo.GetAllAsync())
+            .Where(r => solicitante.VeTudo || r.GeradoPorId == solicitante.Id)
+            .Select(ToDto);
 
-    public async Task<RelatorioGeradoDto> GerarAsync(GerarRelatorioCmd cmd, string? userId)
+    public async Task<RelatorioGeradoDto> GerarAsync(GerarRelatorioCmd cmd, string? userId, Solicitante solicitante)
     {
         if (cmd.Tipo is null || !Titulos.TryGetValue(cmd.Tipo, out var titulo))
             throw new ValidationException($"Tipo de relatório desconhecido: {cmd.Tipo}.");
-        var (csv, totalLinhas) = await GerarCsvAsync(cmd.Tipo);
+        var recorte = RecorteDeLaboratorios.De(solicitante);
+        var (csv, totalLinhas) = await GerarCsvAsync(cmd.Tipo, recorte);
 
         var r = new RelatorioGerado
         {
@@ -41,19 +44,22 @@ public class RelatoriosService(
             GeradoPorId = userId,
             TotalLinhas = totalLinhas,
             Formato = "csv",
+            LaboratorioIds = recorte.LaboratorioIds?.ToList(),
         };
         await relatoriosRepo.AddAsync(r);
         await relatoriosRepo.SaveChangesAsync();
         return ToDto(r);
     }
 
-    public async Task<(string Csv, string Filename)?> DownloadAsync(int id)
+    public async Task<(string Csv, string Filename)?> DownloadAsync(int id, Solicitante solicitante)
     {
         var r = await relatoriosRepo.GetByIdAsync(id);
         if (r is null) return null;
+        if (!solicitante.VeTudo && r.GeradoPorId != solicitante.Id)
+            throw new AcessoNegadoException("Só quem gerou o relatório pode baixá-lo.");
         // O histórico pode conter tipos que saíram do catálogo: baixar um deles é 404, não 500.
         if (!Titulos.ContainsKey(r.Tipo)) return null;
-        var (csv, _) = await GerarCsvAsync(r.Tipo);
+        var (csv, _) = await GerarCsvAsync(r.Tipo, new RecorteDeLaboratorios(r.LaboratorioIds));
         var safeName = r.Titulo.Replace(' ', '-').ToLowerInvariant();
         return (csv, $"{safeName}.csv");
     }
@@ -62,19 +68,20 @@ public class RelatoriosService(
     // CSV generation
     // ---------------------------------------------------------------
 
-    private async Task<(string Csv, int TotalLinhas)> GerarCsvAsync(string tipo) => tipo switch
+    private async Task<(string Csv, int TotalLinhas)> GerarCsvAsync(string tipo, RecorteDeLaboratorios recorte) => tipo switch
     {
-        "inventario"      => await GerarInventarioCsvAsync(),
-        "mapa-risco"      => await GerarMapaRiscoCsvAsync(),
-        "residuos-ibama"  => await GerarResiduosIbamaCsvAsync(),
-        "indicadores"     => await GerarIndicadoresCsvAsync(),
-        "pgrs"            => await GerarPgrsCsvAsync(),
+        "inventario"      => await GerarInventarioCsvAsync(recorte),
+        "mapa-risco"      => await GerarMapaRiscoCsvAsync(recorte),
+        "residuos-ibama"  => await GerarResiduosIbamaCsvAsync(recorte),
+        "indicadores"     => await GerarIndicadoresCsvAsync(recorte),
+        "pgrs"            => await GerarPgrsCsvAsync(recorte),
         _                 => throw new ArgumentException($"Tipo desconhecido: {tipo}"),
     };
 
-    private async Task<(string Csv, int TotalLinhas)> GerarInventarioCsvAsync()
+    private async Task<(string Csv, int TotalLinhas)> GerarInventarioCsvAsync(RecorteDeLaboratorios recorte)
     {
-        var reagentes = (await reagentesRepo.GetAllAsync()).OrderBy(r => r.Nome).ToList();
+        var reagentes = (await reagentesRepo.GetAllAsync())
+            .Where(r => recorte.Inclui(r.LaboratorioId)).OrderBy(r => r.Nome).ToList();
         var sb = new StringBuilder();
         sb.AppendLine("Id,Nome,Local,Estoque,EstoqueMin,Validade,Classe,Status");
         foreach (var r in reagentes)
@@ -85,9 +92,10 @@ public class RelatoriosService(
         return (sb.ToString(), reagentes.Count);
     }
 
-    private async Task<(string Csv, int TotalLinhas)> GerarMapaRiscoCsvAsync()
+    private async Task<(string Csv, int TotalLinhas)> GerarMapaRiscoCsvAsync(RecorteDeLaboratorios recorte)
     {
         var reagentes = (await reagentesRepo.GetAllAsync())
+            .Where(r => recorte.Inclui(r.LaboratorioId))
             .OrderBy(r => r.ClasseReatividade).ThenBy(r => r.Nome).ToList();
         var sb = new StringBuilder();
         sb.AppendLine("Classe,Nome,Sinal GHS,Pictogramas,Estoque,Local");
@@ -101,9 +109,9 @@ public class RelatoriosService(
         return (sb.ToString(), reagentes.Count);
     }
 
-    private async Task<(string Csv, int TotalLinhas)> GerarResiduosIbamaCsvAsync()
+    private async Task<(string Csv, int TotalLinhas)> GerarResiduosIbamaCsvAsync(RecorteDeLaboratorios recorte)
     {
-        var residuos = (await residuosRepo.GetAllAsync()).ToList();
+        var residuos = (await residuosRepo.GetAllAsync()).Where(r => recorte.Inclui(r.LaboratorioId)).ToList();
         var mtrs = (await mtrsRepo.GetAllAsync()).ToDictionary(m => m.Id);
         var labs = await BuildLabDictAsync();
 
@@ -122,12 +130,13 @@ public class RelatoriosService(
         return (sb.ToString(), residuos.Count);
     }
 
-    private async Task<(string Csv, int TotalLinhas)> GerarManifestosCsvAsync()
+    private async Task<(string Csv, int TotalLinhas)> GerarManifestosCsvAsync(RecorteDeLaboratorios recorte)
     {
+        var residuos = (await residuosRepo.GetAllAsync()).Where(r => recorte.Inclui(r.LaboratorioId)).ToList();
         var mtrs = (await mtrsRepo.GetAllAsync())
+            .Where(m => recorte.LaboratorioIds is null || residuos.Any(r => r.MtrId == m.Id))
             .OrderBy(m => m.DataEmissao)
             .ToList();
-        var residuos = (await residuosRepo.GetAllAsync()).ToList();
         var sb = new StringBuilder();
         sb.AppendLine("Nr MTR,Gerador,Transportadora,Destinador,Cod. IBAMA,Data Emissao,Total (L),Total (kg)");
         foreach (var m in mtrs)
@@ -141,9 +150,10 @@ public class RelatoriosService(
         return (sb.ToString(), mtrs.Count);
     }
 
-    private async Task<(string Csv, int TotalLinhas)> GerarIndicadoresCsvAsync()
+    private async Task<(string Csv, int TotalLinhas)> GerarIndicadoresCsvAsync(RecorteDeLaboratorios recorte)
     {
         var residuos = (await residuosRepo.GetAllAsync())
+            .Where(r => recorte.Inclui(r.LaboratorioId))
             .Where(r => r.DataRegistro >= DateTime.UtcNow.AddMonths(-12))
             .ToList();
         var labs = await BuildLabDictAsync();
@@ -175,7 +185,7 @@ public class RelatoriosService(
         return (sb.ToString(), mensal.Count + porLab.Count);
     }
 
-    private async Task<(string Csv, int TotalLinhas)> GerarPgrsCsvAsync()
+    private async Task<(string Csv, int TotalLinhas)> GerarPgrsCsvAsync(RecorteDeLaboratorios recorte)
     {
         var sb = new StringBuilder();
         var total = 0;
@@ -186,19 +196,19 @@ public class RelatoriosService(
             sb.AppendLine("# IDENTIFICACAO"); sb.Append(ident.Csv); total += ident.TotalLinhas;
         }
 
-        var inv = await GerarInventarioCsvAsync();
+        var inv = await GerarInventarioCsvAsync(recorte);
         sb.AppendLine("# INVENTARIO"); sb.Append(inv.Csv); total += inv.TotalLinhas;
 
-        var risco = await GerarMapaRiscoCsvAsync();
+        var risco = await GerarMapaRiscoCsvAsync(recorte);
         sb.AppendLine("# MAPA-RISCO"); sb.Append(risco.Csv); total += risco.TotalLinhas;
 
-        var ibama = await GerarResiduosIbamaCsvAsync();
+        var ibama = await GerarResiduosIbamaCsvAsync(recorte);
         sb.AppendLine("# RESIDUOS-IBAMA"); sb.Append(ibama.Csv); total += ibama.TotalLinhas;
 
-        var manifestos = await GerarManifestosCsvAsync();
+        var manifestos = await GerarManifestosCsvAsync(recorte);
         sb.AppendLine("# MANIFESTOS"); sb.Append(manifestos.Csv); total += manifestos.TotalLinhas;
 
-        var ind = await GerarIndicadoresCsvAsync();
+        var ind = await GerarIndicadoresCsvAsync(recorte);
         sb.AppendLine("# INDICADORES"); sb.Append(ind.Csv); total += ind.TotalLinhas;
 
         return (sb.ToString(), total);

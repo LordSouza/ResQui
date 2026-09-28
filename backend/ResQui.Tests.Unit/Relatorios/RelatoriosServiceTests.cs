@@ -20,6 +20,8 @@ public class RelatoriosServiceTests
     private readonly IPgrsConfigRepository _pgrsRepo = Substitute.For<IPgrsConfigRepository>();
     private readonly RelatoriosService _sut;
 
+    private static readonly Solicitante Admin = new("adm", "admin@resqui.local", "Admin", []);
+
     public RelatoriosServiceTests() =>
         _sut = new RelatoriosService(_repo, _reagentesRepo, _residuosRepo, _mtrsRepo, _labsRepo, _pgrsRepo);
 
@@ -63,7 +65,7 @@ public class RelatoriosServiceTests
     public async Task ListarAsync_RetornaListaDtos()
     {
         _repo.GetAllAsync().Returns([FakeRelatorio(1), FakeRelatorio(2)]);
-        var result = await _sut.ListarAsync();
+        var result = await _sut.ListarAsync(Admin);
         result.Should().HaveCount(2);
         result.First().Tipo.Should().Be("inventario");
     }
@@ -72,7 +74,7 @@ public class RelatoriosServiceTests
     public async Task ListarAsync_VazioRetornaLista()
     {
         _repo.GetAllAsync().Returns([]);
-        var result = await _sut.ListarAsync();
+        var result = await _sut.ListarAsync(Admin);
         result.Should().BeEmpty();
     }
 
@@ -85,7 +87,7 @@ public class RelatoriosServiceTests
         _repo.AddAsync(Arg.Any<RelatorioGerado>()).Returns(Task.CompletedTask);
         _repo.SaveChangesAsync().Returns(Task.CompletedTask);
 
-        var result = await _sut.GerarAsync(new GerarRelatorioCmd("inventario"), "u1");
+        var result = await _sut.GerarAsync(new GerarRelatorioCmd("inventario"), "u1", Admin);
 
         result.Tipo.Should().Be("inventario");
         result.Titulo.Should().Be("Inventário de reagentes");
@@ -106,7 +108,7 @@ public class RelatoriosServiceTests
         });
         _mtrsRepo.GetAllAsync().Returns([FakeMtr(1), FakeMtr(2)]);
 
-        var result = await _sut.DownloadAsync(1);
+        var result = await _sut.DownloadAsync(1, Admin);
 
         result.Should().NotBeNull();
         var csv = result!.Value.Csv;
@@ -129,7 +131,7 @@ public class RelatoriosServiceTests
         _reagentesRepo.GetAllAsync().Returns([]);
         _pgrsRepo.GetAsync().Returns((ConfiguracaoPgrs?)null);
 
-        var result = await _sut.DownloadAsync(1);
+        var result = await _sut.DownloadAsync(1, Admin);
 
         result.Should().NotBeNull();
         result!.Value.Csv.Should().Contain("Total (L),Total (kg)");
@@ -156,7 +158,7 @@ public class RelatoriosServiceTests
         _residuosRepo.GetAllAsync().Returns([metroCubico, solido, mililitros]);
         _labsRepo.GetAllAsync().Returns([FakeLab()]);
 
-        var result = await _sut.DownloadAsync(1);
+        var result = await _sut.DownloadAsync(1, Admin);
 
         var csv = result!.Value.Csv;
         csv.Should().Contain("Total (L),Total (kg)");
@@ -174,7 +176,7 @@ public class RelatoriosServiceTests
             GeradoPorId = "u1", TotalLinhas = 2, Formato = "csv",
         });
 
-        var result = await _sut.DownloadAsync(7);
+        var result = await _sut.DownloadAsync(7, Admin);
 
         result.Should().BeNull();
     }
@@ -185,7 +187,7 @@ public class RelatoriosServiceTests
     [InlineData(null)]
     public async Task GerarAsync_TipoForaDoCatalogo_LancaValidationExceptionSemGravar(string? tipo)
     {
-        var act = async () => await _sut.GerarAsync(new GerarRelatorioCmd(tipo!), "u1");
+        var act = async () => await _sut.GerarAsync(new GerarRelatorioCmd(tipo!), "u1", Admin);
 
         await act.Should().ThrowAsync<ValidationException>();
         await _repo.DidNotReceive().AddAsync(Arg.Any<RelatorioGerado>());
@@ -197,7 +199,7 @@ public class RelatoriosServiceTests
     public async Task DownloadAsync_IdInexistente_RetornaNull()
     {
         _repo.GetByIdAsync(999).Returns((RelatorioGerado?)null);
-        var result = await _sut.DownloadAsync(999);
+        var result = await _sut.DownloadAsync(999, Admin);
         result.Should().BeNull();
     }
 
@@ -207,7 +209,7 @@ public class RelatoriosServiceTests
         _repo.GetByIdAsync(1).Returns(FakeRelatorio(1));
         _reagentesRepo.GetAllAsync().Returns([FakeReagente("R-00001")]);
 
-        var result = await _sut.DownloadAsync(1);
+        var result = await _sut.DownloadAsync(1, Admin);
 
         result.Should().NotBeNull();
         result!.Value.Csv.Should().Contain("Id,Nome");
@@ -236,7 +238,7 @@ public class RelatoriosServiceTests
             RespTecnico = "Resp. Teste", RespCrq = "CRQ-123",
         });
 
-        var result = await _sut.DownloadAsync(1);
+        var result = await _sut.DownloadAsync(1, Admin);
 
         result.Should().NotBeNull();
         result!.Value.Csv.Should().Contain("# IDENTIFICACAO");
@@ -255,7 +257,7 @@ public class RelatoriosServiceTests
         _labsRepo.GetAllAsync().Returns([]);
         _pgrsRepo.GetAsync().Returns((ConfiguracaoPgrs?)null);
 
-        var result = await _sut.DownloadAsync(1);
+        var result = await _sut.DownloadAsync(1, Admin);
 
         result.Should().NotBeNull();
         result!.Value.Csv.Should().NotContain("# IDENTIFICACAO");
@@ -271,7 +273,7 @@ public class RelatoriosServiceTests
         _labsRepo.GetAllAsync().Returns([]);
         _pgrsRepo.GetAsync().Returns(new ConfiguracaoPgrs());
 
-        var result = await _sut.DownloadAsync(1);
+        var result = await _sut.DownloadAsync(1, Admin);
 
         result.Should().NotBeNull();
         result!.Value.Csv.Should().NotContain("# IDENTIFICACAO");
@@ -290,7 +292,7 @@ public class RelatoriosServiceTests
             _repo.GetByIdAsync(1).Returns(FakeRelatorio());
             _reagentesRepo.GetAllAsync().Returns([FakeReagente()]);
 
-            var result = await _sut.DownloadAsync(1);
+            var result = await _sut.DownloadAsync(1, Admin);
 
             var linha = result!.Value.Csv.Split('\n').First(l => l.StartsWith("R-00001"));
             linha.Should().Contain("2027-06-01");
@@ -301,5 +303,89 @@ public class RelatoriosServiceTests
         {
             CultureInfo.CurrentCulture = anterior;
         }
+    }
+
+    private static readonly Solicitante ProfessorDoLab1 = new("prof-1", "prof1@resqui.local", "Professor", ["Lab-001"]);
+
+    [Fact]
+    public async Task ListarAsync_ProfessorVeSoOsRelatoriosQueGerou()
+    {
+        var meu = FakeRelatorio(1);
+        meu.GeradoPorId = "prof-1";
+        var alheio = FakeRelatorio(2);
+        alheio.GeradoPorId = "outro";
+        _repo.GetAllAsync().Returns([meu, alheio]);
+
+        (await _sut.ListarAsync(ProfessorDoLab1)).Select(r => r.Id).Should().Equal(1);
+        (await _sut.ListarAsync(Admin)).Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task DownloadAsync_RelatorioDeOutroAutor_LancaAcessoNegado()
+    {
+        _repo.GetByIdAsync(1).Returns(new RelatorioGerado { Id = 1, Tipo = "inventario", Titulo = "Inventário", GeradoPorId = "outro" });
+
+        var act = () => _sut.DownloadAsync(1, ProfessorDoLab1);
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+    }
+
+    [Fact]
+    public async Task GerarAsync_GravaORecorteDoProfessor_EOAdminGravaInstitucional()
+    {
+        _reagentesRepo.GetAllAsync().Returns([]);
+
+        await _sut.GerarAsync(new GerarRelatorioCmd("inventario"), "prof-1", ProfessorDoLab1);
+        await _sut.GerarAsync(new GerarRelatorioCmd("inventario"), "adm", Admin);
+
+        await _repo.Received(1).AddAsync(Arg.Is<RelatorioGerado>(r => r.LaboratorioIds != null && r.LaboratorioIds.SequenceEqual(new[] { "Lab-001" })));
+        await _repo.Received(1).AddAsync(Arg.Is<RelatorioGerado>(r => r.LaboratorioIds == null));
+    }
+
+    [Fact]
+    public async Task DownloadAsync_UsaORecorteGravado_NaoODeQuemBaixa()
+    {
+        _repo.GetByIdAsync(1).Returns(new RelatorioGerado
+        {
+            Id = 1, Tipo = "inventario", Titulo = "Inventário", GeradoPorId = "prof-1", LaboratorioIds = ["Lab-001"],
+        });
+        var doLab1 = FakeReagente("R-00001");
+        doLab1.Nome = "Etanol do Lab 1";
+        doLab1.LaboratorioId = "Lab-001";
+        var doLab2 = FakeReagente("R-00002");
+        doLab2.Nome = "Metanol do Lab 2";
+        doLab2.LaboratorioId = "Lab-002";
+        _reagentesRepo.GetAllAsync().Returns([doLab1, doLab2]);
+
+        var csv = (await _sut.DownloadAsync(1, Admin))!.Value.Csv;
+
+        csv.Should().Contain("Etanol do Lab 1").And.NotContain("Metanol do Lab 2");
+    }
+
+    [Fact]
+    public async Task DownloadAsync_PgrsRecortado_TrazSoManifestosEResiduosDoRecorte_ComTotaisDoRecorte()
+    {
+        _repo.GetByIdAsync(1).Returns(new RelatorioGerado
+        {
+            Id = 1, Tipo = "pgrs", Titulo = "PGRS Anual", GeradoPorId = "prof-1", LaboratorioIds = ["Lab-001"],
+        });
+        _mtrsRepo.GetAllAsync().Returns([FakeMtr(1), FakeMtr(2)]);
+        var meu = FakeResiduo(10, 1);
+        meu.LaboratorioId = "Lab-001";
+        meu.Volume = 3m;
+        var alheioNoMesmoMtr = FakeResiduo(11, 1);
+        alheioNoMesmoMtr.LaboratorioId = "Lab-002";
+        alheioNoMesmoMtr.Volume = 7m;
+        var alheio = FakeResiduo(12, 2);
+        alheio.LaboratorioId = "Lab-002";
+        alheio.Descricao = "Resíduo só do Lab 2";
+        _residuosRepo.GetAllAsync().Returns([meu, alheioNoMesmoMtr, alheio]);
+        _labsRepo.GetAllAsync().Returns([FakeLab("Lab-001"), FakeLab("Lab-002", "Lab Física")]);
+
+        var csv = (await _sut.DownloadAsync(1, ProfessorDoLab1))!.Value.Csv;
+
+        csv.Should().Contain("MTR-2026-001").And.NotContain("MTR-2026-002");
+        csv.Should().NotContain("Resíduo só do Lab 2").And.NotContain("Lab Física");
+        csv.Should().Contain(",3.000,");
     }
 }

@@ -74,6 +74,9 @@ public class MisturasAltoRiscoTests
     private static readonly Solicitante Solicitante =
         new("u1", "tecnico@resqui.local", "Professor", ["Lab-001"]);
 
+    private static readonly Solicitante Gestor =
+        new("u1", "gestor@resqui.local", "Admin", []);
+
     [Theory]
     [MemberData(nameof(ParesProibidos))]
     public async Task CriarResiduo_BloqueiaPar_Proibido(int classeA, int classeB, string nome)
@@ -138,7 +141,7 @@ public class MisturasAltoRiscoTests
         _residuosRepo.GetByIdAsync(2).Returns(r2);
 
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [1, 2]);
-        var act = () => _mtrs.CriarAsync(cmd, "u1", "gestor@resqui.local");
+        var act = () => _mtrs.CriarAsync(cmd, "u1", Gestor);
 
         await act.Should().ThrowAsync<ValidationException>()
             .WithMessage("*Proibido*");
@@ -153,7 +156,7 @@ public class MisturasAltoRiscoTests
         _residuosRepo.GetByIdAsync(2).Returns(r2);
 
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [1, 2]);
-        var act = () => _mtrs.CriarAsync(cmd, "u1", "gestor@resqui.local");
+        var act = () => _mtrs.CriarAsync(cmd, "u1", Gestor);
 
         await act.Should().ThrowAsync<ValidationException>()
             .WithMessage("*Proibido*");
@@ -169,7 +172,7 @@ public class MisturasAltoRiscoTests
         _residuosRepo.GetByIdAsync(2).Returns(r2);
 
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [1, 2]);
-        var dto = await _mtrs.CriarAsync(cmd, "u1", "gestor@resqui.local");
+        var dto = await _mtrs.CriarAsync(cmd, "u1", Gestor);
 
         // O par Perigo não bloqueou: o manifesto foi criado com os dois resíduos.
         // (O Numero fica nulo aqui porque quem o gera é o DEFAULT da coluna, não o serviço.)
@@ -191,7 +194,7 @@ public class MisturasAltoRiscoTests
         _residuosRepo.GetByIdAsync(2).Returns(r2);
 
         var cmd = new CriarMtrCmd("Unifei", "EcoLog", null, null, [1, 2]);
-        var act = () => _mtrs.CriarAsync(cmd, "u1", "gestor@resqui.local");
+        var act = () => _mtrs.CriarAsync(cmd, "u1", Gestor);
 
         await act.Should().ThrowAsync<ValidationException>($"o par {nome} é nível 3 na matriz")
             .WithMessage("*Proibido*");

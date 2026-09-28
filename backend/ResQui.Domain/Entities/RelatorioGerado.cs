@@ -9,4 +9,5 @@ public class RelatorioGerado
     public string? GeradoPorId { get; set; }
     public int TotalLinhas { get; set; }
     public string Formato { get; set; } = "csv";
+    public List<string>? LaboratorioIds { get; set; }
 }
