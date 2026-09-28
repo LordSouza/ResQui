@@ -45,7 +45,7 @@ test('Aluno vê leitura e solicitação de descarte, mas nenhuma ação de gest�
 
   await irPara(page, 'Inventário');
   await expect(page.getByRole('button', { name: /Novo reagente/i })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /Importar CSV/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Importar Excel/i })).toHaveCount(0);
 
   await irPara(page, 'Laboratórios');
   await expect(page.getByRole('button', { name: /Novo laboratório/i })).toHaveCount(0);
@@ -67,7 +67,7 @@ test('Professor alcança gestão, aprovação e supervisão', async ({ page, req
 
   await irPara(page, 'Inventário');
   await expect(page.getByRole('button', { name: /Novo reagente/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Importar CSV/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Importar Excel/i })).toBeVisible();
 
   await irPara(page, 'Manifestos');
   await expect(page.getByRole('button', { name: /Novo manifesto/i })).toBeVisible();

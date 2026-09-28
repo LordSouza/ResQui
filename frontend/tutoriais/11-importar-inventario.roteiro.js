@@ -2,7 +2,7 @@ import { test } from '@playwright/test';
 import { entrar, gravar, clicar, moverAte, pausa } from './gravador.js';
 import { PROFESSOR } from './preparacao.js';
 
-const PLANILHA_DE_EXEMPLO = new URL('./inventario-exemplo.csv', import.meta.url).pathname;
+const PLANILHA_DE_EXEMPLO = new URL('./inventario-exemplo.xlsx', import.meta.url).pathname;
 
 test('como importar o inventário por planilha', async ({ page }) => {
   await entrar(page, PROFESSOR);
@@ -10,7 +10,7 @@ test('como importar o inventário por planilha', async ({ page }) => {
   await gravar(page, '11-importar-inventario', async () => {
     await clicar(page, page.locator('.nav').getByRole('button', { name: 'Inventário' }).first());
     await pausa(page, 1500);
-    await clicar(page, page.getByRole('button', { name: 'Importar CSV' }));
+    await clicar(page, page.getByRole('button', { name: 'Importar Excel' }));
     await pausa(page, 1500);
 
     const seletorDeArquivo = page.waitForEvent('filechooser');

@@ -114,10 +114,10 @@ describe('InventarioScreen', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'openModal', kind: 'novoReagente' });
   });
 
-  it('dispatches openModal importarCsv when Importar CSV button is clicked', async () => {
+  it('dispatches openModal importarCsv when Importar Excel button is clicked', async () => {
     const dispatch = vi.fn();
     render(<InventarioScreen state={initialState} dispatch={dispatch} />, { wrapper });
-    await userEvent.click(screen.getByRole('button', { name: /Importar CSV/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Importar Excel/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: 'openModal', kind: 'importarCsv' });
   });
 
@@ -126,14 +126,14 @@ describe('InventarioScreen', () => {
     useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Aluno' } });
     render(<InventarioScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(screen.queryByRole('button', { name: /Novo reagente/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Importar CSV/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Importar Excel/i })).not.toBeInTheDocument();
   });
 
   it('mostra criar e importar para Professor', () => {
     useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
     render(<InventarioScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(screen.getByRole('button', { name: /Novo reagente/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Importar CSV/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Importar Excel/i })).toBeInTheDocument();
   });
 
   it('abre já filtrado por vencimento quando a navegação pede', async () => {
