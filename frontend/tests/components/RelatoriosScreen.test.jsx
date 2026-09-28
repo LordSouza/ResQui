@@ -96,4 +96,17 @@ describe('RelatoriosScreen', () => {
     render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
     expect(screen.getAllByRole('button', { name: /Gerar/i }).length).toBeGreaterThan(0);
   });
+
+  // PUT /api/pgrs-config exige Administracao: a configuração é global, e só o Admin a escreve.
+  it('esconde "Configurar PGRS" de Professor', () => {
+    useAuth.mockReturnValue({ user: { papel: 'Professor' } });
+    render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    expect(screen.queryByRole('button', { name: /Configurar PGRS/i })).not.toBeInTheDocument();
+  });
+
+  it('mostra "Configurar PGRS" para Admin', () => {
+    useAuth.mockReturnValue({ user: { papel: 'Admin' } });
+    render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+    expect(screen.getByRole('button', { name: /Configurar PGRS/i })).toBeInTheDocument();
+  });
 });

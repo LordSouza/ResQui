@@ -8,7 +8,7 @@ public static class Endpoints
     public static RouteGroupBuilder MapPgrsConfigEndpoints(this RouteGroupBuilder group)
     {
         // Expõe CNPJ, endereço e os contatos do responsável técnico. Consumidores: FormNovoMtr
-        // (MtrScreen, policy Operacao) e FormConfigurarPgrs (RelatoriosScreen, policy Cadastro).
+        // (MtrScreen, policy Operacao) e FormConfigurarPgrs (RelatoriosScreen, policy Administracao).
         group.MapGet("/", async (IPgrsConfigService svc) =>
             Results.Ok(await svc.ObterAsync()))
             .RequireAuthorization("Operacao");
@@ -25,7 +25,7 @@ public static class Endpoints
             var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
             return Results.Ok(await svc.SalvarAsync(cmd, email));
         })
-        .RequireAuthorization("Cadastro");
+        .RequireAuthorization("Administracao");
 
         return group;
     }

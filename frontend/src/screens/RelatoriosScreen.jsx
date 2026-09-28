@@ -17,8 +17,8 @@ export function RelatoriosScreen({ state, dispatch }) {
   const { data: historico = [], isPending, isError, refetch } = useRelatorios();
   const gerar = useGerarRelatorio();
   const { addToast } = useToast();
-  // PUT /api/pgrs-config e POST /api/relatorios/gerar exigem a policy Cadastro.
-  const podeConfigurar = usePode('Cadastro');
+  // PUT /api/pgrs-config exige Administracao; POST /api/relatorios/gerar, Cadastro.
+  const podeConfigurar = usePode('Administracao');
   const podeGerar = usePode('Cadastro');
 
   async function handleGerar(slug) {

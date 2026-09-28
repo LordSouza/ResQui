@@ -184,7 +184,7 @@ describe('CompatScreen — ações reais', () => {
     expect(addToast.mock.calls[0][0]).toMatch(/Professor ativo/);
   });
 
-  // "Editar regras" salva overrides (PUT/DELETE /api/compat/overrides), que exigem Cadastro —
+  // "Editar regras" salva overrides (PUT/DELETE /api/compat/overrides), que exigem Administracao —
   // policy mais estreita que a Operacional das duas ações da tela.
   it('esconde "Editar regras" de Aluno, que ainda vê as ações operacionais', () => {
     useAuth.mockReturnValue({ user: { id: 'u-9', papel: 'Aluno' } });
@@ -194,8 +194,14 @@ describe('CompatScreen — ações reais', () => {
     expect(screen.getByRole('button', { name: /Exportar matriz/i })).toBeInTheDocument();
   });
 
-  it('mostra "Editar regras" para Professor', () => {
+  it('esconde "Editar regras" de Professor', () => {
     useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor' } });
+    render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Editar regras/i })).toBeNull();
+  });
+
+  it('mostra "Editar regras" para Admin', () => {
+    useAuth.mockReturnValue({ user: { id: 'u-0', papel: 'Admin' } });
     render(<CompatScreen state={initialState} dispatch={vi.fn()} />);
     expect(screen.getByRole('button', { name: /Editar regras/i })).toBeInTheDocument();
   });

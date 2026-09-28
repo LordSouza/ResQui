@@ -452,6 +452,35 @@ test('pgrs-config exige Operacao: Aluno 403, Professor 200', async ({ request })
   expect(permitido.ok()).toBeTruthy();
 });
 
+test('configuração global só o Admin escreve: Professor recebe 403 no PGRS e nas regras da matriz', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `cfgprof_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Prof@1234', Papel: 'Professor', Nome: 'Cfg Prof', LaboratorioIds: await todosLaboratorios(request, auth) },
+  });
+  const { token } = await (await request.post('/api/auth/login', {
+    data: { Email: email, Senha: 'Prof@1234' },
+  })).json();
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const atual = await (await request.get('/api/pgrs-config', { headers })).json();
+  const pgrs = await request.put('/api/pgrs-config', {
+    headers,
+    data: { ...atual, AtualizadoEmEsperado: atual.atualizadoEm },
+  });
+  expect(pgrs.status()).toBe(403);
+
+  const salvar = await request.put('/api/compat/overrides/1/2', {
+    headers,
+    data: { Nivel: 0, Motivo: 'teste de permissão', Autor: 'Cfg Prof' },
+  });
+  expect(salvar.status()).toBe(403);
+  expect((await request.delete('/api/compat/overrides/1/2', { headers })).status()).toBe(403);
+
+  expect((await request.get('/api/compat/overrides', { headers })).ok()).toBeTruthy();
+});
+
 // O recorte de identificação existe para o resumo de segurança, aberto por qualquer papel: ele
 // libera razão social e unidade sem afrouxar o GET completo (CNPJ, endereço, contatos do RT).
 test('pgrs-config/identificacao é aberto a Aluno e não vaza os campos restritos', async ({ request }) => {
