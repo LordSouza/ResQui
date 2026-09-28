@@ -330,3 +330,31 @@ test('relatório sai recortado pelo escopo de quem gera, e só o autor e o Admin
   const historicoDoColega = await (await request.get('/api/relatorios', { headers: headersDoColega })).json();
   expect(historicoDoColega.map(r => r.id)).not.toContain(relatorio.id);
 });
+
+test('relatório de um laboratório escolhido traz só ele, e laboratório fora do escopo é recusado', async ({ request }) => {
+  const adminAuth = await apiAuth(request);
+  const [primeiro, segundo] = await doisLaboratorios(request, adminAuth);
+  const terceiro = await (await request.post('/api/laboratorios', {
+    headers: adminAuth,
+    data: { Nome: `Lab Fora ${Date.now()}`, Responsavel: 'Playwright', Sala: 'S-03', Armarios: [], Cor: '#22c55e' },
+  })).json();
+  const professor = await criarUsuario(request, adminAuth, 'Professor', [primeiro.id, segundo.id]);
+  const headers = await professor.autenticar();
+  const sufixo = Date.now();
+  const reagenteBase = { Cas: '64-17-5', Formula: 'C2H6O', ClasseReatividade: 5, Estoque: 5, Unidade: 'L', Controlado: false };
+  await request.post('/api/reagentes', { headers: adminAuth, data: { ...reagenteBase, Nome: `Do primeiro ${sufixo}`, LaboratorioId: primeiro.id, Armario: primeiro.armarios?.[0] ?? '' } });
+  await request.post('/api/reagentes', { headers: adminAuth, data: { ...reagenteBase, Nome: `Do segundo ${sufixo}`, LaboratorioId: segundo.id, Armario: '' } });
+
+  const relatorio = await (await request.post('/api/relatorios/gerar', {
+    headers, data: { Tipo: 'inventario', LaboratorioIds: [segundo.id] },
+  })).json();
+  expect(relatorio.laboratorioIds).toEqual([segundo.id]);
+  const csv = await (await request.get(`/api/relatorios/${relatorio.id}/download`, { headers })).text();
+  expect(csv).toContain(`Do segundo ${sufixo}`);
+  expect(csv).not.toContain(`Do primeiro ${sufixo}`);
+
+  const recusado = await request.post('/api/relatorios/gerar', {
+    headers, data: { Tipo: 'inventario', LaboratorioIds: [terceiro.id] },
+  });
+  expect(recusado.status()).toBe(400);
+});

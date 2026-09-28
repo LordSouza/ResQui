@@ -425,4 +425,64 @@ public class RelatoriosServiceTests
 
         csv.Should().NotContain("Metanol do Lab 2");
     }
+
+    private static readonly Solicitante ProfessorDeDoisLabs = new("prof-2", "prof2@resqui.local", "Professor", ["Lab-001", "Lab-002"]);
+
+    [Fact]
+    public async Task GerarAsync_ComLaboratorioEscolhido_GravaSoEle()
+    {
+        _reagentesRepo.GetAllAsync().Returns([]);
+        _labsRepo.GetAllAsync().Returns([FakeLab("Lab-001"), FakeLab("Lab-002")]);
+
+        var dto = await _sut.GerarAsync(new GerarRelatorioCmd("inventario", ["Lab-002"]), "prof-2", ProfessorDeDoisLabs);
+
+        await _repo.Received(1).AddAsync(Arg.Is<RelatorioGerado>(r => r.LaboratorioIds!.SequenceEqual(new[] { "Lab-002" })));
+        dto.LaboratorioIds.Should().Equal("Lab-002");
+    }
+
+    [Fact]
+    public async Task GerarAsync_LaboratorioForaDoEscopo_LancaValidationException()
+    {
+        _labsRepo.GetAllAsync().Returns([FakeLab("Lab-001"), FakeLab("Lab-002")]);
+
+        var act = () => _sut.GerarAsync(new GerarRelatorioCmd("inventario", ["Lab-002"]), "prof-1", ProfessorDoLab1);
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-002*");
+        await _repo.DidNotReceive().AddAsync(Arg.Any<RelatorioGerado>());
+    }
+
+    [Fact]
+    public async Task GerarAsync_LaboratorioInexistente_LancaValidationException()
+    {
+        _labsRepo.GetAllAsync().Returns([FakeLab("Lab-001")]);
+
+        var act = () => _sut.GerarAsync(new GerarRelatorioCmd("inventario", ["Lab-404"]), "adm", Admin);
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-404*");
+    }
+
+    [Fact]
+    public async Task GerarAsync_AdminEscolheLaboratorio_GravaRecorteEmVezDeInstitucional()
+    {
+        _reagentesRepo.GetAllAsync().Returns([]);
+        _labsRepo.GetAllAsync().Returns([FakeLab("Lab-001"), FakeLab("Lab-002")]);
+
+        await _sut.GerarAsync(new GerarRelatorioCmd("inventario", ["Lab-001"]), "adm", Admin);
+
+        await _repo.Received(1).AddAsync(Arg.Is<RelatorioGerado>(r => r.LaboratorioIds!.SequenceEqual(new[] { "Lab-001" })));
+    }
+
+    [Fact]
+    public async Task ListarAsync_ExpoeORecorteDeCadaRelatorio()
+    {
+        var institucional = FakeRelatorio(1);
+        var recortado = FakeRelatorio(2);
+        recortado.LaboratorioIds = ["Lab-001"];
+        _repo.GetAllAsync().Returns([institucional, recortado]);
+
+        var lista = (await _sut.ListarAsync(Admin)).ToList();
+
+        lista[0].LaboratorioIds.Should().BeNull();
+        lista[1].LaboratorioIds.Should().Equal("Lab-001");
+    }
 }

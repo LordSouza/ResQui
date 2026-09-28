@@ -3,7 +3,9 @@ import { useToast } from '../components/ToastContext';
 import { useRelatorios } from '../relatorios/useRelatorios';
 import { useGerarRelatorio } from '../relatorios/useGerarRelatorio';
 import { downloadRelatorio } from '../relatorios/downloadRelatorio';
+import { useState } from 'react';
 import { usePode } from '../auth/permissoes';
+import { useLaboratoriosDoUsuario } from '../laboratorios/useLaboratoriosDoUsuario';
 
 const TIPOS = [
   { slug: 'pgrs',           titulo: 'PGRS Anual',                  desc: 'Exportação completa do PGRS (todos os tipos)' },
@@ -13,6 +15,14 @@ const TIPOS = [
   { slug: 'indicadores',    titulo: 'Indicadores de geração',       desc: 'Volume (L) por mês e por laboratório' },
 ];
 
+function descreverRecorte(laboratorioIds, nomePorLaboratorio, geraInstitucional) {
+  if (!laboratorioIds) return geraInstitucional ? 'Institucional' : 'Seus laboratórios';
+  const nomes = laboratorioIds.filter(id => nomePorLaboratorio[id]).map(id => nomePorLaboratorio[id]);
+  const deOutros = laboratorioIds.length - nomes.length;
+  const outros = deOutros === 0 ? [] : [deOutros === 1 ? '1 outro laboratório' : `${deOutros} outros laboratórios`];
+  return [...nomes, ...outros].join(', ');
+}
+
 export function RelatoriosScreen({ state, dispatch }) {
   const { data: historico = [], isPending, isError, refetch } = useRelatorios();
   const gerar = useGerarRelatorio();
@@ -21,10 +31,16 @@ export function RelatoriosScreen({ state, dispatch }) {
   const podeConfigurar = usePode('Administracao');
   const podeGerar = usePode('Cadastro');
   const geraInstitucional = usePode('Administracao');
+  const { laboratorios } = useLaboratoriosDoUsuario();
+  const nomePorLaboratorio = Object.fromEntries(laboratorios.map(l => [l.id, l.nome]));
+  const [laboratorioEscolhido, setLaboratorioEscolhido] = useState('');
 
   async function handleGerar(slug) {
     try {
-      const novo = await gerar.mutateAsync({ Tipo: slug });
+      const novo = await gerar.mutateAsync({
+        Tipo: slug,
+        ...(laboratorioEscolhido && { LaboratorioIds: [laboratorioEscolhido] }),
+      });
       await downloadRelatorio(novo.id, novo.titulo);
     } catch (e) {
       addToast(e.message, 'error');
@@ -42,11 +58,19 @@ export function RelatoriosScreen({ state, dispatch }) {
               : 'documentos com os dados dos laboratórios pelos quais você responde'}
           </p>
         </div>
-        {podeConfigurar && (
+        {(podeGerar || podeConfigurar) && (
           <div className="page-actions">
+            {podeGerar && (
+              <select aria-label="Recorte do relatório" value={laboratorioEscolhido} onChange={e => setLaboratorioEscolhido(e.target.value)}>
+                <option value="">{geraInstitucional ? 'Institucional (todos os laboratórios)' : 'Todos os meus laboratórios'}</option>
+                {laboratorios.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+              </select>
+            )}
+            {podeConfigurar && (
             <button type="button" className="btn btn-sm" onClick={() => dispatch({ type: 'openModal', kind: 'configurarPgrs' })}>
               <Icon name="settings" size={12} /> Configurar PGRS
             </button>
+            )}
           </div>
         )}
       </div>
@@ -101,6 +125,7 @@ export function RelatoriosScreen({ state, dispatch }) {
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '8px 14px', textAlign: 'left' }}>Título</th>
                 <th style={{ padding: '8px 14px', textAlign: 'left' }}>Tipo</th>
+                <th style={{ padding: '8px 14px', textAlign: 'left' }}>Recorte</th>
                 <th style={{ padding: '8px 14px', textAlign: 'right' }}>Linhas</th>
                 <th style={{ padding: '8px 14px', textAlign: 'left' }}>Gerado em</th>
                 <th style={{ padding: '8px 14px' }} />
@@ -111,6 +136,7 @@ export function RelatoriosScreen({ state, dispatch }) {
                 <tr key={r.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '8px 14px' }}>{r.titulo}</td>
                   <td style={{ padding: '8px 14px' }}><Badge kind="blue">{r.tipo}</Badge></td>
+                  <td style={{ padding: '8px 14px' }} className="small">{descreverRecorte(r.laboratorioIds, nomePorLaboratorio, geraInstitucional)}</td>
                   <td style={{ padding: '8px 14px', textAlign: 'right' }} className="mono">{r.totalLinhas}</td>
                   <td style={{ padding: '8px 14px' }} className="small muted">
                     {new Date(r.geradoEm).toLocaleDateString('pt-BR')}
