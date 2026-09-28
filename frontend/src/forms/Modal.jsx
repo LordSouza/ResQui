@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Icon } from '../components';
+import { urlDoTutorial } from '../lib/tutoriais';
 
 const SELETOR_FOCAVEL = [
   'a[href]', 'button:not([disabled])', 'input:not([disabled])', 'select:not([disabled])',
@@ -43,7 +44,7 @@ function manterFocoDentro(evento, dialogo) {
   }
 }
 
-export default function Modal({ title, sub, onClose, children, width = 560, footer }) {
+export default function Modal({ title, sub, onClose, children, width = 560, footer, tutorial }) {
   const dialogoRef = useRef(null);
   const alterado = useRef(false);
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
@@ -87,7 +88,14 @@ export default function Modal({ title, sub, onClose, children, width = 560, foot
             <div className="modal-title" id={tituloId}>{title}</div>
             {sub && <div className="modal-sub" id={subtituloId}>{sub}</div>}
           </div>
-          <button type="button" className="close" aria-label="Fechar janela" onClick={onClose}><Icon name="close" size={16}/></button>
+          <div className="modal-h-acoes">
+            {tutorial && (
+              <a className="modal-tutorial" href={urlDoTutorial(tutorial)} target="_blank" rel="noopener noreferrer">
+                <Icon name="book" size={13}/> Ver tutorial
+              </a>
+            )}
+            <button type="button" className="close" aria-label="Fechar janela" onClick={onClose}><Icon name="close" size={16}/></button>
+          </div>
         </div>
         <div className="modal-body">{children}</div>
         {confirmandoDescarte && (

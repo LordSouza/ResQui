@@ -44,7 +44,7 @@ export function FormNovoLab({ onClose, dispatch }) {
   };
 
   return (
-    <Modal title="Novo laboratório" sub="Cadastro de unidade física"
+    <Modal tutorial="novoLab" title="Novo laboratório" sub="Cadastro de unidade física"
       onClose={onClose} width={520}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>

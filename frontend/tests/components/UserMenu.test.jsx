@@ -46,13 +46,15 @@ describe('UserMenu — identidade real', () => {
     expect(screen.queryByText('2FA ativo')).toBeNull();
   });
 
-  it('não oferece ajuda que o app não tem — sem reportar problema, documentação ou atalhos', async () => {
+  it('oferece os tutoriais do blog como única ajuda, numa nova aba', async () => {
     const user = { nome: 'Ana Lima', email: 'ana@x.com', papel: 'Professor' };
     render(<UserMenu user={user} onLogout={vi.fn()} dispatch={vi.fn()}/>, { wrapper });
 
     await userEvent.click(screen.getByLabelText('Conta e preferências'));
 
-    expect(screen.queryByText('Ajuda')).toBeNull();
+    const tutoriais = screen.getByRole('link', { name: /Tutoriais/ });
+    expect(tutoriais).toHaveAttribute('href', '/blog/');
+    expect(tutoriais).toHaveAttribute('target', '_blank');
     expect(screen.queryByText('Reportar problema')).toBeNull();
     expect(screen.queryByText('Documentação')).toBeNull();
     expect(screen.queryByText('Atalhos de teclado')).toBeNull();

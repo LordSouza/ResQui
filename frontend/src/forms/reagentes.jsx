@@ -76,7 +76,7 @@ export function FormNovoReagente({ onClose, dispatch }) {
   };
 
   return (
-    <Modal title="Novo reagente" sub="Cadastro com identificação química e classificação GHS"
+    <Modal tutorial="novoReagente" title="Novo reagente" sub="Cadastro com identificação química e classificação GHS"
       onClose={onClose} width={680}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -209,7 +209,7 @@ export function FormBaixa({ reagente, onClose, dispatch, quantidadeInicial }) {
     });
   };
   return (
-    <Modal title="Baixa de consumo" sub={`${reagente.nome} · ${reagente.id} · estoque atual ${reagente.estoque} ${reagente.unidade}`}
+    <Modal tutorial="baixa" title="Baixa de consumo" sub={`${reagente.nome} · ${reagente.id} · estoque atual ${reagente.estoque} ${reagente.unidade}`}
       onClose={onClose} width={460}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -267,7 +267,7 @@ export function FormBaixaLote({ reagente, lote, onClose }) {
     baixaLote.mutate({ loteId: lote.id, quantidade: n }, { onSuccess: onClose });
   };
   return (
-    <Modal title={`Baixa no lote ${lote.codigo}`} sub={`${reagente.nome} · disponível ${lote.estoque} ${reagente.unidade}`}
+    <Modal tutorial="baixaLote" title={`Baixa no lote ${lote.codigo}`} sub={`${reagente.nome} · disponível ${lote.estoque} ${reagente.unidade}`}
       onClose={onClose} width={420}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -339,7 +339,7 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
     });
   };
   return (
-    <Modal title="Transferir reagente" sub={`${reagente.nome} · ${reagente.id}`}
+    <Modal tutorial="transferirReagente" title="Transferir reagente" sub={`${reagente.nome} · ${reagente.id}`}
       onClose={onClose} width={460}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -410,7 +410,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
   // —————————— STEP: pick ——————————
   if (step === 'pick') {
     return (
-      <Modal title="Importar inventário em lote" sub="Carregue um CSV/TSV exportado de planilha (Excel, Google Sheets)"
+      <Modal tutorial="importarCsv" title="Importar inventário em lote" sub="Carregue um CSV/TSV exportado de planilha (Excel, Google Sheets)"
         onClose={onClose} width={620}
         footer={<button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>}>
         <button
@@ -455,7 +455,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
   // —————————— STEP: review ——————————
   if (step === 'review') {
     return (
-      <Modal title="Revisar importação" sub={fileName}
+      <Modal tutorial="importarCsv" title="Revisar importação" sub={fileName}
         onClose={onClose} width={720}
         footer={<>
           <button type="button" className="btn btn-sm" onClick={() => setStep('pick')}>Voltar</button>

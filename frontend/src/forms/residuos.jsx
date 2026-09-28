@@ -203,7 +203,7 @@ export function FormNovoResiduo({ onClose, dispatch, inicial = null }) {
   };
 
   return (
-    <Modal title="Registrar resíduo" sub="A solicitação segue para aprovação antes da coleta"
+    <Modal tutorial="novoResiduo" title="Registrar resíduo" sub="A solicitação segue para aprovação antes da coleta"
       onClose={onClose} width={620}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -351,7 +351,7 @@ export function ConfirmRejeitarResiduo({ residuo, onClose, dispatch }) {
     );
   };
   return (
-    <Modal title="Rejeitar descarte" sub={`Resíduo #${residuo.id} · ${residuo.tipo}`} onClose={onClose} width={480}
+    <Modal tutorial="rejeitarResiduo" title="Rejeitar descarte" sub={`Resíduo #${residuo.id} · ${residuo.tipo}`} onClose={onClose} width={480}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
         <button type="button" className="btn btn-danger btn-sm" onClick={submit}
@@ -426,7 +426,7 @@ export function FormNovoMtr({ onClose, dispatch }) {
   };
 
   return (
-    <Modal title="Novo manifesto" sub="Consolida resíduos aprovados para transporte e destinação"
+    <Modal tutorial="novoMtr" title="Novo manifesto" sub="Consolida resíduos aprovados para transporte e destinação"
       onClose={onClose} width={680}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -658,7 +658,7 @@ export function FormConfirmarDestinacao({ mtr, residuos, onClose }) {
   const submit = () => confirmar.mutate({ id: mtr.id, data }, { onSuccess: onClose });
 
   return (
-    <Modal title="Confirmar destinação" sub={`${mtr.numero} · encerra os resíduos deste manifesto`}
+    <Modal tutorial="confirmarDestinacao" title="Confirmar destinação" sub={`${mtr.numero} · encerra os resíduos deste manifesto`}
       onClose={onClose} width={460}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
@@ -740,7 +740,7 @@ export function FormConfigurarPgrs({ onClose }) {
   };
 
   return (
-    <Modal title="Configurar PGRS" sub="Dados institucionais usados no relatório PGRS e como padrão do novo manifesto"
+    <Modal tutorial="configurarPgrs" title="Configurar PGRS" sub="Dados institucionais usados no relatório PGRS e como padrão do novo manifesto"
       onClose={onClose} width={680}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>

@@ -11,6 +11,7 @@ import { pgrsTs, exportCsv, iniciaisUsuario } from './utils';
 import { Icon, Badge, Tag, Picto, SectionTitle, Empty, validadeBadge, riscoBadge, residuoStatusBadge } from './components';
 import { reducer, initialState } from './store/reducer';
 import { useAtalhosGlobais } from './lib/useAtalhosGlobais';
+import { URL_DO_BLOG } from './lib/tutoriais';
 
 import { DashboardScreen } from './screens/DashboardScreen';
 import { InventarioScreen } from './screens/InventarioScreen';
@@ -120,6 +121,10 @@ export function UserMenu({ user, onLogout, dispatch }) {
             <UmItem icon="bell" label="Notificações por e-mail" hint="Vencimento · MTR · Estoque" onClick={() => openModal('notificacoes')}/>
           </UmGroup>
 
+          <UmGroup label="Ajuda">
+            <UmItem icon="book" label="Tutoriais" hint="Vídeos passo a passo" href={URL_DO_BLOG} onClick={() => setOpen(false)}/>
+          </UmGroup>
+
           {/* Versão */}
           <div style={{padding: '6px 12px', fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--mono)'}}>
             ResQui v{__APP_VERSION__}
@@ -147,17 +152,25 @@ function UmGroup({ label, children }) {
     </div>
   );
 }
-function UmItem({ icon, label, hint, badge, onClick }) {
-  return (
-    <button type="button" style={umItemStyle} onClick={onClick}>
+function UmItem({ icon, label, hint, badge, onClick, href }) {
+  const conteudo = (
+    <>
       <Icon name={icon} size={13}/>
       <span style={{flex: 1, textAlign: 'left'}}>
         <div style={{fontSize: 12, color: 'var(--text)'}}>{label}</div>
         {hint && <div style={{fontSize: 12, color: 'var(--text-3)', marginTop: 1}}>{hint}</div>}
       </span>
       {badge && <span style={umBadge}>{badge}</span>}
-    </button>
+    </>
   );
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" style={{...umItemStyle, textDecoration: 'none'}} onClick={onClick}>
+        {conteudo}
+      </a>
+    );
+  }
+  return <button type="button" style={umItemStyle} onClick={onClick}>{conteudo}</button>;
 }
 const umItemStyle = {
   display: 'flex', alignItems: 'center', gap: 10, width: '100%',
