@@ -662,4 +662,33 @@ public class ReagentesServiceTests
         result.Importados.Should().Be(1);
         result.Erros.Should().ContainSingle(e => e.Indice == 1 && e.Motivo.Contains("Lab-002"));
     }
+
+    [Fact]
+    public async Task AtualizarAsync_ArmarioRemovidoDoLaboratorio_NaoImpedeEditarOsDemaisCampos()
+    {
+        var r = FakeReagente("R-001");
+        r.Armario = "Armário Desativado";
+        _repo.GetByIdAsync("R-001").Returns(r);
+
+        var atualizado = await _sut.AtualizarAsync("R-001",
+            new AtualizarReagenteCmd("Novo nome", 1m, null, "Lab-001", "Armário Desativado", null), Quem("ana@lab.com"));
+
+        atualizado!.Nome.Should().Be("Novo nome");
+        atualizado.Local.Should().Be("Química · Armário Desativado");
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ReagenteSemLaboratorio_ExigeEscolherUm()
+    {
+        var r = FakeReagente("R-001");
+        r.LaboratorioId = null;
+        r.Laboratorio = null;
+        r.Armario = "texto antigo";
+        _repo.GetByIdAsync("R-001").Returns(r);
+
+        var act = () => _sut.AtualizarAsync("R-001",
+            new AtualizarReagenteCmd("Nome", 1m, null, null, "texto antigo", null), Admin);
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*Laboratório*");
+    }
 }

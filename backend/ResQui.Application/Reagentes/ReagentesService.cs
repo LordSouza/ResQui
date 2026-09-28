@@ -213,7 +213,9 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
 
         var r = await CarregarAsync(id, solicitante);
         if (r is null) return null;
-        var (laboratorio, armario) = await ResolverLocalAsync(cmd.LaboratorioId, cmd.Armario, solicitante);
+        var (laboratorio, armario) = MantemOLocal(r, cmd.LaboratorioId, cmd.Armario)
+            ? (r.Laboratorio!, r.Armario)
+            : await ResolverLocalAsync(cmd.LaboratorioId, cmd.Armario, solicitante);
         r.Nome = cmd.Nome; r.Estoque = cmd.Estoque; r.EstoqueMin = cmd.EstoqueMin;
         r.LaboratorioId = laboratorio.Id; r.Laboratorio = laboratorio; r.Armario = armario;
         if (ParseValidade(cmd.Validade) is { } validade) r.Validade = validade;
@@ -279,6 +281,9 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             throw new AcessoNegadoException($"O reagente {id} é de um laboratório pelo qual você não responde.");
         return r;
     }
+
+    private static bool MantemOLocal(Reagente r, string? laboratorioId, string? armario) =>
+        r.Laboratorio is not null && r.LaboratorioId == laboratorioId && r.Armario == (armario ?? "").Trim();
 
     private async Task<(Laboratorio Laboratorio, string Armario)> ResolverLocalAsync(
         string? laboratorioId, string? armario, Solicitante solicitante)
