@@ -1,0 +1,12 @@
+{
+  "name": "resqui-blog",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node gerar.js",
+    "videos": "node copiar-videos.js"
+  },
+  "dependencies": {
+    "marked": "^18.0.14"
+  }
+}
