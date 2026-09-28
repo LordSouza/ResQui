@@ -110,3 +110,64 @@ describe('RelatoriosScreen', () => {
     expect(screen.getByRole('button', { name: /Configurar PGRS/i })).toBeInTheDocument();
   });
 });
+
+describe('RelatoriosScreen — recorte por laboratório', () => {
+  const LABS = [{ id: 'Lab-001', nome: 'Química Geral' }, { id: 'Lab-002', nome: 'Físico-Química' }];
+  const HISTORICO = [
+    { id: 1, tipo: 'inventario', titulo: 'Inventário de reagentes', geradoEm: '2026-09-28T00:00:00Z', totalLinhas: 3, laboratorioIds: null },
+    { id: 2, tipo: 'inventario', titulo: 'Inventário de reagentes', geradoEm: '2026-09-28T00:00:00Z', totalLinhas: 1, laboratorioIds: ['Lab-001', 'Lab-009'] },
+  ];
+
+  beforeEach(() => {
+    useToast.mockReturnValue({ addToast: vi.fn() });
+    global.URL.createObjectURL = vi.fn(() => 'blob:test');
+    vi.stubGlobal('localStorage', {
+      data: {}, setItem(k, v) { this.data[k] = String(v); },
+      getItem(k) { return this.data[k] ?? null; },
+      removeItem(k) { delete this.data[k]; }, clear() { this.data = {}; },
+    });
+    vi.stubGlobal('fetch', vi.fn((url, opts) => {
+      const u = String(url);
+      if (opts?.method === 'POST') return Promise.resolve({ ok: true, json: async () => ({ id: 9, titulo: 'Inventário de reagentes' }) });
+      if (u.startsWith('/api/laboratorios')) return Promise.resolve({ ok: true, json: async () => LABS });
+      if (u.includes('/download')) return Promise.resolve({ ok: true, blob: async () => new Blob(['x']) });
+      return Promise.resolve({ ok: true, json: async () => HISTORICO });
+    }));
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('envia o laboratório escolhido ao gerar', async () => {
+    useAuth.mockReturnValue({ user: { papel: 'Professor', laboratorioIds: ['Lab-001', 'Lab-002'] } });
+    render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+
+    await screen.findByRole('option', { name: 'Físico-Química' });
+    fireEvent.change(screen.getByLabelText('Recorte do relatório'), { target: { value: 'Lab-002' } });
+    fireEvent.click(screen.getAllByRole('button', { name: /Gerar/i })[0]);
+
+    await waitFor(() => expect(fetch.mock.calls.some(c => c[1]?.method === 'POST')).toBe(true));
+    const post = fetch.mock.calls.find(c => c[1]?.method === 'POST');
+    expect(JSON.parse(post[1].body)).toEqual({ Tipo: 'pgrs', LaboratorioIds: ['Lab-002'] });
+  });
+
+  it('sem escolha não envia laboratórios, e o Professor vê a opção de todos os seus', async () => {
+    useAuth.mockReturnValue({ user: { papel: 'Professor', laboratorioIds: ['Lab-001'] } });
+    render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+
+    expect(screen.getByRole('option', { name: 'Todos os meus laboratórios' })).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: /Gerar/i })[0]);
+
+    await waitFor(() => expect(fetch.mock.calls.some(c => c[1]?.method === 'POST')).toBe(true));
+    const post = fetch.mock.calls.find(c => c[1]?.method === 'POST');
+    expect(JSON.parse(post[1].body)).toEqual({ Tipo: 'pgrs' });
+  });
+
+  it('o histórico do Admin mostra se cada relatório é institucional ou de quais laboratórios', async () => {
+    useAuth.mockReturnValue({ user: { papel: 'Admin' } });
+    render(<RelatoriosScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
+
+    expect(screen.getByRole('option', { name: 'Institucional (todos os laboratórios)' })).toBeInTheDocument();
+    expect(await screen.findByText('Institucional')).toBeInTheDocument();
+    expect(await screen.findByText('Química Geral, 1 outro laboratório')).toBeInTheDocument();
+  });
+});
+

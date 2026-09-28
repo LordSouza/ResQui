@@ -34,7 +34,9 @@ public class RelatoriosService(
     {
         if (cmd.Tipo is null || !Titulos.TryGetValue(cmd.Tipo, out var titulo))
             throw new ValidationException($"Tipo de relatório desconhecido: {cmd.Tipo}.");
-        var recorte = RecorteDeLaboratorios.De(solicitante);
+        var recorte = cmd.LaboratorioIds is { Count: > 0 } escolhidos
+            ? await RecorteEscolhidoAsync(escolhidos, solicitante)
+            : RecorteDeLaboratorios.De(solicitante);
         var (csv, totalLinhas) = await GerarCsvAsync(cmd.Tipo, recorte);
 
         var r = new RelatorioGerado
@@ -246,6 +248,18 @@ public class RelatoriosService(
     // Helpers
     // ---------------------------------------------------------------
 
+    private async Task<RecorteDeLaboratorios> RecorteEscolhidoAsync(IEnumerable<string> escolhidos, Solicitante solicitante)
+    {
+        var existentes = (await laboratoriosRepo.GetAllAsync()).Select(l => l.Id).ToHashSet();
+        var laboratorioIds = escolhidos.Distinct().ToList();
+        foreach (var id in laboratorioIds)
+        {
+            if (!existentes.Contains(id)) throw new ValidationException($"Laboratório {id} não encontrado.");
+            if (!solicitante.Responde(id)) throw new ValidationException($"Você não responde pelo laboratório {id}.");
+        }
+        return new RecorteDeLaboratorios(laboratorioIds);
+    }
+
     private async Task<Dictionary<string, string>> BuildLabDictAsync()
     {
         var labs = await laboratoriosRepo.GetAllAsync();
@@ -261,5 +275,5 @@ public class RelatoriosService(
     }
 
     private static RelatorioGeradoDto ToDto(RelatorioGerado r) =>
-        new(r.Id, r.Tipo, r.Titulo, r.GeradoEm, r.GeradoPorId, r.TotalLinhas, r.Formato);
+        new(r.Id, r.Tipo, r.Titulo, r.GeradoEm, r.GeradoPorId, r.TotalLinhas, r.Formato, r.LaboratorioIds);
 }
