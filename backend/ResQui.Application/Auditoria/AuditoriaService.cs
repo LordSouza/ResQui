@@ -31,7 +31,7 @@ public class AuditoriaService(IAuditoriaRepository repo) : IAuditoriaService
         var entries = await repo.BuscarAsync(
             filtro.From is { } de ? ComoUtc(de) : null,
             filtro.To is { } ate ? ComoUtc(ate.Date.AddDays(1)) : null,
-            risco, filtro.Who, filtro.What, filtro.Where, filtro.Detail, filtro.Limite);
+            risco, filtro.Who, filtro.What, filtro.Where, filtro.Detail, filtro.Limite, filtro.Autores);
 
         return entries.Select(e => new AuditoriaItemDto(
             e.Id, e.Timestamp, e.Who, e.What, e.Where, e.Detail,

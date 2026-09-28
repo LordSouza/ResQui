@@ -16,11 +16,15 @@ public class ReagentesServiceTests
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly IPdfService _pdf = Substitute.For<IPdfService>();
     private readonly IReagenteLotesRepository _lotes = Substitute.For<IReagenteLotesRepository>();
+    private readonly IAuthRepository _auth = Substitute.For<IAuthRepository>();
+    private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
     private readonly ReagentesService _sut;
+
+    private static readonly Solicitante Admin = new("adm", "admin@lab.com", "Admin", []);
 
     public ReagentesServiceTests()
     {
-        _sut = new ReagentesService(_repo, _audit, _pdf, _lotes);
+        _sut = new ReagentesService(_repo, _audit, _pdf, _lotes, new VisibilidadeUsuarios(_auth, _usuarioLabs));
     }
 
     private static Reagente FakeReagente(string id = "R-001") => new()
@@ -41,7 +45,7 @@ public class ReagentesServiceTests
             new ResQui.Application.Auditoria.AuditoriaItemDto(Guid.NewGuid(), DateTime.UtcNow, "ana", "reagente.baixa", "Inventário", "Baixa de 1 L (reagente R-001)", "medium"),
         });
 
-        var movs = await _sut.ListarMovimentacoesAsync("R-001", 20);
+        var movs = await _sut.ListarMovimentacoesAsync("R-001", Admin, 20);
 
         movs.Should().NotBeNull();
         movs!.Should().ContainSingle();
@@ -53,7 +57,29 @@ public class ReagentesServiceTests
     public async Task ListarMovimentacoes_ReagenteInexistente_RetornaNull()
     {
         _repo.GetByIdAsync("R-404").Returns((Reagente?)null);
-        (await _sut.ListarMovimentacoesAsync("R-404")).Should().BeNull();
+        (await _sut.ListarMovimentacoesAsync("R-404", Admin)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ListarMovimentacoes_MascaraOAutorDeOutroLaboratorio_SemEsconderAMovimentacao()
+    {
+        _repo.GetByIdAsync("R-001").Returns(FakeReagente("R-001"));
+        _audit.ListarAsync(Arg.Any<ResQui.Application.Auditoria.AuditoriaFiltroDto>()).Returns(new[]
+        {
+            new ResQui.Application.Auditoria.AuditoriaItemDto(Guid.NewGuid(), DateTime.UtcNow, "colega@lab.com", "reagente.baixa", "Inventário", "Baixa (reagente R-001)", "medium"),
+            new ResQui.Application.Auditoria.AuditoriaItemDto(Guid.NewGuid(), DateTime.UtcNow, "estranho@lab.com", "reagente.baixa", "Inventário", "Baixa (reagente R-001)", "medium"),
+        });
+        _auth.FindByEmailIncluindoArquivadosAsync("colega@lab.com").Returns(
+            new UsuarioInfo("u-1", "colega@lab.com", "Colega", null, "Aluno", [], false));
+        _auth.FindByEmailIncluindoArquivadosAsync("estranho@lab.com").Returns(
+            new UsuarioInfo("u-2", "estranho@lab.com", "Estranho", null, "Aluno", [], false));
+        _usuarioLabs.DoUsuarioAsync("u-1").Returns(new List<string> { "Lab-001" });
+        _usuarioLabs.DoUsuarioAsync("u-2").Returns(new List<string> { "Lab-002" });
+        var professor = new Solicitante("prof-1", "prof@lab.com", "Professor", ["Lab-001"]);
+
+        var movs = (await _sut.ListarMovimentacoesAsync("R-001", professor))!.ToList();
+
+        movs.Select(m => m.Who).Should().Equal("colega@lab.com", ReagentesService.AutorDeOutroLaboratorio);
     }
 
     [Fact]

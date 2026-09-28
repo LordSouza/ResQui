@@ -548,9 +548,10 @@ test('Professor confirma e reabre a destinação do manifesto', async ({ request
 test('Professor cria Aluno mas não cria outro Professor', async ({ request }) => {
   const auth = await apiAuth(request);
   const email = `prof_gate_${Date.now()}@resqui.local`;
+  const laboratorioIds = await todosLaboratorios(request, auth);
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Gate E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
+    data: { Email: email, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Gate E2E', LaboratorioIds: laboratorioIds },
   });
   const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Prof@123' } });
   const { token } = await login.json();
@@ -558,7 +559,7 @@ test('Professor cria Aluno mas não cria outro Professor', async ({ request }) =
 
   const aluno = await request.post('/api/auth/register', {
     headers: profAuth,
-    data: { Email: `aluno_gate_${Date.now()}@resqui.local`, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Gate' },
+    data: { Email: `aluno_gate_${Date.now()}@resqui.local`, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Gate', LaboratorioIds: laboratorioIds },
   });
   expect(aluno.ok()).toBeTruthy();
 
@@ -580,13 +581,14 @@ test('Professor arquiva Aluno mas não arquiva colega Professor', async ({ reque
   const auth = await apiAuth(request);
   const base = Date.now();
   const profEmail = `prof_arq_${base}@resqui.local`;
+  const laboratorioIds = await todosLaboratorios(request, auth);
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: profEmail, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Arq', LaboratorioIds: await todosLaboratorios(request, auth) },
+    data: { Email: profEmail, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Prof Arq', LaboratorioIds: laboratorioIds },
   });
   const colegaRes = await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: `colega_arq_${base}@resqui.local`, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Colega Arq' },
+    data: { Email: `colega_arq_${base}@resqui.local`, Senha: 'Prof@123', Papel: 'Professor', Nome: 'Colega Arq', LaboratorioIds: laboratorioIds },
   });
   const colega = await colegaRes.json();
 
@@ -596,7 +598,7 @@ test('Professor arquiva Aluno mas não arquiva colega Professor', async ({ reque
 
   const alunoRes = await request.post('/api/auth/register', {
     headers: profAuth,
-    data: { Email: `aluno_arq_${base}@resqui.local`, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Arq' },
+    data: { Email: `aluno_arq_${base}@resqui.local`, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Arq', LaboratorioIds: laboratorioIds },
   });
   const aluno = await alunoRes.json();
 

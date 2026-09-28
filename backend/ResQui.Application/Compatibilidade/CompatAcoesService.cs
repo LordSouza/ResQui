@@ -14,7 +14,8 @@ public class CompatAcoesService(
     ICompatService compat,
     IAuditoriaService auditoria,
     INotificacoesService notificacoes,
-    IAuthRepository auth) : ICompatAcoesService
+    IAuthRepository auth,
+    IVisibilidadeUsuarios visibilidade) : ICompatAcoesService
 {
     private const int LimiteParecer = 1000;
 
@@ -34,21 +35,24 @@ public class CompatAcoesService(
         await auditoria.RegistrarAsync(usuarioEmail, "compat.parecer", "Compatibilidade", detalhe, RiscoAuditoria.Low);
     }
 
-    public async Task<NotificarProfessoresResultDto> NotificarProfessoresAsync(string usuarioEmail, NotificarProfessoresCmd cmd)
+    public async Task<NotificarProfessoresResultDto> NotificarProfessoresAsync(Solicitante solicitante, NotificarProfessoresCmd cmd)
     {
         var (a, b, resultado) = await ResolverParAsync(cmd.ReagenteAId, cmd.ReagenteBId);
 
         if (resultado.Nivel < 2)
             throw new ValidationException("Notificação só se aplica a pares em nível Perigo ou Proibido.");
 
-        var notificados = (await auth.GetAllAsync())
-            .Where(u => !u.Arquivado && u.Papel == "Professor")
-            .Select(u => new NotificadoDto(u.Id, string.IsNullOrWhiteSpace(u.Nome) ? u.Email : u.Nome))
-            .ToList();
+        var notificados = new List<NotificadoDto>();
+        foreach (var professor in (await auth.GetAllAsync()).Where(u => !u.Arquivado && u.Papel == "Professor"))
+        {
+            if (await visibilidade.EnxergaAsync(solicitante, professor))
+                notificados.Add(new NotificadoDto(professor.Id,
+                    string.IsNullOrWhiteSpace(professor.Nome) ? professor.Email : professor.Nome));
+        }
 
         var refId = string.CompareOrdinal(a.Id, b.Id) < 0 ? $"{a.Id}|{b.Id}" : $"{b.Id}|{a.Id}";
         var severidade = resultado.Nivel >= 3 ? "red" : "amber";
-        var mensagem = $"{usuarioEmail} sinalizou incompatibilidade entre {a.Nome} e {b.Nome} " +
+        var mensagem = $"{solicitante.Email} sinalizou incompatibilidade entre {a.Nome} e {b.Nome} " +
                        $"(nível {resultado.Descricao}).";
 
         foreach (var n in notificados)
@@ -57,7 +61,7 @@ public class CompatAcoesService(
         var detalhe = $"{a.Id} + {b.Id} → nível {resultado.Nivel} ({resultado.Descricao}). " +
                       $"Notificados: {(notificados.Count > 0 ? string.Join(", ", notificados.Select(n => n.Nome)) : "nenhum")}.";
 
-        await auditoria.RegistrarAsync(usuarioEmail, "compat.notificar", "Compatibilidade", detalhe, RiscoAuditoria.Medium);
+        await auditoria.RegistrarAsync(solicitante.Email, "compat.notificar", "Compatibilidade", detalhe, RiscoAuditoria.Medium);
 
         return new NotificarProfessoresResultDto(notificados);
     }

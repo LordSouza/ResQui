@@ -18,6 +18,8 @@ function renderCom(papel, { convites = [] } = {}) {
   return { ...utils, convites };
 }
 
+const LABORATORIOS = [{ id: 'Lab-001', nome: 'Química Geral', cor: '#123456' }];
+
 describe('FormConvidarUsuario', () => {
   let mockFetch, escrito;
   beforeEach(() => {
@@ -30,8 +32,12 @@ describe('FormConvidarUsuario', () => {
     });
     vi.stubGlobal('navigator', { clipboard: { writeText: async (t) => { escrito = t; } } });
     mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
-    vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal('fetch', async (url, opts) => (url === '/api/laboratorios'
+      ? { ok: true, status: 200, json: async () => LABORATORIOS }
+      : mockFetch(url, opts)));
   });
+
+  const escolherLaboratorio = async () => userEvent.click(await screen.findByLabelText('Química Geral'));
   afterEach(() => vi.unstubAllGlobals());
 
   it('Professor só enxerga o papel Aluno no seletor', async () => {
@@ -60,6 +66,7 @@ describe('FormConvidarUsuario', () => {
     });
     renderCom('Professor');
 
+    await escolherLaboratorio();
     await userEvent.click(await screen.findByRole('button', { name: /Gerar link/i }));
 
     const link = await screen.findByText(new RegExp(`\\?convite=tok-abc$`));
@@ -131,6 +138,7 @@ describe('FormConvidarUsuario', () => {
     });
     renderCom('Professor');
 
+    await escolherLaboratorio();
     await userEvent.click(await screen.findByRole('button', { name: /Gerar link/i }));
     expect(await screen.findByRole('button', { name: /Copiar link/i })).toBeTruthy();
 
@@ -146,8 +154,19 @@ describe('FormConvidarUsuario', () => {
     });
     renderCom('Professor');
 
+    await escolherLaboratorio();
     await userEvent.click(await screen.findByRole('button', { name: /Gerar link/i }));
 
     expect(await screen.findByText(/só o Admin/i)).toBeTruthy();
+  });
+
+  it('Professor não gera link sem escolher laboratório', async () => {
+    renderCom('Professor');
+
+    await screen.findByLabelText('Química Geral');
+    await userEvent.click(screen.getByRole('button', { name: /Gerar link/i }));
+
+    expect(screen.getByText(/pelo menos um laboratório/i)).toBeTruthy();
+    expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
   });
 });

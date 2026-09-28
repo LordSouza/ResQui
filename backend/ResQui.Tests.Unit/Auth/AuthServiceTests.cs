@@ -727,9 +727,22 @@ public class AuthServiceTests
             .Returns("u1");
 
         var perfil = await _sut.RegisterAsync(
-            new RegisterCmd("aluno@resqui.local", "Senh@123", null, "Aluno", "Aluno"), Quem("prof@resqui.local", "Professor"));
+            new RegisterCmd("aluno@resqui.local", "Senh@123", null, "Aluno", "Aluno", ["Lab-001"]),
+            Quem("prof@resqui.local", "Professor", "Lab-001"));
 
         perfil.Papel.Should().Be("Aluno");
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ProfessorSemLaboratorio_RecusaAntesDeCriarAConta()
+    {
+        var act = () => _sut.RegisterAsync(
+            new RegisterCmd("aluno@resqui.local", "Senh@123", null, "Aluno", "Aluno"),
+            Quem("prof@resqui.local", "Professor", "Lab-001"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*pelo menos um laboratório*");
+        await _repo.DidNotReceive().CreateAsync(Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>());
     }
 
     [Theory]

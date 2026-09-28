@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using ResQui.API.Common;
 using ResQui.Application.Reagentes;
+using ResQui.Domain.Interfaces;
 
 namespace ResQui.API.Features.Reagentes;
 
@@ -74,9 +76,9 @@ public static class Endpoints
         })
         .RequireAuthorization("Operacional");
 
-        group.MapGet("/{id}/movimentacoes", async (string id, IReagentesService svc, int limite = 20) =>
+        group.MapGet("/{id}/movimentacoes", async (string id, IReagentesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs, int limite = 20) =>
         {
-            var result = await svc.ListarMovimentacoesAsync(id, limite);
+            var result = await svc.ListarMovimentacoesAsync(id, await user.ResolverAsync(labs), limite);
             return result is null ? Results.NotFound() : Results.Ok(result);
         });
 

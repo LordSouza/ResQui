@@ -261,6 +261,8 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         if (solicitante.Papel != "Admin"
             && laboratorios.FirstOrDefault(labId => !solicitante.Responde(labId)) is { } alheio)
             throw new ValidationException($"Você não responde pelo laboratório {alheio}.");
+        if (solicitante.Papel != "Admin" && laboratorios.Count == 0)
+            throw new ValidationException("Escolha pelo menos um laboratório: conta sem laboratório só o Admin enxerga.");
 
         var id = await repo.CreateAsync(cmd.Email, cmd.Senha, cmd.Matricula, cmd.Papel, cmd.Nome);
         await repo.AddToRoleAsync(id, cmd.Papel);

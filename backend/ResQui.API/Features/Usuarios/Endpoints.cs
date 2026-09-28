@@ -10,8 +10,8 @@ public static class Endpoints
 {
     public static RouteGroupBuilder MapUsuariosEndpoints(this RouteGroupBuilder group)
     {
-        group.MapGet("/", async (IUsuariosService svc) =>
-            Results.Ok(await svc.ListarAsync()));
+        group.MapGet("/", async (IUsuariosService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
+            Results.Ok(await svc.ListarAsync(await user.ResolverAsync(labs))));
 
         group.MapPost("/", async (RegisterCmd cmd, IAuthService authSvc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
@@ -33,10 +33,9 @@ public static class Endpoints
         })
         .RequireAuthorization("Administracao");
 
-        group.MapDelete("/{id}", async (string id, IUsuariosService svc, ClaimsPrincipal user) =>
+        group.MapDelete("/{id}", async (string id, IUsuariosService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            await svc.ArquivarAsync(id, email, user.FindFirstValue("papel") ?? "");
+            await svc.ArquivarAsync(id, await user.ResolverAsync(labs));
             return Results.NoContent();
         });
 

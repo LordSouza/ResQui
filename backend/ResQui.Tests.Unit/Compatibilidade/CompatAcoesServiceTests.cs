@@ -18,11 +18,15 @@ public class CompatAcoesServiceTests
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly INotificacoesService _notifs = Substitute.For<INotificacoesService>();
     private readonly IAuthRepository _auth = Substitute.For<IAuthRepository>();
+    private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
     private readonly CompatAcoesService _sut;
+
+    private static readonly Solicitante Admin = new("adm", "tec@resqui.local", "Admin", []);
 
     public CompatAcoesServiceTests()
     {
-        _sut = new CompatAcoesService(_reagentes, _compat, _audit, _notifs, _auth);
+        _sut = new CompatAcoesService(_reagentes, _compat, _audit, _notifs, _auth,
+            new VisibilidadeUsuarios(_auth, _usuarioLabs));
         SeedPar(nivel: 2, descricao: "Perigo");
     }
 
@@ -122,7 +126,7 @@ public class CompatAcoesServiceTests
             Usuario("u-1", "ana@resqui.local", "Ana Souza"),
             Usuario("u-2", "bruno@resqui.local", "Bruno Lima"));
 
-        var r = await _sut.NotificarProfessoresAsync("tec@resqui.local", new NotificarProfessoresCmd("R-1", "R-2"));
+        var r = await _sut.NotificarProfessoresAsync(Admin, new NotificarProfessoresCmd("R-1", "R-2"));
 
         r.Notificados.Select(n => n.UsuarioId).Should().BeEquivalentTo(["u-1", "u-2"]);
         await _notifs.Received(1).CriarAsync("u-1", Arg.Any<string>(), "compat", "R-1|R-2", "amber");
@@ -135,7 +139,7 @@ public class CompatAcoesServiceTests
         SeedPar(nivel: 3, descricao: "Proibido");
         SeedUsuarios(Usuario("u-1", "ana@resqui.local", "Ana Souza"));
 
-        await _sut.NotificarProfessoresAsync("tec@resqui.local", new NotificarProfessoresCmd("R-1", "R-2"));
+        await _sut.NotificarProfessoresAsync(Admin, new NotificarProfessoresCmd("R-1", "R-2"));
 
         await _notifs.Received(1).CriarAsync("u-1", Arg.Any<string>(), "compat", "R-1|R-2", "red");
     }
@@ -149,7 +153,7 @@ public class CompatAcoesServiceTests
             Usuario("u-3", "admin@resqui.local", "Admin", papel: "Admin"),
             Usuario("u-4", "antigo@resqui.local", "Carla Dias", arquivado: true));
 
-        var r = await _sut.NotificarProfessoresAsync("tec@resqui.local", new NotificarProfessoresCmd("R-1", "R-2"));
+        var r = await _sut.NotificarProfessoresAsync(Admin, new NotificarProfessoresCmd("R-1", "R-2"));
 
         r.Notificados.Should().ContainSingle(n => n.UsuarioId == "u-1");
         await _notifs.Received(1).CriarAsync(
@@ -161,7 +165,7 @@ public class CompatAcoesServiceTests
     {
         SeedUsuarios(Usuario("u-1", "ana@resqui.local", null));
 
-        var r = await _sut.NotificarProfessoresAsync("tec@resqui.local", new NotificarProfessoresCmd("R-1", "R-2"));
+        var r = await _sut.NotificarProfessoresAsync(Admin, new NotificarProfessoresCmd("R-1", "R-2"));
 
         r.Notificados.Should().ContainSingle(n => n.Nome == "ana@resqui.local");
     }
@@ -172,7 +176,7 @@ public class CompatAcoesServiceTests
         SeedPar(nivel: 1, descricao: "Cautela");
         SeedUsuarios(Usuario("u-1", "ana@resqui.local", "Ana Souza"));
 
-        var act = () => _sut.NotificarProfessoresAsync("tec@resqui.local", new NotificarProfessoresCmd("R-1", "R-2"));
+        var act = () => _sut.NotificarProfessoresAsync(Admin, new NotificarProfessoresCmd("R-1", "R-2"));
 
         await act.Should().ThrowAsync<ValidationException>();
         await _notifs.DidNotReceive().CriarAsync(
@@ -184,12 +188,28 @@ public class CompatAcoesServiceTests
     {
         SeedUsuarios(Usuario("u-9", "aluno@resqui.local", "Aluno", papel: "Aluno"));
 
-        var r = await _sut.NotificarProfessoresAsync("tec@resqui.local", new NotificarProfessoresCmd("R-1", "R-2"));
+        var r = await _sut.NotificarProfessoresAsync(Admin, new NotificarProfessoresCmd("R-1", "R-2"));
 
         r.Notificados.Should().BeEmpty();
         await _notifs.DidNotReceive().CriarAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
         await _audit.Received(1).RegistrarAsync(
             "tec@resqui.local", "compat.notificar", "Compatibilidade", Arg.Any<string>(), RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task Notificar_AlunoAvisaSoOsProfessoresDoProprioLaboratorio()
+    {
+        SeedUsuarios(
+            Usuario("u-1", "meu@resqui.local", "Professor do meu lab"),
+            Usuario("u-2", "outro@resqui.local", "Professor de outro lab"));
+        _usuarioLabs.DoUsuarioAsync("u-1").Returns(new List<string> { "Lab-001" });
+        _usuarioLabs.DoUsuarioAsync("u-2").Returns(new List<string> { "Lab-002" });
+        var aluno = new Solicitante("aluno-1", "aluno@resqui.local", "Aluno", ["Lab-001"]);
+
+        var r = await _sut.NotificarProfessoresAsync(aluno, new NotificarProfessoresCmd("R-1", "R-2"));
+
+        r.Notificados.Select(n => n.UsuarioId).Should().Equal("u-1");
+        await _notifs.DidNotReceive().CriarAsync("u-2", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
 }

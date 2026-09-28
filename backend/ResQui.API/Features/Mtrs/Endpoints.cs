@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using ResQui.API.Common;
 using ResQui.Application.Mtrs;
+using ResQui.Domain.Interfaces;
 
 namespace ResQui.API.Features.Mtrs;
 
@@ -7,12 +9,12 @@ public static class Endpoints
 {
     public static RouteGroupBuilder MapMtrsEndpoints(this RouteGroupBuilder group)
     {
-        group.MapGet("/", async (IMtrsService svc) =>
-            Results.Ok(await svc.ListarAsync()));
+        group.MapGet("/", async (IMtrsService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
+            Results.Ok(await svc.ListarAsync(await user.ResolverAsync(labs))));
 
-        group.MapGet("/{id:int}", async (int id, IMtrsService svc) =>
+        group.MapGet("/{id:int}", async (int id, IMtrsService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
-            var m = await svc.ObterPorIdAsync(id);
+            var m = await svc.ObterPorIdAsync(id, await user.ResolverAsync(labs));
             return m is null ? Results.NotFound() : Results.Ok(m);
         });
 
@@ -25,10 +27,9 @@ public static class Endpoints
         })
         .RequireAuthorization("Operacao");
 
-        group.MapGet("/{id:int}/pdf", async (int id, IMtrsService svc, ClaimsPrincipal user) =>
+        group.MapGet("/{id:int}/pdf", async (int id, IMtrsService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var result = await svc.GerarPdfAsync(id, email);
+            var result = await svc.GerarPdfAsync(id, await user.ResolverAsync(labs));
             if (result is null) return Results.NotFound();
             var (pdf, filename) = result.Value;
             return Results.File(pdf, "application/pdf", filename);

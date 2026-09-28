@@ -61,6 +61,7 @@ if (assistenteValidation.Failed)
 // Application services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
+builder.Services.AddScoped<IVisibilidadeUsuarios, VisibilidadeUsuarios>();
 builder.Services.AddScoped<IReagentesService, ReagentesService>();
 builder.Services.AddScoped<ILaboratoriosService, LaboratoriosService>();
 builder.Services.AddScoped<IResiduosService, ResiduosService>();

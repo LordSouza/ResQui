@@ -22,5 +22,5 @@ video: 08-consultar-compatibilidade.mp4
 ## Bom saber
 
 - A comparação é feita pela classe de reatividade de cada reagente, com base na matriz de compatibilidade da EPA (EPA-600/2-80-076).
-- Escreva um parecer técnico e clique em **Registrar parecer no log** para documentar a decisão. Em Perigo ou Proibido, **Notificar professores** avisa os professores pelo sino de notificações.
+- Escreva um parecer técnico e clique em **Registrar parecer no log** para documentar a decisão. Em Perigo ou Proibido, **Notificar professores** avisa pelo sino de notificações os professores dos seus laboratórios.
 - A mesma matriz impede registrar um resíduo que misture classes perigosas — veja [Como registrar um resíduo](/blog/registrar-residuo/).

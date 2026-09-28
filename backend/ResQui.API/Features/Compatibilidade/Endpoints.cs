@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using ResQui.API.Common;
 using ResQui.Application.Compatibilidade;
+using ResQui.Domain.Interfaces;
 
 namespace ResQui.API.Features.Compatibilidade;
 
@@ -40,11 +42,8 @@ public static class Endpoints
         })
         .RequireAuthorization("Operacional");
 
-        group.MapPost("/notificar", async (NotificarProfessoresCmd cmd, ICompatAcoesService svc, ClaimsPrincipal user) =>
-        {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            return Results.Ok(await svc.NotificarProfessoresAsync(email, cmd));
-        })
+        group.MapPost("/notificar", async (NotificarProfessoresCmd cmd, ICompatAcoesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
+            Results.Ok(await svc.NotificarProfessoresAsync(await user.ResolverAsync(labs), cmd)))
         .RequireAuthorization("Operacional");
 
         return group;
