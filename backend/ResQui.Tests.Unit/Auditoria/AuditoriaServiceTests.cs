@@ -35,7 +35,7 @@ public class AuditoriaServiceTests
         _repo.BuscarAsync(
             Arg.Any<DateTime?>(), Arg.Any<DateTime?>(), Arg.Any<RiscoAuditoria?>(),
             Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-            Arg.Any<string?>(), Arg.Any<int?>()).Returns(entries);
+            Arg.Any<string?>(), Arg.Any<int?>(), Arg.Any<IReadOnlyCollection<string>?>()).Returns(entries);
 
     [Fact]
     public async Task ListarAsync_SemFiltro_NaoRestringeNadaENaoImpoeTeto()
@@ -114,5 +114,16 @@ public class AuditoriaServiceTests
         await _repo.Received(1).BuscarAsync(
             Arg.Any<DateTime?>(), Arg.Any<DateTime?>(), Arg.Any<RiscoAuditoria?>(),
             "ana", "lab.criar", "Laboratórios", "Lab-001", 20);
+    }
+
+    [Fact]
+    public async Task ListarAsync_RepassaOsAutoresAoRepositorio()
+    {
+        RepoDevolve();
+        string[] autores = ["prof@lab.com", "aluno@lab.com"];
+
+        await _sut.ListarAsync(new AuditoriaFiltroDto(Autores: autores));
+
+        await _repo.Received(1).BuscarAsync(null, null, null, null, null, null, null, null, autores);
     }
 }

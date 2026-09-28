@@ -37,8 +37,9 @@ public class MisturasAltoRiscoTests
         labRepo.GetAllAsync().Returns([new Laboratorio { Id = "Lab-001", Nome = "Lab Teste" }]);
         var audit = Substitute.For<IAuditoriaService>();
         _residuos = new ResiduosService(_residuosRepo, audit, labRepo, _compat);
+        var auth = Substitute.For<IAuthRepository>();
         _mtrs = new MtrsService(_mtrsRepo, _residuosRepo, audit, _compat, Substitute.For<IPdfService>(),
-            Substitute.For<IAuthRepository>());
+            auth, new VisibilidadeUsuarios(auth, Substitute.For<IUsuarioLaboratoriosRepository>()));
     }
 
     private static CriarResiduoCmd CmdComClasses(params int[] classes) =>

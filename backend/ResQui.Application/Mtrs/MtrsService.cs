@@ -7,25 +7,25 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Mtrs;
 
-public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo, IAuditoriaService auditoria, ICompatService compat, Pdf.IPdfService pdf, IAuthRepository auth) : IMtrsService
+public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo, IAuditoriaService auditoria, ICompatService compat, Pdf.IPdfService pdf, IAuthRepository auth, IVisibilidadeUsuarios visibilidade) : IMtrsService
 {
-    public async Task<IEnumerable<MtrDto>> ListarAsync()
+    public async Task<IEnumerable<MtrDto>> ListarAsync(Solicitante solicitante)
     {
         var mtrs = (await repo.GetAllAsync()).ToList();
         var residuos = await residuosRepo.GetAllAsync();
         var nomes = new Dictionary<string, string?>();
         foreach (var id in mtrs.Select(m => m.DestinadoPorId).OfType<string>().Distinct())
-            nomes[id] = await NomeDeQuemDestinouAsync(id);
+            nomes[id] = await NomeDeQuemDestinouAsync(id, solicitante);
         return mtrs.Select(m => ToDto(m, residuos,
             m.DestinadoPorId is null ? null : nomes[m.DestinadoPorId]));
     }
 
-    public async Task<MtrDto?> ObterPorIdAsync(int id)
+    public async Task<MtrDto?> ObterPorIdAsync(int id, Solicitante solicitante)
     {
         var m = await repo.GetByIdAsync(id);
         if (m is null) return null;
         var residuos = await residuosRepo.GetAllAsync();
-        return ToDto(m, residuos, await NomeDeQuemDestinouAsync(m.DestinadoPorId));
+        return ToDto(m, residuos, await NomeDeQuemDestinouAsync(m.DestinadoPorId, solicitante));
     }
 
     public async Task<MtrDto> CriarAsync(CriarMtrCmd cmd, string? usuarioId, string usuarioEmail)
@@ -160,14 +160,14 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         return true;
     }
 
-    public async Task<(byte[] Pdf, string Filename)?> GerarPdfAsync(int id, string usuarioEmail)
+    public async Task<(byte[] Pdf, string Filename)?> GerarPdfAsync(int id, Solicitante solicitante)
     {
         var m = await repo.GetByIdAsync(id);
         if (m is null) return null;
         var residuos = (await residuosRepo.GetAllAsync()).Where(r => r.MtrId == m.Id).ToList();
 
-        var bytes = pdf.ManifestoMtr(m, residuos, await NomeDeQuemDestinouAsync(m.DestinadoPorId));
-        await auditoria.RegistrarAsync(usuarioEmail, "mtr.pdf", "MTR",
+        var bytes = pdf.ManifestoMtr(m, residuos, await NomeDeQuemDestinouAsync(m.DestinadoPorId, solicitante));
+        await auditoria.RegistrarAsync(solicitante.Email, "mtr.pdf", "MTR",
             $"Gerou PDF do MTR {m.Numero}", RiscoAuditoria.Low);
         return (bytes, $"{m.Numero.ToLower()}.pdf");
     }
@@ -191,11 +191,12 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         return string.Join(", ", itens);
     }
 
-    private async Task<string?> NomeDeQuemDestinouAsync(string? usuarioId)
+    private async Task<string?> NomeDeQuemDestinouAsync(string? usuarioId, Solicitante? quemConsulta = null)
     {
         if (usuarioId is null) return null;
-        var u = await auth.FindByIdIncluindoArquivadosAsync(usuarioId);
-        return u?.Nome ?? u?.Email;
+        if (await auth.FindByIdIncluindoArquivadosAsync(usuarioId) is not { } u) return null;
+        if (quemConsulta is not null && !await visibilidade.EnxergaAsync(quemConsulta, u)) return null;
+        return u.Nome ?? u.Email;
     }
 
     private static MtrDto ToDto(Mtr m, IEnumerable<Residuo> todosResíduos, string? destinadoPorNome = null)

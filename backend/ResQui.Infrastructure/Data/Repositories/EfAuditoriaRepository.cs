@@ -12,7 +12,8 @@ public class EfAuditoriaRepository(AppDbContext db) : IAuditoriaRepository
 
     public async Task<IEnumerable<AuditoriaEntry>> BuscarAsync(
         DateTime? de, DateTime? ate, RiscoAuditoria? risco,
-        string? quem, string? oQue, string? onde, string? detalhe, int? limite)
+        string? quem, string? oQue, string? onde, string? detalhe, int? limite,
+        IReadOnlyCollection<string>? autores = null)
     {
         var consulta = db.Auditoria.AsQueryable();
 
@@ -23,6 +24,11 @@ public class EfAuditoriaRepository(AppDbContext db) : IAuditoriaRepository
         if (!string.IsNullOrEmpty(oQue)) consulta = consulta.Where(a => EF.Functions.ILike(a.What, Curinga(oQue), Escape));
         if (!string.IsNullOrEmpty(onde)) consulta = consulta.Where(a => EF.Functions.ILike(a.Where, Curinga(onde), Escape));
         if (!string.IsNullOrEmpty(detalhe)) consulta = consulta.Where(a => EF.Functions.ILike(a.Detail, Curinga(detalhe), Escape));
+        if (autores is not null)
+        {
+            var emails = autores.Select(e => e.ToLowerInvariant()).ToList();
+            consulta = consulta.Where(a => emails.Contains(a.Who.ToLower()));
+        }
 
         consulta = consulta.OrderByDescending(a => a.Timestamp);
         if (limite is { } teto) consulta = consulta.Take(Math.Max(teto, 0));

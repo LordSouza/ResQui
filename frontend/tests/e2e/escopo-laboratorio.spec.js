@@ -184,3 +184,24 @@ test('professor não cria conta nem convite sem laboratório, e só lista os con
   expect(ids).toEqual([meuConvite.id]);
   expect((await request.delete(`/api/convites/${doAdmin.id}`, { headers: auth })).status()).toBe(403);
 });
+
+test('auditoria do professor traz só ações de quem compartilha laboratório com ele', async ({ request }) => {
+  const adminAuth = await apiAuth(request);
+  const [meu, alheio] = await doisLaboratorios(request, adminAuth);
+  const professor = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
+  const alunoMeu = await criarUsuario(request, adminAuth, 'Aluno', [meu.id]);
+  const alunoAlheio = await criarUsuario(request, adminAuth, 'Aluno', [alheio.id]);
+
+  expect((await criarResiduo(request, await alunoMeu.autenticar(), meu.id)).status()).toBe(201);
+  expect((await criarResiduo(request, await alunoAlheio.autenticar(), alheio.id)).status()).toBe(201);
+
+  const autores = async (auth) => (await (await request.get('/api/auditoria', { headers: auth })).json())
+    .map((e) => e.who.toLowerCase());
+  const doProfessor = await autores(await professor.autenticar());
+  const doAdmin = await autores(adminAuth);
+
+  expect(doProfessor).toContain(alunoMeu.email.toLowerCase());
+  expect(doProfessor).not.toContain(alunoAlheio.email.toLowerCase());
+  expect(doProfessor).not.toContain('admin@resqui.local');
+  expect(doAdmin).toContain(alunoAlheio.email.toLowerCase());
+});

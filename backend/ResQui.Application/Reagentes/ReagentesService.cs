@@ -6,14 +6,22 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Reagentes;
 
-public class ReagentesService(IReagentesRepository repo, IAuditoriaService auditoria, Pdf.IPdfService pdf, IReagenteLotesRepository lotes) : IReagentesService
+public class ReagentesService(IReagentesRepository repo, IAuditoriaService auditoria, Pdf.IPdfService pdf, IReagenteLotesRepository lotes, IVisibilidadeUsuarios visibilidade) : IReagentesService
 {
+    public const string AutorDeOutroLaboratorio = "outro laboratório";
+
     // Movimentações = entradas de auditoria reagente.* cujo detail menciona o id (ids "R-00001" são únicos)
-    public async Task<IEnumerable<Auditoria.AuditoriaItemDto>?> ListarMovimentacoesAsync(string id, int limite = 20)
+    public async Task<IEnumerable<Auditoria.AuditoriaItemDto>?> ListarMovimentacoesAsync(string id, Solicitante solicitante, int limite = 20)
     {
         if (await repo.GetByIdAsync(id) is null) return null;
-        return await auditoria.ListarAsync(
-            new Auditoria.AuditoriaFiltroDto(What: "reagente.", Detail: id, Limite: limite));
+        var movimentacoes = (await auditoria.ListarAsync(
+            new Auditoria.AuditoriaFiltroDto(What: "reagente.", Detail: id, Limite: limite))).ToList();
+
+        var visiveis = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        foreach (var autor in movimentacoes.Select(m => m.Who).Distinct(StringComparer.OrdinalIgnoreCase))
+            visiveis[autor] = await visibilidade.EnxergaAutorAsync(solicitante, autor);
+
+        return movimentacoes.Select(m => visiveis[m.Who] ? m : m with { Who = AutorDeOutroLaboratorio });
     }
 
     public async Task<byte[]?> GerarRotuloLoteAsync(string reagenteId, int loteId, string usuarioEmail)

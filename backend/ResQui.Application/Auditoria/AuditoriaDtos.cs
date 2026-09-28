@@ -20,5 +20,6 @@ public record AuditoriaFiltroDto(
     string? What = null,
     string? Where = null,
     string? Detail = null,
-    int? Limite = null
+    int? Limite = null,
+    IReadOnlyCollection<string>? Autores = null
 );
