@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Modal from './Modal';
-import { useLaboratorios } from '../laboratorios/useLaboratorios';
 import { useLaboratoriosDoUsuario } from '../laboratorios/useLaboratoriosDoUsuario';
 import { useDefinirLaboratorios } from '../usuarios/useDefinirLaboratorios';
 import { useToast } from '../components/ToastContext';
@@ -33,13 +32,12 @@ export function SeletorLaboratorios({ id, value, onChange }) {
 }
 
 export default function FormLaboratoriosUsuario({ onClose, usuario }) {
-  const { data: todos = [] } = useLaboratorios();
   const { respondePor, isPending: escopoPendente } = useLaboratoriosDoUsuario();
   const definir = useDefinirLaboratorios();
   const { addToast } = useToast();
   const [selecionados, setSelecionados] = useState(() => usuario?.laboratorioIds ?? []);
 
-  const preservados = escopoPendente ? [] : todos.filter(l => !respondePor(l.id) && selecionados.includes(l.id));
+  const preservados = escopoPendente ? 0 : selecionados.filter(labId => !respondePor(labId)).length;
 
   const salvar = () =>
     definir.mutate(
@@ -63,18 +61,16 @@ export default function FormLaboratoriosUsuario({ onClose, usuario }) {
       </>}>
       <span className="field-label" id="labs-usuario">Laboratórios que você pode atribuir</span>
       <SeletorLaboratorios id="labs-usuario" value={selecionados} onChange={setSelecionados} />
-      {preservados.length > 0 && (
+      {preservados > 0 && (
         <>
           <div className="small muted" style={{ margin: '12px 0 6px' }}>
             Preservados — respondem por eles outros professores, e salvar não os remove:
           </div>
           <div className="lab-chip-grid">
-            {preservados.map(lab => (
-              <span key={lab.id} className="lab-chip sel forced">
-                <span className="lab-color" style={{ background: lab.cor || 'var(--border)' }} />
-                <span>{lab.nome}</span>
-              </span>
-            ))}
+            <span className="lab-chip sel forced">
+              <span className="lab-color" style={{ background: 'var(--border)' }} />
+              <span>{preservados === 1 ? 'Outro laboratório' : `${preservados} outros laboratórios`}</span>
+            </span>
           </div>
         </>
       )}

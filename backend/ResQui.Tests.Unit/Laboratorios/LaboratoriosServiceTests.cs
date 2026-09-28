@@ -230,10 +230,44 @@ public class LaboratoriosServiceTests
     }
 
     [Fact]
-    public async Task ListarAsync_NaoEscopa_DevolveTodos()
+    public async Task ListarAsync_DevolveSoOsLaboratoriosDoSolicitante()
+    {
+        _repo.GetAllAsync().Returns([FakeLab("Lab-001"), FakeLab("Lab-002"), FakeLab("Lab-003")]);
+
+        (await _sut.ListarAsync(Dono())).Select(l => l.Id).Should().Equal("Lab-001", "Lab-003");
+    }
+
+    [Fact]
+    public async Task ListarAsync_AdminVeTodos()
     {
         _repo.GetAllAsync().Returns([FakeLab("Lab-001"), FakeLab("Lab-002")]);
 
-        (await _sut.ListarAsync()).Should().HaveCount(2);
+        (await _sut.ListarAsync(Admin())).Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task ObterPorIdAsync_LaboratorioDoSolicitante_Devolve()
+    {
+        _repo.GetByIdAsync("Lab-001").Returns(FakeLab("Lab-001"));
+
+        (await _sut.ObterPorIdAsync("Lab-001", Dono()))!.Id.Should().Be("Lab-001");
+    }
+
+    [Fact]
+    public async Task ObterPorIdAsync_LaboratorioAlheio_LancaAcessoNegado()
+    {
+        _repo.GetByIdAsync("Lab-001").Returns(FakeLab("Lab-001"));
+
+        var act = () => _sut.ObterPorIdAsync("Lab-001", Alheio());
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+    }
+
+    [Fact]
+    public async Task ObterPorIdAsync_Inexistente_DevolveNullAntesDoEscopo()
+    {
+        _repo.GetByIdAsync("Lab-999").Returns((Laboratorio?)null);
+
+        (await _sut.ObterPorIdAsync("Lab-999", Alheio())).Should().BeNull();
     }
 }
