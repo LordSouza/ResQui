@@ -1,8 +1,9 @@
 import { test } from '@playwright/test';
 import { entrar, gravar, clicar, escolher, opcaoQueComecaCom, pausa } from './gravador.js';
-import { ALUNA } from './preparacao.js';
+import { ALUNA, trazerReagentesDemoParaOLaboratorio } from './preparacao.js';
 
-test('como consultar a compatibilidade entre reagentes', async ({ page }) => {
+test('como consultar a compatibilidade entre reagentes', async ({ page, request }) => {
+  await trazerReagentesDemoParaOLaboratorio(request);
   await entrar(page, ALUNA);
 
   await gravar(page, '08-consultar-compatibilidade', async () => {

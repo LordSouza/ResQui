@@ -79,3 +79,26 @@ export async function definirLaboratoriosDoProfessor(request, nomesDosLaboratori
   });
   await falharSeRecusado(resposta, 'definir os laboratórios do professor');
 }
+
+const REAGENTES_DEMO_NO_LABORATORIO = [
+  { nome: 'Acetona P.A.', armario: 'Armário de solventes' },
+  { nome: 'Tolueno P.A.', armario: 'Armário de solventes' },
+  { nome: 'Etanol absoluto', armario: 'Armário de ácidos' },
+  { nome: 'Peróxido de hidrogênio 30%', armario: 'Armário de ácidos' },
+];
+
+export async function trazerReagentesDemoParaOLaboratorio(request) {
+  const cabecalho = await cabecalhoDoAdmin(request);
+  const laboratorios = await (await request.get('/api/laboratorios', { headers: cabecalho })).json();
+  const laboratorio = laboratorios.find(lab => lab.nome === LABORATORIO_DOS_TUTORIAIS);
+  for (const { nome, armario } of REAGENTES_DEMO_NO_LABORATORIO) {
+    const busca = await (await request.get(`/api/reagentes?q=${encodeURIComponent(nome)}&pageSize=50`, { headers: cabecalho })).json();
+    const reagente = busca.items.find(item => item.nome === nome);
+    if (!reagente || reagente.laboratorioId === laboratorio.id) continue;
+    const resposta = await request.post(`/api/reagentes/${reagente.id}/transferencia`, {
+      headers: cabecalho,
+      data: { LaboratorioId: laboratorio.id, Armario: armario },
+    });
+    await falharSeRecusado(resposta, `trazer ${nome} para ${LABORATORIO_DOS_TUTORIAIS}`);
+  }
+}

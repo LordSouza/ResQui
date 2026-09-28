@@ -1,8 +1,9 @@
 import { test } from '@playwright/test';
 import { entrar, gravar, clicar, digitar, escolher, pausa } from './gravador.js';
-import { ALUNA } from './preparacao.js';
+import { ALUNA, trazerReagentesDemoParaOLaboratorio } from './preparacao.js';
 
-test('como registrar o consumo de um reagente', async ({ page }) => {
+test('como registrar o consumo de um reagente', async ({ page, request }) => {
+  await trazerReagentesDemoParaOLaboratorio(request);
   await entrar(page, ALUNA);
 
   await gravar(page, '05-baixa-de-consumo', async () => {

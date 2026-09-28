@@ -1,8 +1,9 @@
 import { test } from '@playwright/test';
 import { entrar, gravar, clicar, digitar, escolher, pausa } from './gravador.js';
-import { ALUNA, LABORATORIO_DOS_TUTORIAIS } from './preparacao.js';
+import { ALUNA, LABORATORIO_DOS_TUTORIAIS, trazerReagentesDemoParaOLaboratorio } from './preparacao.js';
 
-test('como transferir um reagente de armário', async ({ page }) => {
+test('como transferir um reagente de armário', async ({ page, request }) => {
+  await trazerReagentesDemoParaOLaboratorio(request);
   await entrar(page, ALUNA);
 
   await gravar(page, '14-transferir-reagente', async () => {

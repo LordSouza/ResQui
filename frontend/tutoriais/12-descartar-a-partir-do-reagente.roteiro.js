@@ -1,8 +1,9 @@
 import { test } from '@playwright/test';
 import { entrar, gravar, clicar, digitar, pausa } from './gravador.js';
-import { ALUNA } from './preparacao.js';
+import { ALUNA, trazerReagentesDemoParaOLaboratorio } from './preparacao.js';
 
-test('como descartar um reagente a partir da ficha', async ({ page }) => {
+test('como descartar um reagente a partir da ficha', async ({ page, request }) => {
+  await trazerReagentesDemoParaOLaboratorio(request);
   await entrar(page, ALUNA);
 
   await gravar(page, '12-descartar-a-partir-do-reagente', async () => {
