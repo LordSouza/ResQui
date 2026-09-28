@@ -388,4 +388,41 @@ public class RelatoriosServiceTests
         csv.Should().NotContain("Resíduo só do Lab 2").And.NotContain("Lab Física");
         csv.Should().Contain(",3.000,");
     }
+
+    [Fact]
+    public async Task DownloadAsync_RelatorioInstitucionalAntigoDoProfessor_SaiSoComOsLaboratoriosDele()
+    {
+        _repo.GetByIdAsync(1).Returns(new RelatorioGerado
+        {
+            Id = 1, Tipo = "inventario", Titulo = "Inventário", GeradoPorId = "prof-1", LaboratorioIds = null,
+        });
+        var doLab1 = FakeReagente("R-00001");
+        doLab1.Nome = "Etanol do Lab 1";
+        doLab1.LaboratorioId = "Lab-001";
+        var doLab2 = FakeReagente("R-00002");
+        doLab2.Nome = "Metanol do Lab 2";
+        doLab2.LaboratorioId = "Lab-002";
+        _reagentesRepo.GetAllAsync().Returns([doLab1, doLab2]);
+
+        var csv = (await _sut.DownloadAsync(1, ProfessorDoLab1))!.Value.Csv;
+
+        csv.Should().Contain("Etanol do Lab 1").And.NotContain("Metanol do Lab 2");
+    }
+
+    [Fact]
+    public async Task DownloadAsync_LaboratorioQueSaiuDoEscopo_SaiDoCsv()
+    {
+        _repo.GetByIdAsync(1).Returns(new RelatorioGerado
+        {
+            Id = 1, Tipo = "inventario", Titulo = "Inventário", GeradoPorId = "prof-1", LaboratorioIds = ["Lab-001", "Lab-002"],
+        });
+        var doLab2 = FakeReagente("R-00002");
+        doLab2.Nome = "Metanol do Lab 2";
+        doLab2.LaboratorioId = "Lab-002";
+        _reagentesRepo.GetAllAsync().Returns([doLab2]);
+
+        var csv = (await _sut.DownloadAsync(1, ProfessorDoLab1))!.Value.Csv;
+
+        csv.Should().NotContain("Metanol do Lab 2");
+    }
 }

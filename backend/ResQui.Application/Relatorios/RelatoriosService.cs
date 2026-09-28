@@ -59,7 +59,8 @@ public class RelatoriosService(
             throw new AcessoNegadoException("Só quem gerou o relatório pode baixá-lo.");
         // O histórico pode conter tipos que saíram do catálogo: baixar um deles é 404, não 500.
         if (!Titulos.ContainsKey(r.Tipo)) return null;
-        var (csv, _) = await GerarCsvAsync(r.Tipo, new RecorteDeLaboratorios(r.LaboratorioIds));
+        var recorte = new RecorteDeLaboratorios(r.LaboratorioIds).LimitadoAoEscopoDe(solicitante);
+        var (csv, _) = await GerarCsvAsync(r.Tipo, recorte);
         var safeName = r.Titulo.Replace(' ', '-').ToLowerInvariant();
         return (csv, $"{safeName}.csv");
     }
