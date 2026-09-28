@@ -54,7 +54,7 @@ export function InventarioScreen({ state, dispatch }) {
         <div className="page-actions">
           {podeCadastrar && (
             <>
-              <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'importarCsv'})}><Icon name="upload" size={13}/> Importar CSV</button>
+              <button type="button" className="btn btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'importarCsv'})}><Icon name="upload" size={13}/> Importar Excel</button>
               <button type="button" className="btn btn-primary btn-sm" onClick={() => dispatch({type: 'openModal', kind: 'novoReagente'})}>
                 <Icon name="plus" size={13}/> Novo reagente
               </button>

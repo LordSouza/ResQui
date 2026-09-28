@@ -13,7 +13,8 @@ import { useSalvarCompatOverride } from '../compat/useSalvarCompatOverride';
 import { useRemoverCompatOverride } from '../compat/useRemoverCompatOverride';
 import { useToast } from '../components/ToastContext';
 import { useImportarReagentes } from '../reagentes/useImportarReagentes';
-import { parseCsv, analisarImportacao, mapearColunas } from '../lib/csv';
+import { analisarImportacao, mapearColunas } from '../lib/csv';
+import { lerPlanilha, FORMATOS_ACEITOS, FormatoNaoSuportadoError } from '../lib/planilha';
 
 // ---------- Novo Reagente ----------
 export function FormNovoReagente({ onClose, dispatch }) {
@@ -368,7 +369,7 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
   );
 }
 
-// ---------- Importar CSV (real) ----------
+// ---------- Importar planilha (real) ----------
 export function FormImportarCSV({ onClose, dispatch }) {
   const { addToast } = useToast();
   const importar = useImportarReagentes();
@@ -380,20 +381,17 @@ export function FormImportarCSV({ onClose, dispatch }) {
   const [resultado, setResultado] = useState(null);
   const fileInputRef = useRef(null);
 
-  const carregarArquivo = (file) => {
+  const carregarArquivo = async (file) => {
     if (!file) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const { headers, rows } = parseCsv(String(e.target.result));
+    try {
+      const { headers, rows } = await lerPlanilha(file);
+      setFileName(file.name);
       setHeaders(headers);
       setItens(analisarImportacao(headers, rows));
       setStep('review');
-    };
-    reader.onerror = () => {
-      addToast('Não foi possível ler o arquivo.', 'error');
-    };
-    reader.readAsText(file);
+    } catch (erro) {
+      addToast(erro instanceof FormatoNaoSuportadoError ? erro.message : 'Não foi possível ler o arquivo.', 'error');
+    }
   };
 
   const prontas = itens.filter(i => !i.bloqueada);
@@ -410,7 +408,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
   // —————————— STEP: pick ——————————
   if (step === 'pick') {
     return (
-      <Modal tutorial="importarCsv" title="Importar inventário em lote" sub="Carregue um CSV/TSV exportado de planilha (Excel, Google Sheets)"
+      <Modal tutorial="importarCsv" title="Importar inventário em lote" sub="Carregue a planilha do Excel (.xlsx) ou um CSV — vale a primeira aba"
         onClose={onClose} width={620}
         footer={<button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>}>
         <button
@@ -425,8 +423,8 @@ export function FormImportarCSV({ onClose, dispatch }) {
             border: '2px dashed ' + (dragOver ? 'var(--accent)' : 'var(--border)'),
             background: dragOver ? 'var(--accent-soft)' : 'var(--surface-2)',
           }}>
-          <input ref={fileInputRef} type="file" accept=".csv,.tsv" style={{ display: 'none' }}
-            aria-label="Selecionar arquivo CSV ou TSV"
+          <input ref={fileInputRef} type="file" accept={FORMATOS_ACEITOS} style={{ display: 'none' }}
+            aria-label="Selecionar planilha Excel ou CSV"
             onChange={e => carregarArquivo(e.target.files[0])} />
           <div style={{ color: 'var(--text-3)', marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
             <Icon name="upload" size={32} />
@@ -434,13 +432,13 @@ export function FormImportarCSV({ onClose, dispatch }) {
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
             Arraste o arquivo aqui ou clique para selecionar
           </div>
-          <div className="small muted">CSV ou TSV · até 5 MB</div>
+          <div className="small muted">Excel (.xlsx), CSV ou TSV</div>
         </button>
 
         <div style={{ marginTop: 16, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.55 }}>
           <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>Colunas reconhecidas</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {['Nome*', 'CAS*', 'Quantidade*', 'Unidade*', 'Local*', 'Fórmula', 'Validade', 'Responsável', 'Classe*', 'Controlado'].map(c => (
+            {['Nome*', 'CAS*', 'Quantidade*', 'Unidade*', 'Local*', 'Fórmula', 'Validade', 'Classe*', 'Controlado'].map(c => (
               <Tag key={c}>{c}</Tag>
             ))}
           </div>

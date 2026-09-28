@@ -8,17 +8,17 @@ video: 11-importar-inventario.mp4
 ---
 ## Antes de começar
 
-A importação lê arquivos **CSV** (ou TSV). No Excel, use **Arquivo › Salvar como › CSV**; no Google Sheets, **Arquivo › Fazer download › CSV**. A primeira linha da planilha deve ter os nomes das colunas:
+A importação lê a planilha do **Excel** (`.xlsx`) direto — não precisa converter. Só a **primeira aba** é lida. No Google Sheets, use **Arquivo › Fazer download › Microsoft Excel (.xlsx)**. Arquivos **CSV** e TSV também são aceitos; o formato antigo `.xls` (Excel 97–2003) não: abra-o no Excel e salve como `.xlsx`. A primeira linha da aba deve ter os nomes das colunas:
 
 - Obrigatórias: **Nome**, **CAS**, **Estoque** (ou Quantidade), **Unidade**, **Localização** (ou Local) e **Classe** — a classe de reatividade, de 1 a 12.
-- Opcionais: **Fórmula**, **Validade** (de preferência no formato AAAA-MM-DD), **Controlado** e **Sinônimo**.
+- Opcionais: **Fórmula**, **Validade** (uma célula de data do Excel; em CSV, no formato AAAA-MM-DD), **Controlado** e **Sinônimo**.
 
 Na **Localização**, use o mesmo formato das opções do sistema: "Laboratório · Armário".
 
 ## Passo a passo
 
 1. No menu lateral, abra **Inventário**.
-2. Clique em **Importar CSV**.
+2. Clique em **Importar Excel**.
 3. Clique na área tracejada e escolha o arquivo (ou arraste o arquivo até ela).
 4. Confira a revisão: cada linha aparece como **Pronta**, **Com aviso** ou **Bloqueada**, com o motivo.
 5. Clique em **Importar N reagentes**. Depois, em **Ver inventário**.
