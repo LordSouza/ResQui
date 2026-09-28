@@ -39,7 +39,7 @@ export async function ensureReagente(request, auth, { nome, cas, classe = 1 }) {
   const res = await request.get(`/api/reagentes?q=${encodeURIComponent(nome)}&page=1&pageSize=5`, { headers: auth });
   const data = await res.json();
   const items = data.items ?? data;
-  const existing = items.find?.((r) => r.nome === nome);
+  const existing = items.find?.((r) => r.nome === nome && r.laboratorioId);
   if (existing) return existing;
   const lab = await ensureLab(request, auth);
   const created = await request.post('/api/reagentes', {
