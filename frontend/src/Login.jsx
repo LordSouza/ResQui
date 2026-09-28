@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Icon } from './components';
 import { useLogin } from './auth/useLogin';
+import { URL_DO_BLOG } from './lib/tutoriais';
 
 export function LoginScreen() {
   const [email, setEmail] = useState('admin@resqui.local');
@@ -95,6 +96,9 @@ export function LoginScreen() {
 
           <div className="login-foot">
             <span>Não tem acesso? Solicite ao responsável do seu laboratório.</span>
+            <a className="login-foot-tutoriais" href={URL_DO_BLOG} target="_blank" rel="noopener noreferrer">
+              <Icon name="book" size={13}/> Como usar o ResQui
+            </a>
           </div>
         </div>
       </main>

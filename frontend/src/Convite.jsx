@@ -4,6 +4,7 @@ import { ROLES } from './data';
 import { useConvite } from './convites/useConvite';
 import { useAceitarConvite } from './convites/useAceitarConvite';
 import { useLogin } from './auth/useLogin';
+import { urlDoTutorial } from './lib/tutoriais';
 
 export function ConviteScreen({ token, onConcluido }) {
   const convite = useConvite(token);
@@ -151,6 +152,9 @@ export function ConviteScreen({ token, onConcluido }) {
 
               <div className="login-foot">
                 <span>Já tem conta? <button type="button" className="link" onClick={() => onConcluido?.()}>Entrar</button></span>
+                <a className="login-foot-tutoriais" href={urlDoTutorial('aceitarConvite')} target="_blank" rel="noopener noreferrer">
+                  <Icon name="book" size={13}/> Ver tutorial
+                </a>
               </div>
             </>
           )}

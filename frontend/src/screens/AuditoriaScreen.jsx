@@ -32,7 +32,7 @@ function FiltrosAvancadosAuditoria({ adv, setAdv, onClose, allData }) {
     + (draft.risks.length ? 1 : 0) + (draft.categories.length ? 1 : 0);
 
   return (
-    <Modal title="Filtros avançados" sub="Cruze múltiplas dimensões do log de auditoria"
+    <Modal tutorial="filtrosAuditoria" title="Filtros avançados" sub="Cruze múltiplas dimensões do log de auditoria"
       onClose={onClose} width={720}
       footer={<>
         <span className="small muted" style={{flex: 1, fontFamily: 'var(--mono)'}}>

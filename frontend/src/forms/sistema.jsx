@@ -170,7 +170,7 @@ export function FormSenha2FA({ onClose, dispatch }) {
   const mutacaoComCodigo = acaoComCodigo === 'desativar' ? desativar2fa : gerarCodigos;
 
   return (
-    <Modal title="Senha e autenticação" sub="Credenciais de acesso e MFA"
+    <Modal tutorial="senha2fa" title="Senha e autenticação" sub="Credenciais de acesso e MFA"
       onClose={onClose} width={620}
       footer={aba === 'senha' ? <>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>

@@ -108,5 +108,17 @@ describe('Modal', () => {
     await userEvent.tab();
     expect(screen.getByRole('button', { name: 'Fechar janela' })).toHaveFocus();
   });
-});
 
+  it('abre o tutorial do formulário numa nova aba, para não perder o que foi preenchido', () => {
+    render(<Modal title="Registrar resíduo" tutorial="novoResiduo" onClose={vi.fn()}><input aria-label="Composição" /></Modal>);
+    const link = screen.getByRole('link', { name: 'Ver tutorial' });
+    expect(link).toHaveAttribute('href', '/blog/registrar-residuo/');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(screen.getByLabelText('Composição')).toHaveFocus();
+  });
+
+  it('não oferece tutorial quando o formulário não tem um', () => {
+    renderModal();
+    expect(screen.queryByRole('link', { name: 'Ver tutorial' })).toBeNull();
+  });
+});

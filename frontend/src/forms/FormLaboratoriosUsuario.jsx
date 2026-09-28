@@ -53,7 +53,7 @@ export default function FormLaboratoriosUsuario({ onClose, usuario }) {
     );
 
   return (
-    <Modal title="Laboratórios" sub={`Por quais laboratórios ${usuario?.nome} responde`}
+    <Modal tutorial="laboratoriosUsuario" title="Laboratórios" sub={`Por quais laboratórios ${usuario?.nome} responde`}
       onClose={onClose} width={560}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>

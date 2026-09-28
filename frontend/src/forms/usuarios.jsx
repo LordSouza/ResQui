@@ -154,7 +154,7 @@ export function FormConvidarUsuario({ onClose }) {
   };
 
   return (
-    <Modal title="Convidar por link" sub="O convidado define a própria senha"
+    <Modal tutorial="convidarUsuario" title="Convidar por link" sub="O convidado define a própria senha"
       onClose={onClose} width={560}
       footer={<>
         <button type="button" className="btn btn-sm" onClick={onClose}>Fechar</button>
