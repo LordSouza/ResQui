@@ -103,6 +103,23 @@ test('professor não responde por laboratório alheio ao editá-lo', async ({ re
   expect(negado.status()).toBe(403);
 });
 
+test('catálogo de laboratórios traz só os do professor, e o alheio é 403', async ({ request }) => {
+  const adminAuth = await apiAuth(request);
+  const [meu, alheio] = await doisLaboratorios(request, adminAuth);
+  const professor = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
+  const headers = await professor.autenticar();
+
+  const ids = (await (await request.get('/api/laboratorios', { headers })).json()).map(l => l.id);
+  expect(ids).toEqual([meu.id]);
+
+  expect((await request.get(`/api/laboratorios/${meu.id}`, { headers })).ok()).toBeTruthy();
+  expect((await request.get(`/api/laboratorios/${alheio.id}`, { headers })).status()).toBe(403);
+  expect((await request.get('/api/laboratorios/Lab-999999', { headers })).status()).toBe(404);
+
+  const idsDoAdmin = (await (await request.get('/api/laboratorios', { headers: adminAuth })).json()).map(l => l.id);
+  expect(idsDoAdmin).toEqual(expect.arrayContaining([meu.id, alheio.id]));
+});
+
 test('professor não altera os laboratórios de outro professor', async ({ request }) => {
   const adminAuth = await apiAuth(request);
   const [meu, alheio] = await doisLaboratorios(request, adminAuth);

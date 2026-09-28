@@ -216,6 +216,19 @@ describe('UsuariosScreen — laboratórios', () => {
     expect(within(linhaAna).getByText('Química Geral')).toBeInTheDocument();
   });
 
+  it('conta, sem nomear, o laboratório que o catálogo do solicitante não traz', async () => {
+    fetch.mockImplementation((url) =>
+      Promise.resolve({
+        ok: true, status: 200,
+        json: async () => (String(url).startsWith('/api/laboratorios') ? [LABS[1]] : USUARIOS),
+      }));
+    renderCom({ id: 'admin-1', papel: 'Professor' });
+
+    const linhaAna = (await screen.findByText('Ana Silva')).closest('tr');
+    expect(within(linhaAna).getByText('1 outro laboratório')).toBeInTheDocument();
+    expect(within(linhaAna).queryByText('Lab-001')).not.toBeInTheDocument();
+  });
+
   it('oferece a ação Laboratórios a quem gere usuários', async () => {
     renderCom({ id: 'admin-1', papel: 'Admin' });
 

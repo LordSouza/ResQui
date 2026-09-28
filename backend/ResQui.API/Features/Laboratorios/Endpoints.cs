@@ -9,12 +9,12 @@ public static class Endpoints
 {
     public static RouteGroupBuilder MapLaboratoriosEndpoints(this RouteGroupBuilder group)
     {
-        group.MapGet("/", async (ILaboratoriosService svc) =>
-            Results.Ok(await svc.ListarAsync()));
+        group.MapGet("/", async (ILaboratoriosService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
+            Results.Ok(await svc.ListarAsync(await user.ResolverAsync(labs))));
 
-        group.MapGet("/{id}", async (string id, ILaboratoriosService svc) =>
+        group.MapGet("/{id}", async (string id, ILaboratoriosService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
-            var l = await svc.ObterPorIdAsync(id);
+            var l = await svc.ObterPorIdAsync(id, await user.ResolverAsync(labs));
             return l is null ? Results.NotFound() : Results.Ok(l);
         });
 
