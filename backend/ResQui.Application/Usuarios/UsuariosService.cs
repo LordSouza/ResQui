@@ -11,9 +11,9 @@ public record DefinirLaboratoriosCmd(IList<string> LaboratorioIds);
 
 public interface IUsuariosService
 {
-    Task<IEnumerable<UsuarioDto>> ListarAsync();
+    Task<IEnumerable<UsuarioDto>> ListarAsync(Solicitante solicitante);
     Task AlterarPapelAsync(string id, AlterarPapelCmd cmd, string usuarioEmail);
-    Task ArquivarAsync(string id, string usuarioEmail, string requesterPapel);
+    Task ArquivarAsync(string id, Solicitante solicitante);
     Task ExcluirAsync(string id, string requesterId, string usuarioEmail);
     Task DefinirLaboratoriosAsync(string id, DefinirLaboratoriosCmd cmd, Solicitante solicitante);
 }
@@ -27,12 +27,15 @@ public class UsuariosService(
 {
     private static readonly string[] PapeisValidos = ["Admin", "Professor", "Aluno"];
 
-    public async Task<IEnumerable<UsuarioDto>> ListarAsync()
+    public async Task<IEnumerable<UsuarioDto>> ListarAsync(Solicitante solicitante)
     {
         var porUsuario = await usuarioLabs.DeTodosAsync();
+        IReadOnlyList<string> LaboratoriosDe(string usuarioId) =>
+            porUsuario.TryGetValue(usuarioId, out var labs) ? labs : [];
         return (await repo.GetAllAsync())
+            .Where(u => solicitante.Enxerga(u.Id, u.Papel, LaboratoriosDe(u.Id)))
             .Select(u => new UsuarioDto(u.Id, u.Email, u.Nome, u.Matricula, u.Papel, u.Roles, u.Arquivado,
-                u.TwoFactorEnabled, porUsuario.TryGetValue(u.Id, out var labs) ? labs : []));
+                u.TwoFactorEnabled, LaboratoriosDe(u.Id)));
     }
 
     public async Task AlterarPapelAsync(string id, AlterarPapelCmd cmd, string usuarioEmail)
@@ -47,20 +50,22 @@ public class UsuariosService(
             RiscoAuditoria.High);
     }
 
-    public async Task ArquivarAsync(string id, string usuarioEmail, string requesterPapel)
+    public async Task ArquivarAsync(string id, Solicitante solicitante)
     {
         if (await repo.FindByIdAsync(id) is not { } alvo) return;
-        if (alvo.Papel != "Aluno" && requesterPapel != "Admin")
+        await GarantirQueEnxergaAsync(solicitante, alvo);
+        if (alvo.Papel != "Aluno" && solicitante.Papel != "Admin")
             throw new ValidationException($"Arquivar conta de {alvo.Papel} é só o Admin; você pode arquivar Aluno.");
         await repo.SoftDeleteAsync(id);
         var revogadas = await RevogarSessoesAsync(id);
-        await auditoria.RegistrarAsync(usuarioEmail, "user.arquivar", "Usuários",
+        await auditoria.RegistrarAsync(solicitante.Email, "user.arquivar", "Usuários",
             $"Arquivou usuário {id}; {revogadas} sessão(ões) revogada(s)", RiscoAuditoria.High);
     }
 
     public async Task DefinirLaboratoriosAsync(string id, DefinirLaboratoriosCmd cmd, Solicitante solicitante)
     {
         if (await repo.FindByIdIncluindoArquivadosAsync(id) is not { } alvo) return;
+        await GarantirQueEnxergaAsync(solicitante, alvo);
 
         var pedidos = (cmd.LaboratorioIds ?? []).Distinct().ToList();
         var existentes = (await labRepo.GetAllAsync()).Select(l => l.Id).ToHashSet();
@@ -79,6 +84,9 @@ public class UsuariosService(
             var preservados = (await usuarioLabs.DoUsuarioAsync(id))
                 .Where(labId => !solicitante.Responde(labId));
             resultante = preservados.Concat(pedidos).Distinct().ToList();
+            if (resultante.Count == 0)
+                throw new ValidationException(
+                    "O aluno ficaria sem laboratório, e conta sem laboratório só o Admin enxerga. Mantenha pelo menos um.");
         }
 
         await usuarioLabs.DefinirAsync(id, resultante);
@@ -94,6 +102,13 @@ public class UsuariosService(
         if (!await repo.HardDeleteAsync(id)) return;
         await auditoria.RegistrarAsync(usuarioEmail, "user.excluir", "Usuários",
             $"Excluiu definitivamente o usuário {id}", RiscoAuditoria.High);
+    }
+
+    private async Task GarantirQueEnxergaAsync(Solicitante solicitante, UsuarioInfo alvo)
+    {
+        if (solicitante.VeTudo) return;
+        if (!solicitante.Enxerga(alvo.Id, alvo.Papel, await usuarioLabs.DoUsuarioAsync(alvo.Id)))
+            throw new AcessoNegadoException("Este usuário não pertence a nenhum dos seus laboratórios.");
     }
 
     private async Task<int> RevogarSessoesAsync(string usuarioId)

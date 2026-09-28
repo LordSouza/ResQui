@@ -4,19 +4,23 @@ import { apiAuth, todosLaboratorios } from './seed';
 async function criarProfessor(request, auth) {
   const email = `prof_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@resqui.local`;
   const senha = 'Prof@123';
+  const laboratorioIds = await todosLaboratorios(request, auth);
   await request.post('/api/auth/register', {
     headers: auth,
-    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Professor E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
+    data: { Email: email, Senha: senha, Papel: 'Professor', Nome: 'Professor E2E', LaboratorioIds: laboratorioIds },
   });
   const { token } = await (await request.post('/api/auth/login', { data: { Email: email, Senha: senha } })).json();
-  return { email, auth: { Authorization: `Bearer ${token}` } };
+  return { email, laboratorioIds, auth: { Authorization: `Bearer ${token}` } };
 }
 
 test('convite de Aluno gerado pelo Professor cria conta que já entra no sistema', async ({ request }) => {
   const adminAuth = await apiAuth(request);
   const professor = await criarProfessor(request, adminAuth);
 
-  const criado = await request.post('/api/convites', { headers: professor.auth, data: { Papel: 'Aluno' } });
+  const criado = await request.post('/api/convites', {
+    headers: professor.auth,
+    data: { Papel: 'Aluno', LaboratorioIds: professor.laboratorioIds },
+  });
   expect(criado.ok()).toBeTruthy();
   const { token } = await criado.json();
 
@@ -90,13 +94,13 @@ test('convite revogado deixa de ser aceitável', async ({ request }) => {
   expect(lista.find(c => c.id === id).status).toBe('revogado');
 });
 
-test('Professor não revoga convite de Professor gerado pelo Admin', async ({ request }) => {
+test('Professor não revoga convite gerado pelo Admin', async ({ request }) => {
   const adminAuth = await apiAuth(request);
   const professor = await criarProfessor(request, adminAuth);
   const { id } = await (await request.post('/api/convites', { headers: adminAuth, data: { Papel: 'Professor' } })).json();
 
   const tentativa = await request.delete(`/api/convites/${id}`, { headers: professor.auth });
-  expect(tentativa.status()).toBe(400);
+  expect(tentativa.status()).toBe(403);
 
   const doAdmin = await request.delete(`/api/convites/${id}`, { headers: adminAuth });
   expect(doAdmin.status()).toBe(204);

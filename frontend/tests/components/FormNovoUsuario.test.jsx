@@ -5,16 +5,20 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthContext } from '../../src/auth/AuthContext';
 import { FormNovoUsuario } from '../../src/forms/usuarios';
 
-function wrapper({ children }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  return (
-    <QueryClientProvider client={qc}>
-      <AuthContext.Provider value={{ user: { id: 'admin-1', papel: 'Admin', laboratorioIds: [] }, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
-        {children}
-      </AuthContext.Provider>
-    </QueryClientProvider>
-  );
+function wrapperDe(user) {
+  return function Wrapper({ children }) {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    return (
+      <QueryClientProvider client={qc}>
+        <AuthContext.Provider value={{ user, token: 't', login: vi.fn(), logout: vi.fn(), updateUser: vi.fn() }}>
+          {children}
+        </AuthContext.Provider>
+      </QueryClientProvider>
+    );
+  };
 }
+
+const wrapper = wrapperDe({ id: 'admin-1', papel: 'Admin', laboratorioIds: [] });
 
 describe('FormNovoUsuario — entradas inválidas', () => {
   let onClose, dispatch, mockFetch;
@@ -57,5 +61,16 @@ describe('FormNovoUsuario — entradas inválidas', () => {
     await userEvent.click(screen.getByRole('button', { name: /Criar usuário/i }));
     expect(await screen.findByText('E-mail inválido.')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('Professor não cria conta sem escolher laboratório', async () => {
+    const professor = wrapperDe({ id: 'prof-1', papel: 'Professor', laboratorioIds: ['Lab-001'] });
+    render(<FormNovoUsuario onClose={onClose} dispatch={dispatch} />, { wrapper: professor });
+    await userEvent.type(screen.getByLabelText(/Nome completo/i), 'Ana');
+    await userEvent.type(screen.getByLabelText(/E-mail/i), 'ana@lab.com');
+    await userEvent.type(screen.getByLabelText(/^Senha/i), 'Senha@123');
+    await userEvent.click(screen.getByRole('button', { name: /Criar usuário/i }));
+    expect(await screen.findByText(/pelo menos um laboratório/i)).toBeInTheDocument();
+    expect(mockFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
   });
 });

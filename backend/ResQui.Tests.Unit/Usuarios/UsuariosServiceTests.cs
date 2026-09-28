@@ -116,7 +116,7 @@ public class UsuariosServiceTests
         var sessao = new SessaoToken { Jti = "j2", UsuarioId = "aluno-1" };
         _sessoes.GetAtivasByUsuarioAsync("aluno-1").Returns([sessao]);
 
-        await _sut.ArquivarAsync("aluno-1", "admin@lab.com", "Admin");
+        await _sut.ArquivarAsync("aluno-1", Admin());
 
         sessao.Revogada.Should().BeTrue();
         await _sessoes.Received(1).SaveChangesAsync();
@@ -128,7 +128,7 @@ public class UsuariosServiceTests
         _repo.FindByIdAsync("user-1").Returns(FakeUser());
         _repo.SoftDeleteAsync(Arg.Any<string>()).Returns(Task.CompletedTask);
 
-        await _sut.ArquivarAsync("user-1", "admin@lab.com", "Admin");
+        await _sut.ArquivarAsync("user-1", Admin());
 
         await _audit.Received(1).RegistrarAsync(
             "admin@lab.com", "user.arquivar", "Usuários",
@@ -140,7 +140,7 @@ public class UsuariosServiceTests
     {
         _repo.FindByIdAsync("user-999").Returns((UsuarioInfo?)null);
 
-        await _sut.ArquivarAsync("user-999", "admin@lab.com", "Admin");
+        await _sut.ArquivarAsync("user-999", Admin());
 
         await _audit.DidNotReceive().RegistrarAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
@@ -208,7 +208,7 @@ public class UsuariosServiceTests
             new("u-2", "sem@lab.com", "Sem MFA", null, "Professor", new List<string>(), false, false),
         });
 
-        var lista = (await _sut.ListarAsync()).ToList();
+        var lista = (await _sut.ListarAsync(Admin())).ToList();
 
         lista.Single(u => u.Id == "u-1").TwoFactorEnabled.Should().BeTrue();
         lista.Single(u => u.Id == "u-2").TwoFactorEnabled.Should().BeFalse();
@@ -219,23 +219,48 @@ public class UsuariosServiceTests
     {
         _repo.FindByIdAsync("aluno-1").Returns(new UsuarioInfo(
             "aluno-1", "aluno@lab.com", "Aluno", null, "Aluno", new List<string> { "Aluno" }, false));
+        _usuarioLabs.DoUsuarioAsync("aluno-1").Returns(new List<string> { "Lab-001" });
 
-        await _sut.ArquivarAsync("aluno-1", "prof@lab.com", "Professor");
+        await _sut.ArquivarAsync("aluno-1", Professor("Lab-001"));
 
         await _repo.Received(1).SoftDeleteAsync("aluno-1");
     }
 
-    [Theory]
-    [InlineData("Professor")]
-    [InlineData("Admin")]
-    public async Task ArquivarAsync_ProfessorNaoArquivaAlemDeAluno(string papelAlvo)
+    [Fact]
+    public async Task ArquivarAsync_ProfessorNaoArquivaAlunoDeOutroLaboratorio()
+    {
+        _repo.FindByIdAsync("aluno-1").Returns(Aluno());
+        _usuarioLabs.DoUsuarioAsync("aluno-1").Returns(new List<string> { "Lab-002" });
+
+        var act = () => _sut.ArquivarAsync("aluno-1", Professor("Lab-001"));
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+        await _repo.DidNotReceive().SoftDeleteAsync("aluno-1");
+    }
+
+    [Fact]
+    public async Task ArquivarAsync_ProfessorNaoArquivaColegaProfessor()
     {
         _repo.FindByIdAsync("alvo-1").Returns(new UsuarioInfo(
-            "alvo-1", "colega@lab.com", "Colega", null, papelAlvo, new List<string> { papelAlvo }, false));
+            "alvo-1", "colega@lab.com", "Colega", null, "Professor", new List<string> { "Professor" }, false));
+        _usuarioLabs.DoUsuarioAsync("alvo-1").Returns(new List<string> { "Lab-001" });
 
-        var act = () => _sut.ArquivarAsync("alvo-1", "prof@lab.com", "Professor");
+        var act = () => _sut.ArquivarAsync("alvo-1", Professor("Lab-001"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*só o Admin*");
+        await _repo.DidNotReceive().SoftDeleteAsync("alvo-1");
+    }
+
+    [Fact]
+    public async Task ArquivarAsync_ProfessorNaoEnxergaAdmin()
+    {
+        _repo.FindByIdAsync("alvo-1").Returns(new UsuarioInfo(
+            "alvo-1", "adm@lab.com", "Admin", null, "Admin", new List<string> { "Admin" }, false));
+        _usuarioLabs.DoUsuarioAsync("alvo-1").Returns(new List<string> { "Lab-001" });
+
+        var act = () => _sut.ArquivarAsync("alvo-1", Professor("Lab-001"));
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
         await _repo.DidNotReceive().SoftDeleteAsync("alvo-1");
     }
 
@@ -245,7 +270,7 @@ public class UsuariosServiceTests
         _repo.FindByIdAsync("prof-1").Returns(new UsuarioInfo(
             "prof-1", "prof@lab.com", "Prof", null, "Professor", new List<string> { "Professor" }, false));
 
-        await _sut.ArquivarAsync("prof-1", "admin@lab.com", "Admin");
+        await _sut.ArquivarAsync("prof-1", Admin());
 
         await _repo.Received(1).SoftDeleteAsync("prof-1");
     }
@@ -265,6 +290,7 @@ public class UsuariosServiceTests
     public async Task DefinirLaboratoriosAsync_ProfessorParaAluno_AceitaOsProprios()
     {
         _repo.FindByIdIncluindoArquivadosAsync("aluno-1").Returns(Aluno());
+        _usuarioLabs.DoUsuarioAsync("aluno-1").Returns(new List<string> { "Lab-001" });
 
         await _sut.DefinirLaboratoriosAsync("aluno-1", new DefinirLaboratoriosCmd(["Lab-001"]), Professor("Lab-001"));
 
@@ -275,6 +301,7 @@ public class UsuariosServiceTests
     public async Task DefinirLaboratoriosAsync_ProfessorParaAluno_RecusaLaboratorioQueNaoTem()
     {
         _repo.FindByIdIncluindoArquivadosAsync("aluno-1").Returns(Aluno());
+        _usuarioLabs.DoUsuarioAsync("aluno-1").Returns(new List<string> { "Lab-001" });
 
         var act = () => _sut.DefinirLaboratoriosAsync("aluno-1",
             new DefinirLaboratoriosCmd(["Lab-002"]), Professor("Lab-001"));
@@ -287,6 +314,7 @@ public class UsuariosServiceTests
     public async Task DefinirLaboratoriosAsync_ProfessorParaProfessor_Recusa()
     {
         _repo.FindByIdIncluindoArquivadosAsync("user-1").Returns(FakeUser());
+        _usuarioLabs.DoUsuarioAsync("user-1").Returns(new List<string> { "Lab-001" });
 
         var act = () => _sut.DefinirLaboratoriosAsync("user-1",
             new DefinirLaboratoriosCmd(["Lab-001"]), Professor("Lab-001"));
@@ -358,7 +386,7 @@ public class UsuariosServiceTests
             ["user-1"] = ["Lab-001", "Lab-002"],
         });
 
-        var lista = await _sut.ListarAsync();
+        var lista = await _sut.ListarAsync(Admin());
 
         lista.Should().ContainSingle().Which.LaboratorioIds.Should().Equal("Lab-001", "Lab-002");
     }
@@ -385,5 +413,57 @@ public class UsuariosServiceTests
 
         await _usuarioLabs.Received(1).DefinirAsync("aluno-1",
             Arg.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "Lab-001" })));
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_ProfessorParaAlunoDeOutroLaboratorio_Recusa()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("aluno-1").Returns(Aluno());
+        _usuarioLabs.DoUsuarioAsync("aluno-1").Returns(new List<string> { "Lab-002" });
+
+        var act = () => _sut.DefinirLaboratoriosAsync("aluno-1", new DefinirLaboratoriosCmd(["Lab-001"]), Professor("Lab-001"));
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+        await _usuarioLabs.DidNotReceive().DefinirAsync(Arg.Any<string>(), Arg.Any<IEnumerable<string>>());
+    }
+
+    [Fact]
+    public async Task DefinirLaboratoriosAsync_ProfessorDeixandoAlunoSemLaboratorio_Recusa()
+    {
+        _repo.FindByIdIncluindoArquivadosAsync("aluno-1").Returns(Aluno());
+        _usuarioLabs.DoUsuarioAsync("aluno-1").Returns(new List<string> { "Lab-001" });
+
+        var act = () => _sut.DefinirLaboratoriosAsync("aluno-1", new DefinirLaboratoriosCmd([]), Professor("Lab-001"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*sem laboratório*");
+        await _usuarioLabs.DidNotReceive().DefinirAsync(Arg.Any<string>(), Arg.Any<IEnumerable<string>>());
+    }
+
+    [Fact]
+    public async Task ListarAsync_ProfessorVeSoQuemCompartilhaLaboratorioEASiMesmo()
+    {
+        _repo.GetAllAsync().Returns(new List<UsuarioInfo>
+        {
+            new("prof-1", "prof@lab.com", "Eu", null, "Professor", new List<string>(), false),
+            new("aluno-a", "a@lab.com", "Do meu lab", null, "Aluno", new List<string>(), false),
+            new("prof-b", "b@lab.com", "Colega do meu lab", null, "Professor", new List<string>(), false),
+            new("aluno-c", "c@lab.com", "De outro lab", null, "Aluno", new List<string>(), false),
+            new("aluno-d", "d@lab.com", "Sem lab", null, "Aluno", new List<string>(), false),
+            new("adm", "adm@lab.com", "Admin", null, "Admin", new List<string>(), false),
+        });
+        _usuarioLabs.DeTodosAsync().Returns(new Dictionary<string, IReadOnlyList<string>>
+        {
+            ["prof-1"] = ["Lab-001"],
+            ["aluno-a"] = ["Lab-001", "Lab-002"],
+            ["prof-b"] = ["Lab-001"],
+            ["aluno-c"] = ["Lab-002"],
+            ["adm"] = ["Lab-001"],
+        });
+
+        var doProfessor = await _sut.ListarAsync(Professor("Lab-001"));
+        var doAdmin = await _sut.ListarAsync(Admin());
+
+        doProfessor.Select(u => u.Id).Should().Equal("prof-1", "aluno-a", "prof-b");
+        doAdmin.Should().HaveCount(6);
     }
 }

@@ -14,15 +14,12 @@ public static class Endpoints
         .RequireAuthorization("GestaoUsuarios")
         .WithSummary("Gerar link de convite");
 
-        group.MapGet("/", async (IConvitesService svc) => Results.Ok(await svc.ListarAsync()))
+        group.MapGet("/", async (IConvitesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
+            Results.Ok(await svc.ListarAsync(await user.ResolverAsync(labs))))
             .RequireAuthorization("GestaoUsuarios");
 
-        group.MapDelete("/{id:int}", async (int id, IConvitesService svc, ClaimsPrincipal user) =>
-        {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            var papel = user.FindFirstValue("papel") ?? "";
-            return await svc.RevogarAsync(id, email, papel) ? Results.NoContent() : Results.NotFound();
-        })
+        group.MapDelete("/{id:int}", async (int id, IConvitesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
+            await svc.RevogarAsync(id, await user.ResolverAsync(labs)) ? Results.NoContent() : Results.NotFound())
         .RequireAuthorization("GestaoUsuarios");
 
         group.MapGet("/{token}", async (string token, IConvitesService svc) =>

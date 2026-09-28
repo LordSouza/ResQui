@@ -34,7 +34,7 @@ public class ConvitesServiceTests
 
     private async Task<(string token, Convite convite)> CriarConviteAsync(string papel = "Aluno", string papelDeQuemConvida = "Professor")
     {
-        var dto = await _sut.CriarAsync(new CriarConviteCmd(papel), Quem("prof-1", "prof@lab.com", papelDeQuemConvida, "Lab-001"));
+        var dto = await _sut.CriarAsync(new CriarConviteCmd(papel, ["Lab-001"]), Quem("prof-1", "prof@lab.com", papelDeQuemConvida, "Lab-001"));
         var convite = _gravados[^1];
         _convites.GetByTokenHashAsync(convite.TokenHash).Returns(convite);
         return (dto.Token, convite);
@@ -59,6 +59,23 @@ public class ConvitesServiceTests
 
         convite.TokenHash.Should().NotBe(token);
         convite.TokenHash.Should().NotContain(token);
+    }
+
+    [Fact]
+    public async Task CriarAsync_ProfessorSemLaboratorio_Recusa()
+    {
+        var act = () => _sut.CriarAsync(new CriarConviteCmd("Aluno"), Quem("prof-1", "prof@lab.com", "Professor", "Lab-001"));
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*pelo menos um laboratório*");
+        _gravados.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CriarAsync_AdminSemLaboratorio_Aceita()
+    {
+        await _sut.CriarAsync(new CriarConviteCmd("Aluno"), Quem("adm", "admin@lab.com", "Admin"));
+
+        _gravados.Should().ContainSingle();
     }
 
     [Fact]
@@ -270,7 +287,7 @@ public class ConvitesServiceTests
         convite.Id = 7;
         _convites.GetByIdAsync(7).Returns(convite);
 
-        (await _sut.RevogarAsync(7, "prof@lab.com", "Professor")).Should().BeTrue();
+        (await _sut.RevogarAsync(7, Quem("prof-1", "prof@lab.com", "Professor", "Lab-001"))).Should().BeTrue();
 
         convite.RevogadoEm.Should().NotBeNull();
         await _audit.Received(1).RegistrarAsync("prof@lab.com", "convite.revogar", "Usuários",
@@ -285,22 +302,32 @@ public class ConvitesServiceTests
         convite.UsadoEm = DateTime.UtcNow;
         _convites.GetByIdAsync(7).Returns(convite);
 
-        var act = () => _sut.RevogarAsync(7, "prof@lab.com", "Professor");
+        var act = () => _sut.RevogarAsync(7, Quem("prof-1", "prof@lab.com", "Professor", "Lab-001"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*pendentes*");
     }
 
     [Fact]
-    public async Task RevogarAsync_ProfessorRevogandoConviteDeProfessor_Recusa()
+    public async Task RevogarAsync_ProfessorRevogandoConviteDeOutro_Recusa()
     {
-        var (_, convite) = await CriarConviteAsync("Professor", "Admin");
+        var (_, convite) = await CriarConviteAsync();
         convite.Id = 7;
         _convites.GetByIdAsync(7).Returns(convite);
 
-        var act = () => _sut.RevogarAsync(7, "prof@lab.com", "Professor");
+        var act = () => _sut.RevogarAsync(7, Quem("prof-2", "outro@lab.com", "Professor", "Lab-001"));
 
-        await act.Should().ThrowAsync<ValidationException>().WithMessage("*só o Admin*");
+        await act.Should().ThrowAsync<AcessoNegadoException>();
         convite.RevogadoEm.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RevogarAsync_AdminRevogaConviteDeQualquerUm()
+    {
+        var (_, convite) = await CriarConviteAsync();
+        convite.Id = 7;
+        _convites.GetByIdAsync(7).Returns(convite);
+
+        (await _sut.RevogarAsync(7, Quem("adm", "admin@lab.com", "Admin"))).Should().BeTrue();
     }
 
     [Fact]
@@ -308,7 +335,7 @@ public class ConvitesServiceTests
     {
         _convites.GetByIdAsync(99).Returns((Convite?)null);
 
-        (await _sut.RevogarAsync(99, "prof@lab.com", "Professor")).Should().BeFalse();
+        (await _sut.RevogarAsync(99, Quem("prof-1", "prof@lab.com", "Professor", "Lab-001"))).Should().BeFalse();
     }
 
     [Fact]
@@ -325,11 +352,30 @@ public class ConvitesServiceTests
         _usuarios.FindByIdIncluindoArquivadosAsync("user-9").Returns(new UsuarioInfo(
             "user-9", "novo@lab.com", "Novo Aluno", null, "Aluno", new List<string> { "Aluno" }, false));
 
-        var lista = (await _sut.ListarAsync()).ToList();
+        var lista = (await _sut.ListarAsync(Quem("adm", "admin@lab.com", "Admin"))).ToList();
 
         lista.Select(c => c.Status).Should().Equal("pendente", "usado", "expirado", "revogado");
         lista[1].UsadoPor.Should().Be("Novo Aluno");
         await _usuarios.DidNotReceive().GetAllAsync();
+    }
+
+    [Fact]
+    public async Task ListarAsync_ProfessorVeSoOsConvitesQueGerou()
+    {
+        var agora = DateTime.UtcNow;
+        _convites.GetAllAsync().Returns(new List<Convite>
+        {
+            new() { Id = 1, Papel = "Aluno", ExpiraEm = agora.AddDays(7), CriadoPorId = "prof-1" },
+            new() { Id = 2, Papel = "Aluno", ExpiraEm = agora.AddDays(7), CriadoPorId = "prof-2" },
+            new() { Id = 3, Papel = "Professor", ExpiraEm = agora.AddDays(7), CriadoPorId = "adm" },
+            new() { Id = 4, Papel = "Aluno", ExpiraEm = agora.AddDays(7), CriadoPorId = null },
+        });
+
+        var doProfessor = await _sut.ListarAsync(Quem("prof-1", "prof@lab.com", "Professor", "Lab-001"));
+        var doAdmin = await _sut.ListarAsync(Quem("adm", "admin@lab.com", "Admin"));
+
+        doProfessor.Select(c => c.Id).Should().Equal(1);
+        doAdmin.Select(c => c.Id).Should().Equal(1, 2, 3, 4);
     }
 
     [Fact]

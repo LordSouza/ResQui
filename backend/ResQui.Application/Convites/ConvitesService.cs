@@ -17,8 +17,8 @@ public record AceitarConviteCmd(string Nome, string Email, string? Matricula, st
 public interface IConvitesService
 {
     Task<ConviteCriadoDto> CriarAsync(CriarConviteCmd cmd, Solicitante solicitante);
-    Task<IEnumerable<ConviteDto>> ListarAsync();
-    Task<bool> RevogarAsync(int id, string requesterEmail, string requesterPapel);
+    Task<IEnumerable<ConviteDto>> ListarAsync(Solicitante solicitante);
+    Task<bool> RevogarAsync(int id, Solicitante solicitante);
     Task<ConvitePublicoDto?> ConsultarAsync(string token);
     Task AceitarAsync(string token, AceitarConviteCmd cmd);
 }
@@ -47,6 +47,8 @@ public class ConvitesService(
         if (solicitante.Papel != "Admin"
             && laboratorios.FirstOrDefault(labId => !solicitante.Responde(labId)) is { } alheio)
             throw new ValidationException($"Você não responde pelo laboratório {alheio}.");
+        if (solicitante.Papel != "Admin" && laboratorios.Count == 0)
+            throw new ValidationException("Escolha pelo menos um laboratório: conta sem laboratório só o Admin enxerga.");
 
         var token = GerarToken();
         var convite = new Convite
@@ -64,9 +66,11 @@ public class ConvitesService(
         return new ConviteCriadoDto(convite.Id, token, convite.Papel, convite.ExpiraEm);
     }
 
-    public async Task<IEnumerable<ConviteDto>> ListarAsync()
+    public async Task<IEnumerable<ConviteDto>> ListarAsync(Solicitante solicitante)
     {
-        var todos = (await convites.GetAllAsync()).ToList();
+        var todos = (await convites.GetAllAsync())
+            .Where(c => solicitante.VeTudo || c.CriadoPorId == solicitante.Id)
+            .ToList();
         var porId = new Dictionary<string, string>();
         foreach (var usadoPorId in todos.Select(c => c.UsadoPorId).OfType<string>().Distinct())
         {
@@ -78,16 +82,16 @@ public class ConvitesService(
             c.UsadoPorId is { } id && porId.TryGetValue(id, out var nome) ? nome : null));
     }
 
-    public async Task<bool> RevogarAsync(int id, string requesterEmail, string requesterPapel)
+    public async Task<bool> RevogarAsync(int id, Solicitante solicitante)
     {
         if (await convites.GetByIdAsync(id) is not { } convite) return false;
-        if (convite.Papel != "Aluno" && requesterPapel != "Admin")
-            throw new ValidationException($"Revogar convite de {convite.Papel} é só o Admin.");
+        if (!solicitante.VeTudo && convite.CriadoPorId != solicitante.Id)
+            throw new AcessoNegadoException("Você só revoga os convites que gerou.");
         if (StatusDe(convite) != "pendente")
             throw new ValidationException("Só convites pendentes podem ser revogados.");
         convite.RevogadoEm = DateTime.UtcNow;
         await convites.SaveChangesAsync();
-        await auditoria.RegistrarAsync(requesterEmail, "convite.revogar", "Usuários",
+        await auditoria.RegistrarAsync(solicitante.Email, "convite.revogar", "Usuários",
             $"Revogou o convite #{id} para {convite.Papel}", RiscoAuditoria.Medium);
         return true;
     }

@@ -14,6 +14,8 @@ import { useCriarConvite } from '../convites/useCriarConvite';
 import { useRevogarConvite } from '../convites/useRevogarConvite';
 import { linkConvite } from '../convites/linkConvite';
 
+const ERRO_SEM_LABORATORIO = 'Escolha pelo menos um laboratório: conta sem laboratório só o Admin enxerga.';
+
 const papelBadge = (p) => {
   const r = ROLES[p];
   if (!r) return <Badge kind="gray">{p}</Badge>;
@@ -36,6 +38,10 @@ export function FormNovoUsuario({ onClose, dispatch }) {
   const submit = () => {
     if (!f.nome.trim() || !f.email.trim() || !f.senha.trim()) {
       setErro('Nome, e-mail e senha são obrigatórios.');
+      return;
+    }
+    if (!podeQualquerPapel && laboratorios.length === 0) {
+      setErro(ERRO_SEM_LABORATORIO);
       return;
     }
     setErro('');
@@ -118,6 +124,7 @@ export function FormConvidarUsuario({ onClose }) {
   const podeQualquerPapel = usePode('Administracao');
   const [papel, setPapel] = useState('Aluno');
   const [laboratorios, setLaboratorios] = useState([]);
+  const [erro, setErro] = useState('');
   const [gerado, setGerado] = useState(null);
   const [copiado, setCopiado] = useState(false);
   const [falhaAoCopiar, setFalhaAoCopiar] = useState(false);
@@ -131,15 +138,21 @@ export function FormConvidarUsuario({ onClose }) {
 
   const descartarLink = () => { setGerado(null); setCopiado(false); setFalhaAoCopiar(false); };
   const trocarPapel = (novo) => { setPapel(novo); descartarLink(); };
-  const trocarLaboratorios = (novos) => { setLaboratorios(novos); descartarLink(); };
+  const trocarLaboratorios = (novos) => { setLaboratorios(novos); setErro(''); descartarLink(); };
 
-  const gerar = () => criar.mutate({ Papel: papel, LaboratorioIds: laboratorios }, {
-    onSuccess: (convite) => {
-      setGerado({ id: convite.id, link: linkConvite(convite.token), papel: convite.papel });
-      setCopiado(false);
-      setFalhaAoCopiar(false);
-    },
-  });
+  const gerar = () => {
+    if (!podeQualquerPapel && laboratorios.length === 0) {
+      setErro(ERRO_SEM_LABORATORIO);
+      return;
+    }
+    criar.mutate({ Papel: papel, LaboratorioIds: laboratorios }, {
+      onSuccess: (convite) => {
+        setGerado({ id: convite.id, link: linkConvite(convite.token), papel: convite.papel });
+        setCopiado(false);
+        setFalhaAoCopiar(false);
+      },
+    });
+  };
 
   const copiar = async () => {
     try {
@@ -162,6 +175,7 @@ export function FormConvidarUsuario({ onClose }) {
           <Icon name="plus" size={12} /> {criar.isPending ? 'Gerando…' : 'Gerar link'}
         </button>
       </>}>
+      {erro && <div className="login-err" style={{ marginBottom: 12 }}>{erro}</div>}
       {criar.isError && <div className="login-err" style={{ marginBottom: 12 }}>{criar.error.message}</div>}
       {revogar.isError && <div className="login-err" style={{ marginBottom: 12 }}>{revogar.error.message}</div>}
 
