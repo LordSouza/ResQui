@@ -18,5 +18,5 @@ video: 16-consultar-auditoria.mp4
 
 - A auditoria cobre o sistema inteiro, todos os laboratórios, e ninguém pode editar ou apagar um registro.
 - Cada linha traz a data e hora, o usuário, a ação, o detalhe (o que mudou) e o local no sistema.
-- As linhas destacadas marcam ações de risco maior, como importações, configuração do PGRS e reaberturas de manifesto.
+- As cores marcam o risco da ação: em amarelo, risco médio (como aprovações de descarte, importações e configuração do PGRS); em vermelho, risco alto (como a reabertura de um manifesto ou uma conta bloqueada por excesso de tentativas de login).
 - O histórico de um reagente específico também aparece em **Movimentações recentes**, na ficha dele.
