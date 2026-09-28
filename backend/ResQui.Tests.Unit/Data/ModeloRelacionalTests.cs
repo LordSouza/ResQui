@@ -19,6 +19,7 @@ public class ModeloRelacionalTests
 
     [Theory]
     [InlineData(typeof(Residuo), "LaboratorioId", typeof(Laboratorio), DeleteBehavior.Restrict)]
+    [InlineData(typeof(Reagente), "LaboratorioId", typeof(Laboratorio), DeleteBehavior.Restrict)]
     [InlineData(typeof(Residuo), "MtrId", typeof(Mtr), DeleteBehavior.SetNull)]
     [InlineData(typeof(ReagenteLote), "ReagenteId", typeof(Reagente), DeleteBehavior.Cascade)]
     [InlineData(typeof(ReagenteGhs), "ReagenteId", typeof(Reagente), DeleteBehavior.Cascade)]

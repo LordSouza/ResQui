@@ -531,6 +531,11 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.Property<DateOnly?>("AberturaData")
                         .HasColumnType("date");
 
+                    b.Property<string>("Armario")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("Cas")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -554,9 +559,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Local")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<string>("LaboratorioId")
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Lote")
                         .HasColumnType("text");
@@ -583,6 +587,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LaboratorioId");
 
                     b.ToTable("Reagentes");
                 });
@@ -1000,6 +1006,16 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.Reagente", b =>
+                {
+                    b.HasOne("ResQui.Domain.Entities.Laboratorio", "Laboratorio")
+                        .WithMany()
+                        .HasForeignKey("LaboratorioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Laboratorio");
                 });
 
             modelBuilder.Entity("ResQui.Domain.Entities.ReagenteGhs", b =>

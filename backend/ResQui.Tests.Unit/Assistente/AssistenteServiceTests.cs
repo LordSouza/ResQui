@@ -25,7 +25,7 @@ public class AssistenteServiceTests
     }
 
     private static Reagente Reagente(string id) =>
-        new() { Id = id, Nome = "HCl", Cas = "7647-01-0", ClasseReatividade = 1, Estoque = 1m, Unidade = "L", Local = "Lab-001" };
+        new() { Id = id, Nome = "HCl", Cas = "7647-01-0", ClasseReatividade = 1, Estoque = 1m, Unidade = "L", LaboratorioId = "Lab-001" };
 
     private static MensagemAssistenteCmd Cmd(string mensagem = "oi") => new(mensagem, null);
 

@@ -10,10 +10,9 @@ public class LowStockChecker(
     INotificacoesRepository notifs,
     IAuthRepository auth,
     IEmailService email,
+    IUsuarioLaboratoriosRepository usuarioLabs,
     ILogger<LowStockChecker> logger)
 {
-    private static readonly string[] PapeisElegiveis = ["Professor"];
-
     public async Task RunAsync(CancellationToken ct = default)
     {
         var abaixoMinimo = (await reagentes.GetAllAsync())
@@ -22,15 +21,13 @@ public class LowStockChecker(
 
         if (abaixoMinimo.Count == 0) return;
 
-        var usuarios = (await auth.GetAllAsync())
-            .Where(u => !u.Arquivado && PapeisElegiveis.Contains(u.Papel))
-            .ToList();
+        var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
 
         bool houveMudanca = false;
 
         foreach (var r in abaixoMinimo)
         {
-            foreach (var u in usuarios)
+            foreach (var u in destinatarios.Do(r.LaboratorioId))
             {
                 if (await notifs.ExisteNaoLidaAsync(u.Id, "low-stock", r.Id)) continue;
 

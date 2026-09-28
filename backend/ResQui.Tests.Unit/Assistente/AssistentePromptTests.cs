@@ -7,7 +7,7 @@ namespace ResQui.Tests.Unit.Assistente;
 public class AssistentePromptTests
 {
     private static Reagente Reagente(string id = "R-00001", string nome = "Ácido Clorídrico") =>
-        new() { Id = id, Nome = nome, Cas = "7647-01-0", ClasseReatividade = 1, Estoque = 2.4m, Unidade = "L", Local = "Lab-001 · A1" };
+        new() { Id = id, Nome = nome, Cas = "7647-01-0", ClasseReatividade = 1, Estoque = 2.4m, Unidade = "L", LaboratorioId = "Lab-001", Laboratorio = new() { Id = "Lab-001", Nome = "Química" }, Armario = "A1" };
 
     private static Residuo Residuo(int id = 7) =>
         new() { Id = id, Tipo = "Solventes", Volume = 5m, Unidade = "L", LaboratorioId = "Lab-002", Status = "aguardando-coleta" };

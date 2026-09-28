@@ -46,16 +46,16 @@ public static class DemoDataSeeder
         if (!await db.Reagentes.AnyAsync())
         {
             db.Reagentes.AddRange(
-                Reag("Ácido clorídrico 37%", "7647-01-0", "HCl", 1, 2.5m, 1m, "L", hoje.AddMonths(14), "Lab-201 · Armário A · Pra. 1", true, ["corrosion"], "Perigo", ["H314", "H335"], ["P280", "P303+P361+P353"]),
-                Reag("Hidróxido de sódio P.A.", "1310-73-2", "NaOH", 3, 800m, 200m, "g", hoje.AddMonths(20), "Lab-201 · Armário B · Pra. 2", false, ["corrosion"], "Perigo", ["H314"], ["P280"]),
-                Reag("Etanol absoluto", "64-17-5", "C2H6O", 5, 8m, 2m, "L", hoje.AddMonths(10), "Lab-203 · Armário C · Pra. 1", false, ["flame"], "Perigo", ["H225"], ["P210"]),
-                Reag("Acetona P.A.", "67-64-1", "C3H6O", 5, 4m, 1m, "L", hoje.AddMonths(9), "Lab-203 · Armário C · Pra. 2", false, ["flame", "exclam"], "Perigo", ["H225", "H319"], ["P210", "P305+P351+P338"]),
-                Reag("Peróxido de hidrogênio 30%", "7722-84-1", "H2O2", 4, 1.5m, 0.5m, "L", hoje.AddDays(20), "Lab-201 · Armário A · Pra. 3", false, ["flame_circle", "corrosion"], "Perigo", ["H271", "H314"], ["P280", "P210"]),
-                Reag("Metanol P.A.", "67-56-1", "CH4O", 5, 5m, 1m, "L", hoje.AddDays(25), "Lab-205 · Armário A · Pra. 1", true, ["flame", "skull"], "Perigo", ["H225", "H301"], ["P210", "P280"]),
-                Reag("Ácido sulfúrico 98%", "7664-93-9", "H2SO4", 1, 0.4m, 1m, "L", hoje.AddMonths(16), "Lab-201 · Armário A · Pra. 2", true, ["corrosion"], "Perigo", ["H314"], ["P280"]),
-                Reag("Nitrato de prata", "7761-88-8", "AgNO3", 4, 20m, 50m, "g", hoje.AddMonths(22), "Lab-205 · Armário A · Pra. 2", true, ["flame_circle", "corrosion"], "Perigo", ["H272", "H314"], ["P210", "P280"]),
-                Reag("Tolueno P.A.", "108-88-3", "C7H8", 5, 2m, 0.5m, "L", hoje.AddMonths(7), "Lab-203 · Armário C · Pra. 3", false, ["flame", "health"], "Perigo", ["H225", "H361d"], ["P210", "P280"]),
-                Reag("Cloreto de potássio", "7447-40-7", "KCl", 7, 500m, 100m, "g", hoje.AddMonths(30), "Lab-209 · Armário B · Pra. 3", false, [], "Atenção", [], []));
+                Reag("Ácido clorídrico 37%", "7647-01-0", "HCl", 1, 2.5m, 1m, "L", hoje.AddMonths(14), lab1, "Armário A", true, ["corrosion"], "Perigo", ["H314", "H335"], ["P280", "P303+P361+P353"]),
+                Reag("Hidróxido de sódio P.A.", "1310-73-2", "NaOH", 3, 800m, 200m, "g", hoje.AddMonths(20), lab1, "Armário B", false, ["corrosion"], "Perigo", ["H314"], ["P280"]),
+                Reag("Etanol absoluto", "64-17-5", "C2H6O", 5, 8m, 2m, "L", hoje.AddMonths(10), lab2, "Armário C", false, ["flame"], "Perigo", ["H225"], ["P210"]),
+                Reag("Acetona P.A.", "67-64-1", "C3H6O", 5, 4m, 1m, "L", hoje.AddMonths(9), lab2, "Armário C", false, ["flame", "exclam"], "Perigo", ["H225", "H319"], ["P210", "P305+P351+P338"]),
+                Reag("Peróxido de hidrogênio 30%", "7722-84-1", "H2O2", 4, 1.5m, 0.5m, "L", hoje.AddDays(20), lab1, "Armário A", false, ["flame_circle", "corrosion"], "Perigo", ["H271", "H314"], ["P280", "P210"]),
+                Reag("Metanol P.A.", "67-56-1", "CH4O", 5, 5m, 1m, "L", hoje.AddDays(25), lab3, "Armário A", true, ["flame", "skull"], "Perigo", ["H225", "H301"], ["P210", "P280"]),
+                Reag("Ácido sulfúrico 98%", "7664-93-9", "H2SO4", 1, 0.4m, 1m, "L", hoje.AddMonths(16), lab1, "Armário A", true, ["corrosion"], "Perigo", ["H314"], ["P280"]),
+                Reag("Nitrato de prata", "7761-88-8", "AgNO3", 4, 20m, 50m, "g", hoje.AddMonths(22), lab3, "Armário A", true, ["flame_circle", "corrosion"], "Perigo", ["H272", "H314"], ["P210", "P280"]),
+                Reag("Tolueno P.A.", "108-88-3", "C7H8", 5, 2m, 0.5m, "L", hoje.AddMonths(7), lab2, "Armário C", false, ["flame", "health"], "Perigo", ["H225", "H361d"], ["P210", "P280"]),
+                Reag("Cloreto de potássio", "7447-40-7", "KCl", 7, 500m, 100m, "g", hoje.AddMonths(30), lab1, "Armário B", false, [], "Atenção", [], []));
             await db.SaveChangesAsync();
         }
 
@@ -117,11 +117,11 @@ public static class DemoDataSeeder
         }
     }
 
-    private static Reagente Reag(string nome, string cas, string formula, int classe, decimal estoque, decimal estoqueMin, string unidade, DateOnly validade, string local, bool controlado, List<string> pictos, string signal, List<string> frasesH, List<string> frasesP) => new()
+    private static Reagente Reag(string nome, string cas, string formula, int classe, decimal estoque, decimal estoqueMin, string unidade, DateOnly validade, string laboratorioId, string armario, bool controlado, List<string> pictos, string signal, List<string> frasesH, List<string> frasesP) => new()
     {
         Nome = nome, Cas = cas, Formula = formula, ClasseReatividade = classe,
         Estoque = estoque, EstoqueMin = estoqueMin, Unidade = unidade, Validade = validade,
-        Local = local, Controlado = controlado,
+        LaboratorioId = laboratorioId, Armario = armario, Controlado = controlado,
         Ghs = new ReagenteGhs { Pictos = pictos, Signal = signal, FrasesH = frasesH, FrasesP = frasesP },
     };
 

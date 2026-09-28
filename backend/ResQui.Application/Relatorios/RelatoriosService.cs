@@ -78,7 +78,7 @@ public class RelatoriosService(
         var sb = new StringBuilder();
         sb.AppendLine("Id,Nome,Local,Estoque,EstoqueMin,Validade,Classe,Status");
         foreach (var r in reagentes)
-            sb.AppendLine($"{r.Id},{Esc(r.Nome)},{Esc(r.Local)}," +
+            sb.AppendLine($"{r.Id},{Esc(r.Nome)},{Esc(r.DescreverLocal())}," +
                           $"{r.Estoque.ToString("F3", CultureInfo.InvariantCulture)}," +
                           $"{r.EstoqueMin?.ToString("F3", CultureInfo.InvariantCulture)}," +
                           $"{r.Validade:yyyy-MM-dd},{r.ClasseReatividade},{r.ValidadeStatus}");
@@ -96,7 +96,7 @@ public class RelatoriosService(
             var signal = r.Ghs?.Signal ?? "";
             var pictos = r.Ghs?.Pictos is { Count: > 0 } p ? string.Join("|", p) : "";
             sb.AppendLine($"{r.ClasseReatividade},{Esc(r.Nome)},{Esc(signal)},{Esc(pictos)}," +
-                          $"{r.Estoque.ToString("F3", CultureInfo.InvariantCulture)},{Esc(r.Local)}");
+                          $"{r.Estoque.ToString("F3", CultureInfo.InvariantCulture)},{Esc(r.DescreverLocal())}");
         }
         return (sb.ToString(), reagentes.Count);
     }

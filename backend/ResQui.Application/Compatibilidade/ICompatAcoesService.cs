@@ -4,6 +4,6 @@ namespace ResQui.Application.Compatibilidade;
 
 public interface ICompatAcoesService
 {
-    Task RegistrarParecerAsync(string usuarioEmail, RegistrarParecerCmd cmd);
+    Task RegistrarParecerAsync(Solicitante solicitante, RegistrarParecerCmd cmd);
     Task<NotificarProfessoresResultDto> NotificarProfessoresAsync(Solicitante solicitante, NotificarProfessoresCmd cmd);
 }

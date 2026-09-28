@@ -13,16 +13,24 @@ public class LowStockCheckerTests
     private readonly INotificacoesRepository _notifs = Substitute.For<INotificacoesRepository>();
     private readonly IAuthRepository _auth = Substitute.For<IAuthRepository>();
     private readonly IEmailService _email = Substitute.For<IEmailService>();
+    private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
     private readonly LowStockChecker _sut;
 
     private static readonly UsuarioInfo Admin = new("u-admin", "admin@x.com", "Professor", null, "Professor", ["Professor"], false);
 
-    public LowStockCheckerTests() => _sut = new LowStockChecker(_reagentes, _notifs, _auth, _email, NullLogger<LowStockChecker>.Instance);
+    public LowStockCheckerTests()
+    {
+        _usuarioLabs.DeTodosAsync().Returns(new Dictionary<string, IReadOnlyList<string>>
+        {
+            ["u-admin"] = ["Lab-201"],
+        });
+        _sut = new LowStockChecker(_reagentes, _notifs, _auth, _email, _usuarioLabs, NullLogger<LowStockChecker>.Instance);
+    }
 
     [Fact]
     public async Task RunAsync_EstoqueAbaixoMinimo_InsereNotificacao()
     {
-        var r = new Reagente { Id = "R-00002", Nome = "Etanol", Estoque = 0.5m, EstoqueMin = 2m, Unidade = "L", Validade = DateOnly.MaxValue, Local = "Lab-201" };
+        var r = new Reagente { Id = "R-00002", Nome = "Etanol", Estoque = 0.5m, EstoqueMin = 2m, Unidade = "L", Validade = DateOnly.MaxValue, LaboratorioId = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
         _notifs.ExisteNaoLidaAsync("u-admin", "low-stock", "R-00002").Returns(false);
@@ -35,7 +43,7 @@ public class LowStockCheckerTests
     [Fact]
     public async Task RunAsync_EstoqueMinNulo_NaoInsere()
     {
-        var r = new Reagente { Id = "R-00003", Nome = "Acetona", Estoque = 5m, EstoqueMin = null, Unidade = "L", Validade = DateOnly.MaxValue, Local = "Lab-201" };
+        var r = new Reagente { Id = "R-00003", Nome = "Acetona", Estoque = 5m, EstoqueMin = null, Unidade = "L", Validade = DateOnly.MaxValue, LaboratorioId = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
 
