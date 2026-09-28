@@ -18,5 +18,6 @@ video: 09-emitir-manifesto.mp4
 
 - Só entram resíduos com descarte aprovado (**Aguardando coleta**). Depois de emitido o manifesto, eles passam para **Em coleta**.
 - O sistema não deixa agrupar num mesmo manifesto resíduos cujas classes sejam **Proibidas** entre si.
+- Só entram resíduos dos laboratórios pelos quais você responde. Num manifesto montado pelo administrador com resíduos de outros laboratórios, esses aparecem como **Resíduo de outro laboratório**, só com a quantidade.
 - O manifesto do ResQui é um documento interno de rastreabilidade: ele **não** substitui o MTR oficial, emitido no sistema do órgão ambiental.
 - Os valores padrão de gerador, transportador e destinador são definidos em [Como configurar os dados da instituição](/blog/configurar-pgrs-e-gerar-relatorio/).

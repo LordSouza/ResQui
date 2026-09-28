@@ -12,6 +12,7 @@ function normalize(m) {
     destinado_por_nome: m.destinadoPorNome ?? null,
     total_litros: m.totalLitros ?? 0,
     total_quilos: m.totalQuilos ?? 0,
+    residuos_de_outros_laboratorios: m.residuosDeOutrosLaboratorios ?? [],
   };
 }
 

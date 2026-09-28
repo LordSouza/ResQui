@@ -74,4 +74,16 @@ describe('FormPreviewMtrPdf — espelha o MTR real', () => {
     expect(document.body.textContent).toContain('Destinação confirmada em 01/08/2026');
     expect(document.body.textContent).not.toContain('01/08/2026 ·');
   });
+
+  it('mostra as linhas de outros laboratórios como o PDF: sem identificação, só com a quantidade, depois das próprias', () => {
+    const misto = { ...mtr, residuo_ids: [451], residuos_de_outros_laboratorios: [{ volume: 3, unidade: 'kg' }] };
+    render(<FormPreviewMtrPdf mtr={misto} residuos={[residuos[0]]} onClose={vi.fn()} />);
+
+    expect(screen.getByText(/RESÍDUOS \(2\)/)).toBeInTheDocument();
+    const linhas = screen.getAllByRole('row').slice(1).map(tr => tr.textContent);
+    expect(linhas[0]).toContain('Solventes orgânicos halogenados');
+    expect(linhas[1]).toContain('Resíduo de outro laboratório');
+    expect(linhas[1]).toContain('3,00 kg');
+    expect(linhas[1]).not.toContain('451');
+  });
 });

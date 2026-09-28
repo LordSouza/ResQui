@@ -96,19 +96,36 @@ describe('MtrScreen', () => {
   });
 
   it('avisa quando nenhum resíduo do manifesto está no escopo, sem dizer "Mais"', () => {
+    useMtrs.mockReturnValue({
+      data: [{ ...mtr, residuo_ids: [], residuos_de_outros_laboratorios: [{ volume: 30, unidade: 'L' }] }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
     renderCom('Professor');
     expect(screen.getByText(/Os 1 resíduo\(s\) deste manifesto são de laboratórios/)).toBeInTheDocument();
     expect(screen.queryByText('Nenhum resíduo vinculado.')).not.toBeInTheDocument();
   });
 
   it('diz "Mais" quando parte dos resíduos do manifesto aparece na lista', () => {
-    useMtrs.mockReturnValue({ data: [{ ...mtr, residuo_ids: [7, 8] }], isPending: false, isError: false, refetch: vi.fn() });
+    useMtrs.mockReturnValue({
+      data: [{ ...mtr, residuo_ids: [7], residuos_de_outros_laboratorios: [{ volume: 2, unidade: 'kg' }] }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
     useResíduos.mockReturnValue({
       data: [{ id: 7, descricao: 'Solvente', tipo: 'Solventes', volume: 30, unidade: 'L', risco: 'medio' }],
       isPending: false, isError: false, refetch: vi.fn(),
     });
     renderCom('Professor');
     expect(screen.getByText(/Mais 1 resíduo\(s\) deste manifesto são de laboratórios/)).toBeInTheDocument();
+    expect(screen.getByText('+1 de outros laboratórios')).toBeInTheDocument();
+  });
+
+  it('esconde confirmar destinação de quem não responde por todos os laboratórios do manifesto', () => {
+    useMtrs.mockReturnValue({
+      data: [{ ...mtr, residuo_ids: [7], residuos_de_outros_laboratorios: [{ volume: 2, unidade: 'kg' }] }],
+      isPending: false, isError: false, refetch: vi.fn(),
+    });
+    renderCom('Professor');
+    expect(screen.queryByRole('button', { name: /Confirmar destinação/i })).not.toBeInTheDocument();
   });
 
   it('não avisa quando todos os resíduos do manifesto estão visíveis', () => {

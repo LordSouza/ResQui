@@ -20,6 +20,7 @@ export function RelatoriosScreen({ state, dispatch }) {
   // PUT /api/pgrs-config exige Administracao; POST /api/relatorios/gerar, Cadastro.
   const podeConfigurar = usePode('Administracao');
   const podeGerar = usePode('Cadastro');
+  const geraInstitucional = usePode('Administracao');
 
   async function handleGerar(slug) {
     try {
@@ -35,7 +36,11 @@ export function RelatoriosScreen({ state, dispatch }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Relatórios e PGRS</h1>
-          <p className="page-sub">Plano de Gerenciamento de Resíduos Sólidos · documentos consolidados para órgãos fiscalizadores</p>
+          <p className="page-sub">
+            Plano de Gerenciamento de Resíduos Sólidos · {geraInstitucional
+              ? 'documentos consolidados da instituição para órgãos fiscalizadores'
+              : 'documentos com os dados dos laboratórios pelos quais você responde'}
+          </p>
         </div>
         {podeConfigurar && (
           <div className="page-actions">
@@ -76,7 +81,7 @@ export function RelatoriosScreen({ state, dispatch }) {
       <div className="card">
         <SectionTitle
           title="Histórico de relatórios gerados"
-          sub="Últimos relatórios gerados pela equipe"
+          sub={geraInstitucional ? 'Últimos relatórios gerados pela equipe' : 'Relatórios que você gerou'}
         />
         {isPending && (
           <div className="page-loading"><Icon name="refresh" size={16} /> Carregando...</div>

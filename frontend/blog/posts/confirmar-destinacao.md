@@ -16,6 +16,7 @@ video: 10-confirmar-destinacao.mp4
 ## Bom saber
 
 - A data não pode ser no futuro nem anterior à emissão do manifesto.
+- Só confirma (ou reabre) quem responde por todos os laboratórios dos resíduos do manifesto.
 - Os resíduos do manifesto passam para **Destinado**: o ciclo, do registro à destinação final, está completo.
 - O PDF do manifesto passa a trazer a data da destinação e quem a confirmou.
 - Errou a data? **Reabrir manifesto** desfaz a confirmação e devolve os resíduos para **Em coleta**. A reabertura fica registrada na auditoria.
