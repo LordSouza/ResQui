@@ -101,8 +101,8 @@ function LotesCard({ reagente }) {
   );
 }
 
-function armarioDoLocal(local) {
-  return local.split('·').slice(0, 2).map(trecho => trecho.trim()).join(' · ');
+function mesmoArmario(a, b) {
+  return !!a.laboratorioId && a.laboratorioId === b.laboratorioId && (a.armario ?? '') === (b.armario ?? '');
 }
 
 function RotuloGhs({ r }) {
@@ -191,9 +191,8 @@ export function DetalheScreen({ state, dispatch }) {
 
   const todosReagentes = listData?.items ?? [];
   const listaParcial = (listData?.total ?? 0) > todosReagentes.length;
-  const armario = armarioDoLocal(r.local);
   const vizinhosDeArmario = todosReagentes
-    .filter(x => armarioDoLocal(x.local) === armario && x.id !== r.id)
+    .filter(x => mesmoArmario(x, r) && x.id !== r.id)
     .map(x => ({ ...x, nivel: piorNivelContra(r.classe, [x.classe], compatMatrix) }))
     .sort((a, b) => b.nivel - a.nivel);
   const vizinhosExibidos = vizinhosDeArmario.slice(0, 5);
@@ -314,7 +313,7 @@ export function DetalheScreen({ state, dispatch }) {
             <SectionTitle title="Compatibilidade rápida" sub="vs. itens no mesmo armário"/>
             <div className="card-body" style={{padding: 0}}>
               {vizinhosDeArmario.length === 0 && !listaParcial && (
-                <div className="small muted" style={{padding: '10px 14px'}}>Nenhum outro reagente cadastrado em {armario}.</div>
+                <div className="small muted" style={{padding: '10px 14px'}}>Nenhum outro reagente cadastrado em {r.local}.</div>
               )}
               {vizinhosExibidos.map(x => {
                 const kind = x.nivel === 0 ? 'green' : x.nivel === 1 ? 'amber' : 'red';

@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FormTransferirReagente } from '../../src/forms/reagentes';
 
+vi.mock('../../src/auth/AuthContext', () => ({ useAuth: () => ({ user: { papel: 'Admin' } }) }));
+
 function wrapper({ children }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
@@ -17,7 +19,7 @@ describe('FormTransferirReagente', () => {
   beforeEach(() => {
     onClose = vi.fn();
     dispatch = vi.fn();
-    reagente = { id: 'R-TEST', nome: 'Reagente Teste', local: 'Lab Antigo · Prateleira Z' };
+    reagente = { id: 'R-TEST', nome: 'Reagente Teste', local: 'Química Orgânica · Ácidos', laboratorioId: 'Lab-001', armario: 'Ácidos' };
     vi.spyOn(window, 'alert').mockImplementation(() => {});
     vi.stubGlobal('localStorage', {
       data: {},
@@ -29,7 +31,7 @@ describe('FormTransferirReagente', () => {
     vi.stubGlobal('fetch', vi.fn((url) => {
       if (String(url).startsWith('/api/laboratorios')) {
         return Promise.resolve({ ok: true, status: 200, json: async () => [
-          { nome: 'Química Orgânica', armarios: ['Inflamáveis', 'Ácidos'] },
+          { id: 'Lab-001', nome: 'Química Orgânica', armarios: ['Inflamáveis', 'Ácidos'] },
         ] });
       }
       return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
@@ -41,22 +43,35 @@ describe('FormTransferirReagente', () => {
   it('shows the reagent name and current location', () => {
     render(<FormTransferirReagente reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
     expect(screen.getByText(/Reagente Teste/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Local atual/i)).toHaveValue('Lab Antigo · Prateleira Z');
+    expect(screen.getByLabelText(/Local atual/i)).toHaveValue('Química Orgânica · Ácidos');
   });
 
   it('mostra erro inline, sem alert, quando nenhum destino é selecionado', async () => {
     render(<FormTransferirReagente reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
     await userEvent.click(screen.getByRole('button', { name: /Confirmar transferência/i }));
-    expect(await screen.findByText('Escolha um destino diferente do local atual.')).toBeInTheDocument();
+    expect(await screen.findByText('Escolha o laboratório.')).toBeInTheDocument();
     expect(window.alert).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
   });
 
+  it('recusa, sem enviar, o destino igual ao local atual', async () => {
+    render(<FormTransferirReagente reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await screen.findByRole('option', { name: 'Química Orgânica' });
+    await userEvent.selectOptions(screen.getByLabelText('Laboratório'), 'Lab-001');
+    await userEvent.selectOptions(screen.getByLabelText('Armário'), 'Ácidos');
+    await userEvent.click(screen.getByRole('button', { name: /Confirmar transferência/i }));
+    expect(await screen.findByText('Escolha um destino diferente do local atual.')).toBeInTheDocument();
+    expect(fetch.mock.calls.find(c => c[1]?.method === 'POST')).toBeUndefined();
+  });
+
   it('dispatches refresh and closes on valid transfer', async () => {
     render(<FormTransferirReagente reagente={reagente} onClose={onClose} dispatch={dispatch} />, { wrapper });
-    await screen.findByRole('option', { name: 'Química Orgânica · Inflamáveis' });
-    await userEvent.selectOptions(screen.getByLabelText(/Destino/i), 'Química Orgânica · Inflamáveis');
+    await screen.findByRole('option', { name: 'Química Orgânica' });
+    await userEvent.selectOptions(screen.getByLabelText('Laboratório'), 'Lab-001');
+    await userEvent.selectOptions(screen.getByLabelText('Armário'), 'Inflamáveis');
     await userEvent.click(screen.getByRole('button', { name: /Confirmar transferência/i }));
+    const post = await waitFor(() => fetch.mock.calls.find(c => c[1]?.method === 'POST'));
+    expect(JSON.parse(post[1].body)).toEqual({ LaboratorioId: 'Lab-001', Armario: 'Inflamáveis' });
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith({ type: 'refresh', flashId: 'R-TEST' }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });

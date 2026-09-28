@@ -17,5 +17,5 @@ video: 14-transferir-reagente.mp4
 
 - A transferência muda só a localização: o estoque continua o mesmo.
 - A mudança fica em **Movimentações recentes**, com a origem e o destino.
-- Os destinos possíveis são os armários cadastrados nos laboratórios.
+- Os destinos possíveis são os armários dos laboratórios pelos quais você responde.
 - Depois de transferir, confira a **Compatibilidade rápida** da ficha: ela lista os itens do novo armário e avisa se algum não deve ficar junto.

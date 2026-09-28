@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { apiAuth, ensureReagente } from './seed';
+import { apiAuth, ensureLab, ensureReagente } from './seed';
 
 async function loginAndNavigate(page, navLabel) {
   await page.goto('/');
@@ -45,12 +45,15 @@ test('clicking a reagent opens the detail screen', async ({ page, request }) => 
   await expect(page.locator('.crumb .here').first()).toHaveText('Inventário');
 });
 
-test('Novo reagente modal opens, accepts input, and submits', async ({ page }) => {
+test('Novo reagente modal opens, accepts input, and submits', async ({ page, request }) => {
+  const lab = await ensureLab(request, await apiAuth(request));
   await loginAndNavigate(page, 'Inventário');
   await page.getByRole('button', { name: /Novo reagente/i }).click();
   await expect(page.getByText('Novo reagente').first()).toBeVisible();
   await page.getByPlaceholder(/ex: Ácido Acético/i).fill('Reagente E2E');
   await page.getByPlaceholder('64-19-7').fill('0001-01-1');
+  await page.getByLabel('Laboratório', { exact: true }).selectOption(lab.id);
+  if (lab.armarios.length > 1) await page.getByLabel('Armário', { exact: true }).selectOption(lab.armarios[0]);
   await page.getByRole('button', { name: /Cadastrar reagente/i }).click();
   await expect(page.getByText('Reagente E2E').first()).toBeVisible({ timeout: 2000 });
 });

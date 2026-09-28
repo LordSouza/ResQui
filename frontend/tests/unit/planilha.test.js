@@ -21,7 +21,7 @@ describe('lerPlanilha', () => {
 
   it('entrega à análise de importação o mesmo que um CSV entregaria', async () => {
     const { headers, rows } = await lerPlanilha(arquivo(INVENTARIO_XLSX, 'INVENTARIO.XLSX'));
-    const [etanol, tolueno] = analisarImportacao(headers, rows);
+    const [etanol, tolueno] = analisarImportacao(headers, rows, { id: 'Lab-001', nome: 'Almoxarifado', armarios: ['Lab-201', 'Lab-203'] });
 
     expect(etanol.cmd).toMatchObject({ Nome: 'Etanol', Estoque: 2.5, Validade: '2027-10-31', ClasseReatividade: 5, Controlado: true });
     expect(tolueno.motivos).toEqual(['Classe de reatividade ausente']);

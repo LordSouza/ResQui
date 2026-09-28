@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
-import { entrar, gravar, clicar, moverAte, pausa } from './gravador.js';
-import { PROFESSOR } from './preparacao.js';
+import { entrar, gravar, clicar, escolher, moverAte, pausa } from './gravador.js';
+import { PROFESSOR, LABORATORIO_DOS_TUTORIAIS } from './preparacao.js';
 
 const PLANILHA_DE_EXEMPLO = new URL('./inventario-exemplo.xlsx', import.meta.url).pathname;
 
@@ -12,6 +12,7 @@ test('como importar o inventário por planilha', async ({ page }) => {
     await pausa(page, 1500);
     await clicar(page, page.getByRole('button', { name: 'Importar Excel' }));
     await pausa(page, 1500);
+    await escolher(page, page.getByLabel('Laboratório dos reagentes'), LABORATORIO_DOS_TUTORIAIS);
 
     const seletorDeArquivo = page.waitForEvent('filechooser');
     await clicar(page, page.getByRole('button', { name: 'Área para arrastar arquivo ou clique para selecionar' }));

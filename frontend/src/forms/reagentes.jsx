@@ -6,7 +6,8 @@ import { useBaixaReagente } from '../reagentes/useBaixaReagente';
 import { useBaixaLote } from '../reagentes/useBaixaLote';
 import { useDeletarReagente } from '../reagentes/useDeletarReagente';
 import { useTransferirReagente } from '../reagentes/useTransferirReagente';
-import { useLocais } from '../laboratorios/useLocais';
+import { SeletorLocal, LOCAL_VAZIO, erroDoLocal } from './SeletorLocal';
+import { useLaboratoriosDoUsuario } from '../laboratorios/useLaboratoriosDoUsuario';
 import Modal from './Modal';
 import { useCompatOverrides } from '../compat/useCompatOverrides';
 import { useSalvarCompatOverride } from '../compat/useSalvarCompatOverride';
@@ -30,10 +31,9 @@ export function FormNovoReagente({ onClose, dispatch }) {
     h: `${uid}-h`, p: `${uid}-p`,
   };
   const criarMutation = useCriarReagente();
-  const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
   const [f, setF] = useState({
     nome: '', sinonimo: '', cas: '', formula: '', classe: 1,
-    estoque: '', unidade: 'L', validade: '', local: '',
+    estoque: '', unidade: 'L', validade: '', local: LOCAL_VAZIO,
     controlado: false, lote: '',
     pictos: [], signal: 'Atenção',
     h: '', p: '',
@@ -46,6 +46,7 @@ export function FormNovoReagente({ onClose, dispatch }) {
     const pendentes = {};
     if (!f.nome) pendentes.nome = 'Informe o nome do reagente.';
     if (!f.cas) pendentes.cas = 'Informe o número CAS.';
+    if (erroDoLocal(f.local)) pendentes.local = erroDoLocal(f.local);
     setErros(pendentes);
     if (Object.keys(pendentes).length > 0) return;
     const cmd = {
@@ -58,7 +59,8 @@ export function FormNovoReagente({ onClose, dispatch }) {
       EstoqueMin: null,
       Unidade: f.unidade,
       Validade: f.validade || null,
-      Local: f.local,
+      LaboratorioId: f.local.laboratorioId,
+      Armario: f.local.armario,
       Controlado: f.controlado,
       Lote: f.lote || null,
       Ghs: {
@@ -114,13 +116,8 @@ export function FormNovoReagente({ onClose, dispatch }) {
         </div>
         <div className="field"><label htmlFor={ids.validade}>Validade</label><input id={ids.validade} aria-label="Data de validade do reagente" type="date" value={f.validade} onChange={e => upd('validade', e.target.value)}/></div>
       </div>
+      <SeletorLocal idBase={ids.local} value={f.local} onChange={v => upd('local', v)} erro={erros.local}/>
       <div className="form-row">
-        <div className="field"><label htmlFor={ids.local}>Localização</label>
-          <select id={ids.local} value={f.local} onChange={e => upd('local', e.target.value)} disabled={locaisPending}>
-            <option value="">{locaisPending ? 'Carregando…' : locaisError ? 'Erro ao carregar' : 'Selecione…'}</option>
-            {locais.map(l => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </div>
         <div className="field"><label htmlFor={ids.lote}>Lote</label><input id={ids.lote} aria-label="Número do lote do reagente" value={f.lote} onChange={e => upd('lote', e.target.value)} placeholder="L-1234-A"/></div>
       </div>
 
@@ -323,16 +320,19 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
   const uid = useId();
   const ids = { origem: `${uid}-origem`, destino: `${uid}-destino` };
   const transferir = useTransferirReagente(reagente.id);
-  const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
-  const [destino, setDestino] = useState('');
+  const [destino, setDestino] = useState(LOCAL_VAZIO);
   const [erro, setErro] = useState('');
   const submit = () => {
-    if (!destino || destino === reagente.local) {
+    if (erroDoLocal(destino)) {
+      setErro(erroDoLocal(destino));
+      return;
+    }
+    if (destino.laboratorioId === reagente.laboratorioId && destino.armario === reagente.armario) {
       setErro('Escolha um destino diferente do local atual.');
       return;
     }
     setErro('');
-    transferir.mutate({ destino }, {
+    transferir.mutate(destino, {
       onSuccess: () => {
         dispatch({ type: 'refresh', flashId: reagente.id });
         onClose();
@@ -356,15 +356,8 @@ export function FormTransferirReagente({ reagente, onClose, dispatch }) {
           <input id={ids.origem} value={reagente.local} readOnly/>
         </div>
       </div>
-      <div className="form-row full">
-        <div className="field"><label htmlFor={ids.destino}>Destino *</label>
-          <select id={ids.destino} value={destino} onChange={e => { setDestino(e.target.value); setErro(''); }} disabled={locaisPending}>
-            <option value="">{locaisPending ? 'Carregando…' : locaisError ? 'Erro ao carregar' : 'Selecione…'}</option>
-            {locais.map(l => <option key={l} value={l}>{l}</option>)}
-          </select>
-          {erro && <div className="field-error">{erro}</div>}
-        </div>
-      </div>
+      <div className="form-section-title">Destino</div>
+      <SeletorLocal idBase={ids.destino} value={destino} onChange={v => { setDestino(v); setErro(''); }} erro={erro}/>
     </Modal>
   );
 }
@@ -376,18 +369,20 @@ export function FormImportarCSV({ onClose, dispatch }) {
   const [step, setStep] = useState('pick');   // pick | review | done
   const [fileName, setFileName] = useState('');
   const [dragOver, setDragOver] = useState(false);
-  const [itens, setItens] = useState([]);
-  const [headers, setHeaders] = useState([]);
+  const [planilha, setPlanilha] = useState({ headers: [], rows: [] });
+  const [laboratorioId, setLaboratorioId] = useState('');
+  const { laboratorios, isPending: laboratoriosPendentes } = useLaboratoriosDoUsuario();
+  const laboratorio = laboratorios.find(l => l.id === laboratorioId);
+  const headers = planilha.headers;
+  const itens = laboratorio ? analisarImportacao(planilha.headers, planilha.rows, laboratorio) : [];
   const [resultado, setResultado] = useState(null);
   const fileInputRef = useRef(null);
 
   const carregarArquivo = async (file) => {
-    if (!file) return;
+    if (!file || !laboratorio) return;
     try {
-      const { headers, rows } = await lerPlanilha(file);
+      setPlanilha(await lerPlanilha(file));
       setFileName(file.name);
-      setHeaders(headers);
-      setItens(analisarImportacao(headers, rows));
       setStep('review');
     } catch (erro) {
       addToast(erro instanceof FormatoNaoSuportadoError ? erro.message : 'Não foi possível ler o arquivo.', 'error');
@@ -411,8 +406,18 @@ export function FormImportarCSV({ onClose, dispatch }) {
       <Modal tutorial="importarCsv" title="Importar inventário em lote" sub="Carregue a planilha do Excel (.xlsx) ou um CSV — vale a primeira aba"
         onClose={onClose} width={620}
         footer={<button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>}>
+        <div className="form-row full">
+          <div className="field"><label htmlFor="importar-laboratorio">Laboratório dos reagentes</label>
+            <select id="importar-laboratorio" value={laboratorioId} onChange={e => setLaboratorioId(e.target.value)} disabled={laboratoriosPendentes}>
+              <option value="">{laboratoriosPendentes ? 'Carregando…' : 'Selecione…'}</option>
+              {laboratorios.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+            </select>
+            <div className="small muted" style={{ marginTop: 4 }}>Todas as linhas entram neste laboratório; a coluna Armário diz onde cada uma fica.</div>
+          </div>
+        </div>
         <button
           type="button"
+          disabled={!laboratorio}
           aria-label="Área para arrastar arquivo ou clique para selecionar"
           onDragOver={e => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -438,7 +443,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
         <div style={{ marginTop: 16, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.55 }}>
           <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>Colunas reconhecidas</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {['Nome*', 'CAS*', 'Quantidade*', 'Unidade*', 'Local*', 'Fórmula', 'Validade', 'Classe*', 'Controlado'].map(c => (
+            {['Nome*', 'CAS*', 'Quantidade*', 'Unidade*', 'Armário', 'Fórmula', 'Validade', 'Classe*', 'Controlado'].map(c => (
               <Tag key={c}>{c}</Tag>
             ))}
           </div>
@@ -453,7 +458,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
   // —————————— STEP: review ——————————
   if (step === 'review') {
     return (
-      <Modal tutorial="importarCsv" title="Revisar importação" sub={fileName}
+      <Modal tutorial="importarCsv" title="Revisar importação" sub={`${fileName} · ${laboratorio?.nome ?? ''}`}
         onClose={onClose} width={720}
         footer={<>
           <button type="button" className="btn btn-sm" onClick={() => setStep('pick')}>Voltar</button>

@@ -1,31 +1,34 @@
 import { useState } from 'react';
 import Modal from './Modal';
 import { useAtualizarReagente } from '../reagentes/useAtualizarReagente';
-import { useLocais } from '../laboratorios/useLocais';
+import { SeletorLocal, erroDoLocal } from './SeletorLocal';
 
 export function FormEditarReagente({ reagente, onClose, dispatch }) {
   const [f, setF] = useState({
     Nome: reagente.nome,
     Estoque: reagente.estoque,
     EstoqueMin: reagente.estoque_min ?? '',
-    Local: reagente.local,
+    Local: reagente.laboratorioId
+      ? { laboratorioId: reagente.laboratorioId, armario: reagente.armario ?? '' }
+      : { laboratorioId: '', armario: '' },
     Validade: reagente.validade ?? '',
   });
+  const [erroLocal, setErroLocal] = useState('');
   const mutation = useAtualizarReagente();
-  const { locais, isPending: locaisPending, isError: locaisError } = useLocais();
-  // preserva valor legado (fora da lista derivada) como opção selecionável
-  const localOptions = f.Local && !locais.includes(f.Local) ? [f.Local, ...locais] : locais;
   const upd = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const submit = () => {
     if (!f.Nome) return;
+    setErroLocal(erroDoLocal(f.Local));
+    if (erroDoLocal(f.Local)) return;
     mutation.mutate(
       {
         id: reagente.id,
         Nome: f.Nome,
         Estoque: Number(f.Estoque) || 0,
         EstoqueMin: f.EstoqueMin !== '' ? Number(f.EstoqueMin) : null,
-        Local: f.Local,
+        LaboratorioId: f.Local.laboratorioId,
+        Armario: f.Local.armario,
         Validade: f.Validade || null,
       },
       {
@@ -71,14 +74,11 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
           <input id="edit-estoque-min" aria-label="Estoque mínimo" type="number" step="0.01" value={f.EstoqueMin} onChange={e => upd('EstoqueMin', e.target.value)}/>
         </div>
       </div>
+      {!reagente.laboratorioId && (
+        <div className="small muted" style={{marginBottom: 8}}>Local anterior: {reagente.local}. Escolha o laboratório para concluir a migração deste reagente.</div>
+      )}
+      <SeletorLocal idBase="edit-local" value={f.Local} onChange={v => { upd('Local', v); setErroLocal(''); }} erro={erroLocal}/>
       <div className="form-row">
-        <div className="field">
-          <label htmlFor="edit-local">Localização</label>
-          <select id="edit-local" aria-label="Localização do reagente" value={f.Local} onChange={e => upd('Local', e.target.value)} disabled={locaisPending}>
-            <option value="">{locaisPending ? 'Carregando…' : locaisError ? 'Erro ao carregar' : 'Selecione…'}</option>
-            {localOptions.map(l => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </div>
         <div className="field">
           <label htmlFor="edit-validade">Validade</label>
           <input id="edit-validade" aria-label="Data de validade" type="date" value={f.Validade} onChange={e => upd('Validade', e.target.value)}/>

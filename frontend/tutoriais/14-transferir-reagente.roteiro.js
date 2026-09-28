@@ -16,7 +16,8 @@ test('como transferir um reagente de armário', async ({ page }) => {
     await clicar(page, page.getByRole('button', { name: 'Transferir' }));
     await pausa(page, 1000);
     const formulario = page.getByRole('dialog', { name: 'Transferir reagente' });
-    await escolher(page, formulario.getByLabel('Destino *'), `${LABORATORIO_DOS_TUTORIAIS} · Armário de solventes`);
+    await escolher(page, formulario.getByLabel('Laboratório', { exact: true }), LABORATORIO_DOS_TUTORIAIS);
+    await escolher(page, formulario.getByLabel('Armário', { exact: true }), 'Armário de solventes');
     await pausa(page, 800);
     await clicar(page, formulario.getByRole('button', { name: 'Confirmar transferência' }));
     await pausa(page, 3000);

@@ -205,3 +205,43 @@ test('auditoria do professor traz só ações de quem compartilha laboratório c
   expect(doProfessor).not.toContain('admin@resqui.local');
   expect(doAdmin).toContain(alunoAlheio.email.toLowerCase());
 });
+
+test('reagente de laboratório alheio não aparece, não abre e não recebe baixa nem transferência', async ({ request }) => {
+  const adminAuth = await apiAuth(request);
+  const [meu, alheio] = await doisLaboratorios(request, adminAuth);
+  const professor = await criarUsuario(request, adminAuth, 'Professor', [meu.id]);
+  const headers = await professor.autenticar();
+  const nome = `Reagente alheio ${Date.now()}`;
+  const reagenteBase = { Cas: '64-17-5', Formula: 'C2H6O', ClasseReatividade: 5, Estoque: 5, Unidade: 'L', Controlado: false };
+
+  const doAlheio = await (await request.post('/api/reagentes', {
+    headers: adminAuth,
+    data: { ...reagenteBase, Nome: nome, LaboratorioId: alheio.id, Armario: '' },
+  })).json();
+
+  const lista = await (await request.get(`/api/reagentes?q=${encodeURIComponent(nome)}`, { headers })).json();
+  expect(lista.items.map(r => r.id)).not.toContain(doAlheio.id);
+  expect((await request.get(`/api/reagentes/${doAlheio.id}`, { headers })).status()).toBe(403);
+  expect((await request.post(`/api/reagentes/${doAlheio.id}/baixa`, { headers, data: { Quantidade: 1 } })).status()).toBe(403);
+
+  const criarNoAlheio = await request.post('/api/reagentes', {
+    headers,
+    data: { ...reagenteBase, Nome: `${nome} (recusado)`, LaboratorioId: alheio.id, Armario: '' },
+  });
+  expect(criarNoAlheio.status()).toBe(400);
+
+  const meuArmario = meu.armarios?.[0] ?? '';
+  const proprio = await request.post('/api/reagentes', {
+    headers,
+    data: { ...reagenteBase, Nome: `${nome} (meu)`, LaboratorioId: meu.id, Armario: meuArmario },
+  });
+  expect(proprio.status()).toBe(201);
+  const criado = await proprio.json();
+  expect(criado.local).toBe(meuArmario ? `${meu.nome} · ${meuArmario}` : meu.nome);
+
+  const transferirParaAlheio = await request.post(`/api/reagentes/${criado.id}/transferencia`, {
+    headers,
+    data: { LaboratorioId: alheio.id, Armario: '' },
+  });
+  expect(transferirParaAlheio.status()).toBe(400);
+});

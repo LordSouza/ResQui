@@ -41,12 +41,13 @@ export async function ensureReagente(request, auth, { nome, cas, classe = 1 }) {
   const items = data.items ?? data;
   const existing = items.find?.((r) => r.nome === nome);
   if (existing) return existing;
+  const lab = await ensureLab(request, auth);
   const created = await request.post('/api/reagentes', {
     headers: auth,
     data: {
       Nome: nome, Cas: cas, Formula: '-', ClasseReatividade: classe,
       Estoque: 10, EstoqueMin: 1, Unidade: 'L',
-      Local: 'Armário A1', Controlado: false,
+      LaboratorioId: lab.id, Armario: lab.armarios?.[0] ?? '', Controlado: false,
     },
   });
   return created.json();

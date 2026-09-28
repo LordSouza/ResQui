@@ -34,7 +34,7 @@ export const CAMPOS_IMPORT = [
   { campo: 'Cas', aliases: ['cas'], obrigatorio: true },
   { campo: 'Estoque', aliases: ['estoque', 'quantidade', 'qtd'], obrigatorio: true },
   { campo: 'Unidade', aliases: ['unidade', 'unid', 'unid.'], obrigatorio: true },
-  { campo: 'Local', aliases: ['local', 'localizacao', 'localização'], obrigatorio: true },
+  { campo: 'Armario', aliases: ['armario', 'armário', 'local', 'localizacao', 'localização'], obrigatorio: false },
   { campo: 'Formula', aliases: ['formula', 'fórmula'], obrigatorio: false },
   { campo: 'Validade', aliases: ['validade'], obrigatorio: false },
   { campo: 'ClasseReatividade', aliases: ['classe', 'classereatividade', 'reatividade'], obrigatorio: true },
@@ -53,7 +53,22 @@ export function mapearColunas(headers) {
   return mapa;
 }
 
-export function analisarImportacao(headers, rows) {
+const SEPARADOR_DE_LOCAL = ' · ';
+
+function armarioDaLinha(valor, laboratorio) {
+  if (valor === laboratorio.nome) return '';
+  const prefixo = laboratorio.nome + SEPARADOR_DE_LOCAL;
+  return valor.startsWith(prefixo) ? valor.slice(prefixo.length) : valor;
+}
+
+function problemaDoArmario(armario, laboratorio) {
+  const armarios = laboratorio.armarios ?? [];
+  if (armarios.length === 0) return armario ? `Armário ${armario} não existe em ${laboratorio.nome}` : '';
+  if (!armario) return 'Armário ausente';
+  return armarios.includes(armario) ? '' : `Armário ${armario} não existe em ${laboratorio.nome}`;
+}
+
+export function analisarImportacao(headers, rows, laboratorio) {
   const mapa = mapearColunas(headers);
   const hoje = new Date().toISOString().slice(0, 10);
   const get = (row, campo) => {
@@ -66,7 +81,9 @@ export function analisarImportacao(headers, rows) {
     const cas = get(row, 'Cas');
     const estoqueRaw = get(row, 'Estoque');
     const unidade = get(row, 'Unidade');
-    const local = get(row, 'Local');
+    const armarioInformado = armarioDaLinha(get(row, 'Armario'), laboratorio);
+    const armarios = laboratorio.armarios ?? [];
+    const armario = !armarioInformado && armarios.length === 1 ? armarios[0] : armarioInformado;
     const estoque = Number(estoqueRaw.replace(',', '.'));
     const classeRaw = get(row, 'ClasseReatividade');
     const classe = Number(classeRaw);
@@ -76,7 +93,8 @@ export function analisarImportacao(headers, rows) {
     if (!cas) motivos.push('CAS ausente');
     if (!estoqueRaw || Number.isNaN(estoque)) motivos.push('Estoque inválido');
     if (!unidade) motivos.push('Unidade ausente');
-    if (!local) motivos.push('Local ausente');
+    const problemaDeArmario = problemaDoArmario(armario, laboratorio);
+    if (problemaDeArmario) motivos.push(problemaDeArmario);
     if (!classeRaw) motivos.push('Classe de reatividade ausente');
     else if (!Number.isInteger(classe) || classe < 1 || classe > 12) motivos.push('Classe de reatividade inválida');
 
@@ -97,7 +115,8 @@ export function analisarImportacao(headers, rows) {
       EstoqueMin: null,
       Unidade: unidade,
       Validade: validade || null,
-      Local: local,
+      LaboratorioId: laboratorio.id,
+      Armario: armario,
       Controlado: controlado,
       Lote: null,
       Ghs: null,

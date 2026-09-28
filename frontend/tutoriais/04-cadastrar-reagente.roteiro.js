@@ -19,7 +19,8 @@ test('como cadastrar um reagente', async ({ page }) => {
     await clicar(page, formulario.getByLabel('Data de validade do reagente'));
     await formulario.getByLabel('Data de validade do reagente').fill('2027-12-31');
     await pausa(page, 700);
-    await escolher(page, formulario.getByLabel('Localização'), `${LABORATORIO_DOS_TUTORIAIS} · Armário de ácidos`);
+    await escolher(page, formulario.getByLabel('Laboratório', { exact: true }), LABORATORIO_DOS_TUTORIAIS);
+    await escolher(page, formulario.getByLabel('Armário', { exact: true }), 'Armário de ácidos');
     await escolher(page, formulario.getByLabel('Classe de reatividade'), '2');
 
     await clicar(page, formulario.getByText('Classificação GHS (opcional)'));

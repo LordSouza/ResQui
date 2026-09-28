@@ -49,13 +49,13 @@ import { useQrRotulo } from '../../src/reagentes/useQrRotulo';
 // r é classe 1; x (mesmo armário) é classe 3 — nível 3 (Proibido) na matriz mockada.
 const reagente = {
   id: 'R-00001', nome: 'Acetona', cas: '67-64-1', formula: 'C3H6O', sinonimo: 'Propanona',
-  classe: 1, local: 'Lab A · Armário 1', estoque: 10, unidade: 'L',
+  classe: 1, local: 'Lab A · Armário 1', laboratorioId: 'Lab-001', armario: 'Armário 1', estoque: 10, unidade: 'L',
   estoque_min: 5, validade: '2027-01-01', validade_status: 'ok', lote: 'L-1', controlado: false,
   pictos: [], signal: 'Perigo', h: [], p: [], abertura: '2026-01-01',
 };
 
 const vizinho = {
-  id: 'R-00002', nome: 'Ácido nítrico', local: 'Lab A · Armário 1', classe: 3,
+  id: 'R-00002', nome: 'Ácido nítrico', local: 'Lab A · Armário 1', laboratorioId: 'Lab-001', armario: 'Armário 1', classe: 3,
 };
 
 const baseMatrix = { 1: [0, 1, 3], 2: [1, 0, 2], 3: [3, 2, 0] };
@@ -91,12 +91,13 @@ describe('DetalheScreen', () => {
     expect(screen.queryByText('Compatível')).not.toBeInTheDocument();
   });
 
-  it('compara por laboratório e armário, ignorando a prateleira, e lista primeiro o par de maior risco', () => {
-    const outroArmario = { id: 'R-00003', nome: 'Hidróxido de sódio', local: 'Lab A · Armário 2', classe: 3 };
-    const compativel = { id: 'R-00004', nome: 'Ácido clorídrico', local: 'Lab A · Armário 1 · Pra. 2', classe: 1 };
-    useReagentes.mockReturnValue({ data: { items: [reagente, compativel, outroArmario, vizinho], total: 4 }, isPending: false, isError: false });
+  it('compara por laboratório e armário, não pelo texto do local, e lista primeiro o par de maior risco', () => {
+    const outroArmario = { id: 'R-00003', nome: 'Hidróxido de sódio', local: 'Lab A · Armário 2', laboratorioId: 'Lab-001', armario: 'Armário 2', classe: 3 };
+    const compativel = { id: 'R-00004', nome: 'Ácido clorídrico', local: 'Lab A · Armário 1', laboratorioId: 'Lab-001', armario: 'Armário 1', classe: 1 };
+    const outroLaboratorioMesmoNomeDeArmario = { id: 'R-00005', nome: 'Amônia', local: 'Lab B · Armário 1', laboratorioId: 'Lab-002', armario: 'Armário 1', classe: 3 };
+    useReagentes.mockReturnValue({ data: { items: [reagente, compativel, outroArmario, vizinho, outroLaboratorioMesmoNomeDeArmario], total: 5 }, isPending: false, isError: false });
     render(<DetalheScreen state={{ ...initialState, detailId: 'R-00001' }} dispatch={vi.fn()} />);
-    const nomes = screen.getAllByText(/^(Ácido nítrico|Ácido clorídrico|Hidróxido de sódio)$/).map(el => el.textContent);
+    const nomes = screen.getAllByText(/^(Ácido nítrico|Ácido clorídrico|Hidróxido de sódio|Amônia)$/).map(el => el.textContent);
     expect(nomes).toEqual(['Ácido nítrico', 'Ácido clorídrico']);
   });
 
