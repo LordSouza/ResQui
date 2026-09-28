@@ -406,7 +406,7 @@ const notifStatNum = { fontSize: 22, fontFamily: 'var(--mono)', fontWeight: 700,
 const notifStatLabel = { fontSize: 12, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2 };
 
 export function FormNotificacoes({ onClose }) {
-  const { data: prefs, isPending: isLoading } = useGetNotificacaoPrefs();
+  const { data: prefs, isPending: isLoading, isError, refetch } = useGetNotificacaoPrefs();
   const mutation = useNotificacaoPrefs();
   const [local, setLocal] = useState(null);
 
@@ -426,8 +426,19 @@ export function FormNotificacoes({ onClose }) {
   ];
 
   return (
-    <Modal title="Preferências de Notificação" onClose={onClose}>
-      {isLoading && <div style={{padding: 16}}>Carregando...</div>}
+    <Modal title="Preferências de Notificação" onClose={onClose}
+      footer={local && <>
+        <button type="button" className="btn btn-sm" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={handleSave} disabled={mutation.isPending}>
+          {mutation.isPending ? 'Salvando…' : 'Salvar'}
+        </button>
+      </>}>
+      {isLoading && <div className="page-loading"><Icon name="refresh" size={16}/> Carregando...</div>}
+      {isError && (
+        <div className="page-error">
+          Não foi possível carregar suas preferências. <button type="button" onClick={() => refetch()}>Tentar novamente</button>
+        </div>
+      )}
       {local && (
         <>
           <div style={{padding: '8px 0'}}>
@@ -448,16 +459,6 @@ export function FormNotificacoes({ onClose }) {
                 </button>
               </div>
             ))}
-          </div>
-          <div style={{display:'flex',gap:8,justifyContent:'flex-end',paddingTop:12}}>
-            <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={handleSave}
-              disabled={mutation.isPending}>
-              {mutation.isPending ? 'Salvando…' : 'Salvar'}
-            </button>
           </div>
         </>
       )}
