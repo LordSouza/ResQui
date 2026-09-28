@@ -55,11 +55,17 @@ describe('FormLaboratoriosUsuario', () => {
     expect(screen.getByText('Físico-Química')).toBeInTheDocument();
   });
 
-  it('mostra como preservado o vínculo que o solicitante não pode mexer, e não o envia', async () => {
+  it('mostra como preservado o vínculo que o solicitante não pode mexer, sem o nome, e não o envia', async () => {
+    fetch.mockImplementation((url) =>
+      String(url).startsWith('/api/laboratorios')
+        ? Promise.resolve({ ok: true, status: 200, json: async () => [LABS[0]] })
+        : Promise.resolve({ ok: true, status: 204, text: async () => '' }));
     useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Professor', laboratorioIds: ['Lab-001'] } });
-    render(<FormLaboratoriosUsuario usuario={aluno(['Lab-001', 'Lab-002'])} onClose={onClose} />, { wrapper });
+    render(<FormLaboratoriosUsuario usuario={aluno(['Lab-001', 'Lab-002', 'Lab-003'])} onClose={onClose} />, { wrapper });
 
     expect(await screen.findByText(/Preservados/)).toBeInTheDocument();
+    expect(screen.getByText('2 outros laboratórios')).toBeInTheDocument();
+    expect(screen.queryByText('Físico-Química')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());

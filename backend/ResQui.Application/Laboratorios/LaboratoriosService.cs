@@ -12,11 +12,16 @@ public class LaboratoriosService(
     IResiduosRepository residuosRepo,
     IUsuarioLaboratoriosRepository usuarioLabs) : ILaboratoriosService
 {
-    public async Task<IEnumerable<LaboratorioDto>> ListarAsync() =>
-        (await repo.GetAllAsync()).Select(ToDto);
+    public async Task<IEnumerable<LaboratorioDto>> ListarAsync(Solicitante solicitante) =>
+        (await repo.GetAllAsync()).Where(l => solicitante.Responde(l.Id)).Select(ToDto);
 
-    public async Task<LaboratorioDto?> ObterPorIdAsync(string id) =>
-        (await repo.GetByIdAsync(id)) is { } l ? ToDto(l) : null;
+    public async Task<LaboratorioDto?> ObterPorIdAsync(string id, Solicitante solicitante)
+    {
+        var l = await repo.GetByIdAsync(id);
+        if (l is null) return null;
+        GarantirEscopo(id, solicitante);
+        return ToDto(l);
+    }
 
     public async Task<LaboratorioDto> CriarAsync(CriarLaboratorioCmd cmd, Solicitante solicitante)
     {

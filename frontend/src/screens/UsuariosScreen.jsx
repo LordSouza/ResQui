@@ -36,9 +36,13 @@ function drawerReducer(state, action) {
 function resumirLaboratorios(ids, nomePorLab, papel) {
   if (papel === 'Admin') return <span className="muted">todos</span>;
   if (!ids?.length) return <span className="muted">—</span>;
-  const nomes = ids.map(id => nomePorLab[id] ?? id);
+  const nomes = ids.filter(id => nomePorLab[id]).map(id => nomePorLab[id]);
+  const deOutrosLaboratorios = ids.length - nomes.length;
   const visiveis = nomes.slice(0, 2).join(', ');
-  return nomes.length > 2 ? `${visiveis} +${nomes.length - 2}` : visiveis;
+  const conhecidos = nomes.length > 2 ? `${visiveis} +${nomes.length - 2}` : visiveis;
+  if (deOutrosLaboratorios === 0) return conhecidos;
+  const outros = deOutrosLaboratorios === 1 ? '1 outro laboratório' : `${deOutrosLaboratorios} outros laboratórios`;
+  return conhecidos ? `${conhecidos} · ${outros}` : outros;
 }
 
 export function PermissoesDrawer({ usuario, onClose, dispatch }) {
