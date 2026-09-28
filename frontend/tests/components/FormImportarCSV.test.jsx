@@ -8,6 +8,14 @@ import { FormImportarCSV } from '../../src/forms/reagentes';
 
 const addToast = vi.fn();
 vi.mock('../../src/components/ToastContext', () => ({ useToast: () => ({ addToast }) }));
+vi.mock('../../src/auth/AuthContext', () => ({ useAuth: () => ({ user: { papel: 'Admin' } }) }));
+
+const ALMOXARIFADO = { id: 'Lab-001', nome: 'Almoxarifado', armarios: ['Lab-201', 'Lab-203'] };
+
+async function escolherLaboratorio() {
+  await screen.findByRole('option', { name: 'Almoxarifado' });
+  await userEvent.selectOptions(screen.getByLabelText('Laboratório dos reagentes'), 'Lab-001');
+}
 
 const INVENTARIO_XLSX = readFileSync(resolve(__dirname, '../fixtures/inventario.xlsx'));
 
@@ -34,10 +42,12 @@ describe('FormImportarCSV', () => {
       removeItem(k) { delete this.data[k]; },
       clear() { this.data = {}; },
     });
-    mockFetch = vi.fn().mockResolvedValue({
+    mockFetch = vi.fn((url) => Promise.resolve({
       ok: true, status: 200,
-      json: async () => ({ total: 1, importados: 1, erros: [] }),
-    });
+      json: async () => (String(url).startsWith('/api/laboratorios')
+        ? [ALMOXARIFADO]
+        : { total: 1, importados: 1, erros: [] }),
+    }));
     vi.stubGlobal('fetch', mockFetch);
   });
 
@@ -45,6 +55,7 @@ describe('FormImportarCSV', () => {
 
   it('parseia o arquivo e mostra os contadores reais', async () => {
     render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await escolherLaboratorio();
 
     const file = new File([CSV], 'inv.csv', { type: 'text/csv' });
     const input = screen.getByLabelText(/Selecionar planilha/i);
@@ -57,6 +68,7 @@ describe('FormImportarCSV', () => {
 
   it('identifica a linha bloqueada pelos valores crus do arquivo', async () => {
     render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await escolherLaboratorio();
 
     const file = new File([CSV_BLOQUEADA], 'inv.csv', { type: 'text/csv' });
     await userEvent.upload(screen.getByLabelText(/Selecionar planilha/i), file);
@@ -70,6 +82,7 @@ describe('FormImportarCSV', () => {
 
   it('importa as linhas prontas via API e mostra o resultado', async () => {
     render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await escolherLaboratorio();
 
     const file = new File([CSV], 'inv.csv', { type: 'text/csv' });
     await userEvent.upload(screen.getByLabelText(/Selecionar planilha/i), file);
@@ -77,17 +90,22 @@ describe('FormImportarCSV', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /Importar 1/i }));
 
-    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
-    expect(mockFetch.mock.calls[0][0]).toBe('/api/reagentes/importar-lote');
-    const enviado = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const post = await waitFor(() => {
+      const chamada = mockFetch.mock.calls.find(c => c[1]?.method === 'POST');
+      expect(chamada).toBeDefined();
+      return chamada;
+    });
+    expect(post[0]).toBe('/api/reagentes/importar-lote');
+    const enviado = JSON.parse(post[1].body);
     expect(enviado).toHaveLength(1);
-    expect(enviado[0]).toMatchObject({ Nome: 'Etanol' });
+    expect(enviado[0]).toMatchObject({ Nome: 'Etanol', LaboratorioId: 'Lab-001', Armario: 'Lab-201' });
     expect(enviado[0]).not.toHaveProperty('Responsavel');
     await waitFor(() => expect(screen.getByText(/1 reagentes importados|1 importado/i)).toBeInTheDocument());
   });
 
   it('avisa quando a planilha não tem coluna de classe de reatividade', async () => {
     render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await escolherLaboratorio();
 
     const file = new File([CSV_SEM_CLASSE], 'inv.csv', { type: 'text/csv' });
     await userEvent.upload(screen.getByLabelText(/Selecionar planilha/i), file);
@@ -98,6 +116,7 @@ describe('FormImportarCSV', () => {
 
   it('não mostra o aviso quando a planilha traz a coluna de classe', async () => {
     render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await escolherLaboratorio();
 
     const file = new File([CSV], 'inv.csv', { type: 'text/csv' });
     await userEvent.upload(screen.getByLabelText(/Selecionar planilha/i), file);
@@ -108,6 +127,7 @@ describe('FormImportarCSV', () => {
 
   it('lê a planilha do Excel e mostra as linhas prontas e bloqueadas', async () => {
     render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await escolherLaboratorio();
 
     const file = new File([INVENTARIO_XLSX], 'inventario.xlsx');
     await userEvent.upload(screen.getByLabelText(/Selecionar planilha/i), file);
@@ -120,6 +140,7 @@ describe('FormImportarCSV', () => {
 
   it('recusa arquivo arrastado em formato que não sabe ler', async () => {
     render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await escolherLaboratorio();
 
     const file = new File(['qualquer'], 'inventario.xls');
     const dropzone = screen.getByRole('button', { name: /Área para arrastar arquivo/i });

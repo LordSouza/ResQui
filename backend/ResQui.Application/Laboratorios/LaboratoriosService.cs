@@ -10,7 +10,8 @@ public class LaboratoriosService(
     ILaboratoriosRepository repo,
     IAuditoriaService auditoria,
     IResiduosRepository residuosRepo,
-    IUsuarioLaboratoriosRepository usuarioLabs) : ILaboratoriosService
+    IUsuarioLaboratoriosRepository usuarioLabs,
+    IReagentesRepository reagentesRepo) : ILaboratoriosService
 {
     public async Task<IEnumerable<LaboratorioDto>> ListarAsync(Solicitante solicitante) =>
         (await repo.GetAllAsync()).Where(l => solicitante.Responde(l.Id)).Select(ToDto);
@@ -68,6 +69,12 @@ public class LaboratoriosService(
             throw new ValidationException(
                 $"Laboratório {id} tem {residuos} resíduo(s) vinculado(s); "
                 + "transfira ou remova esses registros antes de excluir.");
+
+        var reagentes = (await reagentesRepo.GetAllAsync()).Count(r => r.LaboratorioId == id);
+        if (reagentes > 0)
+            throw new ValidationException(
+                $"Laboratório {id} tem {reagentes} reagente(s) no inventário; "
+                + "transfira ou remova esses reagentes antes de excluir.");
 
         await repo.DeleteAsync(id);
         await repo.SaveChangesAsync();

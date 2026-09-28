@@ -4,10 +4,10 @@ import { apiFetch } from '../lib/api';
 export function useTransferirReagente(id) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ destino }) => {
+    mutationFn: async ({ laboratorioId, armario }) => {
       const res = await apiFetch(`/api/reagentes/${id}/transferencia`, {
         method: 'POST',
-        body: JSON.stringify({ Destino: destino }),
+        body: JSON.stringify({ LaboratorioId: laboratorioId, Armario: armario }),
       });
       return res.json();
     },

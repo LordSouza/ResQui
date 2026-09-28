@@ -22,7 +22,7 @@ public class RotuloReagenteTests
         Formula = "X",
         ClasseReatividade = 1,
         Validade = new DateOnly(2027, 1, 1),
-        Local = "Lab-001",
+        LaboratorioId = "Lab-001", Laboratorio = new() { Id = "Lab-001", Nome = "Química" }, Armario = "Armário A",
         Ghs = new ReagenteGhs { Pictos = pictos.ToList(), Signal = "Perigo", FrasesH = ["H225"], FrasesP = ["P210"] },
     };
 

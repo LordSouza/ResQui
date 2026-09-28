@@ -12,6 +12,8 @@ public record ReagenteListItemDto(
     string Validade,
     string ValidadeStatus,
     string Local,
+    string? LaboratorioId,
+    string Armario,
     bool Controlado,
     GhsDto? Ghs
 );
@@ -29,6 +31,8 @@ public record ReagenteDetalheDto(
     string Validade,
     string ValidadeStatus,
     string Local,
+    string? LaboratorioId,
+    string Armario,
     bool Controlado,
     string? Lote,
     string? AberturaData,
@@ -48,7 +52,8 @@ public record CriarReagenteCmd(
     decimal? EstoqueMin,
     string Unidade,
     string? Validade,
-    string Local,
+    string? LaboratorioId,
+    string? Armario,
     bool Controlado,
     string? Lote,
     GhsDto? Ghs
@@ -58,7 +63,8 @@ public record AtualizarReagenteCmd(
     string Nome,
     decimal Estoque,
     decimal? EstoqueMin,
-    string Local,
+    string? LaboratorioId,
+    string? Armario,
     string? Validade
 );
 
@@ -67,7 +73,7 @@ public record BaixaCmd(decimal Quantidade, string? Motivo = null)
     public const int MaxMotivo = 200;
 }
 
-public record TransferirReagenteCmd(string Destino);
+public record TransferirReagenteCmd(string? LaboratorioId, string? Armario);
 
 public record LoteDto(
     int Id,

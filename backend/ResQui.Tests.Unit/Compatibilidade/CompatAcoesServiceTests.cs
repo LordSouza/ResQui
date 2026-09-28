@@ -25,18 +25,21 @@ public class CompatAcoesServiceTests
 
     public CompatAcoesServiceTests()
     {
-        _sut = new CompatAcoesService(_reagentes, _compat, _audit, _notifs, _auth,
-            new VisibilidadeUsuarios(_auth, _usuarioLabs));
+        _sut = new CompatAcoesService(_reagentes, _compat, _audit, _notifs, _auth, _usuarioLabs);
         SeedPar(nivel: 2, descricao: "Perigo");
+        _usuarioLabs.DeTodosAsync().Returns(new Dictionary<string, IReadOnlyList<string>>
+        {
+            ["u-1"] = ["Lab-001"], ["u-2"] = ["Lab-001"], ["u-3"] = ["Lab-001"], ["u-4"] = ["Lab-001"], ["u-9"] = ["Lab-001"],
+        });
     }
 
     // Par padrão: R-1 (classe 5) + R-2 (classe 10).
     private void SeedPar(int nivel, string descricao)
     {
         _reagentes.GetByIdAsync("R-1").Returns(new Reagente
-            { Id = "R-1", Nome = "Metanol", ClasseReatividade = 5 });
+            { Id = "R-1", Nome = "Metanol", ClasseReatividade = 5, LaboratorioId = "Lab-001" });
         _reagentes.GetByIdAsync("R-2").Returns(new Reagente
-            { Id = "R-2", Nome = "Ácido Nítrico", ClasseReatividade = 10 });
+            { Id = "R-2", Nome = "Ácido Nítrico", ClasseReatividade = 10, LaboratorioId = "Lab-001" });
         _compat.ConsultarParAsync(5, 10).Returns(new CompatResultDto(5, 10, nivel, descricao));
     }
 
@@ -45,7 +48,7 @@ public class CompatAcoesServiceTests
     [Fact]
     public async Task RegistrarParecer_GravaAuditoriaComNivelDerivadoDoServidor()
     {
-        await _sut.RegistrarParecerAsync("tec@resqui.local",
+        await _sut.RegistrarParecerAsync(Admin,
             new RegistrarParecerCmd("R-1", "R-2", "Armazenados em bandejas separadas."));
 
         await _audit.Received(1).RegistrarAsync(
@@ -61,7 +64,7 @@ public class CompatAcoesServiceTests
     [Fact]
     public async Task RegistrarParecer_OmiteOTrechoDoParecer_QuandoVazio()
     {
-        await _sut.RegistrarParecerAsync("tec@resqui.local", new RegistrarParecerCmd("R-1", "R-2", "   "));
+        await _sut.RegistrarParecerAsync(Admin, new RegistrarParecerCmd("R-1", "R-2", "   "));
 
         await _audit.Received(1).RegistrarAsync(
             Arg.Any<string>(), "compat.parecer", "Compatibilidade",
@@ -74,7 +77,7 @@ public class CompatAcoesServiceTests
     {
         _compat.ConsultarParAsync(5, 10).Returns(new CompatResultDto(5, 10, 0, "Compatível"));
 
-        await _sut.RegistrarParecerAsync("tec@resqui.local", new RegistrarParecerCmd("R-1", "R-2", "ok"));
+        await _sut.RegistrarParecerAsync(Admin, new RegistrarParecerCmd("R-1", "R-2", "ok"));
 
         await _audit.Received(1).RegistrarAsync(
             Arg.Any<string>(), "compat.parecer", Arg.Any<string>(), Arg.Any<string>(), RiscoAuditoria.Low);
@@ -85,7 +88,7 @@ public class CompatAcoesServiceTests
     {
         _reagentes.GetByIdAsync("R-9").Returns((Reagente?)null);
 
-        var act = () => _sut.RegistrarParecerAsync("tec@resqui.local", new RegistrarParecerCmd("R-1", "R-9", null));
+        var act = () => _sut.RegistrarParecerAsync(Admin, new RegistrarParecerCmd("R-1", "R-9", null));
 
         await act.Should().ThrowAsync<ValidationException>();
         await _audit.DidNotReceive().RegistrarAsync(
@@ -95,7 +98,7 @@ public class CompatAcoesServiceTests
     [Fact]
     public async Task RegistrarParecer_Recusa_QuandoOsDoisIdsSaoIguais()
     {
-        var act = () => _sut.RegistrarParecerAsync("tec@resqui.local", new RegistrarParecerCmd("R-1", "R-1", null));
+        var act = () => _sut.RegistrarParecerAsync(Admin, new RegistrarParecerCmd("R-1", "R-1", null));
 
         await act.Should().ThrowAsync<ValidationException>();
     }
@@ -103,7 +106,7 @@ public class CompatAcoesServiceTests
     [Fact]
     public async Task RegistrarParecer_Recusa_QuandoParecerPassaDe1000Caracteres()
     {
-        var act = () => _sut.RegistrarParecerAsync("tec@resqui.local",
+        var act = () => _sut.RegistrarParecerAsync(Admin,
             new RegistrarParecerCmd("R-1", "R-2", new string('x', 1001)));
 
         await act.Should().ThrowAsync<ValidationException>();
@@ -198,18 +201,42 @@ public class CompatAcoesServiceTests
     }
 
     [Fact]
-    public async Task Notificar_AlunoAvisaSoOsProfessoresDoProprioLaboratorio()
+    public async Task Notificar_AvisaSoOsProfessoresDosLaboratoriosDosReagentes()
     {
         SeedUsuarios(
-            Usuario("u-1", "meu@resqui.local", "Professor do meu lab"),
-            Usuario("u-2", "outro@resqui.local", "Professor de outro lab"));
-        _usuarioLabs.DoUsuarioAsync("u-1").Returns(new List<string> { "Lab-001" });
-        _usuarioLabs.DoUsuarioAsync("u-2").Returns(new List<string> { "Lab-002" });
+            Usuario("u-1", "meu@resqui.local", "Professor do laboratório"),
+            Usuario("u-5", "outro@resqui.local", "Professor de outro laboratório"));
+        _usuarioLabs.DeTodosAsync().Returns(new Dictionary<string, IReadOnlyList<string>>
+        {
+            ["u-1"] = ["Lab-001"], ["u-5"] = ["Lab-002"],
+        });
         var aluno = new Solicitante("aluno-1", "aluno@resqui.local", "Aluno", ["Lab-001"]);
 
         var r = await _sut.NotificarProfessoresAsync(aluno, new NotificarProfessoresCmd("R-1", "R-2"));
 
         r.Notificados.Select(n => n.UsuarioId).Should().Equal("u-1");
-        await _notifs.DidNotReceive().CriarAsync("u-2", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+        await _notifs.DidNotReceive().CriarAsync("u-5", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Notificar_ReagenteDeOutroLaboratorio_LancaAcessoNegado()
+    {
+        var deOutroLaboratorio = new Solicitante("aluno-2", "aluno2@resqui.local", "Aluno", ["Lab-002"]);
+
+        var act = () => _sut.NotificarProfessoresAsync(deOutroLaboratorio, new NotificarProfessoresCmd("R-1", "R-2"));
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
+        await _notifs.DidNotReceive().CriarAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task RegistrarParecer_ReagenteDeOutroLaboratorio_LancaAcessoNegado()
+    {
+        var deOutroLaboratorio = new Solicitante("aluno-2", "aluno2@resqui.local", "Aluno", ["Lab-002"]);
+
+        var act = () => _sut.RegistrarParecerAsync(deOutroLaboratorio, new RegistrarParecerCmd("R-1", "R-2", null));
+
+        await act.Should().ThrowAsync<AcessoNegadoException>();
     }
 }

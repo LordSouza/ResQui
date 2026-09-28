@@ -34,6 +34,7 @@ public class AssistenteService(
         var maxReagentes = config.GetValue("Assistente:MaxReagentesCatalogo", 200);
 
         var reagentes = (await reagentesRepo.GetAllAsync())
+            .Where(r => solicitante.Responde(r.LaboratorioId))
             .OrderBy(r => r.Id, StringComparer.Ordinal)
             .Take(maxReagentes)
             .ToList();

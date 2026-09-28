@@ -32,7 +32,7 @@ public class RelatoriosServiceTests
 
     private static Reagente FakeReagente(string id = "R-00001") => new()
     {
-        Id = id, Nome = "Etanol", Local = "Armário A",
+        Id = id, Nome = "Etanol", LaboratorioId = "Lab-001", Armario = "Armário A",
         Estoque = 500, EstoqueMin = 100, Validade = new DateOnly(2027, 6, 1),
         ClasseReatividade = 3,
     };

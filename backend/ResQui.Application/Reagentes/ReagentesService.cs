@@ -6,14 +6,14 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Reagentes;
 
-public class ReagentesService(IReagentesRepository repo, IAuditoriaService auditoria, Pdf.IPdfService pdf, IReagenteLotesRepository lotes, IVisibilidadeUsuarios visibilidade) : IReagentesService
+public class ReagentesService(IReagentesRepository repo, IAuditoriaService auditoria, Pdf.IPdfService pdf, IReagenteLotesRepository lotes, IVisibilidadeUsuarios visibilidade, ILaboratoriosRepository laboratorios) : IReagentesService
 {
     public const string AutorDeOutroLaboratorio = "outro laboratório";
 
     // Movimentações = entradas de auditoria reagente.* cujo detail menciona o id (ids "R-00001" são únicos)
     public async Task<IEnumerable<Auditoria.AuditoriaItemDto>?> ListarMovimentacoesAsync(string id, Solicitante solicitante, int limite = 20)
     {
-        if (await repo.GetByIdAsync(id) is null) return null;
+        if (await CarregarAsync(id, solicitante) is null) return null;
         var movimentacoes = (await auditoria.ListarAsync(
             new Auditoria.AuditoriaFiltroDto(What: "reagente.", Detail: id, Limite: limite))).ToList();
 
@@ -24,26 +24,26 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         return movimentacoes.Select(m => visiveis[m.Who] ? m : m with { Who = AutorDeOutroLaboratorio });
     }
 
-    public async Task<byte[]?> GerarRotuloLoteAsync(string reagenteId, int loteId, string usuarioEmail)
+    public async Task<byte[]?> GerarRotuloLoteAsync(string reagenteId, int loteId, Solicitante solicitante)
     {
-        var r = await repo.GetByIdAsync(reagenteId);
+        var r = await CarregarAsync(reagenteId, solicitante);
         var lote = await lotes.GetByIdAsync(loteId);
         if (r is null || lote is null || lote.ReagenteId != reagenteId) return null;
         var bytes = pdf.RotuloLote(r, lote);
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.lote.rotulo", "Inventário",
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.lote.rotulo", "Inventário",
             $"Gerou etiqueta do lote {lote.Codigo} do reagente {r.Id}", RiscoAuditoria.Low);
         return bytes;
     }
 
-    public async Task<IEnumerable<LoteDto>?> ListarLotesAsync(string reagenteId)
+    public async Task<IEnumerable<LoteDto>?> ListarLotesAsync(string reagenteId, Solicitante solicitante)
     {
-        if (await repo.GetByIdAsync(reagenteId) is null) return null;
+        if (await CarregarAsync(reagenteId, solicitante) is null) return null;
         return (await lotes.GetByReagenteAsync(reagenteId)).Select(ToLoteDto);
     }
 
-    public async Task<LoteDto?> CriarLoteAsync(string reagenteId, CriarLoteCmd cmd, string usuarioEmail)
+    public async Task<LoteDto?> CriarLoteAsync(string reagenteId, CriarLoteCmd cmd, Solicitante solicitante)
     {
-        var r = await repo.GetByIdAsync(reagenteId);
+        var r = await CarregarAsync(reagenteId, solicitante);
         if (r is null) return null;
         if (string.IsNullOrWhiteSpace(cmd.Codigo)) throw new ValidationException("Código do lote é obrigatório.");
         if (cmd.Estoque <= 0) throw new ValidationException("Estoque do lote deve ser maior que zero.");
@@ -62,14 +62,14 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         r.Estoque += cmd.Estoque;
         await repo.UpdateAsync(r);
         await lotes.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.lote.criar", "Inventário",
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.lote.criar", "Inventário",
             $"Registrou lote {lote.Codigo} ({cmd.Estoque} {r.Unidade}) do reagente {r.Id}", RiscoAuditoria.Low);
         return ToLoteDto(lote);
     }
 
-    public async Task<LoteDto?> BaixaLoteAsync(string reagenteId, int loteId, BaixaCmd cmd, string usuarioEmail)
+    public async Task<LoteDto?> BaixaLoteAsync(string reagenteId, int loteId, BaixaCmd cmd, Solicitante solicitante)
     {
-        var r = await repo.GetByIdAsync(reagenteId);
+        var r = await CarregarAsync(reagenteId, solicitante);
         var lote = await lotes.GetByIdAsync(loteId);
         if (r is null || lote is null || lote.ReagenteId != reagenteId) return null;
         if (cmd.Quantidade <= 0) throw new ValidationException("Quantidade deve ser maior que zero.");
@@ -83,7 +83,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         await lotes.UpdateAsync(lote);
         await repo.UpdateAsync(r);
         await lotes.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.lote.baixa", "Inventário",
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.lote.baixa", "Inventário",
             $"Baixa de {cmd.Quantidade} {r.Unidade} no lote {lote.Codigo} do reagente {r.Id}", RiscoAuditoria.Medium);
         return ToLoteDto(lote);
     }
@@ -96,25 +96,25 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             l.Validade.ToString("yyyy-MM-dd"), l.Abertura?.ToString("yyyy-MM-dd"), status);
     }
 
-    public async Task<byte[]?> GerarRotuloAsync(string id, string usuarioEmail)
+    public async Task<byte[]?> GerarRotuloAsync(string id, Solicitante solicitante)
     {
-        var r = await repo.GetByIdAsync(id);
+        var r = await CarregarAsync(id, solicitante);
         if (r is null) return null;
         var bytes = pdf.RotuloReagente(r);
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.rotulo", "Inventário",
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.rotulo", "Inventário",
             $"Gerou rótulo GHS do reagente {r.Id} — {r.Nome}", RiscoAuditoria.Low);
         return bytes;
     }
 
-    public async Task<byte[]?> QrDoRotuloAsync(string id)
+    public async Task<byte[]?> QrDoRotuloAsync(string id, Solicitante solicitante)
     {
-        var r = await repo.GetByIdAsync(id);
+        var r = await CarregarAsync(id, solicitante);
         return r is null ? null : QrCode.Png(r.Id);
     }
 
-    public async Task<(IEnumerable<ReagenteListItemDto> Items, int Total)> ListarAsync(ReagentesFiltroDto filtro)
+    public async Task<(IEnumerable<ReagenteListItemDto> Items, int Total)> ListarAsync(ReagentesFiltroDto filtro, Solicitante solicitante)
     {
-        var all = (await repo.GetAllAsync()).AsEnumerable();
+        var all = (await repo.GetAllAsync()).Where(r => solicitante.Responde(r.LaboratorioId));
 
         if (!string.IsNullOrEmpty(filtro.Q))
         {
@@ -143,19 +143,20 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         return (items, total);
     }
 
-    public async Task<ReagenteDetalheDto?> ObterPorIdAsync(string id)
+    public async Task<ReagenteDetalheDto?> ObterPorIdAsync(string id, Solicitante solicitante)
     {
-        var r = await repo.GetByIdAsync(id);
+        var r = await CarregarAsync(id, solicitante);
         return r is null ? null : ToDetalhe(r);
     }
 
-    public async Task<ReagenteDetalheDto> CriarAsync(CriarReagenteCmd cmd, string usuarioEmail)
+    public async Task<ReagenteDetalheDto> CriarAsync(CriarReagenteCmd cmd, Solicitante solicitante)
     {
         if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
         if (cmd.Estoque < 0) throw new ValidationException("Estoque não pode ser negativo.");
         if (cmd.EstoqueMin is < 0) throw new ValidationException("Estoque mínimo não pode ser negativo.");
         if (cmd.ClasseReatividade is < 1 or > 12) throw new ValidationException("Classe de reatividade deve estar entre 1 e 12.");
         var validade = ParseValidade(cmd.Validade);
+        var (laboratorio, armario) = await ResolverLocalAsync(cmd.LaboratorioId, cmd.Armario, solicitante);
 
         var r = new Reagente
         {
@@ -163,7 +164,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             Sinonimo = cmd.Sinonimo, ClasseReatividade = cmd.ClasseReatividade,
             Estoque = cmd.Estoque, EstoqueMin = cmd.EstoqueMin, Unidade = cmd.Unidade,
             Validade = validade ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
-            Local = cmd.Local,
+            LaboratorioId = laboratorio.Id, Laboratorio = laboratorio, Armario = armario,
             Controlado = cmd.Controlado, Lote = cmd.Lote,
             Ghs = cmd.Ghs is null ? null : new ReagenteGhs
             {
@@ -173,12 +174,12 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         };
         await repo.AddAsync(r);
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.criar", "Inventário",
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.criar", "Inventário",
             $"Criou reagente {r.Id} — {r.Nome}", RiscoAuditoria.Low);
         return ToDetalhe(r);
     }
 
-    public async Task<ImportarLoteResultDto> ImportarLoteAsync(IEnumerable<CriarReagenteCmd> cmds, string usuarioEmail)
+    public async Task<ImportarLoteResultDto> ImportarLoteAsync(IEnumerable<CriarReagenteCmd> cmds, Solicitante solicitante)
     {
         var lista = (cmds ?? Enumerable.Empty<CriarReagenteCmd>()).ToList();
         if (lista.Count == 0) throw new ValidationException("Nenhuma linha para importar.");
@@ -189,7 +190,7 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         {
             try
             {
-                await CriarAsync(lista[i], usuarioEmail);
+                await CriarAsync(lista[i], solicitante);
                 importados++;
             }
             catch (ValidationException ex)
@@ -198,48 +199,51 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             }
         }
 
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.bulk-import", "Inventário",
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.bulk-import", "Inventário",
             $"Importou {importados} reagente(s) em lote ({erros.Count} com erro)", RiscoAuditoria.Medium);
 
         return new ImportarLoteResultDto(lista.Count, importados, erros);
     }
 
-    public async Task<ReagenteDetalheDto?> AtualizarAsync(string id, AtualizarReagenteCmd cmd, string usuarioEmail)
+    public async Task<ReagenteDetalheDto?> AtualizarAsync(string id, AtualizarReagenteCmd cmd, Solicitante solicitante)
     {
         if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
         if (cmd.Estoque < 0) throw new ValidationException("Estoque não pode ser negativo.");
         if (cmd.EstoqueMin is < 0) throw new ValidationException("Estoque mínimo não pode ser negativo.");
 
-        var r = await repo.GetByIdAsync(id);
+        var r = await CarregarAsync(id, solicitante);
         if (r is null) return null;
+        var (laboratorio, armario) = MantemOLocal(r, cmd.LaboratorioId, cmd.Armario)
+            ? (r.Laboratorio!, r.Armario)
+            : await ResolverLocalAsync(cmd.LaboratorioId, cmd.Armario, solicitante);
         r.Nome = cmd.Nome; r.Estoque = cmd.Estoque; r.EstoqueMin = cmd.EstoqueMin;
-        r.Local = cmd.Local;
+        r.LaboratorioId = laboratorio.Id; r.Laboratorio = laboratorio; r.Armario = armario;
         if (ParseValidade(cmd.Validade) is { } validade) r.Validade = validade;
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.atualizar", "Inventário",
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.atualizar", "Inventário",
             $"Editou reagente {id}", RiscoAuditoria.Low);
         return ToDetalhe(r);
     }
 
-    public async Task<bool> DeletarAsync(string id, string usuarioEmail)
+    public async Task<bool> DeletarAsync(string id, Solicitante solicitante)
     {
-        var r = await repo.GetByIdAsync(id);
+        var r = await CarregarAsync(id, solicitante);
         if (r is null) return false;
         await repo.DeleteAsync(id);
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.deletar", "Inventário",
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.deletar", "Inventário",
             $"Removeu reagente {id}", RiscoAuditoria.High);
         return true;
     }
 
-    public async Task<ReagenteDetalheDto?> BaixaAsync(string id, BaixaCmd cmd, string usuarioEmail)
+    public async Task<ReagenteDetalheDto?> BaixaAsync(string id, BaixaCmd cmd, Solicitante solicitante)
     {
         if (cmd.Quantidade <= 0) throw new ValidationException("Quantidade deve ser maior que zero.");
         var motivo = cmd.Motivo?.Trim();
         if (motivo?.Length > BaixaCmd.MaxMotivo)
             throw new ValidationException($"O motivo da baixa aceita até {BaixaCmd.MaxMotivo} caracteres.");
-        var r = await repo.GetByIdAsync(id);
+        var r = await CarregarAsync(id, solicitante);
         if (r is null) return null;
         if (cmd.Quantidade > r.Estoque)
             throw new ValidationException($"Estoque insuficiente: {r.Estoque} {r.Unidade} disponíveis.");
@@ -247,26 +251,62 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
         var sufixoDoMotivo = string.IsNullOrEmpty(motivo) ? "" : $" · motivo: {motivo}";
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.baixa", "Inventário",
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.baixa", "Inventário",
             $"Baixa de {cmd.Quantidade} {r.Unidade} de {r.Nome} (reagente {r.Id}){sufixoDoMotivo}", RiscoAuditoria.Medium);
         return ToDetalhe(r);
     }
 
-    public async Task<ReagenteDetalheDto?> TransferirAsync(string id, TransferirReagenteCmd cmd, string usuarioEmail)
+    public async Task<ReagenteDetalheDto?> TransferirAsync(string id, TransferirReagenteCmd cmd, Solicitante solicitante)
     {
-        if (string.IsNullOrWhiteSpace(cmd.Destino)) throw new ValidationException("Destino é obrigatório.");
-        var destino = cmd.Destino.Trim();
-        var r = await repo.GetByIdAsync(id);
+        var r = await CarregarAsync(id, solicitante);
         if (r is null) return null;
-        if (destino == r.Local) throw new ValidationException($"Reagente já está em {destino}.");
+        var (laboratorio, armario) = await ResolverLocalAsync(cmd.LaboratorioId, cmd.Armario, solicitante);
+        if (laboratorio.Id == r.LaboratorioId && armario == r.Armario)
+            throw new ValidationException($"Reagente já está em {r.DescreverLocal()}.");
 
-        var origem = r.Local;
-        r.Local = destino;
+        var origem = r.DescreverLocal();
+        r.LaboratorioId = laboratorio.Id; r.Laboratorio = laboratorio; r.Armario = armario;
         await repo.UpdateAsync(r);
         await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "reagente.transferencia", "Inventário",
-            $"Transferiu {r.Nome} ({r.Id}) de {origem} para {destino}", RiscoAuditoria.Low);
+        await auditoria.RegistrarAsync(solicitante.Email, "reagente.transferencia", "Inventário",
+            $"Transferiu {r.Nome} ({r.Id}) de {origem} para {r.DescreverLocal()}", RiscoAuditoria.Low);
         return ToDetalhe(r);
+    }
+
+    private async Task<Reagente?> CarregarAsync(string id, Solicitante solicitante)
+    {
+        var r = await repo.GetByIdAsync(id);
+        if (r is null) return null;
+        if (!solicitante.Responde(r.LaboratorioId))
+            throw new AcessoNegadoException($"O reagente {id} é de um laboratório pelo qual você não responde.");
+        return r;
+    }
+
+    private static bool MantemOLocal(Reagente r, string? laboratorioId, string? armario) =>
+        r.Laboratorio is not null && r.LaboratorioId == laboratorioId && r.Armario == (armario ?? "").Trim();
+
+    private async Task<(Laboratorio Laboratorio, string Armario)> ResolverLocalAsync(
+        string? laboratorioId, string? armario, Solicitante solicitante)
+    {
+        if (string.IsNullOrWhiteSpace(laboratorioId)) throw new ValidationException("Laboratório é obrigatório.");
+        if (!solicitante.Responde(laboratorioId))
+            throw new ValidationException($"Você não responde pelo laboratório {laboratorioId}.");
+        var laboratorio = await laboratorios.GetByIdAsync(laboratorioId)
+            ?? throw new ValidationException($"Laboratório {laboratorioId} não encontrado.");
+
+        var armarioInformado = (armario ?? "").Trim();
+        if (laboratorio.Armarios.Count == 0)
+        {
+            if (armarioInformado != "")
+                throw new ValidationException($"O laboratório {laboratorio.Nome} não tem armários cadastrados.");
+        }
+        else if (!laboratorio.Armarios.Contains(armarioInformado))
+        {
+            throw new ValidationException(armarioInformado == ""
+                ? $"Escolha um armário do laboratório {laboratorio.Nome}."
+                : $"O armário {armarioInformado} não existe no laboratório {laboratorio.Nome}.");
+        }
+        return (laboratorio, armarioInformado);
     }
 
     private static DateOnly? ParseValidade(string? valor)
@@ -286,14 +326,14 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
 
     private static ReagenteListItemDto ToListItem(Reagente r) => new(
         r.Id, r.Nome, r.Cas, r.Sinonimo, r.ClasseReatividade, r.Estoque, r.EstoqueMin, r.Unidade,
-        r.Validade.ToString("yyyy-MM-dd"), r.ValidadeStatus, r.Local, r.Controlado,
+        r.Validade.ToString("yyyy-MM-dd"), r.ValidadeStatus, r.DescreverLocal(), r.LaboratorioId, r.Armario, r.Controlado,
         r.Ghs is null ? null : new GhsDto(r.Ghs.Pictos, r.Ghs.Signal, r.Ghs.FrasesH, r.Ghs.FrasesP));
 
     private static ReagenteDetalheDto ToDetalhe(Reagente r) => new(
         r.Id, r.Nome, r.Cas, r.Formula, r.Sinonimo, r.ClasseReatividade,
         r.Estoque, r.EstoqueMin, r.Unidade,
         r.Validade.ToString("yyyy-MM-dd"), r.ValidadeStatus,
-        r.Local, r.Controlado,
+        r.DescreverLocal(), r.LaboratorioId, r.Armario, r.Controlado,
         r.Lote, r.AberturaData?.ToString("yyyy-MM-dd"),
         r.Ghs is null ? null : new GhsDto(r.Ghs.Pictos, r.Ghs.Signal, r.Ghs.FrasesH, r.Ghs.FrasesP));
 }

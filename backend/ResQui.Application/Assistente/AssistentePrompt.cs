@@ -14,7 +14,7 @@ public static class AssistentePrompt
         var cultura = CultureInfo.InvariantCulture;
 
         var catalogoReagentes = string.Join("\n", reagentes.Select(r =>
-            $"{r.Id} {r.Nome} (CAS {r.Cas}) classe {r.ClasseReatividade} · {r.Estoque.ToString(cultura)} {r.Unidade} · {r.Local}"));
+            $"{r.Id} {r.Nome} (CAS {r.Cas}) classe {r.ClasseReatividade} · {r.Estoque.ToString(cultura)} {r.Unidade} · {r.DescreverLocal()}"));
 
         var catalogoResiduos = string.Join("\n", residuosAguardandoColeta.Select(r =>
             $"W-{r.Id} {r.Tipo} {r.Volume.ToString(cultura)}{r.Unidade} {r.LaboratorioId}"));

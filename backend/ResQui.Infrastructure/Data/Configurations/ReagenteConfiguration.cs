@@ -19,6 +19,11 @@ public class ReagenteConfiguration : IEntityTypeConfiguration<Reagente>
         builder.Property(r => r.Estoque).HasPrecision(10, 3);
         builder.Property(r => r.EstoqueMin).HasPrecision(10, 3);
         builder.Ignore(r => r.ValidadeStatus);
+        builder.Property(r => r.Armario).HasMaxLength(200).IsRequired();
+        builder.HasOne(r => r.Laboratorio)
+            .WithMany()
+            .HasForeignKey(r => r.LaboratorioId)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(r => r.Ghs)
                .WithOne()
                .HasForeignKey<ReagenteGhs>(g => g.ReagenteId);

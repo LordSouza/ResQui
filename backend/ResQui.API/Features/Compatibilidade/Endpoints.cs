@@ -34,10 +34,9 @@ public static class Endpoints
             })
             .RequireAuthorization("Administracao");
 
-        group.MapPost("/parecer", async (RegistrarParecerCmd cmd, ICompatAcoesService svc, ClaimsPrincipal user) =>
+        group.MapPost("/parecer", async (RegistrarParecerCmd cmd, ICompatAcoesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
-            var email = user.FindFirstValue(ClaimTypes.Email) ?? "";
-            await svc.RegistrarParecerAsync(email, cmd);
+            await svc.RegistrarParecerAsync(await user.ResolverAsync(labs), cmd);
             return Results.NoContent();
         })
         .RequireAuthorization("Operacional");

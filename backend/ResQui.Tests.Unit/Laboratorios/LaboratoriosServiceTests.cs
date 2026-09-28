@@ -15,12 +15,14 @@ public class LaboratoriosServiceTests
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly IResiduosRepository _residuosRepo = Substitute.For<IResiduosRepository>();
     private readonly IUsuarioLaboratoriosRepository _usuarioLabs = Substitute.For<IUsuarioLaboratoriosRepository>();
+    private readonly IReagentesRepository _reagentesRepo = Substitute.For<IReagentesRepository>();
     private readonly LaboratoriosService _sut;
 
     public LaboratoriosServiceTests()
     {
         _residuosRepo.GetAllAsync().Returns([]);
-        _sut = new LaboratoriosService(_repo, _audit, _residuosRepo, _usuarioLabs);
+        _reagentesRepo.GetAllAsync().Returns([]);
+        _sut = new LaboratoriosService(_repo, _audit, _residuosRepo, _usuarioLabs, _reagentesRepo);
     }
 
     private static Solicitante Dono(string email = "admin@lab.com") =>
@@ -151,7 +153,7 @@ public class LaboratoriosServiceTests
             new Residuo { Id = 1, LaboratorioId = "Lab-001" },
             new Residuo { Id = 2, LaboratorioId = "Lab-002" },
         ]);
-        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>());
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>(), _reagentesRepo);
 
         var act = () => svc.DeletarAsync("Lab-001", Dono("gestor@resqui.local"));
 
@@ -161,13 +163,29 @@ public class LaboratoriosServiceTests
     }
 
     [Fact]
+    public async Task Deletar_ComReagentesNoInventario_Bloqueia()
+    {
+        _repo.GetByIdAsync("Lab-001").Returns(FakeLab("Lab-001"));
+        _reagentesRepo.GetAllAsync().Returns([
+            new Reagente { Id = "R-00001", LaboratorioId = "Lab-001" },
+            new Reagente { Id = "R-00002", LaboratorioId = "Lab-001" },
+            new Reagente { Id = "R-00003", LaboratorioId = "Lab-002" },
+        ]);
+
+        var act = () => _sut.DeletarAsync("Lab-001", Dono());
+
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*2 reagente*");
+        await _repo.DidNotReceive().DeleteAsync("Lab-001");
+    }
+
+    [Fact]
     public async Task Deletar_SemVinculos_Exclui()
     {
         var labRepo = Substitute.For<ILaboratoriosRepository>();
         labRepo.GetByIdAsync("Lab-003").Returns(new Laboratorio { Id = "Lab-003", Nome = "Vazio" });
         var residuosRepo = Substitute.For<IResiduosRepository>();
         residuosRepo.GetAllAsync().Returns([new Residuo { Id = 1, LaboratorioId = "Lab-001" }]);
-        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>());
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>(), _reagentesRepo);
 
         var ok = await svc.DeletarAsync("Lab-003", Dono("gestor@resqui.local"));
 

@@ -8,10 +8,10 @@ namespace ResQui.Infrastructure.Data.Repositories;
 public class EfReagentesRepository(AppDbContext db) : IReagentesRepository
 {
     public async Task<IEnumerable<Reagente>> GetAllAsync() =>
-        await db.Reagentes.Include(r => r.Ghs).ToListAsync();
+        await db.Reagentes.Include(r => r.Ghs).Include(r => r.Laboratorio).ToListAsync();
 
     public async Task<Reagente?> GetByIdAsync(string id) =>
-        await db.Reagentes.Include(r => r.Ghs).FirstOrDefaultAsync(r => r.Id == id);
+        await db.Reagentes.Include(r => r.Ghs).Include(r => r.Laboratorio).FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task AddAsync(Reagente reagente) =>
         await db.Reagentes.AddAsync(reagente);
@@ -19,6 +19,8 @@ public class EfReagentesRepository(AppDbContext db) : IReagentesRepository
     public Task UpdateAsync(Reagente reagente)
     {
         db.Reagentes.Update(reagente);
+        if (reagente.Laboratorio is not null)
+            db.Entry(reagente.Laboratorio).State = EntityState.Unchanged;
         return Task.CompletedTask;
     }
 

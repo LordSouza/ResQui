@@ -11,10 +11,9 @@ public class ExpiryChecker(
     INotificacoesRepository notifs,
     IAuthRepository auth,
     IEmailService email,
+    IUsuarioLaboratoriosRepository usuarioLabs,
     ILogger<ExpiryChecker> logger)
 {
-    private static readonly string[] PapeisElegiveis = ["Professor"];
-
     public async Task RunAsync(CancellationToken ct = default)
     {
         var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -26,16 +25,14 @@ public class ExpiryChecker(
 
         if (vencendo.Count == 0) return;
 
-        var usuarios = (await auth.GetAllAsync())
-            .Where(u => !u.Arquivado && PapeisElegiveis.Contains(u.Papel))
-            .ToList();
+        var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
 
         bool houveMudanca = false;
 
         foreach (var r in vencendo)
         {
             var diasRestantes = r.Validade.DayNumber - hoje.DayNumber;
-            foreach (var u in usuarios)
+            foreach (var u in destinatarios.Do(r.LaboratorioId))
             {
                 if (await notifs.ExisteNaoLidaAsync(u.Id, "expiry", r.Id)) continue;
 

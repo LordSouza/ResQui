@@ -13,8 +13,6 @@ public class ColetaChecker(
     IUsuarioLaboratoriosRepository usuarioLabs,
     ILogger<ColetaChecker> logger)
 {
-    private static readonly string[] PapeisElegiveis = ["Professor"];
-
     public async Task RunAsync(CancellationToken ct = default)
     {
         var limite = DateTime.UtcNow.AddDays(-7);
@@ -24,22 +22,14 @@ public class ColetaChecker(
 
         if (atrasados.Count == 0) return;
 
-        var ativos = (await auth.GetAllAsync()).Where(u => !u.Arquivado).ToList();
-        var elegiveis = ativos.Where(u => PapeisElegiveis.Contains(u.Papel)).ToList();
-        var admins = ativos.Where(u => u.Papel == "Admin").ToList();
-        var laboratoriosPorUsuario = await usuarioLabs.DeTodosAsync();
+        var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
 
         bool houveMudanca = false;
 
         foreach (var r in atrasados)
         {
             var refId = r.Id.ToString();
-            var responsaveis = elegiveis
-                .Where(u => laboratoriosPorUsuario.TryGetValue(u.Id, out var labs)
-                            && labs.Contains(r.LaboratorioId))
-                .ToList();
-            var destinatarios = responsaveis.Count > 0 ? responsaveis : admins;
-            foreach (var u in destinatarios)
+            foreach (var u in destinatarios.Do(r.LaboratorioId))
             {
                 if (await notifs.ExisteNaoLidaAsync(u.Id, "coleta", refId)) continue;
 
