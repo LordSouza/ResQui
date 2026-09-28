@@ -28,7 +28,7 @@ export function DashboardScreen({ state, dispatch }) {
   const podeAprovarDescarte = usePode('Aprovador');
   const podeOperarColeta = usePode('Operacao');
   const solicitados = residuosData.filter(r => r.status === 'solicitado').length;
-  const manifestosPendentes = mtrsData.filter(m => !m.data_destinacao).length;
+  const manifestosPendentes = mtrsData.filter(m => !m.data_destinacao && (m.residuos_de_outros_laboratorios ?? []).length === 0).length;
 
   const pendencias = [
     podeAprovarDescarte && solicitados > 0 && {
