@@ -3,7 +3,7 @@ titulo: Como cadastrar um reagente
 resumo: Registre um reagente com identificação, estoque, localização e classificação de perigo.
 secao: inventario
 ordem: 1
-quem: Professor e Administrador
+quem: Aluno, Professor e Administrador
 video: 04-cadastrar-reagente.mp4
 ---
 ## Passo a passo

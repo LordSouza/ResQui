@@ -177,6 +177,33 @@ test('Aluno é bloqueado ao aprovar descarte', async ({ request }) => {
   expect(aprovar.status()).toBe(403);
 });
 
+test('Aluno cadastra reagente mas é bloqueado ao editá-lo', async ({ request }) => {
+  const auth = await apiAuth(request);
+  const email = `aluno_reagente_${Date.now()}@resqui.local`;
+  await request.post('/api/auth/register', {
+    headers: auth,
+    data: { Email: email, Senha: 'Alun@123', Papel: 'Aluno', Nome: 'Aluno Reagente E2E', LaboratorioIds: await todosLaboratorios(request, auth) },
+  });
+  const login = await request.post('/api/auth/login', { data: { Email: email, Senha: 'Alun@123' } });
+  const { token } = await login.json();
+  const alunoAuth = { Authorization: `Bearer ${token}` };
+
+  const lab = await ensureLab(request, auth);
+  const reagente = {
+    Nome: `Reagente do aluno ${Date.now()}`, Cas: '64-17-5', Formula: 'C2H6O', ClasseReatividade: 5,
+    Estoque: 1, Unidade: 'L', Controlado: false, LaboratorioId: lab.id, Armario: lab.armarios?.[0] ?? '',
+  };
+  const criacao = await request.post('/api/reagentes', { headers: alunoAuth, data: reagente });
+  expect(criacao.status()).toBe(201);
+  const criado = await criacao.json();
+
+  const edicao = await request.put(`/api/reagentes/${criado.id}`, {
+    headers: alunoAuth,
+    data: { Nome: 'tentativa de edição', Estoque: 1, LaboratorioId: lab.id, Armario: reagente.Armario },
+  });
+  expect(edicao.status()).toBe(403);
+});
+
 // O Aluno não está na policy Operacao — criar MTR deve ser 403.
 test('Aluno é bloqueado ao criar MTR', async ({ request }) => {
   const auth = await apiAuth(request);

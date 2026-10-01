@@ -35,14 +35,14 @@ public static class Endpoints
             var r = await svc.CriarAsync(cmd, await user.ResolverAsync(labs));
             return Results.Created($"/api/reagentes/{r.Id}", r);
         })
-        .RequireAuthorization("Cadastro");
+        .RequireAuthorization("Operacional");
 
         group.MapPost("/importar-lote", async (CriarReagenteCmd[] cmds, IReagentesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {
             var result = await svc.ImportarLoteAsync(cmds, await user.ResolverAsync(labs));
             return Results.Ok(result);
         })
-        .RequireAuthorization("Cadastro");
+        .RequireAuthorization("Operacional");
 
         group.MapPut("/{id}", async (string id, AtualizarReagenteCmd cmd, IReagentesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
         {

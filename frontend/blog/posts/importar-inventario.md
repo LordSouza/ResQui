@@ -3,7 +3,7 @@ titulo: Como importar o inventário por planilha
 resumo: Traga todos os reagentes de uma vez a partir de uma planilha, em vez de cadastrar um por um.
 secao: primeiros-passos
 ordem: 4
-quem: Professor e Administrador
+quem: Aluno, Professor e Administrador
 video: 11-importar-inventario.mp4
 ---
 ## Antes de começar
