@@ -8,9 +8,11 @@ namespace ResQui.Application.Email;
 
 public class EmailService(IConfiguration config, ILogger<EmailService> logger) : IEmailService
 {
+    public bool Habilitado => config.GetValue("Email:Enabled", false);
+
     public async Task SendAsync(string to, string subject, string htmlBody)
     {
-        if (!config.GetValue("Email:Enabled", false))
+        if (!Habilitado)
             return;
 
         var host = config["Email:Host"] ?? "";

@@ -74,4 +74,22 @@ public class EmailBuilderTests
         var (_, html) = NotificacaoEmailBuilder.BuildColeta(1, "<script>alert(1)</script>");
         html.Should().NotContain("<script>").And.Contain("&lt;script&gt;");
     }
+
+    [Fact]
+    public void BuildRedefinicaoSenha_LinkEValidadeNoCorpo_ComOLinkEscapado()
+    {
+        var (subject, html) = NotificacaoEmailBuilder.BuildRedefinicaoSenha("https://resqui.com.br/?redefinir=abc&x=\"y", 60);
+
+        subject.Should().Contain("Redefinição de senha");
+        html.Should().Contain("https://resqui.com.br/?redefinir=abc&amp;x=&quot;y").And.Contain("60 minutos");
+    }
+
+    [Fact]
+    public void BuildSenhaRedefinida_AvisaQueAsSessoesForamEncerradas()
+    {
+        var (subject, html) = NotificacaoEmailBuilder.BuildSenhaRedefinida();
+
+        subject.Should().Contain("senha foi redefinida");
+        html.Should().Contain("sessões abertas foram encerradas");
+    }
 }

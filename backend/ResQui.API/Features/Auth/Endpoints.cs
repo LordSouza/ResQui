@@ -7,6 +7,8 @@ namespace ResQui.API.Features.Auth;
 
 public static class Endpoints
 {
+    public const string PoliticaRedefinicao = "redefinicao-senha";
+
     public static RouteGroupBuilder MapAuthEndpoints(this RouteGroupBuilder group)
     {
         group.MapPost("/login", async (LoginCmd cmd, IAuthService svc, HttpContext ctx) =>
@@ -20,6 +22,23 @@ public static class Endpoints
         .AllowAnonymous()
         .WithName("Login")
         .WithSummary("Autenticar usuário e obter JWT");
+
+        group.MapPost("/esqueci-senha", (EsqueciSenhaCmd cmd, IRedefinicaoSenhaService svc) =>
+        {
+            svc.Solicitar(cmd);
+            return Results.NoContent();
+        })
+        .AllowAnonymous()
+        .RequireRateLimiting(PoliticaRedefinicao)
+        .WithSummary("Pedir link de redefinição de senha por e-mail");
+
+        group.MapPost("/redefinir-senha", async (RedefinirSenhaCmd cmd, IRedefinicaoSenhaService svc) =>
+        {
+            await svc.RedefinirAsync(cmd);
+            return Results.NoContent();
+        })
+        .AllowAnonymous()
+        .WithSummary("Definir nova senha com o link recebido por e-mail");
 
         group.MapPost("/alterar-senha", async (AlterarSenhaCmd cmd, IAuthService svc, ClaimsPrincipal user) =>
         {

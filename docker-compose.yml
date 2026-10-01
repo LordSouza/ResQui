@@ -48,6 +48,7 @@ services:
       Email__From: ${EMAIL_FROM:-resqui@resqui.local}
       Email__RequireTls: ${EMAIL_REQUIRE_TLS:-true}
       Email__TimeoutSeconds: ${EMAIL_TIMEOUT_SECONDS:-10}
+      App__UrlPublica: ${APP_URL_PUBLICA:-}
       Proxy__Confiaveis__0: 10.87.0.10
       Proxy__Confiaveis__1: 10.87.0.11
 
