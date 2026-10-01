@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+const SEM_EMAIL_OU_NO_TETO = 'o backend está com o e-mail desligado (503) ou no teto por IP (429), como no compose em Production; este caso precisa de Development (CI ou backend local)';
+
 test('pedido de redefinição responde 204 também para e-mail que não existe', async ({ request }) => {
   const pedido = await request.post('/api/auth/esqueci-senha', {
     data: { Email: `ninguem_${Date.now()}@resqui.local` },
   });
 
+  test.skip([503, 429].includes(pedido.status()), SEM_EMAIL_OU_NO_TETO);
   expect(pedido.status()).toBe(204);
 });
 
@@ -35,7 +38,9 @@ test('"Esqueci minha senha" no login confirma o pedido sem dizer se a conta exis
 
   await page.getByRole('button', { name: 'Esqueci minha senha' }).click();
   await page.getByLabel('E-mail da conta').fill(`ninguem_${Date.now()}@resqui.local`);
+  const resposta = page.waitForResponse('**/api/auth/esqueci-senha');
   await page.getByRole('button', { name: 'Enviar link' }).click();
+  test.skip([503, 429].includes((await resposta).status()), SEM_EMAIL_OU_NO_TETO);
 
   await expect(page.getByText(/Se houver uma conta com esse e-mail, enviamos um link válido por 1 hora/)).toBeVisible();
 });

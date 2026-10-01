@@ -332,6 +332,10 @@ export default function App() {
     if (redefinicaoToken) window.history.replaceState({}, '', window.location.pathname);
   }, [redefinicaoToken]);
 
+  useEffect(() => {
+    if (user) setAvisoLogin('');
+  }, [user]);
+
   // limpar flash após animação
   useEffect(() => {
     if (state.flashId) {
