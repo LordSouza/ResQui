@@ -37,15 +37,15 @@ test('Aluno vê leitura e solicitação de descarte, mas nenhuma ação de gest�
   await expect(sidebar(page).getByRole('button', { name: 'Usuários' })).toHaveCount(0);
   await expect(sidebar(page).getByRole('button', { name: 'Inventário' })).toBeVisible();
 
-  // Operacional é a única policy do Aluno: ele solicita descarte e exporta, nada além.
+  // Operacional é a única policy do Aluno: ele cadastra reagente, solicita descarte e exporta, nada além.
   await irPara(page, 'Resíduos');
   await expect(page.getByRole('button', { name: /Registrar resíduo/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Exportar lista/i })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Aprovar' })).toHaveCount(0);
 
   await irPara(page, 'Inventário');
-  await expect(page.getByRole('button', { name: /Novo reagente/i })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /Importar Excel/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Novo reagente/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Importar Excel/i })).toBeVisible();
 
   await irPara(page, 'Laboratórios');
   await expect(page.getByRole('button', { name: /Novo laboratório/i })).toHaveCount(0);

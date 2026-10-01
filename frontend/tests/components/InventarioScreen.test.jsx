@@ -121,12 +121,12 @@ describe('InventarioScreen', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'openModal', kind: 'importarCsv' });
   });
 
-  // POST /api/reagentes e POST /api/reagentes/importar-lote exigem a policy Cadastro.
-  it('esconde criar e importar de Aluno', () => {
+  // POST /api/reagentes e POST /api/reagentes/importar-lote exigem a policy Operacional.
+  it('mostra criar e importar para Aluno', () => {
     useAuth.mockReturnValue({ user: { id: 'u-1', papel: 'Aluno' } });
     render(<InventarioScreen state={initialState} dispatch={vi.fn()} />, { wrapper });
-    expect(screen.queryByRole('button', { name: /Novo reagente/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Importar Excel/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Novo reagente/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Importar Excel/i })).toBeInTheDocument();
   });
 
   it('mostra criar e importar para Professor', () => {

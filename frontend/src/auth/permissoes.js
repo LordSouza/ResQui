@@ -18,9 +18,9 @@ export const POLICIES = {
 export const DESCRICAO_POLICY = {
   Administracao: 'Alterar papéis, excluir contas definitivamente, resetar 2FA, configurar o PGRS e editar as regras da matriz de compatibilidade',
   GestaoUsuarios: 'Listar, criar e arquivar usuários',
-  Cadastro: 'Cadastrar, editar e excluir reagentes e laboratórios, importar CSV e gerar relatórios',
+  Cadastro: 'Editar e excluir reagentes, cadastrar, editar e excluir laboratórios e gerar relatórios',
   Operacao: 'Emitir manifesto, confirmar destinação, cadastrar lotes e editar resíduo',
-  Operacional: 'Solicitar descarte, registrar baixa de reagente e de lote, transferir reagente, registrar parecer e notificar professores na compatibilidade',
+  Operacional: 'Cadastrar e importar reagentes, solicitar descarte, registrar baixa de reagente e de lote, transferir reagente, registrar parecer e notificar professores na compatibilidade',
   Aprovador: 'Aprovar e rejeitar solicitações de descarte',
   Supervisao: 'Consultar o log de auditoria',
 };

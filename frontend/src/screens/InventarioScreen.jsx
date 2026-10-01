@@ -14,7 +14,7 @@ function contagemDeResultados(total) {
 }
 
 export function InventarioScreen({ state, dispatch }) {
-  const podeCadastrar = usePode('Cadastro'); // POST /api/reagentes e /importar-lote
+  const podeCadastrar = usePode('Operacional'); // POST /api/reagentes e /importar-lote
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [classe, setClasse] = useState('todas');
