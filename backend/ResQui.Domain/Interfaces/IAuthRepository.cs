@@ -46,4 +46,6 @@ public interface IAuthRepository
     Task<bool> EstaBloqueadoAsync(string userId);
     Task RegistrarFalhaLoginAsync(string userId);
     Task ZerarFalhasLoginAsync(string userId);
+    Task RedefinirSenhaAsync(string userId, string novaSenha);
+    Task DesbloquearLoginAsync(string userId);
 }

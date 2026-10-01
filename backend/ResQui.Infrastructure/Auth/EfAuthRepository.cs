@@ -208,4 +208,22 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         var u = await userManager.FindByIdAsync(userId);
         if (u is not null) await userManager.ResetAccessFailedCountAsync(u);
     }
+
+    public async Task RedefinirSenhaAsync(string userId, string novaSenha)
+    {
+        var u = await userManager.FindByIdAsync(userId)
+            ?? throw new ValidationException("Usuário não encontrado.");
+        var tokenDeReset = await userManager.GeneratePasswordResetTokenAsync(u);
+        var redefinicao = await userManager.ResetPasswordAsync(u, tokenDeReset, novaSenha);
+        if (!redefinicao.Succeeded)
+            throw new ValidationException(string.Join("; ", redefinicao.Errors.Select(e => e.Description)));
+    }
+
+    public async Task DesbloquearLoginAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return;
+        await userManager.ResetAccessFailedCountAsync(u);
+        await userManager.SetLockoutEndDateAsync(u, null);
+    }
 }

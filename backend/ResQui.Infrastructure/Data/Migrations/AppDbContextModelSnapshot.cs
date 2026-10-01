@@ -667,6 +667,47 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.ToTable("ReagenteLotes");
                 });
 
+            modelBuilder.Entity("ResQui.Domain.Entities.RedefinicaoSenha", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CriadaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiraEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UsadaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UsuarioId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId", "CriadaEm");
+
+                    b.ToTable("RedefinicoesSenha");
+                });
+
             modelBuilder.Entity("ResQui.Domain.Entities.RelatorioGerado", b =>
                 {
                     b.Property<int>("Id")
@@ -1035,6 +1076,15 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.HasOne("ResQui.Domain.Entities.Reagente", null)
                         .WithMany()
                         .HasForeignKey("ReagenteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ResQui.Domain.Entities.RedefinicaoSenha", b =>
+                {
+                    b.HasOne("ResQui.Infrastructure.Identity.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
