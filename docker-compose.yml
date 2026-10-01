@@ -37,7 +37,7 @@ services:
       Jwt__Issuer: resqui
       Jwt__Audience: resqui-frontend
       Seed__AdminPassword: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD no .env}
-      Seed__DemoData: "true"
+      Seed__DemoData: ${SEED_DEMO_DATA:-false}
       Assistente__Enabled: ${ASSISTENTE_ENABLED:-false}
       Assistente__ApiKey: ${DEEPSEEK_API_KEY:-}
       Email__Enabled: ${EMAIL_ENABLED:-false}
