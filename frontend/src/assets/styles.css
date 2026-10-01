@@ -1976,9 +1976,17 @@ button.link { background: transparent; border: 0; padding: 0; font: inherit; }
   display: flex; gap: 6px; align-items: center;
 }
 
+.login-ok {
+  padding: 8px 10px; background: var(--green-soft); color: var(--green);
+  border-radius: var(--radius); font-size: 12px; margin-bottom: 12px;
+  display: flex; gap: 6px; align-items: center;
+}
+
 .login-submit-btn {
   width: 100%; justify-content: center; padding: 10px; font-size: 13.5px;
 }
+
+.login-esqueci { display: block; margin: 12px auto 0; font-size: 12px; }
 
 /* ── AssistenteChat.jsx extracted styles ───────────────────────────────────────── */
 .chat-list-item {
