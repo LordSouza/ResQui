@@ -77,7 +77,7 @@ export let PICTOS_GHS = {
 export const ROLES = {
   Admin:     { label: 'Administrador', desc: 'Administra a plataforma · gerencia as contas de professor',                cor: '#0d4a8c' },
   Professor: { label: 'Professor',     desc: 'Responsável pelo laboratório · aprova descarte, cadastra e gere os alunos', cor: '#0f6e6e' },
-  Aluno:     { label: 'Aluno',         desc: 'Solicita descarte e registra consumo',                                     cor: '#8c5b1f' },
+  Aluno:     { label: 'Aluno',         desc: 'Cadastra reagente, solicita descarte e registra consumo',                 cor: '#8c5b1f' },
 };
 
 export const CLASSE_POR_TIPO = {
