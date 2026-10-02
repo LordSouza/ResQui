@@ -34,6 +34,7 @@ public class ModeloRelacionalTests
     [InlineData(typeof(UsuarioLaboratorio), "LaboratorioId", typeof(Laboratorio), DeleteBehavior.Cascade)]
     [InlineData(typeof(ConviteLaboratorio), "ConviteId", typeof(Convite), DeleteBehavior.Cascade)]
     [InlineData(typeof(ConviteLaboratorio), "LaboratorioId", typeof(Laboratorio), DeleteBehavior.Cascade)]
+    [InlineData(typeof(RedefinicaoSenha), "UsuarioId", typeof(Usuario), DeleteBehavior.Cascade)]
     public void Modelo_DeclaraFk_ComAPoliticaDecidida(
         Type entidade, string propriedade, Type alvo, DeleteBehavior esperado)
     {

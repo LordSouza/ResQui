@@ -53,6 +53,14 @@ if (jwtValidation.Failed)
     throw new InvalidOperationException($"Configuração JWT inválida: {jwtValidation.FailureMessage}");
 builder.Services.AddSingleton(jwtOpts);
 
+var redefinicaoOpts = builder.Configuration.GetSection("Auth:Redefinicao").Get<RedefinicaoSenhaOptions>() ?? new RedefinicaoSenhaOptions();
+redefinicaoOpts.UrlPublica = builder.Configuration["App:UrlPublica"] ?? "";
+var redefinicaoValidation = new RedefinicaoSenhaOptionsValidator(builder.Configuration.GetValue("Email:Enabled", false))
+    .Validate(null, redefinicaoOpts);
+if (redefinicaoValidation.Failed)
+    throw new InvalidOperationException($"Configuração da redefinição de senha inválida: {redefinicaoValidation.FailureMessage}");
+builder.Services.AddSingleton(redefinicaoOpts);
+
 var assistenteOpts = builder.Configuration.GetSection("Assistente").Get<AssistenteOptions>() ?? new AssistenteOptions();
 var assistenteValidation = new AssistenteOptionsValidator().Validate(null, assistenteOpts);
 if (assistenteValidation.Failed)
@@ -75,6 +83,8 @@ builder.Services.AddScoped<IRelatoriosService, RelatoriosService>();
 builder.Services.AddScoped<IPgrsConfigService, PgrsConfigService>();
 builder.Services.AddScoped<IAssistenteService, AssistenteService>();
 builder.Services.AddScoped<IConvitesService, ConvitesService>();
+builder.Services.AddScoped<IRedefinicaoSenhaService, RedefinicaoSenhaService>();
+builder.Services.AddSingleton<IFilaPedidosRedefinicao, FilaPedidosRedefinicao>();
 builder.Services.AddHttpClient<IAssistenteProvider, DeepSeekProvider>(http =>
 {
     http.BaseAddress = new Uri(builder.Configuration["Assistente:BaseUrl"] ?? "https://api.deepseek.com");
@@ -92,11 +102,24 @@ builder.Services.AddRateLimiter(opcoes =>
         RateLimitPartition.GetFixedWindowLimiter(
             ctx.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = maxMensagens, Window = janela, QueueLimit = 0 }));
+    opcoes.AddPolicy(ResQui.API.Features.Auth.Endpoints.PoliticaRedefinicao, ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = redefinicaoOpts.MaxPorIp,
+                Window = TimeSpan.FromMinutes(redefinicaoOpts.JanelaMinutosIp),
+                QueueLimit = 0,
+            }));
     opcoes.OnRejected = async (ctx, ct) =>
     {
+        var politica = ctx.HttpContext.GetEndpoint()?.Metadata
+            .GetMetadata<Microsoft.AspNetCore.RateLimiting.EnableRateLimitingAttribute>()?.PolicyName;
+        var mensagem = politica == ResQui.API.Features.Auth.Endpoints.PoliticaRedefinicao
+            ? "Muitos pedidos de redefinição de senha a partir desta rede. Aguarde alguns minutos e tente novamente."
+            : $"Limite de {maxMensagens} mensagens a cada {janela.TotalMinutes:0} minutos atingido. Aguarde um pouco para continuar.";
         ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        await ctx.HttpContext.Response.WriteAsJsonAsync(
-            new { message = $"Limite de {maxMensagens} mensagens a cada {janela.TotalMinutes:0} minutos atingido. Aguarde um pouco para continuar." }, ct);
+        await ctx.HttpContext.Response.WriteAsJsonAsync(new { message = mensagem }, ct);
     };
 });
 builder.Services.AddSingleton<IFalhasLoginPorIp, FalhasLoginPorIp>();
@@ -172,6 +195,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddHostedService<NotificacoesJob>();
+builder.Services.AddHostedService<PedidosRedefinicaoJob>();
 
 var app = builder.Build();
 
@@ -181,6 +205,11 @@ app.Use(async (ctx, next) =>
 {
     try { await next(); }
     catch (AssistenteIndisponivelException ex)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
+    }
+    catch (EmailIndisponivelException ex)
     {
         ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });

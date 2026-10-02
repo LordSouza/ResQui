@@ -77,4 +77,23 @@ public static class NotificacaoEmailBuilder
             $"<p>Entre com sua senha e configure o 2FA novamente em <em>Senha e autenticação</em>.</p>" +
             $"<p>Se você não pediu este reset, procure o administrador imediatamente.</p>")
     );
+
+    public static (string Subject, string Html) BuildRedefinicaoSenha(string link, int validadeMinutos) =>
+    (
+        "[ResQui] Redefinição de senha",
+        Layout("Redefinição de senha",
+            "<p>Recebemos um pedido para redefinir a senha da sua conta.</p>" +
+            $"<p><a href=\"{Escapar(link)}\">Definir uma nova senha</a></p>" +
+            $"<p>O link vale por {validadeMinutos} minutos e só pode ser usado uma vez.</p>" +
+            "<p>Se não foi você quem pediu, ignore este e-mail: sua senha continua a mesma.</p>")
+    );
+
+    public static (string Subject, string Html) BuildSenhaRedefinida() =>
+    (
+        "[ResQui] Sua senha foi redefinida",
+        Layout("Senha redefinida",
+            "<p>A senha da sua conta foi redefinida pelo link enviado a este e-mail.</p>" +
+            "<p>Todas as sessões abertas foram encerradas. Se a sua conta usa autenticação em dois fatores, ela continua ativa.</p>" +
+            "<p>Se não foi você, procure o administrador imediatamente.</p>")
+    );
 }

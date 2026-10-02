@@ -38,6 +38,8 @@ import FormLaboratoriosUsuario from './forms/FormLaboratoriosUsuario';
 import { LoginScreen } from './Login';
 import { ConviteScreen } from './Convite';
 import { tokenConviteDaUrl } from './convites/linkConvite';
+import { RedefinirSenhaScreen } from './RedefinirSenha';
+import { tokenRedefinicaoDaUrl } from './lib/redefinicaoSenha';
 import { podeVerTela, motivoTelaRestrita, podePor } from './auth/permissoes';
 import { useIdentificacaoPgrs } from './pgrs/useIdentificacaoPgrs';
 
@@ -313,6 +315,8 @@ const DESCRICAO_BADGE = { residuos: 'aguardando aprovação' };
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [conviteToken, setConviteToken] = useState(tokenConviteDaUrl);
+  const [redefinicaoToken, setRedefinicaoToken] = useState(tokenRedefinicaoDaUrl);
+  const [avisoLogin, setAvisoLogin] = useState('');
   const { user, token, logout } = useAuth();
   const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
   const { data: identificacao } = useIdentificacaoPgrs({ enabled: !!token });
@@ -323,6 +327,14 @@ export default function App() {
   useAtalhosGlobais({
     onChat: () => dispatch({ type: state.chatOpen ? 'closeChat' : 'openChat' }),
   });
+
+  useEffect(() => {
+    if (redefinicaoToken) window.history.replaceState({}, '', window.location.pathname);
+  }, [redefinicaoToken]);
+
+  useEffect(() => {
+    if (user) setAvisoLogin('');
+  }, [user]);
 
   // limpar flash após animação
   useEffect(() => {
@@ -339,8 +351,15 @@ export default function App() {
     }}/>;
   }
 
+  if (redefinicaoToken) {
+    return <RedefinirSenhaScreen token={redefinicaoToken} onConcluido={(aviso = '') => {
+      setAvisoLogin(aviso);
+      setRedefinicaoToken(null);
+    }}/>;
+  }
+
   if (!user) {
-    return <LoginScreen />;
+    return <LoginScreen aviso={avisoLogin} />;
   }
 
   // Esconder o item da sidebar não basta: state.screen pode chegar a uma tela restrita por outro

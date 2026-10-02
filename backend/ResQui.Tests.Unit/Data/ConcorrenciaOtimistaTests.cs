@@ -21,6 +21,7 @@ public class ConcorrenciaOtimistaTests
     [InlineData(typeof(ConfiguracaoPgrs))]
     [InlineData(typeof(CompatOverride))]
     [InlineData(typeof(Convite))]
+    [InlineData(typeof(RedefinicaoSenha))]
     public void Modelo_DeclaraXmin_ComoTokenDeConcorrencia(Type entidade)
     {
         using var db = NovoContexto();

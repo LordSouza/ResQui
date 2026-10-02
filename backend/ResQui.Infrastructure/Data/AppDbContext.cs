@@ -24,6 +24,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Convite> Convites => Set<Convite>();
     public DbSet<UsuarioLaboratorio> UsuarioLaboratorios => Set<UsuarioLaboratorio>();
     public DbSet<ConviteLaboratorio> ConviteLaboratorios => Set<ConviteLaboratorio>();
+    public DbSet<RedefinicaoSenha> RedefinicoesSenha => Set<RedefinicaoSenha>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -39,5 +40,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<ConfiguracaoPgrs>().Property<uint>("xmin").IsRowVersion();
         builder.Entity<CompatOverride>().Property<uint>("xmin").IsRowVersion();
         builder.Entity<Convite>().Property<uint>("xmin").IsRowVersion();
+        builder.Entity<RedefinicaoSenha>().Property<uint>("xmin").IsRowVersion();
     }
 }
