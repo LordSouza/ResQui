@@ -245,13 +245,9 @@ using (var scope = app.Services.CreateScope())
     var adminPwd = builder.Configuration["Seed:AdminPassword"];
     if (string.IsNullOrWhiteSpace(adminPwd))
         throw new InvalidOperationException("Seed:AdminPassword não configurado — defina ADMIN_PASSWORD (ou o appsettings de dev).");
-    await DbSeeder.SeedAsync(db, users, roles, adminPwd);
+    var adminId = await DbSeeder.SeedAsync(db, users, roles, adminPwd);
     if (builder.Configuration.GetValue<bool>("Seed:DemoData"))
-    {
-        var admin = await users.FindByEmailAsync("admin@resqui.local")
-            ?? throw new InvalidOperationException("Admin user não encontrado após o seed — verifique Seed:AdminPassword.");
-        await DemoDataSeeder.SeedAsync(db, admin.Id);
-    }
+        await DemoDataSeeder.SeedAsync(db, adminId);
 }
 
 if (app.Environment.IsDevelopment())

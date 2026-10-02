@@ -7,7 +7,9 @@ namespace ResQui.Infrastructure.Seed;
 
 public static class DbSeeder
 {
-    public static async Task SeedAsync(
+    public const string EmailAdminInicial = "admin@resqui.local";
+
+    public static async Task<string> SeedAsync(
         AppDbContext db,
         UserManager<Usuario> userManager,
         RoleManager<IdentityRole> roleManager,
@@ -20,27 +22,7 @@ public static class DbSeeder
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
 
-        const string adminEmail = "admin@resqui.local";
-        if (await userManager.FindByEmailAsync(adminEmail) is null)
-        {
-            var admin = new Usuario
-            {
-                UserName = adminEmail,
-                Email = adminEmail,
-                Papel = "Admin",
-                EmailConfirmed = true
-            };
-            var criado = await userManager.CreateAsync(admin, adminPassword);
-            // Sem esta checagem o resultado era descartado: uma senha que não atende à política
-            // fazia o admin não ser criado em silêncio, e o startup morria adiante em
-            // "Admin user não encontrado após o seed" — mensagem que não diz o que corrigir.
-            if (!criado.Succeeded)
-                throw new InvalidOperationException(
-                    "Não foi possível criar o admin do seed: "
-                    + string.Join("; ", criado.Errors.Select(e => e.Description))
-                    + " (ajuste ADMIN_PASSWORD / Seed:AdminPassword)");
-            await userManager.AddToRoleAsync(admin, "Admin");
-        }
+        var adminId = await GarantirAdminAsync(userManager, adminPassword);
 
         // A matriz base é sincronizada a cada startup: correções em CompatMatrixData precisam
         // alcançar bancos que já existem, não só instalações novas. Overrides institucionais
@@ -52,5 +34,33 @@ public static class DbSeeder
             db.CompatEntries.AddRange(diff.Inserir);
             await db.SaveChangesAsync();
         }
+
+        return adminId;
+    }
+
+    public static async Task<string> GarantirAdminAsync(UserManager<Usuario> userManager, string adminPassword)
+    {
+        var existentes = await userManager.GetUsersInRoleAsync("Admin");
+        if (existentes.Count > 0)
+            return existentes.OrderBy(u => u.Id, StringComparer.Ordinal).First().Id;
+
+        var admin = new Usuario
+        {
+            UserName = EmailAdminInicial,
+            Email = EmailAdminInicial,
+            Papel = "Admin",
+            EmailConfirmed = true
+        };
+        var criado = await userManager.CreateAsync(admin, adminPassword);
+        // Sem esta checagem o resultado era descartado: uma senha que não atende à política
+        // fazia o admin não ser criado em silêncio, e o startup morria adiante em
+        // "Admin user não encontrado após o seed" — mensagem que não diz o que corrigir.
+        if (!criado.Succeeded)
+            throw new InvalidOperationException(
+                "Não foi possível criar o admin do seed: "
+                + string.Join("; ", criado.Errors.Select(e => e.Description))
+                + " (ajuste ADMIN_PASSWORD / Seed:AdminPassword)");
+        await userManager.AddToRoleAsync(admin, "Admin");
+        return admin.Id;
     }
 }
