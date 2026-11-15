@@ -56,7 +56,7 @@ export function LaboratoriosScreen({ state, dispatch }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Laboratórios</h1>
-          <p className="page-sub">{labs.length} laboratórios cadastrados · base regulatória NR-10/NR-26</p>
+          <p className="page-sub">{labs.length} laboratórios cadastrados</p>
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-sm" onClick={() => {
