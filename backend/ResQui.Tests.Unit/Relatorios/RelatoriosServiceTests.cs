@@ -2,6 +2,7 @@
 using System.Globalization;
 using FluentAssertions;
 using NSubstitute;
+using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
 using ResQui.Application.Relatorios;
 using ResQui.Domain.Entities;
@@ -18,12 +19,13 @@ public class RelatoriosServiceTests
     private readonly IMtrsRepository _mtrsRepo = Substitute.For<IMtrsRepository>();
     private readonly ILaboratoriosRepository _labsRepo = Substitute.For<ILaboratoriosRepository>();
     private readonly IPgrsConfigRepository _pgrsRepo = Substitute.For<IPgrsConfigRepository>();
+    private readonly IAuditoriaService _auditoria = Substitute.For<IAuditoriaService>();
     private readonly RelatoriosService _sut;
 
     private static readonly Solicitante Admin = new("adm", "admin@resqui.local", "Admin", []);
 
     public RelatoriosServiceTests() =>
-        _sut = new RelatoriosService(_repo, _reagentesRepo, _residuosRepo, _mtrsRepo, _labsRepo, _pgrsRepo);
+        _sut = new RelatoriosService(_repo, _reagentesRepo, _residuosRepo, _mtrsRepo, _labsRepo, _pgrsRepo, _auditoria);
 
     private static RelatorioGerado FakeRelatorio(int id = 1) => new()
     {
@@ -484,5 +486,25 @@ public class RelatoriosServiceTests
 
         lista[0].LaboratorioIds.Should().BeNull();
         lista[1].LaboratorioIds.Should().Equal("Lab-001");
+    }
+
+    [Fact]
+    public async Task GerarAsync_RegistraAuditoria()
+    {
+        _reagentesRepo.GetAllAsync().Returns([FakeReagente()]);
+
+        await _sut.GerarAsync(new GerarRelatorioCmd("inventario"), "u1", Admin);
+
+        await _auditoria.Received(1).RegistrarAsync("admin@resqui.local", "relatorio.gerar", "Relatórios",
+            Arg.Is<string>(d => d.Contains("Inventário de reagentes") && d.Contains("1 linhas")), RiscoAuditoria.Low);
+    }
+
+    [Fact]
+    public async Task GerarAsync_TipoDesconhecido_NaoRegistraAuditoria()
+    {
+        var act = () => _sut.GerarAsync(new GerarRelatorioCmd("inexistente"), "u1", Admin);
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _auditoria.DidNotReceive().RegistrarAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
 }

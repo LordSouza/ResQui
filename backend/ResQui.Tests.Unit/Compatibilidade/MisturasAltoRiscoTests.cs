@@ -31,7 +31,7 @@ public class MisturasAltoRiscoTests
             .Returns(ci => matriz.FirstOrDefault(e => e.ClasseA == ci.ArgAt<int>(0) && e.ClasseB == ci.ArgAt<int>(1)));
         var overrides = Substitute.For<ICompatOverridesRepository>();
         overrides.GetAsync(Arg.Any<int>(), Arg.Any<int>()).Returns((CompatOverride?)null);
-        _compat = new CompatService(repo, overrides);
+        _compat = new CompatService(repo, overrides, Substitute.For<IAuditoriaService>());
 
         var labRepo = Substitute.For<ILaboratoriosRepository>();
         labRepo.GetAllAsync().Returns([new Laboratorio { Id = "Lab-001", Nome = "Lab Teste" }]);

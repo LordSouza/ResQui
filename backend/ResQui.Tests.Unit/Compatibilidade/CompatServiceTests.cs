@@ -1,6 +1,8 @@
 // backend/ResQui.Tests.Unit/Compatibilidade/CompatServiceTests.cs
 using FluentAssertions;
 using NSubstitute;
+using ResQui.Domain.Enums;
+using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
 using ResQui.Application.Compatibilidade;
 using ResQui.Domain.Entities;
@@ -12,10 +14,11 @@ public class CompatServiceTests
 {
     private readonly ICompatibilidadeRepository _repo = Substitute.For<ICompatibilidadeRepository>();
     private readonly ICompatOverridesRepository _overridesRepo = Substitute.For<ICompatOverridesRepository>();
+    private readonly IAuditoriaService _auditoria = Substitute.For<IAuditoriaService>();
     private readonly CompatService _sut;
 
     public CompatServiceTests() =>
-        _sut = new CompatService(_repo, _overridesRepo);
+        _sut = new CompatService(_repo, _overridesRepo, _auditoria);
 
     // --- ConsultarParAsync ---
 
@@ -139,7 +142,7 @@ public class CompatServiceTests
     {
         var cmd = new SalvarOverrideCmd(2, "Nova regra", "Carlos");
 
-        var result = await _sut.SalvarOverrideAsync(1, 3, cmd);
+        var result = await _sut.SalvarOverrideAsync(1, 3, cmd, "admin@resqui.local");
 
         await _overridesRepo.Received(1).UpsertAsync(Arg.Is<CompatOverride>(e =>
             e.ClasseA == 1 && e.ClasseB == 3 && e.Nivel == 2 && e.Motivo == "Nova regra"));
@@ -152,7 +155,7 @@ public class CompatServiceTests
     {
         var cmd = new SalvarOverrideCmd(3, "Revisão institucional", "Carlos");
 
-        var result = await _sut.SalvarOverrideAsync(10, 5, cmd);
+        var result = await _sut.SalvarOverrideAsync(10, 5, cmd, "admin@resqui.local");
 
         await _overridesRepo.Received(1).UpsertAsync(Arg.Is<CompatOverride>(e =>
             e.ClasseA == 5 && e.ClasseB == 10 && e.Nivel == 3));
@@ -165,7 +168,7 @@ public class CompatServiceTests
     {
         var cmd = new SalvarOverrideCmd(2, "x", "Carlos");
 
-        var act = () => _sut.SalvarOverrideAsync(5, 5, cmd);
+        var act = () => _sut.SalvarOverrideAsync(5, 5, cmd, "admin@resqui.local");
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*iferentes*");
         await _overridesRepo.DidNotReceive().UpsertAsync(Arg.Any<CompatOverride>());
@@ -178,7 +181,7 @@ public class CompatServiceTests
     {
         var cmd = new SalvarOverrideCmd(nivel, "x", "Carlos");
 
-        var act = () => _sut.SalvarOverrideAsync(1, 3, cmd);
+        var act = () => _sut.SalvarOverrideAsync(1, 3, cmd, "admin@resqui.local");
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*ível*");
         await _overridesRepo.DidNotReceive().UpsertAsync(Arg.Any<CompatOverride>());
@@ -193,7 +196,7 @@ public class CompatServiceTests
     {
         var cmd = new SalvarOverrideCmd(2, "x", "Carlos");
 
-        var act = () => _sut.SalvarOverrideAsync(classeA, classeB, cmd);
+        var act = () => _sut.SalvarOverrideAsync(classeA, classeB, cmd, "admin@resqui.local");
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*lasse*");
         await _overridesRepo.DidNotReceive().UpsertAsync(Arg.Any<CompatOverride>());
@@ -204,7 +207,7 @@ public class CompatServiceTests
     [Fact]
     public async Task RemoverOverrideAsync_ChamaDelete()
     {
-        await _sut.RemoverOverrideAsync(1, 3);
+        await _sut.RemoverOverrideAsync(1, 3, "admin@resqui.local");
 
         await _overridesRepo.Received(1).DeleteAsync(1, 3);
     }
@@ -212,7 +215,7 @@ public class CompatServiceTests
     [Fact]
     public async Task RemoverOverrideAsync_RemoveParOrdenado_QuandoClassesVemNaOrdemInversa()
     {
-        await _sut.RemoverOverrideAsync(10, 5);
+        await _sut.RemoverOverrideAsync(10, 5, "admin@resqui.local");
 
         await _overridesRepo.Received(1).DeleteAsync(5, 10);
     }
@@ -236,5 +239,43 @@ public class CompatServiceTests
         matriz.Fonte.Referencia.Should().Contain("2008");
         matriz.Fonte.Url.Should().StartWith("https://");
         matriz.Fonte.Detalhamento.Should().Be("docs/compatibilidade-proveniencia.md");
+    }
+
+    // --- Auditoria dos overrides ---
+
+    [Fact]
+    public async Task SalvarOverrideAsync_RegistraAuditoriaComQuemFezPeloToken()
+    {
+        await _sut.SalvarOverrideAsync(10, 5, new SalvarOverrideCmd(3, "Regra local", "Autor do corpo"), "admin@resqui.local");
+
+        await _auditoria.Received(1).RegistrarAsync("admin@resqui.local", "compat.override-salvar", "Compatibilidade",
+            Arg.Is<string>(d => d.Contains("5×10") && d.Contains("Proibido") && d.Contains("Regra local")), RiscoAuditoria.High);
+    }
+
+    [Fact]
+    public async Task SalvarOverrideAsync_MotivoLongo_CabeNoDetalheDaAuditoria()
+    {
+        await _sut.SalvarOverrideAsync(1, 3, new SalvarOverrideCmd(1, new string('m', 5000), "x"), "admin@resqui.local");
+
+        await _auditoria.Received(1).RegistrarAsync(Arg.Any<string>(), "compat.override-salvar", Arg.Any<string>(),
+            Arg.Is<string>(d => d.Length <= 1000), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task SalvarOverrideAsync_Invalido_NaoRegistraAuditoria()
+    {
+        var act = () => _sut.SalvarOverrideAsync(5, 5, new SalvarOverrideCmd(1, "x", "x"), "admin@resqui.local");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _auditoria.DidNotReceive().RegistrarAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task RemoverOverrideAsync_RegistraAuditoria()
+    {
+        await _sut.RemoverOverrideAsync(7, 2, "admin@resqui.local");
+
+        await _auditoria.Received(1).RegistrarAsync("admin@resqui.local", "compat.override-remover", "Compatibilidade",
+            Arg.Is<string>(d => d.Contains("2×7")), RiscoAuditoria.High);
     }
 }

@@ -22,14 +22,14 @@ public static class Endpoints
             Results.Ok(await svc.GetOverridesAsync()));
 
         group.MapPut("/overrides/{classeA:int}/{classeB:int}",
-            async (int classeA, int classeB, SalvarOverrideCmd cmd, ICompatService svc) =>
-                Results.Ok(await svc.SalvarOverrideAsync(classeA, classeB, cmd)))
+            async (int classeA, int classeB, SalvarOverrideCmd cmd, ICompatService svc, ClaimsPrincipal user) =>
+                Results.Ok(await svc.SalvarOverrideAsync(classeA, classeB, cmd, user.FindFirstValue(ClaimTypes.Email) ?? "")))
             .RequireAuthorization("Administracao");
 
         group.MapDelete("/overrides/{classeA:int}/{classeB:int}",
-            async (int classeA, int classeB, ICompatService svc) =>
+            async (int classeA, int classeB, ICompatService svc, ClaimsPrincipal user) =>
             {
-                await svc.RemoverOverrideAsync(classeA, classeB);
+                await svc.RemoverOverrideAsync(classeA, classeB, user.FindFirstValue(ClaimTypes.Email) ?? "");
                 return Results.NoContent();
             })
             .RequireAuthorization("Administracao");

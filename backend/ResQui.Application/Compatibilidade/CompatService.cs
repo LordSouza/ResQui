@@ -1,12 +1,15 @@
+using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
 using ResQui.Domain.Entities;
+using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Compatibilidade;
 
 public class CompatService(
     ICompatibilidadeRepository repo,
-    ICompatOverridesRepository overridesRepo) : ICompatService
+    ICompatOverridesRepository overridesRepo,
+    IAuditoriaService auditoria) : ICompatService
 {
     private static readonly string[] Descricoes = ["Compatível", "Cautela", "Perigo", "Proibido"];
 
@@ -61,7 +64,7 @@ public class CompatService(
         return all.Select(ToDto);
     }
 
-    public async Task<CompatOverrideDto> SalvarOverrideAsync(int classeA, int classeB, SalvarOverrideCmd cmd)
+    public async Task<CompatOverrideDto> SalvarOverrideAsync(int classeA, int classeB, SalvarOverrideCmd cmd, string usuarioEmail)
     {
         if (classeA is < 1 or > 12 || classeB is < 1 or > 12)
             throw new ValidationException("Classes de reatividade devem estar entre 1 e 12.");
@@ -81,14 +84,23 @@ public class CompatService(
             DataEdicao = DateTime.UtcNow,
         };
         await overridesRepo.UpsertAsync(entry);
+        await auditoria.RegistrarAsync(usuarioEmail, "compat.override-salvar", "Compatibilidade",
+            $"Definiu o par {canonicoA}×{canonicoB} como {Descricoes[cmd.Nivel]}. Motivo: {Resumir(cmd.Motivo)}",
+            RiscoAuditoria.High);
         return ToDto(entry);
     }
 
-    public async Task RemoverOverrideAsync(int classeA, int classeB)
+    public async Task RemoverOverrideAsync(int classeA, int classeB, string usuarioEmail)
     {
         var (canonicoA, canonicoB) = ParCanonico(classeA, classeB);
         await overridesRepo.DeleteAsync(canonicoA, canonicoB);
+        await auditoria.RegistrarAsync(usuarioEmail, "compat.override-remover", "Compatibilidade",
+            $"Removeu o override do par {canonicoA}×{canonicoB}; volta a valer a matriz base", RiscoAuditoria.High);
     }
+
+    // O Detail da auditoria tem 1000 caracteres; o motivo é texto livre.
+    private static string Resumir(string? motivo) =>
+        motivo is { Length: > 500 } ? motivo[..500] + "…" : motivo ?? "";
 
     private static CompatOverrideDto ToDto(CompatOverride o) =>
         new(o.ClasseA, o.ClasseB, o.Nivel, o.Motivo, o.Autor,

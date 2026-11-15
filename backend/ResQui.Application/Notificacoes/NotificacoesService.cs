@@ -1,10 +1,12 @@
 using System.Text.Json;
+using ResQui.Application.Auditoria;
 using ResQui.Domain.Entities;
+using ResQui.Domain.Enums;
 using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Notificacoes;
 
-public class NotificacoesService(INotificacoesRepository repo, IAuthRepository auth) : INotificacoesService
+public class NotificacoesService(INotificacoesRepository repo, IAuthRepository auth, IAuditoriaService auditoria) : INotificacoesService
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
@@ -63,5 +65,9 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
             ["coleta"] = prefs.Coleta,
         };
         await auth.SaveNotificacaoPrefsJsonAsync(usuarioId, JsonSerializer.Serialize(dict));
+        var usuario = await auth.FindByIdAsync(usuarioId);
+        await auditoria.RegistrarAsync(usuario?.Email ?? usuarioId, "user.notificacao-prefs", "Conta",
+            "Alterou preferências de e-mail: " + string.Join(", ", dict.Select(p => $"{p.Key}={(p.Value ? "on" : "off")}")),
+            RiscoAuditoria.Low);
     }
 }

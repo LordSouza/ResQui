@@ -1,6 +1,7 @@
 // backend/ResQui.Application/Relatorios/RelatoriosService.cs
 using System.Globalization;
 using System.Text;
+using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
@@ -14,7 +15,8 @@ public class RelatoriosService(
     IResiduosRepository residuosRepo,
     IMtrsRepository mtrsRepo,
     ILaboratoriosRepository laboratoriosRepo,
-    IPgrsConfigRepository pgrsConfigRepo) : IRelatoriosService
+    IPgrsConfigRepository pgrsConfigRepo,
+    IAuditoriaService auditoria) : IRelatoriosService
 {
     private static readonly Dictionary<string, string> Titulos = new()
     {
@@ -50,6 +52,8 @@ public class RelatoriosService(
         };
         await relatoriosRepo.AddAsync(r);
         await relatoriosRepo.SaveChangesAsync();
+        await auditoria.RegistrarAsync(solicitante.Email, "relatorio.gerar", "Relatórios",
+            $"Gerou o relatório {titulo} ({totalLinhas} linhas)", RiscoAuditoria.Low);
         return ToDto(r);
     }
 
