@@ -384,12 +384,13 @@ test('conta bloqueia após 5 senhas erradas e recusa até a senha correta', asyn
   }
 
   const bloqueado = await request.post('/api/auth/login', { data: { Email: email, Senha: 'errada' } });
-  expect(bloqueado.status()).toBe(400);
+  expect(bloqueado.status()).toBe(429);
+  expect(Number(bloqueado.headers()['retry-after'])).toBeGreaterThan(0);
   expect((await bloqueado.json()).message).toContain('bloqueada');
 
   // A senha CORRETA também é recusada — prova que é bloqueio, não credencial inválida.
   const comSenhaCerta = await request.post('/api/auth/login', { data: { Email: email, Senha: senha } });
-  expect(comSenhaCerta.status()).toBe(400);
+  expect(comSenhaCerta.status()).toBe(429);
 
   // A conta de admin, usada pelo resto da suíte, continua utilizável.
   const admin = await request.post('/api/auth/login', { data: ADMIN });
