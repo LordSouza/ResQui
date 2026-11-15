@@ -14,6 +14,24 @@ public class EfNotificacoesRepositoryPostgresTests
         Tipo = "expiry", ReferenciaId = referenciaId, Severidade = "amber",
     };
 
+    [PostgresFact]
+    public async Task RearmarAsync_ApagaSoAsLidasQueSairamDaCondicao()
+    {
+        await using var banco = await BancoDeTeste.CriarAsync();
+        var agora = DateTime.UtcNow;
+        await InserirAsync(banco,
+            Nova("u-1", lida: true, agora, "R-saiu"),
+            Nova("u-1", lida: false, agora, "R-saiu-nao-lida"),
+            Nova("u-1", lida: true, agora, "R-continua"));
+
+        await using (var db = banco.NovoContexto())
+            (await new EfNotificacoesRepository(db).RearmarAsync("expiry", ["R-continua"])).Should().Be(1);
+
+        await using var conferencia = banco.NovoContexto();
+        (await conferencia.Notificacoes.Select(n => n.ReferenciaId).OrderBy(r => r).ToListAsync())
+            .Should().Equal("R-continua", "R-saiu-nao-lida");
+    }
+
     private static async Task InserirAsync(BancoDeTeste banco, params Notificacao[] notificacoes)
     {
         await using var db = banco.NovoContexto();
@@ -32,9 +50,10 @@ public class EfNotificacoesRepositoryPostgresTests
         await using var db = banco.NovoContexto();
         var repo = new EfNotificacoesRepository(db);
 
-        (await repo.ExisteAsync("u-1", "expiry", "R-1")).Should().BeTrue();
-        (await repo.ExisteAsync("u-1", "expiry", "R-2")).Should().BeFalse();
-        (await repo.ExisteAsync("u-2", "expiry", "R-1")).Should().BeFalse();
+        (await repo.ExisteAsync("u-1", "expiry", "R-1", "amber")).Should().BeTrue();
+        (await repo.ExisteAsync("u-1", "expiry", "R-1", "red")).Should().BeFalse();
+        (await repo.ExisteAsync("u-1", "expiry", "R-2", "amber")).Should().BeFalse();
+        (await repo.ExisteAsync("u-2", "expiry", "R-1", "amber")).Should().BeFalse();
     }
 
     [PostgresFact]

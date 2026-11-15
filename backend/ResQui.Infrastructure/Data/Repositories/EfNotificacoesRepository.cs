@@ -34,11 +34,17 @@ public class EfNotificacoesRepository(AppDbContext db) : INotificacoesRepository
 
     public async Task SaveChangesAsync() => await db.SaveChangesAsync();
 
-    public async Task<bool> ExisteAsync(string usuarioId, string tipo, string referenciaId) =>
+    public async Task<bool> ExisteAsync(string usuarioId, string tipo, string referenciaId, string severidade) =>
         await db.Notificacoes.AnyAsync(n =>
             n.UsuarioId == usuarioId &&
             n.Tipo == tipo &&
-            n.ReferenciaId == referenciaId);
+            n.ReferenciaId == referenciaId &&
+            n.Severidade == severidade);
+
+    public async Task<int> RearmarAsync(string tipo, IReadOnlyCollection<string> referenciasNaCondicao) =>
+        await db.Notificacoes
+            .Where(n => n.Tipo == tipo && n.Lida && !referenciasNaCondicao.Contains(n.ReferenciaId))
+            .ExecuteDeleteAsync();
 
     public async Task<int> MarcarTodasLidasAsync(string usuarioId)
     {

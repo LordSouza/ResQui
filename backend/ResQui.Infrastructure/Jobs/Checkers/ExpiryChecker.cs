@@ -23,6 +23,7 @@ public class ExpiryChecker(
             .Where(r => r.Validade <= limite)
             .ToList();
 
+        await notifs.RearmarAsync("expiry", vencendo.Select(r => r.Id).ToList());
         if (vencendo.Count == 0) return;
 
         var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
@@ -34,9 +35,10 @@ public class ExpiryChecker(
         {
             ct.ThrowIfCancellationRequested();
             var diasRestantes = r.Validade.DayNumber - hoje.DayNumber;
+            var severidade = diasRestantes <= 7 ? "red" : "amber";
             foreach (var u in destinatarios.Do(r.LaboratorioId))
             {
-                if (await notifs.ExisteAsync(u.Id, "expiry", r.Id)) continue;
+                if (await notifs.ExisteAsync(u.Id, "expiry", r.Id, severidade)) continue;
 
                 await notifs.AddAsync(new Notificacao
                 {
@@ -44,7 +46,7 @@ public class ExpiryChecker(
                     Mensagem = $"Reagente {r.Nome} ({r.Id}) {PrazoValidade.Descrever(diasRestantes)}.",
                     Tipo = "expiry",
                     ReferenciaId = r.Id,
-                    Severidade = diasRestantes <= 7 ? "red" : "amber",
+                    Severidade = severidade,
                 });
                 houveMudanca = true;
 
