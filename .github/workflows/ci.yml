@@ -10,6 +10,18 @@ jobs:
   backend:
     name: Backend (.NET)
     runs-on: ubuntu-latest
+    # ResQui.Tests.Integracao roda gatilhos e migrações da auditoria contra PostgreSQL real.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: resqui
+          POSTGRES_PASSWORD: resqui
+          POSTGRES_DB: resqui
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U resqui"
+          --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -24,6 +36,8 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal
         working-directory: backend
+        env:
+          RESQUI_TESTES_POSTGRES: 'Host=localhost;Port=5432;Database=postgres;Username=resqui;Password=resqui'
       # ModeloRelacionalTests trava configuração ↔ modelo, mas nada travava modelo ↔ migration:
       # uma configuração editada sem gerar migration passava no CI e só quebrava na startup.
       - name: Install dotnet-ef

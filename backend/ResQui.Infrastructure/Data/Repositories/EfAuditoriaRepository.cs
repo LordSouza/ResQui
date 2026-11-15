@@ -36,6 +36,12 @@ public class EfAuditoriaRepository(AppDbContext db) : IAuditoriaRepository
         return await consulta.ToListAsync();
     }
 
+    public IAsyncEnumerable<AuditoriaEntry> PercorrerCadeia() =>
+        db.Auditoria.AsNoTracking().OrderBy(a => a.Sequencia).AsAsyncEnumerable();
+
+    public async Task<AuditoriaEntry?> UltimoEloAsync() =>
+        await db.Auditoria.AsNoTracking().OrderByDescending(a => a.Sequencia).FirstOrDefaultAsync();
+
     public async Task SaveChangesAsync() => await db.SaveChangesAsync();
 
     private const string Escape = "\\";

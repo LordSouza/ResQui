@@ -38,6 +38,41 @@ public class AuditoriaService(IAuditoriaRepository repo) : IAuditoriaService
             e.Risk.ToString().ToLower()));
     }
 
+    public async Task<VerificacaoCadeiaDto> VerificarCadeiaAsync(string quemVerifica)
+    {
+        long total = 0;
+        long sequenciaEsperada = 1;
+        var hashAnterior = CadeiaAuditoria.HashInicial;
+        long? primeiraInvalida = null;
+        AuditoriaEntry? ultimo = null;
+
+        await foreach (var elo in repo.PercorrerCadeia())
+        {
+            total++;
+            var valido = elo.Sequencia == sequenciaEsperada
+                && elo.HashAnterior == hashAnterior
+                && elo.Hash == CadeiaAuditoria.CalcularHash(elo);
+            if (!valido && primeiraInvalida is null) primeiraInvalida = elo.Sequencia;
+            sequenciaEsperada = elo.Sequencia + 1;
+            hashAnterior = elo.Hash;
+            ultimo = elo;
+        }
+
+        var resultado = new VerificacaoCadeiaDto(
+            primeiraInvalida is null, total, ultimo?.Sequencia, ultimo?.Hash, primeiraInvalida);
+
+        var detalhe = resultado.Integra
+            ? $"Cadeia íntegra: {total} registros, última sequência {ultimo?.Sequencia.ToString() ?? "-"}"
+            : $"Cadeia violada: primeira sequência inválida {primeiraInvalida}, {total} registros";
+        await RegistrarAsync(quemVerifica, "auditoria.verificar", "Auditoria", detalhe,
+            resultado.Integra ? RiscoAuditoria.Low : RiscoAuditoria.High);
+
+        return resultado;
+    }
+
+    public async Task<AncoraAuditoriaDto?> AncoraAsync() =>
+        await repo.UltimoEloAsync() is { } ultimo ? new AncoraAuditoriaDto(ultimo.Sequencia, ultimo.Hash) : null;
+
     private static DateTime ComoUtc(DateTime valor) =>
         valor.Kind == DateTimeKind.Utc ? valor : DateTime.SpecifyKind(valor, DateTimeKind.Utc);
 }

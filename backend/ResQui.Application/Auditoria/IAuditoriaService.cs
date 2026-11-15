@@ -6,4 +6,6 @@ public interface IAuditoriaService
 {
     Task RegistrarAsync(string who, string what, string where, string detail, RiscoAuditoria risk);
     Task<IEnumerable<AuditoriaItemDto>> ListarAsync(AuditoriaFiltroDto filtro);
+    Task<VerificacaoCadeiaDto> VerificarCadeiaAsync(string quemVerifica);
+    Task<AncoraAuditoriaDto?> AncoraAsync();
 }
