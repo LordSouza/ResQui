@@ -16,7 +16,7 @@ export const POLICIES = {
 // O que cada policy libera, em linguagem de usuário. Fonte única do que o PermissoesDrawer exibe:
 // sem isto ele voltaria a manter uma lista paralela, que foi o que esta fatia removeu.
 export const DESCRICAO_POLICY = {
-  Administracao: 'Alterar papéis, excluir contas definitivamente, resetar 2FA, configurar o PGRS e editar as regras da matriz de compatibilidade',
+  Administracao: 'Alterar papéis, excluir contas definitivamente, resetar 2FA, configurar o PGRS, editar as regras da matriz de compatibilidade e verificar a integridade da trilha de auditoria',
   GestaoUsuarios: 'Listar, criar e arquivar usuários',
   Cadastro: 'Editar e excluir reagentes, cadastrar, editar e excluir laboratórios e gerar relatórios',
   Operacao: 'Emitir manifesto, confirmar destinação, cadastrar lotes e editar resíduo',

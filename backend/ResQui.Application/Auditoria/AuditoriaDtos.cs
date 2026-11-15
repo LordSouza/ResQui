@@ -23,3 +23,18 @@ public record AuditoriaFiltroDto(
     int? Limite = null,
     IReadOnlyCollection<string>? Autores = null
 );
+
+public record VerificacaoCadeiaDto(
+    bool Integra,
+    long TotalRegistros,
+    long? UltimaSequencia,
+    string? UltimoHash,
+    long? PrimeiraSequenciaInvalida
+);
+
+public record AncoraAuditoriaDto(long UltimaSequencia, string UltimoHash)
+{
+    public const int TamanhoPrefixo = 16;
+
+    public string PrefixoHash => UltimoHash[..TamanhoPrefixo];
+}

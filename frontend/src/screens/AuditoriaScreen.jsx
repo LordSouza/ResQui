@@ -2,7 +2,9 @@ import { useState, useMemo, useReducer } from 'react';
 import { Icon, Badge, SectionTitle } from '../components';
 import Modal from '../forms/Modal';
 import { exportCsv } from '../utils';
-import { useAuditoria } from '../auditoria/useAuditoria';
+import { useAuditoria, useVerificarCadeia, obterAncoraAuditoria } from '../auditoria/useAuditoria';
+import { usePode } from '../auth/permissoes';
+import { useToast } from '../components/ToastContext';
 
 function FiltrosAvancadosAuditoria({ adv, setAdv, onClose, allData }) {
   const [draft, setDraft] = useState(() => adv);
@@ -161,7 +163,37 @@ const formatarTimestamp = (ts) => {
   }).replace(', ', ' ');
 };
 
+const formatarMomento = (data) => data.toLocaleString('pt-BR', {
+  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+}).replace(', ', ' ');
+
+function IntegridadeCadeia() {
+  const verificar = useVerificarCadeia();
+  const r = verificar.data;
+
+  let resumo = <span className="muted">Integridade da cadeia ainda não verificada nesta sessão.</span>;
+  if (verificar.isError) resumo = <span role="alert" style={{color: 'var(--red)'}}>Não foi possível verificar: {verificar.error.message}</span>;
+  else if (r?.integra) resumo = <span>Cadeia íntegra · {r.totalRegistros} registros · verificado em {formatarMomento(r.verificadoEm)}</span>;
+  else if (r) resumo = (
+    <span role="alert" style={{color: 'var(--red)', fontWeight: 600}}>
+      Cadeia violada a partir da sequência {r.primeiraSequenciaInvalida} · {r.totalRegistros} registros · verificado em {formatarMomento(r.verificadoEm)}
+    </span>
+  );
+
+  return (
+    <div className="card card-tight" style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, ...(r && !r.integra ? { background: 'var(--red-soft)' } : {})}}>
+      <Icon name={r && !r.integra ? 'warning' : 'shield'} size={14}/>
+      <span className="small" style={{flex: 1}}>{resumo}</span>
+      <button type="button" className="btn btn-sm" disabled={verificar.isPending} onClick={() => verificar.mutate()}>
+        <Icon name="refresh" size={13}/> {verificar.isPending ? 'Verificando…' : 'Verificar agora'}
+      </button>
+    </div>
+  );
+}
+
 export function AuditoriaScreen({ state, dispatch }) {
+  const ehAdmin = usePode('Administracao');
+  const { addToast } = useToast();
   const [filters, dispatchFilters] = useReducer(auditReducer, AUDIT_INITIAL);
   const { query, actionFilter, range, advOpen, adv } = filters;
 
@@ -231,12 +263,20 @@ export function AuditoriaScreen({ state, dispatch }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Log de auditoria</h1>
-          <p className="page-sub">Quem · Quando · O quê · Onde: registro imutável de todas as movimentações do sistema</p>
+          <p className="page-sub">Quem · Quando · O quê · Onde: registro somente de inclusão, com encadeamento verificável</p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn btn-sm" onClick={() => {
+          <button type="button" className="btn btn-sm" onClick={async () => {
+            let ancora;
+            try {
+              ancora = await obterAncoraAuditoria();
+            } catch (e) {
+              addToast(`Exportação cancelada: não foi possível obter a âncora da auditoria (${e.message}).`);
+              return;
+            }
             const rows = [['Timestamp', 'Usuário', 'Ação', 'Local', 'Detalhe', 'Risco']];
             filtered.forEach(a => rows.push([a.ts, a.who, a.what, a.where, a.detail, a.risk]));
+            if (ancora) rows.push([], ['Âncora da auditoria', `seq. ${ancora.ultimaSequencia}`, `hash ${ancora.prefixoHash}`]);
             exportCsv(rows, `auditoria-${exportDate.toISOString().slice(0,10)}.csv`);
             dispatch({type: 'refresh'});
           }}><Icon name="download" size={13} /> Exportar CSV</button>
@@ -246,6 +286,8 @@ export function AuditoriaScreen({ state, dispatch }) {
           </button>
         </div>
       </div>
+
+      {ehAdmin && <IntegridadeCadeia/>}
 
       <div className="card card-tight">
         <div className="toolbar">

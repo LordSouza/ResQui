@@ -1,6 +1,8 @@
 // backend/ResQui.Tests.Unit/Notificacoes/NotificacoesServiceTests.cs
 using FluentAssertions;
 using NSubstitute;
+using ResQui.Domain.Enums;
+using ResQui.Application.Auditoria;
 using ResQui.Application.Notificacoes;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
@@ -13,7 +15,9 @@ public class NotificacoesServiceTests
     private readonly IAuthRepository _auth = Substitute.For<IAuthRepository>();
     private readonly NotificacoesService _sut;
 
-    public NotificacoesServiceTests() => _sut = new NotificacoesService(_repo, _auth);
+    private readonly IAuditoriaService _auditoria = Substitute.For<IAuditoriaService>();
+
+    public NotificacoesServiceTests() => _sut = new NotificacoesService(_repo, _auth, _auditoria);
 
     [Fact]
     public async Task CriarAsync_PersisteNotificacaoComOsCamposInformados()
@@ -59,5 +63,62 @@ public class NotificacoesServiceTests
         var prefs = await _sut.GetPrefsAsync("u-1");
 
         prefs.Should().Be(new NotificacaoPrefsDto(false, false, false, false));
+    }
+
+    [Fact]
+    public async Task SavePrefsAsync_RegistraAuditoriaComOsValoresGravados()
+    {
+        _auth.FindByIdAsync("u-1").Returns(new UsuarioInfo("u-1", "ana@lab.com", "Ana", null, "Aluno", [], false));
+
+        await _sut.SavePrefsAsync("u-1", new NotificacaoPrefsDto(true, false, true, false));
+
+        await _auditoria.Received(1).RegistrarAsync("ana@lab.com", "user.notificacao-prefs", "Conta",
+            "Alterou preferências de e-mail: expiry=on, low-stock=off, compat=on, coleta=off", RiscoAuditoria.Low);
+    }
+
+    [Fact]
+    public async Task MarcarComoLidaAsync_QuandoMuda_RegistraAuditoria()
+    {
+        _repo.MarkAsReadAsync(5, "u-1").Returns(true);
+        _auth.FindByIdAsync("u-1").Returns(new UsuarioInfo("u-1", "ana@lab.com", "Ana", null, "Aluno", [], false));
+
+        await _sut.MarcarComoLidaAsync(5, "u-1");
+
+        await _auditoria.Received(1).RegistrarAsync("ana@lab.com", "notificacao.lida", "Conta",
+            "Marcou a notificação 5 como lida", RiscoAuditoria.Low);
+    }
+
+    [Fact]
+    public async Task MarcarComoLidaAsync_JaLidaOuAlheia_NaoRegistra()
+    {
+        _repo.MarkAsReadAsync(5, "u-1").Returns(false);
+
+        await _sut.MarcarComoLidaAsync(5, "u-1");
+
+        await _auditoria.DidNotReceive().RegistrarAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task MarcarTodasLidasAsync_RegistraQuantidade()
+    {
+        _repo.MarcarTodasLidasAsync("u-1").Returns(3);
+        _auth.FindByIdAsync("u-1").Returns(new UsuarioInfo("u-1", "ana@lab.com", "Ana", null, "Aluno", [], false));
+
+        await _sut.MarcarTodasLidasAsync("u-1");
+
+        await _auditoria.Received(1).RegistrarAsync("ana@lab.com", "notificacao.todas-lidas", "Conta",
+            "Marcou 3 notificação(ões) como lida(s)", RiscoAuditoria.Low);
+    }
+
+    [Fact]
+    public async Task MarcarTodasLidasAsync_NadaPendente_NaoRegistra()
+    {
+        _repo.MarcarTodasLidasAsync("u-1").Returns(0);
+
+        await _sut.MarcarTodasLidasAsync("u-1");
+
+        await _auditoria.DidNotReceive().RegistrarAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
 }

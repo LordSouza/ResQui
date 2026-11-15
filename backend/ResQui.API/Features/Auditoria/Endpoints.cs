@@ -27,6 +27,13 @@ public static class Endpoints
             return Results.Ok(await svc.ListarAsync(filtro));
         });
 
+        group.MapGet("/verificacao", async (IAuditoriaService svc, ClaimsPrincipal user) =>
+            Results.Ok(await svc.VerificarCadeiaAsync(user.FindFirstValue(ClaimTypes.Email) ?? "")))
+            .RequireAuthorization("Administracao");
+
+        group.MapGet("/ancora", async (IAuditoriaService svc) =>
+            await svc.AncoraAsync() is { } ancora ? Results.Ok(ancora) : Results.NoContent());
+
         return group;
     }
 }

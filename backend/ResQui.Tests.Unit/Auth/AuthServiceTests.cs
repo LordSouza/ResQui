@@ -62,27 +62,52 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_CredenciaisInvalidas_NaoRegistraAuditoria()
+    public async Task LoginAsync_EmailNaoCadastrado_RegistraFalhaDeLogin()
     {
         _repo.FindByEmailAsync("ana@lab.com").Returns((UsuarioInfo?)null);
 
-        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"));
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"), ip: "203.0.113.7");
 
-        await _audit.DidNotReceive().RegistrarAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "user.login-falha", "Auth",
+            "Login recusado: e-mail não cadastrado a partir de 203.0.113.7", RiscoAuditoria.Low);
     }
 
     [Fact]
-    public async Task LoginAsync_SenhaErrada_NaoRegistraAuditoria()
+    public async Task LoginAsync_SenhaErrada_RegistraFalhaDeLoginSemBloqueio()
     {
         _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser());
         _repo.CheckPasswordAsync("user-1", "errada").Returns(false);
 
         await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"));
 
-        await _audit.DidNotReceive().RegistrarAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "user.login-falha", "Auth",
+            "Login recusado: senha incorreta", RiscoAuditoria.Low);
+        await _audit.DidNotReceive().RegistrarAsync(Arg.Any<string>(), "user.login-bloqueado",
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task LoginAsync_EmailMaiorQueAColuna_RegistraTruncado()
+    {
+        var longo = new string('a', 300) + "@lab.com";
+        _repo.FindByEmailAsync(longo).Returns((UsuarioInfo?)null);
+
+        await _sut.LoginAsync(new LoginCmd(longo, "x"));
+
+        await _audit.Received(1).RegistrarAsync(Arg.Is<string>(q => q.Length == 200), "user.login-falha",
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task LoginAsync_ContaBloqueada_NaoRegistraNovaFalha()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser());
+        _repo.EstaBloqueadoAsync("user-1").Returns(true);
+
+        var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"));
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _audit.DidNotReceive().RegistrarAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
 
@@ -831,5 +856,72 @@ public class AuthServiceTests
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Lab-999*");
         await _repo.DidNotReceive().CreateAsync(Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>());
+    }
+
+    // ---------- Auditoria do 2FA ----------
+
+    [Fact]
+    public async Task Setup2faAsync_CaminhoFeliz_RegistraAuditoria()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+        _repo.CheckPasswordAsync("user-1", "senha123").Returns(true);
+        _repo.ResetAuthenticatorKeyAsync("user-1").Returns("CHAVENOVA123");
+
+        await _sut.Setup2faAsync("user-1", "senha123");
+
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "user.2fa-configurado", "Auth",
+            Arg.Is<string>(d => !d.Contains("CHAVENOVA123")), RiscoAuditoria.Medium);
+    }
+
+    [Fact]
+    public async Task Setup2faAsync_SenhaIncorreta_NaoRegistraConfiguracao()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser());
+        _repo.CheckPasswordAsync("user-1", "errada").Returns(false);
+
+        var act = () => _sut.Setup2faAsync("user-1", "errada");
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _audit.DidNotReceive().RegistrarAsync(Arg.Any<string>(), "user.2fa-configurado",
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task Desativar2faAsync_ComCodigoDeRecuperacao_RegistraUsoDoCodigo()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
+        _repo.VerifyTwoFactorCodeAsync("user-1", "abcd-efgh").Returns(false);
+        _repo.ResgatarCodigoRecuperacaoAsync("user-1", "abcd-efgh").Returns(true);
+
+        await _sut.Desativar2faAsync("user-1", "abcd-efgh", "ana@lab.com");
+
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "user.2fa-recuperacao-usada", "Auth",
+            Arg.Any<string>(), RiscoAuditoria.High);
+    }
+
+    [Fact]
+    public async Task Desativar2faAsync_ComTotp_NaoRegistraUsoDeCodigoDeRecuperacao()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
+        _repo.VerifyTwoFactorCodeAsync("user-1", "123456").Returns(true);
+
+        await _sut.Desativar2faAsync("user-1", "123456", "ana@lab.com");
+
+        await _audit.DidNotReceive().RegistrarAsync(Arg.Any<string>(), "user.2fa-recuperacao-usada",
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task GerarCodigosRecuperacaoAsync_ComCodigoDeRecuperacao_RegistraUsoDoCodigo()
+    {
+        _repo.FindByIdAsync("user-1").Returns(FakeUser2fa());
+        _repo.VerifyTwoFactorCodeAsync("user-1", "abcd-efgh").Returns(false);
+        _repo.ResgatarCodigoRecuperacaoAsync("user-1", "abcd-efgh").Returns(true);
+        _repo.GerarCodigosRecuperacaoAsync("user-1", 10).Returns(["cod"]);
+
+        await _sut.GerarCodigosRecuperacaoAsync("user-1", "abcd-efgh", "ana@lab.com");
+
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "user.2fa-recuperacao-usada", "Auth",
+            Arg.Any<string>(), RiscoAuditoria.High);
     }
 }

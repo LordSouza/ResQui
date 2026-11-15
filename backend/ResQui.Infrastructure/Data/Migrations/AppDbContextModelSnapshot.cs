@@ -166,8 +166,21 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("HashAnterior")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<int>("Risk")
                         .HasColumnType("integer");
+
+                    b.Property<long>("Sequencia")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("timestamp with time zone");
@@ -188,6 +201,9 @@ namespace ResQui.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Sequencia")
+                        .IsUnique();
 
                     b.ToTable("Auditoria");
                 });

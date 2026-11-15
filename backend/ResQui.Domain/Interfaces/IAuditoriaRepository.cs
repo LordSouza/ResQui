@@ -10,5 +10,7 @@ public interface IAuditoriaRepository
         DateTime? de, DateTime? ate, RiscoAuditoria? risco,
         string? quem, string? oQue, string? onde, string? detalhe, int? limite,
         IReadOnlyCollection<string>? autores = null);
+    IAsyncEnumerable<AuditoriaEntry> PercorrerCadeia();
+    Task<AuditoriaEntry?> UltimoEloAsync();
     Task SaveChangesAsync();
 }

@@ -11,4 +11,9 @@ public class AuditoriaEntry
     public string Where { get; set; } = "";
     public string Detail { get; set; } = "";
     public RiscoAuditoria Risk { get; set; } = RiscoAuditoria.Low;
+
+    // Preenchidos pelo gatilho BEFORE INSERT do PostgreSQL, que sobrescreve o que a aplicação enviar.
+    public long Sequencia { get; set; }
+    public string HashAnterior { get; set; } = "";
+    public string Hash { get; set; } = "";
 }
