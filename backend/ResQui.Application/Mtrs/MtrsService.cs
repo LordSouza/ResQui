@@ -173,7 +173,8 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         GarantirQueEnxerga(m, todos, solicitante);
         var (proprios, deOutrosLaboratorios) = SepararPorEscopo(todos.Where(r => r.MtrId == m.Id), solicitante);
 
-        var bytes = pdf.ManifestoMtr(m, proprios, deOutrosLaboratorios, await NomeDeQuemDestinouAsync(m.DestinadoPorId, solicitante));
+        var bytes = pdf.ManifestoMtr(m, proprios, deOutrosLaboratorios,
+            await NomeDeQuemDestinouAsync(m.DestinadoPorId, solicitante), await auditoria.AncoraAsync());
         await auditoria.RegistrarAsync(solicitante.Email, "mtr.pdf", "MTR",
             $"Gerou PDF do MTR {m.Numero}", RiscoAuditoria.Low);
         return (bytes, $"{m.Numero.ToLower()}.pdf");

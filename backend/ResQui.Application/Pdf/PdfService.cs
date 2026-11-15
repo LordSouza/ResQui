@@ -2,6 +2,7 @@ using System.Globalization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using ResQui.Application.Auditoria;
 using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 
@@ -145,7 +146,7 @@ public class PdfService : IPdfService
 
     public const string ResiduoDeOutroLaboratorio = "Resíduo de outro laboratório";
 
-    public byte[] ManifestoMtr(Mtr m, IList<Residuo> residuos, IList<Residuo> residuosDeOutrosLaboratorios, string? destinadoPor)
+    public byte[] ManifestoMtr(Mtr m, IList<Residuo> residuos, IList<Residuo> residuosDeOutrosLaboratorios, string? destinadoPor, AncoraAuditoriaDto? ancoraAuditoria)
     {
         return Document.Create(doc => doc.Page(page =>
         {
@@ -251,8 +252,17 @@ public class PdfService : IPdfService
                 });
             });
 
-            page.Footer().Text($"ResQui · documento gerado em {DateTime.UtcNow:dd/MM/yyyy HH:mm} UTC — uso interno, não substitui o MTR oficial emitido pelo órgão ambiental")
+            page.Footer().Text(RodapeManifesto(DateTime.UtcNow, ancoraAuditoria))
                 .FontSize(7).FontColor(Colors.Grey.Darken1);
         })).GeneratePdf();
+    }
+
+    // A âncora registra o estado da cadeia de auditoria na emissão: reescrever a cadeia depois
+    // deixa este documento em desacordo com a sequência publicada.
+    public static string RodapeManifesto(DateTime geradoEmUtc, AncoraAuditoriaDto? ancoraAuditoria)
+    {
+        var rodape = $"ResQui · documento gerado em {geradoEmUtc:dd/MM/yyyy HH:mm} UTC — uso interno, não substitui o MTR oficial emitido pelo órgão ambiental";
+        if (ancoraAuditoria is null) return rodape;
+        return rodape + $"\nÂncora da auditoria: seq. {ancoraAuditoria.UltimaSequencia} · hash {ancoraAuditoria.PrefixoHash}";
     }
 }

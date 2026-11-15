@@ -2,6 +2,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuditoriaScreen } from '../../src/screens/AuditoriaScreen';
+import { useAuth } from '../../src/auth/AuthContext';
+import { useToast } from '../../src/components/ToastContext';
+import { exportCsv } from '../../src/utils';
+
+vi.mock('../../src/auth/AuthContext', () => ({ useAuth: vi.fn() }));
+vi.mock('../../src/components/ToastContext', () => ({ useToast: vi.fn() }));
+vi.mock('../../src/utils', async (importOriginal) => ({ ...(await importOriginal()), exportCsv: vi.fn() }));
 
 function wrapper(ui) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -32,6 +39,8 @@ describe('AuditoriaScreen', () => {
       clear() { this.data = {}; },
     });
     vi.stubGlobal('fetch', vi.fn());
+    useAuth.mockReturnValue({ user: { papel: 'Professor' } });
+    useToast.mockReturnValue({ addToast: vi.fn() });
   });
   afterEach(() => vi.unstubAllGlobals());
 
@@ -113,5 +122,92 @@ describe('AuditoriaScreen', () => {
 
     await waitFor(() => expect(screen.getByText('bruno@lab.com')).toBeInTheDocument());
     expect(screen.queryByText('ana@lab.com')).not.toBeInTheDocument();
+  });
+
+  function respostas(porRota) {
+    fetch.mockImplementation(async (url) => {
+      const rota = Object.keys(porRota).find(r => url.startsWith(r) && (url.length === r.length || url[r.length] === '?'));
+      const corpo = porRota[rota];
+      if (corpo === 204) return { ok: true, status: 204, json: async () => null };
+      return { ok: true, status: 200, json: async () => corpo };
+    });
+  }
+
+  it('descreve a trilha como somente de inclusão, sem prometer imutabilidade', async () => {
+    respostas({ '/api/auditoria': [fakeEntry] });
+
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+
+    await waitFor(() => expect(screen.getByText(/somente de inclusão, com encadeamento verificável/)).toBeInTheDocument());
+    expect(screen.queryByText(/imutável/)).not.toBeInTheDocument();
+  });
+
+  it('Professor não vê a verificação da cadeia', async () => {
+    respostas({ '/api/auditoria': [fakeEntry] });
+
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+
+    await waitFor(() => expect(screen.getByText('ana@lab.com')).toBeInTheDocument());
+    expect(screen.queryByText('Verificar agora')).not.toBeInTheDocument();
+  });
+
+  it('Admin verifica a cadeia e vê o resumo íntegro', async () => {
+    useAuth.mockReturnValue({ user: { papel: 'Admin' } });
+    respostas({
+      '/api/auditoria/verificacao': { integra: true, totalRegistros: 12, ultimaSequencia: 12, ultimoHash: 'ab'.repeat(32), primeiraSequenciaInvalida: null },
+      '/api/auditoria': [fakeEntry],
+    });
+
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+    await waitFor(() => expect(screen.getByText(/ainda não verificada/)).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Verificar agora'));
+
+    await waitFor(() => expect(screen.getByText(/Cadeia íntegra · 12 registros · verificado em \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/)).toBeInTheDocument());
+    expect(fetch.mock.calls.some(([url]) => url === '/api/auditoria/verificacao')).toBe(true);
+  });
+
+  it('Admin vê alerta com a primeira sequência inválida', async () => {
+    useAuth.mockReturnValue({ user: { papel: 'Admin' } });
+    respostas({
+      '/api/auditoria/verificacao': { integra: false, totalRegistros: 30, ultimaSequencia: 30, ultimoHash: 'cd'.repeat(32), primeiraSequenciaInvalida: 17 },
+      '/api/auditoria': [fakeEntry],
+    });
+
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+    await waitFor(() => expect(screen.getByText('Verificar agora')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Verificar agora'));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Cadeia violada a partir da sequência 17 · 30 registros'));
+  });
+
+  it('exportação CSV termina com a âncora da auditoria', async () => {
+    respostas({
+      '/api/auditoria/ancora': { ultimaSequencia: 321, ultimoHash: '0123456789abcdef'.repeat(4), prefixoHash: '0123456789abcdef' },
+      '/api/auditoria': [fakeEntry],
+    });
+
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+    await waitFor(() => expect(screen.getByText(/Exportar CSV/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Exportar CSV/i));
+
+    await waitFor(() => expect(exportCsv).toHaveBeenCalled());
+    const linhas = exportCsv.mock.calls.at(-1)[0];
+    expect(linhas.at(-1)).toEqual(['Âncora da auditoria', 'seq. 321', 'hash 0123456789abcdef']);
+  });
+
+  it('exportação CSV é cancelada com aviso quando a âncora falha', async () => {
+    const addToast = vi.fn();
+    useToast.mockReturnValue({ addToast });
+    exportCsv.mockClear();
+    fetch.mockImplementation(async (url) => url.startsWith('/api/auditoria/ancora')
+      ? { ok: false, status: 500, text: async () => '' }
+      : { ok: true, status: 200, json: async () => [fakeEntry] });
+
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+    await waitFor(() => expect(screen.getByText(/Exportar CSV/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Exportar CSV/i));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.stringContaining('Exportação cancelada')));
+    expect(exportCsv).not.toHaveBeenCalled();
   });
 });
