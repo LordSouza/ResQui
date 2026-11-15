@@ -205,6 +205,8 @@ namespace ResQui.Infrastructure.Data.Migrations
                     b.HasIndex("Sequencia")
                         .IsUnique();
 
+                    b.HasIndex("Timestamp");
+
                     b.ToTable("Auditoria");
                 });
 
@@ -531,7 +533,7 @@ namespace ResQui.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UsuarioId");
+                    b.HasIndex("UsuarioId", "Tipo", "ReferenciaId");
 
                     b.ToTable("Notificacoes");
                 });

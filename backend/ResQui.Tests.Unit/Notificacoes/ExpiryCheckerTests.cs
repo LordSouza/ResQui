@@ -35,7 +35,7 @@ public class ExpiryCheckerTests
         var r = new Reagente { Id = "R-00001", Nome = "Acetona", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)), Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
-        _notifs.ExisteNaoLidaAsync("u-admin", "expiry", "R-00001").Returns(false);
+        _notifs.ExisteAsync("u-admin", "expiry", "R-00001").Returns(false);
 
         await _sut.RunAsync();
 
@@ -49,7 +49,7 @@ public class ExpiryCheckerTests
         var r = new Reagente { Id = "R-00007", Nome = "Éter", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-45)), Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
-        _notifs.ExisteNaoLidaAsync("u-admin", "expiry", "R-00007").Returns(false);
+        _notifs.ExisteAsync("u-admin", "expiry", "R-00007").Returns(false);
 
         await _sut.RunAsync();
 
@@ -58,12 +58,12 @@ public class ExpiryCheckerTests
     }
 
     [Fact]
-    public async Task RunAsync_NotifNaoLidaJaExiste_NaoInsere()
+    public async Task RunAsync_NotifJaExiste_NaoInsere()
     {
         var r = new Reagente { Id = "R-00001", Nome = "Acetona", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)), Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
-        _notifs.ExisteNaoLidaAsync("u-admin", "expiry", "R-00001").Returns(true);
+        _notifs.ExisteAsync("u-admin", "expiry", "R-00001").Returns(true);
 
         await _sut.RunAsync();
 
@@ -120,5 +120,93 @@ public class ExpiryCheckerTests
 
         await _notifs.Received(1).AddAsync(Arg.Is<Notificacao>(n => n.UsuarioId == "u-adm"));
         await _notifs.DidNotReceive().AddAsync(Arg.Is<Notificacao>(n => n.UsuarioId == "u-admin"));
+    }
+
+    private static Reagente Vencendo() => new()
+    {
+        Id = "R-00001", Nome = "Acetona", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
+        Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201",
+    };
+
+    private static readonly UsuarioInfo Colega = new("u-colega", "colega@x.com", "Colega", null, "Professor", ["Professor"], false);
+
+    private void DoisProfessoresComEmailLigado()
+    {
+        _usuarioLabs.DeTodosAsync().Returns(new Dictionary<string, IReadOnlyList<string>>
+        {
+            ["u-admin"] = ["Lab-201"],
+            ["u-colega"] = ["Lab-201"],
+        });
+        _auth.GetAllAsync().Returns([Admin, Colega]);
+        _auth.GetNotificacaoPrefsJsonAsync(Arg.Any<string>()).Returns("{\"expiry\":true}");
+    }
+
+    [Fact]
+    public async Task RunAsync_SalvaAsNotificacoesAntesDeEnviarOsEmails()
+    {
+        _reagentes.GetAllAsync().Returns([Vencendo()]);
+        DoisProfessoresComEmailLigado();
+
+        await _sut.RunAsync();
+
+        Received.InOrder(() =>
+        {
+            _notifs.SaveChangesAsync();
+            _email.SendAsync("admin@x.com", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            _email.SendAsync("colega@x.com", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        });
+    }
+
+    [Fact]
+    public async Task RunAsync_FalhaAoSalvar_NaoEnviaEmail()
+    {
+        _reagentes.GetAllAsync().Returns([Vencendo()]);
+        DoisProfessoresComEmailLigado();
+        _notifs.SaveChangesAsync().Returns(Task.FromException(new InvalidOperationException("banco fora")));
+
+        var act = () => _sut.RunAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        await _email.DidNotReceiveWithAnyArgs().SendAsync(default!, default!, default!, default);
+    }
+
+    [Fact]
+    public async Task RunAsync_FalhaNoPrimeiroEmail_AindaEnviaOsSeguintes()
+    {
+        _reagentes.GetAllAsync().Returns([Vencendo()]);
+        DoisProfessoresComEmailLigado();
+        _email.SendAsync("admin@x.com", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new InvalidOperationException("smtp fora")));
+
+        await _sut.RunAsync();
+
+        await _email.Received(1).SendAsync("colega@x.com", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RunAsync_RepassaOCancellationTokenAoEnvio()
+    {
+        _reagentes.GetAllAsync().Returns([Vencendo()]);
+        DoisProfessoresComEmailLigado();
+        using var cts = new CancellationTokenSource();
+
+        await _sut.RunAsync(cts.Token);
+
+        await _email.Received(2).SendAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), cts.Token);
+    }
+
+    [Fact]
+    public async Task RunAsync_CanceladoDuranteOsEnvios_PropagaEInterrompe()
+    {
+        _reagentes.GetAllAsync().Returns([Vencendo()]);
+        DoisProfessoresComEmailLigado();
+        using var cts = new CancellationTokenSource();
+        _email.SendAsync("admin@x.com", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(_ => { cts.Cancel(); return Task.FromException(new OperationCanceledException(cts.Token)); });
+
+        var act = () => _sut.RunAsync(cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        await _email.DidNotReceive().SendAsync("colega@x.com", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 }

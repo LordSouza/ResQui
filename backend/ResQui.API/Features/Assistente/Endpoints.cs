@@ -11,8 +11,8 @@ public static class Endpoints
 
     public static RouteGroupBuilder MapAssistenteEndpoints(this RouteGroupBuilder group)
     {
-        group.MapPost("/mensagem", async (MensagemAssistenteCmd cmd, IAssistenteService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
-            Results.Ok(await svc.ResponderAsync(cmd, await user.ResolverAsync(labs))))
+        group.MapPost("/mensagem", async (MensagemAssistenteCmd cmd, IAssistenteService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs, CancellationToken ct) =>
+            Results.Ok(await svc.ResponderAsync(cmd, await user.ResolverAsync(labs), ct)))
             .RequireAuthorization()
             .RequireRateLimiting(PoliticaLimite);
 

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ResQui.API.Common;
+using ResQui.Application.Common;
 using ResQui.Application.Reagentes;
 using ResQui.Domain.Interfaces;
 
@@ -7,6 +8,9 @@ namespace ResQui.API.Features.Reagentes;
 
 public static class Endpoints
 {
+    // A tela de compatibilidade e o assistente pedem 200 para carregar o catálogo de uma vez.
+    private const int MaxPageSize = 200;
+
     public static RouteGroupBuilder MapReagentesEndpoints(this RouteGroupBuilder group)
     {
         group.MapGet("/", async (
@@ -19,6 +23,8 @@ public static class Endpoints
             int? classe = null,
             bool vencendo = false) =>
         {
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
             var filtro = new ReagentesFiltroDto(page, pageSize, q, classe, vencendo);
             var (items, total) = await svc.ListarAsync(filtro, await user.ResolverAsync(labs));
             return Results.Ok(new { items, total, page, pageSize });
@@ -37,8 +43,11 @@ public static class Endpoints
         })
         .RequireAuthorization("Operacional");
 
-        group.MapPost("/importar-lote", async (CriarReagenteCmd[] cmds, IReagentesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs) =>
+        group.MapPost("/importar-lote", async (CriarReagenteCmd[] cmds, IReagentesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs, IConfiguration config) =>
         {
+            var maxLinhas = config.GetValue("Reagentes:ImportarLote:MaxLinhas", 1000);
+            if (cmds?.Length > maxLinhas)
+                throw new ValidationException($"A planilha tem {cmds.Length} linhas; o limite por importação é {maxLinhas}. Divida o arquivo e importe em partes.");
             var result = await svc.ImportarLoteAsync(cmds, await user.ResolverAsync(labs));
             return Results.Ok(result);
         })
@@ -74,7 +83,7 @@ public static class Endpoints
 
         group.MapGet("/{id}/movimentacoes", async (string id, IReagentesService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs, int limite = 20) =>
         {
-            var result = await svc.ListarMovimentacoesAsync(id, await user.ResolverAsync(labs), limite);
+            var result = await svc.ListarMovimentacoesAsync(id, await user.ResolverAsync(labs), Math.Clamp(limite, 1, 100));
             return result is null ? Results.NotFound() : Results.Ok(result);
         });
 

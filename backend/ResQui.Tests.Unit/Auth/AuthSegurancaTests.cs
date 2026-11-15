@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -23,7 +24,7 @@ public class AuthSegurancaTests
 
     public AuthSegurancaTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs, Substitute.For<ILaboratoriosRepository>(), Substitute.For<IFalhasLoginPorIp>());
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs, Substitute.For<ILaboratoriosRepository>(), Substitute.For<IFalhasLoginPorIp>(), new TransacoesDiretas());
         // Sem isto, TentarConsumir devolve false (default de bool) e todo login destes testes
         // morre no throttle.
         _throttle.TentarConsumir(Arg.Any<string>()).Returns(true);

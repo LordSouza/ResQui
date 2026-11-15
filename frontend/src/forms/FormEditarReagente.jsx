@@ -6,7 +6,6 @@ import { SeletorLocal, erroDoLocal } from './SeletorLocal';
 export function FormEditarReagente({ reagente, onClose, dispatch }) {
   const [f, setF] = useState({
     Nome: reagente.nome,
-    Estoque: reagente.estoque,
     EstoqueMin: reagente.estoque_min ?? '',
     Local: reagente.laboratorioId
       ? { laboratorioId: reagente.laboratorioId, armario: reagente.armario ?? '' }
@@ -25,7 +24,6 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
       {
         id: reagente.id,
         Nome: f.Nome,
-        Estoque: Number(f.Estoque) || 0,
         EstoqueMin: f.EstoqueMin !== '' ? Number(f.EstoqueMin) : null,
         LaboratorioId: f.Local.laboratorioId,
         Armario: f.Local.armario,
@@ -65,10 +63,6 @@ export function FormEditarReagente({ reagente, onClose, dispatch }) {
         </div>
       </div>
       <div className="form-row">
-        <div className="field">
-          <label htmlFor="edit-estoque">Estoque</label>
-          <input id="edit-estoque" aria-label="Estoque atual" type="number" step="0.01" value={f.Estoque} onChange={e => upd('Estoque', e.target.value)}/>
-        </div>
         <div className="field">
           <label htmlFor="edit-estoque-min">Estoque mínimo</label>
           <input id="edit-estoque-min" aria-label="Estoque mínimo" type="number" step="0.01" value={f.EstoqueMin} onChange={e => upd('EstoqueMin', e.target.value)}/>

@@ -69,6 +69,24 @@ describe('AuditoriaScreen', () => {
     await waitFor(() => expect(screen.getByText(/Tentar novamente/i)).toBeInTheDocument());
   });
 
+  it('avisa quando o servidor devolveu o teto de eventos', async () => {
+    const muitas = Array.from({ length: 1000 }, (_, i) => ({ ...fakeEntry, id: `id-${i}`, who: `u${i}@lab.com` }));
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => muitas });
+
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+
+    await waitFor(() => expect(screen.getByText(/Mostrando os 1000 eventos mais recentes/)).toBeInTheDocument());
+  });
+
+  it('não mostra o aviso de teto com poucos eventos', async () => {
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => [fakeEntry] });
+
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+
+    await waitFor(() => expect(screen.getByText('ana@lab.com')).toBeInTheDocument());
+    expect(screen.queryByText(/eventos mais recentes/)).not.toBeInTheDocument();
+  });
+
   it('botão Exportar CSV existe', async () => {
     fetch.mockResolvedValueOnce({ ok: true, json: async () => [fakeEntry] });
 
@@ -193,6 +211,23 @@ describe('AuditoriaScreen', () => {
     await waitFor(() => expect(exportCsv).toHaveBeenCalled());
     const linhas = exportCsv.mock.calls.at(-1)[0];
     expect(linhas.at(-1)).toEqual(['Âncora da auditoria', 'seq. 321', 'hash 0123456789abcdef']);
+  });
+
+  it('exportação CSV registra o corte quando o servidor devolveu o teto de eventos', async () => {
+    const muitas = Array.from({ length: 1000 }, (_, i) => ({ ...fakeEntry, id: `id-${i}`, who: `u${i}@lab.com` }));
+    respostas({
+      '/api/auditoria/ancora': { ultimaSequencia: 321, ultimoHash: '0123456789abcdef'.repeat(4), prefixoHash: '0123456789abcdef' },
+      '/api/auditoria': muitas,
+    });
+
+    wrapper(<AuditoriaScreen state={fakeState} dispatch={fakeDispatch} />);
+    await waitFor(() => expect(screen.getByText(/Exportar CSV/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Exportar CSV/i));
+
+    await waitFor(() => expect(exportCsv).toHaveBeenCalled());
+    const linhas = exportCsv.mock.calls.at(-1)[0];
+    expect(linhas.some(l => String(l[0]).startsWith('Exportação limitada aos 1000 eventos'))).toBe(true);
+    expect(linhas.at(-1)[0]).toBe('Âncora da auditoria');
   });
 
   it('exportação CSV é cancelada com aviso quando a âncora falha', async () => {

@@ -317,7 +317,7 @@ export default function App() {
   const [conviteToken, setConviteToken] = useState(tokenConviteDaUrl);
   const [redefinicaoToken, setRedefinicaoToken] = useState(tokenRedefinicaoDaUrl);
   const [avisoLogin, setAvisoLogin] = useState('');
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, sessaoExpirada } = useAuth();
   const { data: residuosNav = [] } = useResíduos({}, { enabled: !!token });
   const { data: identificacao } = useIdentificacaoPgrs({ enabled: !!token });
   const navBadges = {
@@ -359,7 +359,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginScreen aviso={avisoLogin} />;
+    return <LoginScreen aviso={sessaoExpirada ? 'Sua sessão expirou. Entre novamente.' : avisoLogin} />;
   }
 
   // Esconder o item da sidebar não basta: state.screen pode chegar a uma tela restrita por outro

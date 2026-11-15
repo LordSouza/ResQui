@@ -14,5 +14,8 @@ public class NotificacaoConfiguration : IEntityTypeConfiguration<Notificacao>
             .WithMany()
             .HasForeignKey(n => n.UsuarioId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Deduplicação dos checkers: uma consulta por (usuário, item) a cada ciclo do job.
+        builder.HasIndex(n => new { n.UsuarioId, n.Tipo, n.ReferenciaId });
     }
 }

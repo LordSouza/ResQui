@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -26,7 +27,7 @@ public class UsuariosServiceTests
             new Laboratorio { Id = "Lab-002", Nome = "B" },
         ]);
         _sessoes.GetAtivasByUsuarioAsync(Arg.Any<string>()).Returns([]);
-        _sut = new UsuariosService(_repo, _audit, _usuarioLabs, _labRepo, _sessoes);
+        _sut = new UsuariosService(_repo, _audit, _usuarioLabs, _labRepo, _sessoes, new TransacoesDiretas());
     }
 
     private static Solicitante Professor(params string[] labs) =>

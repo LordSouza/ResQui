@@ -68,6 +68,25 @@ PLAYWRIGHT_CHANNEL=chromium npx playwright test
 
 A pipeline completa está em `.github/workflows/ci.yml`.
 
+## Deploy e rollback
+
+Cada push em `master` que passa no CI publica as imagens no GHCR com as tags `latest` e `<sha>` e
+sobe na VPS (`/opt/resqui`) a tag do commit. O job falha se os containers não ficarem saudáveis em
+180 s; o probe é `GET /api/health`.
+
+Para voltar a uma versão anterior, na VPS:
+
+```bash
+cd /opt/resqui
+RESQUI_TAG=<sha> docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --wait
+```
+
+- As migrações não são revertidas: o rollback só é seguro se a versão antiga funciona com o schema atual.
+- Só vale para imagens que já têm `/api/health`: nas anteriores o probe falha, o backend fica
+  `unhealthy` e o `--wait` acusa erro mesmo com a API funcionando. Para elas, rode sem `--wait`.
+- Usa os arquivos compose que já estão na VPS (os do último deploy).
+- Um `docker compose up` sem `RESQUI_TAG` volta para `latest`, e o próximo push em `master` sobe o commit novo.
+
 ## Documentação
 
 - [Proveniência da matriz de compatibilidade química](docs/compatibilidade-proveniencia.md)

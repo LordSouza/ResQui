@@ -1,15 +1,21 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   postgres:
     restart: unless-stopped
     ports: !reset []
 
   backend:
-    image: ghcr.io/lordsouza/resqui-backend:latest
+    image: ghcr.io/lordsouza/resqui-backend:${RESQUI_TAG:-latest}
     restart: unless-stopped
     ports: !reset []
 
   frontend:
-    image: ghcr.io/lordsouza/resqui-frontend:latest
+    image: ghcr.io/lordsouza/resqui-frontend:${RESQUI_TAG:-latest}
     restart: unless-stopped
     ports: !reset []
 
@@ -28,6 +34,7 @@ services:
         ipv4_address: 10.87.0.11
     depends_on:
       - frontend
+    logging: *logging
 
 volumes:
   caddy_data:

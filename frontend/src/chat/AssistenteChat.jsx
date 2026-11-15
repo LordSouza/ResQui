@@ -42,7 +42,7 @@ export function AssistenteChat({ state, dispatch }) {
 
   const send = async (text) => {
     const t = (text ?? effectiveInput).trim();
-    if (!t || busy || indisponivel) return;
+    if (!t || busy) return;
     setInput('');
     if (state.pendingPrompt) dispatch({type: 'clearPrompt'});
     setMessages(m => [...m, {role: 'user', content: t}]);
@@ -86,7 +86,7 @@ export function AssistenteChat({ state, dispatch }) {
           <div className="title">Assistente ResQui</div>
           <div className="sub">
             {indisponivel
-              ? 'assistente não configurado'
+              ? 'indisponível no momento'
               : <><span className="status-dot"/> conectado</>}
           </div>
         </div>
@@ -126,9 +126,8 @@ export function AssistenteChat({ state, dispatch }) {
             }}
             rows={1}
             maxLength={1000}
-            disabled={indisponivel}
           />
-          <button type="button" className="send" aria-label="Enviar mensagem" onClick={() => send()} disabled={!effectiveInput.trim() || busy || indisponivel}>
+          <button type="button" className="send" aria-label="Enviar mensagem" onClick={() => send()} disabled={!effectiveInput.trim() || busy}>
             <Icon name="send" size={14}/>
           </button>
         </div>

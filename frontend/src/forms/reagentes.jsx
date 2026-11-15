@@ -395,7 +395,12 @@ export function FormImportarCSV({ onClose, dispatch }) {
   const semColunaClasse = headers.length > 0 && !('ClasseReatividade' in mapearColunas(headers));
 
   const confirmarImport = async () => {
-    const res = await importar.mutateAsync(prontas.map(i => i.cmd));
+    let res;
+    try {
+      res = await importar.mutateAsync(prontas.map(i => i.cmd));
+    } catch {
+      return; // a mensagem do servidor aparece pelo importar.error, na própria revisão
+    }
     setResultado(res);
     setStep('done');
   };
@@ -467,6 +472,7 @@ export function FormImportarCSV({ onClose, dispatch }) {
             {importar.isPending ? 'Importando…' : `Importar ${prontas.length} reagentes`}
           </button>
         </>}>
+        {importar.isError && <div className="login-err" style={{marginBottom: 12}}>{importar.error.message}</div>}
         {semColunaClasse && (
           <div role="status" style={{
             padding: '10px 12px', marginBottom: 12, fontSize: 12, lineHeight: 1.5,

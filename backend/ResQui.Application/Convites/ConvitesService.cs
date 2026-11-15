@@ -28,7 +28,8 @@ public class ConvitesService(
     IAuthRepository usuarios,
     IAuditoriaService auditoria,
     IUsuarioLaboratoriosRepository usuarioLabs,
-    ILaboratoriosRepository labRepo) : IConvitesService
+    ILaboratoriosRepository labRepo,
+    ITransacoes transacoes) : IConvitesService
 {
     public const int DiasValidade = 7;
     private static readonly string[] PapeisConvidaveis = ["Professor", "Aluno"];
@@ -58,11 +59,14 @@ public class ConvitesService(
             CriadoPorId = solicitante.Id is { Length: > 0 } criador ? criador : null,
             ExpiraEm = DateTime.UtcNow.AddDays(DiasValidade),
         };
-        await convites.AddAsync(convite);
-        await convites.SaveChangesAsync();
-        await usuarioLabs.DefinirDoConviteAsync(convite.Id, laboratorios);
-        await auditoria.RegistrarAsync(solicitante.Email, "convite.criar", "Usuários",
-            $"Gerou convite #{convite.Id} para {cmd.Papel}, válido até {convite.ExpiraEm:dd/MM/yyyy}", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await convites.AddAsync(convite);
+            await convites.SaveChangesAsync();
+            await usuarioLabs.DefinirDoConviteAsync(convite.Id, laboratorios);
+            await auditoria.RegistrarAsync(solicitante.Email, "convite.criar", "Usuários",
+                $"Gerou convite #{convite.Id} para {cmd.Papel}, válido até {convite.ExpiraEm:dd/MM/yyyy}", RiscoAuditoria.Medium);
+        });
         return new ConviteCriadoDto(convite.Id, token, convite.Papel, convite.ExpiraEm);
     }
 
@@ -90,9 +94,12 @@ public class ConvitesService(
         if (StatusDe(convite) != "pendente")
             throw new ValidationException("Só convites pendentes podem ser revogados.");
         convite.RevogadoEm = DateTime.UtcNow;
-        await convites.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "convite.revogar", "Usuários",
-            $"Revogou o convite #{id} para {convite.Papel}", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await convites.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "convite.revogar", "Usuários",
+                $"Revogou o convite #{id} para {convite.Papel}", RiscoAuditoria.Medium);
+        });
         return true;
     }
 
@@ -118,33 +125,21 @@ public class ConvitesService(
                 ? "Este e-mail pertence a uma conta arquivada. Peça ao responsável para reativá-la."
                 : "E-mail já em uso.");
 
-        convite.UsadoEm = DateTime.UtcNow;
-        await convites.SaveChangesAsync();
-
-        string id;
-        try
+        await transacoes.ExecutarAsync(async () =>
         {
-            id = await usuarios.CreateAsync(email, cmd.Senha, cmd.Matricula?.Trim(), convite.Papel, cmd.Nome.Trim());
-        }
-        catch
-        {
-            try
-            {
-                convite.UsadoEm = null;
-                await convites.SaveChangesAsync();
-            }
-            catch
-            {
-            }
-            throw;
-        }
+            // Marcar o uso primeiro faz o xmin do convite decidir a corrida entre dois aceites
+            // antes de qualquer conta ser criada; se algo falhar depois, o rollback o libera.
+            convite.UsadoEm = DateTime.UtcNow;
+            await convites.SaveChangesAsync();
 
-        convite.UsadoPorId = id;
-        await convites.SaveChangesAsync();
-        await usuarios.AddToRoleAsync(id, convite.Papel);
-        await usuarioLabs.DefinirAsync(id, await usuarioLabs.DoConviteAsync(convite.Id));
-        await auditoria.RegistrarAsync(email, "convite.aceito", "Usuários",
-            $"Aceitou o convite #{convite.Id} e criou conta de {convite.Papel}", RiscoAuditoria.Medium);
+            var id = await usuarios.CreateAsync(email, cmd.Senha, cmd.Matricula?.Trim(), convite.Papel, cmd.Nome.Trim());
+            convite.UsadoPorId = id;
+            await convites.SaveChangesAsync();
+            await usuarios.AddToRoleAsync(id, convite.Papel);
+            await usuarioLabs.DefinirAsync(id, await usuarioLabs.DoConviteAsync(convite.Id));
+            await auditoria.RegistrarAsync(email, "convite.aceito", "Usuários",
+                $"Aceitou o convite #{convite.Id} e criou conta de {convite.Papel}", RiscoAuditoria.Medium);
+        });
     }
 
     private async Task<Convite?> BuscarValidoAsync(string token)

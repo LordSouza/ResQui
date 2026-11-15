@@ -16,7 +16,7 @@ export function useLogin() {
       } catch (e) {
         // apiFetch lança 'Unauthorized' em 401 sem ler o corpo — credencial errada.
         if (e.message === 'Unauthorized') throw new Error('Credenciais inválidas');
-        // Erro com status é resposta do servidor (400 de bloqueio/throttle traz { message });
+        // Erro com status é resposta do servidor (429 de bloqueio/throttle traz { message });
         // sem status é falha de rede.
         if (e.status) throw new Error(e.message);
         throw new Error('Falha de conexão. Tente novamente.');

@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 // backend/ResQui.Tests.Unit/Compatibilidade/CompatServiceTests.cs
 using FluentAssertions;
 using NSubstitute;
@@ -18,7 +19,7 @@ public class CompatServiceTests
     private readonly CompatService _sut;
 
     public CompatServiceTests() =>
-        _sut = new CompatService(_repo, _overridesRepo, _auditoria);
+        _sut = new CompatService(_repo, _overridesRepo, _auditoria, new TransacoesDiretas());
 
     // --- ConsultarParAsync ---
 

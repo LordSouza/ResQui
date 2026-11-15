@@ -44,6 +44,8 @@ public interface IAuthRepository
     // CheckPasswordSignInAsync: estes três encostam direto nos contadores do UserManager, que é o
     // que o SignInManager usaria por baixo.
     Task<bool> EstaBloqueadoAsync(string userId);
+    /// TimeSpan.Zero se a conta não estiver bloqueada.
+    Task<TimeSpan> TempoAteDesbloquearAsync(string userId);
     Task RegistrarFalhaLoginAsync(string userId);
     Task ZerarFalhasLoginAsync(string userId);
     Task RedefinirSenhaAsync(string userId, string novaSenha);

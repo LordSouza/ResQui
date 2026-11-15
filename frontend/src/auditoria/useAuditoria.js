@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../lib/api';
 
+// Espelha AuditoriaService.LimitePadrao: o servidor devolve no máximo esse número de eventos.
+export const LIMITE_AUDITORIA = 1000;
+
 export function useAuditoria(filtro = {}) {
   return useQuery({
     queryKey: ['auditoria', filtro],

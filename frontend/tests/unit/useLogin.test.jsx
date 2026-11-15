@@ -85,10 +85,10 @@ describe('useLogin', () => {
     expect(body).toEqual({ Email: 'a@b.com', Senha: 'Senha@123', Codigo2fa: null });
   });
 
-  it('propaga a mensagem do servidor quando a conta está bloqueada (400)', async () => {
+  it('propaga a mensagem do servidor quando a conta está bloqueada (429)', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
-      status: 400,
+      status: 429,
       text: async () => JSON.stringify({
         message: 'Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em alguns minutos.',
       }),
@@ -104,10 +104,10 @@ describe('useLogin', () => {
     );
   });
 
-  it('propaga a mensagem do servidor quando o throttle recusa (400)', async () => {
+  it('propaga a mensagem do servidor quando o throttle recusa (429)', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
-      status: 400,
+      status: 429,
       text: async () => JSON.stringify({
         message: 'Muitas tentativas de login. Aguarde um momento e tente novamente.',
       }),

@@ -23,12 +23,12 @@ jobs:
           --health-cmd "pg_isready -U resqui"
           --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.x'
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore --locked-mode
         working-directory: backend
       - name: Build
         run: dotnet build --no-restore --configuration Release
@@ -42,7 +42,7 @@ jobs:
       # uma configuração editada sem gerar migration passava no CI e só quebrava na startup.
       - name: Install dotnet-ef
         run: |
-          dotnet tool install --global dotnet-ef --version "10.*"
+          dotnet tool install --global dotnet-ef --version 10.0.15
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
       - name: Model matches migrations
         run: dotnet ef migrations has-pending-model-changes --project ResQui.Infrastructure --startup-project ResQui.API --no-build --configuration Release
@@ -52,8 +52,8 @@ jobs:
     name: Frontend (Vitest + build)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -86,11 +86,11 @@ jobs:
           --health-cmd "pg_isready -U resqui"
           --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.x'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -135,16 +135,16 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ./backend
           file: ./backend/ResQui.API/Dockerfile
@@ -154,7 +154,7 @@ jobs:
             ghcr.io/lordsouza/resqui-backend:${{ github.sha }}
 
       - name: Publish frontend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ./frontend
           push: true
@@ -178,8 +178,15 @@ jobs:
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
           scp -i ~/.ssh/deploy docker-compose.yml docker-compose.prod.yml Caddyfile \
             "$VPS_USER@$VPS_HOST:/opt/resqui/"
+          # A expressão do sha é expandida pelo Actions antes do bash, por isso funciona dentro das aspas simples.
           ssh -i ~/.ssh/deploy "$VPS_USER@$VPS_HOST" 'set -e
             cd /opt/resqui
+            export RESQUI_TAG=${{ github.sha }}
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
-            docker image prune -f'
+            if ! docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans --wait --wait-timeout 180; then
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail 200 backend
+              exit 1
+            fi
+            # Cada deploy deixa a imagem anterior com tag (sha), que o prune sem -a não remove; rollback puxa do GHCR.
+            docker image prune -af'

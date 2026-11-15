@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using System.Text.RegularExpressions;
 using FluentAssertions;
 using NSubstitute;
@@ -29,6 +30,8 @@ public class RedefinicaoSenhaServiceTests
 
     private static readonly UsuarioInfo Ana = new("user-1", "ana@lab.com", "Ana", null, "Aluno", ["Aluno"], false);
 
+    private readonly TransacoesDiretas _transacoes = new();
+
     public RedefinicaoSenhaServiceTests()
     {
         _email.Habilitado.Returns(true);
@@ -38,7 +41,7 @@ public class RedefinicaoSenhaServiceTests
             .ReturnsForAnyArgs([]);
         _usuarios.FindByEmailAsync("ana@lab.com").Returns(Ana);
         _usuarios.FindByIdAsync("user-1").Returns(Ana);
-        _sut = new RedefinicaoSenhaService(_redefinicoes, _usuarios, _sessoes, _audit, _trilha, _email, _fila, _throttle, _opcoes);
+        _sut = new RedefinicaoSenhaService(_redefinicoes, _usuarios, _sessoes, _audit, _trilha, _email, _fila, _throttle, _opcoes, _transacoes);
     }
 
     private string TokenDoUltimoEmail() =>
@@ -75,13 +78,24 @@ public class RedefinicaoSenhaServiceTests
     }
 
     [Theory]
+    [InlineData(null)]
     [InlineData("")]
     [InlineData("sem-arroba")]
-    public void Solicitar_EmailMalformado_Recusa(string email)
+    public void Solicitar_EmailMalformado_Recusa(string? email)
     {
-        var act = () => _sut.Solicitar(new EsqueciSenhaCmd(email));
+        var act = () => _sut.Solicitar(new EsqueciSenhaCmd(email!));
 
         act.Should().Throw<ValidationException>();
+        _fila.DidNotReceive().Enfileirar(Arg.Any<string>());
+    }
+
+    [Fact]
+    public void Solicitar_EmailAcimaDe254Caracteres_RecusaSemEnfileirar()
+    {
+        var act = () => _sut.Solicitar(new EsqueciSenhaCmd(new string('a', 250) + "@x.co"));
+
+        act.Should().Throw<ValidationException>().WithMessage("*254*");
+        _fila.DidNotReceive().Enfileirar(Arg.Any<string>());
     }
 
     [Fact]
@@ -170,15 +184,15 @@ public class RedefinicaoSenhaServiceTests
     }
 
     [Fact]
-    public async Task Redefinir_SenhaRecusadaPeloIdentity_DevolveOLinkAoEstadoPendente()
+    public async Task Redefinir_SenhaRecusadaPeloIdentity_DesfazATransacaoQueMarcouOLink()
     {
-        var (token, redefinicao) = await PedirLinkAsync();
+        var (token, _) = await PedirLinkAsync();
         _usuarios.RedefinirSenhaAsync("user-1", "fraca").ThrowsAsync(new ValidationException("Passwords must have at least one digit."));
 
         var act = () => _sut.RedefinirAsync(new RedefinirSenhaCmd(token, "fraca"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*digit*");
-        redefinicao.UsadaEm.Should().BeNull();
+        _transacoes.Desfeitas.Should().Be(1);
         await _audit.DidNotReceive().RegistrarAsync(Arg.Any<string>(), "user.senha-redefinida", Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }

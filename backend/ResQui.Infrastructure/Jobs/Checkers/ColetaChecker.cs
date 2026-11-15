@@ -25,13 +25,15 @@ public class ColetaChecker(
         var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
 
         bool houveMudanca = false;
+        var emails = new EmailsPendentes();
 
         foreach (var r in atrasados)
         {
+            ct.ThrowIfCancellationRequested();
             var refId = r.Id.ToString();
             foreach (var u in destinatarios.Do(r.LaboratorioId))
             {
-                if (await notifs.ExisteNaoLidaAsync(u.Id, "coleta", refId)) continue;
+                if (await notifs.ExisteAsync(u.Id, "coleta", refId)) continue;
 
                 await notifs.AddAsync(new Notificacao
                 {
@@ -49,12 +51,14 @@ public class ColetaChecker(
                     if (NotificacaoPrefs.Habilitada(prefsJson, "coleta", logger, u.Id))
                     {
                         var (subject, html) = NotificacaoEmailBuilder.BuildColeta(r.Id, r.Descricao);
-                        await email.SendAsync(u.Email, subject, html);
+                        emails.Adicionar(u.Email, subject, html);
                     }
                 }
             }
         }
 
-        if (houveMudanca) await notifs.SaveChangesAsync();
+        if (!houveMudanca) return;
+        await notifs.SaveChangesAsync();
+        await emails.EnviarAsync(email, logger, ct);
     }
 }

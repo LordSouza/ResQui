@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
@@ -35,13 +37,15 @@ public class DeepSeekProviderTests
         };
     }
 
-    private static DeepSeekProvider Criar(HttpMessageHandler handler)
+    private static DeepSeekProvider Criar(HttpMessageHandler handler) =>
+        Criar(new HttpClient(handler) { BaseAddress = new Uri("https://api.deepseek.com") });
+
+    private static DeepSeekProvider Criar(HttpClient http, int timeoutSegundos = 20)
     {
-        var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.deepseek.com") };
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Assistente:Model"] = "deepseek-v4-flash",
-            ["Assistente:TimeoutSeconds"] = "20",
+            ["Assistente:TimeoutSeconds"] = timeoutSegundos.ToString(),
         }).Build();
         return new DeepSeekProvider(http, config, NullLogger<DeepSeekProvider>.Instance);
     }
@@ -56,23 +60,23 @@ public class DeepSeekProviderTests
     [InlineData("{\"choices\":[{\"message\":{\"content\":42}}]}")]
     [InlineData("[]")]
     [InlineData("\"texto\"")]
-    public async Task CompletarAsync_FormatoInesperado_LancaValidationException(string payload)
+    public async Task CompletarAsync_FormatoInesperado_LancaIndisponivel(string payload)
     {
         var handler = new HandlerFalso(_ => Corpo(payload));
 
         var act = () => Criar(handler).CompletarAsync("prompt", [], "oi");
 
-        await act.Should().ThrowAsync<ValidationException>().WithMessage("*inesperada*");
+        await act.Should().ThrowAsync<AssistenteIndisponivelException>().WithMessage("*inesperada*");
     }
 
     [Fact]
-    public async Task CompletarAsync_RespostaOkQueNaoEhJson_LancaValidationException()
+    public async Task CompletarAsync_RespostaOkQueNaoEhJson_LancaIndisponivel()
     {
         var handler = new HandlerFalso(_ => Corpo("<html>proxy</html>", "text/html"));
 
         var act = () => Criar(handler).CompletarAsync("prompt", [], "oi");
 
-        await act.Should().ThrowAsync<ValidationException>().WithMessage("*inesperada*");
+        await act.Should().ThrowAsync<AssistenteIndisponivelException>().WithMessage("*inesperada*");
     }
 
     [Fact]
@@ -101,7 +105,7 @@ public class DeepSeekProviderTests
     }
 
     [Fact]
-    public async Task CompletarAsync_StatusDeErro_LancaValidationException()
+    public async Task CompletarAsync_StatusDeErro_LancaIndisponivel()
     {
         var handler = new HandlerFalso(_ => new HttpResponseMessage(HttpStatusCode.TooManyRequests)
         {
@@ -110,31 +114,31 @@ public class DeepSeekProviderTests
 
         var acao = () => Criar(handler).CompletarAsync("prompt", [], "oi");
 
-        await acao.Should().ThrowAsync<ValidationException>().WithMessage("*indisponível*");
+        await acao.Should().ThrowAsync<AssistenteIndisponivelException>().WithMessage("*indisponível*");
     }
 
     [Fact]
-    public async Task CompletarAsync_FalhaDeRede_LancaValidationException()
+    public async Task CompletarAsync_FalhaDeRede_LancaIndisponivel()
     {
         var handler = new HandlerFalso(_ => throw new HttpRequestException("conexão recusada"));
 
         var acao = () => Criar(handler).CompletarAsync("prompt", [], "oi");
 
-        await acao.Should().ThrowAsync<ValidationException>().WithMessage("*indisponível*");
+        await acao.Should().ThrowAsync<AssistenteIndisponivelException>().WithMessage("*indisponível*");
     }
 
     [Fact]
-    public async Task CompletarAsync_Timeout_LancaValidationExceptionComMensagemPropria()
+    public async Task CompletarAsync_Timeout_LancaIndisponivelComMensagemPropria()
     {
         var handler = new HandlerFalso(_ => throw new TaskCanceledException("timeout"));
 
         var acao = () => Criar(handler).CompletarAsync("prompt", [], "oi");
 
-        await acao.Should().ThrowAsync<ValidationException>().WithMessage("*não respondeu a tempo*");
+        await acao.Should().ThrowAsync<AssistenteIndisponivelException>().WithMessage("*não respondeu a tempo*");
     }
 
     [Fact]
-    public async Task CompletarAsync_RespostaSemChoices_LancaValidationException()
+    public async Task CompletarAsync_RespostaSemChoices_LancaIndisponivel()
     {
         var handler = new HandlerFalso(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -143,17 +147,17 @@ public class DeepSeekProviderTests
 
         var acao = () => Criar(handler).CompletarAsync("prompt", [], "oi");
 
-        await acao.Should().ThrowAsync<ValidationException>();
+        await acao.Should().ThrowAsync<AssistenteIndisponivelException>();
     }
 
     [Fact]
-    public async Task CompletarAsync_ConteudoVazio_LancaValidationException()
+    public async Task CompletarAsync_ConteudoVazio_LancaIndisponivel()
     {
         var handler = new HandlerFalso(_ => Ok("   "));
 
         var acao = () => Criar(handler).CompletarAsync("prompt", [], "oi");
 
-        await acao.Should().ThrowAsync<ValidationException>();
+        await acao.Should().ThrowAsync<AssistenteIndisponivelException>();
     }
 
     [Fact]
@@ -164,5 +168,43 @@ public class DeepSeekProviderTests
         await Criar(handler).CompletarAsync("SYS", [], "atual");
 
         handler.CorpoEnviado.Should().Contain("\"max_tokens\":600");
+    }
+
+    [Fact]
+    public async Task CompletarAsync_ClienteDesistiu_PropagaCancelamentoEmVezDeIndisponivel()
+    {
+        var handler = new HandlerFalso(_ => throw new TaskCanceledException("abortado"));
+        using var cliente = new CancellationTokenSource();
+        await cliente.CancelAsync();
+
+        var acao = () => Criar(handler).CompletarAsync("prompt", [], "oi", cliente.Token);
+
+        await acao.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    // Um handler falso não exercita o caminho real (socket aberto que não responde), que é o
+    // cenário de produção quando o provedor trava.
+    [Fact]
+    public async Task CompletarAsync_ProvedorAceitaConexaoMasNaoResponde_LancaIndisponivelDentroDoTimeout()
+    {
+        using var ouvinte = new TcpListener(IPAddress.Loopback, 0);
+        ouvinte.Start();
+        var porta = ((IPEndPoint)ouvinte.LocalEndpoint).Port;
+        var aceitas = new List<TcpClient>();
+        var aceitar = Task.Run(async () =>
+        {
+            try { while (true) aceitas.Add(await ouvinte.AcceptTcpClientAsync()); }
+            catch (Exception ex) when (ex is ObjectDisposedException or SocketException) { }
+        });
+        using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{porta}") };
+        var cronometro = Stopwatch.StartNew();
+
+        var acao = () => Criar(http, timeoutSegundos: 1).CompletarAsync("prompt", [], "oi");
+
+        await acao.Should().ThrowAsync<AssistenteIndisponivelException>().WithMessage("*não respondeu a tempo*");
+        cronometro.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(5));
+        ouvinte.Stop();
+        await aceitar;
+        foreach (var conexao in aceitas) conexao.Dispose();
     }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { FormEditarReagente } from '../../src/forms/FormEditarReagente';
@@ -43,6 +43,23 @@ describe('FormEditarReagente', () => {
     expect(screen.getByLabelText('Armário')).toHaveValue('Armário Antigo');
     expect(screen.getByRole('option', { name: 'Inflamáveis' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Responsável pelo reagente')).toBeNull();
+  });
+
+  it('não edita o estoque atual: o campo some e o PUT não leva Estoque', async () => {
+    const reagente = {
+      id: 'R-001', nome: 'Ácido', estoque: 5, estoque_min: 1, validade: null,
+      local: 'Química Orgânica · Inflamáveis', laboratorioId: 'Lab-001', armario: 'Inflamáveis',
+    };
+    render(<FormEditarReagente reagente={reagente} onClose={vi.fn()} dispatch={vi.fn()} />, { wrapper });
+
+    expect(screen.queryByLabelText('Estoque atual')).toBeNull();
+    expect(screen.getByLabelText('Estoque mínimo')).toHaveValue(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    await waitFor(() => expect(fetch.mock.calls.find(c => c[1]?.method === 'PUT')).toBeDefined());
+    const corpo = JSON.parse(fetch.mock.calls.find(c => c[1]?.method === 'PUT')[1].body);
+    expect(corpo).not.toHaveProperty('Estoque');
+    expect(corpo).toMatchObject({ Nome: 'Ácido', EstoqueMin: 1 });
   });
 
   it('reagente sem laboratório mostra o local anterior e exige escolher um antes de salvar', async () => {

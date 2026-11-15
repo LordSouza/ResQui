@@ -11,7 +11,8 @@ public class ResiduosService(
     IResiduosRepository repo,
     IAuditoriaService auditoria,
     ILaboratoriosRepository labRepo,
-    ICompatService compat) : IResiduosService
+    ICompatService compat,
+    ITransacoes transacoes) : IResiduosService
 {
     private static readonly string[] RiscosValidos = ["baixo", "medio", "alto"];
     private static readonly string[] UnidadesValidas = ["L", "mL", "kg", "g", "m³"];
@@ -75,9 +76,12 @@ public class ResiduosService(
             ClassesReatividade = cmd.ClassesReatividade.ToList(),
         };
         await repo.AddAsync(r);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "residuo.criar", "Resíduos",
-            $"Registrou resíduo {r.Id} — {r.Descricao}", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "residuo.criar", "Resíduos",
+                $"Registrou resíduo {r.Id} — {r.Descricao}", RiscoAuditoria.Low);
+        });
         return ToDto(r);
     }
 
@@ -107,9 +111,12 @@ public class ResiduosService(
         if (cmd.Destino is not null) r.Destino = cmd.Destino;
         if (cmd.ClassesReatividade is not null) r.ClassesReatividade = cmd.ClassesReatividade.ToList();
         await repo.UpdateAsync(r);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "residuo.atualizar", "Resíduos",
-            $"Editou resíduo {id}", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "residuo.atualizar", "Resíduos",
+                $"Editou resíduo {id}", RiscoAuditoria.Low);
+        });
         return ToDto(r);
     }
 
@@ -124,9 +131,12 @@ public class ResiduosService(
             throw new ValidationException($"Só é possível aprovar resíduos com solicitação pendente (status atual: \"{r.Status}\").");
         r.Status = "aguardando-coleta";
         await repo.UpdateAsync(r);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "residuo.aprovar", "Resíduos",
-            $"Aprovou descarte do resíduo {id} — {r.Descricao}", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "residuo.aprovar", "Resíduos",
+                $"Aprovou descarte do resíduo {id} — {r.Descricao}", RiscoAuditoria.Medium);
+        });
         return ToDto(r);
     }
 
@@ -139,9 +149,12 @@ public class ResiduosService(
             throw new ValidationException($"Só é possível desfazer a aprovação enquanto o resíduo aguarda coleta, antes de entrar num manifesto (status atual: \"{r.Status}\").");
         r.Status = "solicitado";
         await repo.UpdateAsync(r);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "residuo.aprovacao-desfeita", "Resíduos",
-            $"Desfez a aprovação do descarte do resíduo {id} — {r.Descricao}", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "residuo.aprovacao-desfeita", "Resíduos",
+                $"Desfez a aprovação do descarte do resíduo {id} — {r.Descricao}", RiscoAuditoria.Medium);
+        });
         return ToDto(r);
     }
 
@@ -160,9 +173,12 @@ public class ResiduosService(
         r.Status = "rejeitado";
         r.MotivoRejeicao = motivoInformado;
         await repo.UpdateAsync(r);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "residuo.rejeitar", "Resíduos",
-            $"Rejeitou descarte do resíduo {id} — motivo: {motivoInformado}", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "residuo.rejeitar", "Resíduos",
+                $"Rejeitou descarte do resíduo {id} — motivo: {motivoInformado}", RiscoAuditoria.Medium);
+        });
         return ToDto(r);
     }
 

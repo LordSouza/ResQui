@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -15,7 +16,7 @@ public class PgrsConfigServiceTests
     private readonly IAuditoriaService _audit = Substitute.For<IAuditoriaService>();
     private readonly PgrsConfigService _sut;
 
-    public PgrsConfigServiceTests() => _sut = new PgrsConfigService(_repo, _audit);
+    public PgrsConfigServiceTests() => _sut = new PgrsConfigService(_repo, _audit, new TransacoesDiretas());
 
     private static AtualizarConfiguracaoPgrsCmd Cmd(string? cnpj = "12.345.678/0001-95", string? email = "resp@inst.edu.br") =>
         new("Instituição Teste", cnpj, "Rua A, 100", "Instituto Teste",

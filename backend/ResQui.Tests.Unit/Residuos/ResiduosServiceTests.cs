@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -20,7 +21,7 @@ public class ResiduosServiceTests
 
     public ResiduosServiceTests()
     {
-        _sut = new ResiduosService(_repo, _audit, _labRepo, _compat);
+        _sut = new ResiduosService(_repo, _audit, _labRepo, _compat, new TransacoesDiretas());
     }
 
     private static Solicitante Dono(string email = "u@x.com") =>

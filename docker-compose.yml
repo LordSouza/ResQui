@@ -1,5 +1,11 @@
 version: "3.9"
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -18,6 +24,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging: *logging
 
   backend:
     build:
@@ -51,6 +58,15 @@ services:
       App__UrlPublica: ${APP_URL_PUBLICA:-}
       Proxy__Confiaveis__0: 10.87.0.10
       Proxy__Confiaveis__1: 10.87.0.11
+    # A imagem aspnet não traz curl nem wget; o GET vai pelo /dev/tcp do bash.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /api/health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      # Cobre as migrations do startup: o Kestrel só escuta depois delas.
+      start_period: 60s
+    logging: *logging
 
   frontend:
     build:
@@ -61,8 +77,16 @@ services:
     networks:
       interna:
         ipv4_address: 10.87.0.10
+    # Sem esperar o backend ficar saudável: com o resolver dinâmico do nginx, o site e o blog
+    # continuam no ar quando um deploy do backend falha.
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging: *logging
 
 networks:
   interna:

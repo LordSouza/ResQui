@@ -103,6 +103,24 @@ describe('FormImportarCSV', () => {
     await waitFor(() => expect(screen.getByText(/1 reagentes importados|1 importado/i)).toBeInTheDocument());
   });
 
+  it('mostra na revisão a mensagem do servidor quando a importação é recusada', async () => {
+    const mensagem = 'A planilha tem 1001 linhas; o limite por importação é 1000. Divida o arquivo e importe em partes.';
+    mockFetch.mockImplementation((url, opcoes) => Promise.resolve(opcoes?.method === 'POST'
+      ? { ok: false, status: 400, text: async () => JSON.stringify({ message: mensagem }) }
+      : { ok: true, status: 200, json: async () => [ALMOXARIFADO] }));
+    render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
+    await escolherLaboratorio();
+
+    const file = new File([CSV], 'inv.csv', { type: 'text/csv' });
+    await userEvent.upload(screen.getByLabelText(/Selecionar planilha/i), file);
+    await waitFor(() => expect(screen.getByText(/Etanol/)).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('button', { name: /Importar 1/i }));
+
+    expect(await screen.findByText(mensagem)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Importar 1/i })).toBeInTheDocument();
+  });
+
   it('avisa quando a planilha não tem coluna de classe de reatividade', async () => {
     render(<FormImportarCSV onClose={onClose} dispatch={dispatch} />, { wrapper });
     await escolherLaboratorio();

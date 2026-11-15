@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -28,7 +29,7 @@ public class LoginLockoutTests
 
     public LoginLockoutTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, Substitute.For<IUsuarioLaboratoriosRepository>(), Substitute.For<ILaboratoriosRepository>(), _falhasPorIp);
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, Substitute.For<IUsuarioLaboratoriosRepository>(), Substitute.For<ILaboratoriosRepository>(), _falhasPorIp, new TransacoesDiretas());
         _throttle.TentarConsumir(Arg.Any<string>()).Returns(true);
     }
 
@@ -43,7 +44,7 @@ public class LoginLockoutTests
 
         var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "qualquer", null));
 
-        (await act.Should().ThrowAsync<ValidationException>())
+        (await act.Should().ThrowAsync<MuitasTentativasException>())
             .WithMessage("*Muitas tentativas*");
         await _repo.DidNotReceive().FindByEmailAsync(Arg.Any<string>());
     }
@@ -56,7 +57,7 @@ public class LoginLockoutTests
 
         var act = () => _sut.LoginAsync(new LoginCmd("fantasma@lab.com", "qualquer", null));
 
-        (await act.Should().ThrowAsync<ValidationException>())
+        (await act.Should().ThrowAsync<MuitasTentativasException>())
             .WithMessage("*Muitas tentativas*");
     }
 
@@ -68,7 +69,7 @@ public class LoginLockoutTests
 
         var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "Senha@123", null));
 
-        (await act.Should().ThrowAsync<ValidationException>())
+        (await act.Should().ThrowAsync<MuitasTentativasException>())
             .WithMessage("*bloqueada*");
         await _repo.DidNotReceive().CheckPasswordAsync(Arg.Any<string>(), Arg.Any<string>());
     }
@@ -168,11 +169,11 @@ public class LoginLockoutTests
     [Fact]
     public async Task Login_IpBloqueado_RecusaSemConsultarUsuario()
     {
-        _falhasPorIp.EstaBloqueado(Ip).Returns(true);
+        _falhasPorIp.TempoAteLiberar(Ip, "ana@lab.com").Returns(TimeSpan.FromMinutes(3));
 
         var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "qualquer", null), ip: Ip);
 
-        (await act.Should().ThrowAsync<ValidationException>()).WithMessage("*desta rede*");
+        (await act.Should().ThrowAsync<MuitasTentativasException>()).WithMessage("*desta rede*");
         await _repo.DidNotReceive().FindByEmailAsync(Arg.Any<string>());
     }
 
@@ -183,7 +184,7 @@ public class LoginLockoutTests
 
         await _sut.LoginAsync(new LoginCmd("fantasma@lab.com", "qualquer", null), ip: Ip);
 
-        _falhasPorIp.Received(1).RegistrarFalha(Ip);
+        _falhasPorIp.Received(1).RegistrarFalha(Ip, "fantasma@lab.com");
     }
 
     [Fact]
@@ -194,7 +195,7 @@ public class LoginLockoutTests
 
         await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada", null), ip: Ip);
 
-        _falhasPorIp.Received(1).RegistrarFalha(Ip);
+        _falhasPorIp.Received(1).RegistrarFalha(Ip, "ana@lab.com");
     }
 
     [Fact]
@@ -205,7 +206,7 @@ public class LoginLockoutTests
 
         await _sut.LoginAsync(new LoginCmd("ana@lab.com", "certa", "000000"), ip: Ip);
 
-        _falhasPorIp.Received(1).RegistrarFalha(Ip);
+        _falhasPorIp.Received(1).RegistrarFalha(Ip, "ana@lab.com");
     }
 
     [Fact]
@@ -216,14 +217,14 @@ public class LoginLockoutTests
 
         await _sut.LoginAsync(new LoginCmd("ana@lab.com", "certa", null), ip: Ip);
 
-        _falhasPorIp.DidNotReceive().RegistrarFalha(Arg.Any<string>());
+        _falhasPorIp.DidNotReceive().RegistrarFalha(Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Fact]
     public async Task Login_FalhaQueAtingeOTetoDoIp_AuditaComoHigh()
     {
         _repo.FindByEmailAsync("fantasma@lab.com").Returns((UsuarioInfo?)null);
-        _falhasPorIp.RegistrarFalha(Ip).Returns(true);
+        _falhasPorIp.RegistrarFalha(Ip, "fantasma@lab.com").Returns(true);
 
         await _sut.LoginAsync(new LoginCmd("fantasma@lab.com", "qualquer", null), ip: Ip);
 
@@ -238,7 +239,101 @@ public class LoginLockoutTests
 
         await _sut.LoginAsync(new LoginCmd("fantasma@lab.com", "qualquer", null));
 
-        _falhasPorIp.DidNotReceive().EstaBloqueado(Arg.Any<string>());
-        _falhasPorIp.DidNotReceive().RegistrarFalha(Arg.Any<string>());
+        _falhasPorIp.DidNotReceive().TempoAteLiberar(Arg.Any<string>(), Arg.Any<string>());
+        _falhasPorIp.DidNotReceive().RegistrarFalha(Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Login_ParIpEmailBloqueado_InformaORestanteDaJanela()
+    {
+        _falhasPorIp.TempoAteLiberar(Ip, "ana@lab.com").Returns(TimeSpan.FromMinutes(3));
+
+        var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "qualquer", null), ip: Ip);
+
+        (await act.Should().ThrowAsync<MuitasTentativasException>())
+            .Which.TentarNovamenteEm.Should().Be(TimeSpan.FromMinutes(3));
+    }
+
+    [Fact]
+    public async Task Login_ThrottleEsgotado_InformaORestanteDaJanela()
+    {
+        _throttle.TentarConsumir("ana@lab.com").Returns(false);
+        _throttle.TempoAteLiberar("ana@lab.com").Returns(TimeSpan.FromSeconds(42));
+
+        var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "qualquer", null));
+
+        (await act.Should().ThrowAsync<MuitasTentativasException>())
+            .Which.TentarNovamenteEm.Should().Be(TimeSpan.FromSeconds(42));
+    }
+
+    [Fact]
+    public async Task Login_ContaBloqueada_InformaQuantoFaltaParaDesbloquear()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(User());
+        _repo.EstaBloqueadoAsync("user-1").Returns(true);
+        _repo.TempoAteDesbloquearAsync("user-1").Returns(TimeSpan.FromMinutes(4));
+
+        var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "Senha@123", null));
+
+        (await act.Should().ThrowAsync<MuitasTentativasException>())
+            .Which.TentarNovamenteEm.Should().Be(TimeSpan.FromMinutes(4));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Login_SemEmail_RecusaComoEntradaInvalida(string? email)
+    {
+        var act = () => _sut.LoginAsync(new LoginCmd(email!, "qualquer", null), ip: Ip);
+
+        (await act.Should().ThrowAsync<ValidationException>()).WithMessage("*E-mail*");
+        await _repo.DidNotReceive().FindByEmailAsync(Arg.Any<string>());
+        _falhasPorIp.DidNotReceive().RegistrarFalha(Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Login_EmailAcimaDe254Caracteres_RecusaComoEntradaInvalida()
+    {
+        var email = new string('a', 250) + "@x.co";
+
+        var act = () => _sut.LoginAsync(new LoginCmd(email, "qualquer", null), ip: Ip);
+
+        (await act.Should().ThrowAsync<ValidationException>()).WithMessage("*254*");
+        await _repo.DidNotReceive().FindByEmailAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Login_SemSenha_RecusaComoEntradaInvalida()
+    {
+        var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", null!, null), ip: Ip);
+
+        (await act.Should().ThrowAsync<ValidationException>()).WithMessage("*Senha*");
+        await _repo.DidNotReceive().FindByEmailAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Login_EmailComEspacos_UsaOEmailAparadoEmTodasAsChaves()
+    {
+        _repo.FindByEmailAsync("fantasma@lab.com").Returns((UsuarioInfo?)null);
+
+        await _sut.LoginAsync(new LoginCmd("  fantasma@lab.com ", "qualquer", null), ip: Ip);
+
+        _throttle.Received(1).TentarConsumir("fantasma@lab.com");
+        _falhasPorIp.Received(1).TempoAteLiberar(Ip, "fantasma@lab.com");
+        _falhasPorIp.Received(1).RegistrarFalha(Ip, "fantasma@lab.com");
+    }
+
+    [Fact]
+    public async Task Login_TetoDoIpAtingidoComEmailLongo_TruncaOAutorDaAuditoria()
+    {
+        var email = new string('a', 240) + "@lab.com";
+        _repo.FindByEmailAsync(email).Returns((UsuarioInfo?)null);
+        _falhasPorIp.RegistrarFalha(Ip, email).Returns(true);
+
+        await _sut.LoginAsync(new LoginCmd(email, "qualquer", null), ip: Ip);
+
+        await _audit.Received(1).RegistrarAsync(Arg.Is<string>(q => q.Length == 200), "auth.ip-bloqueado", "Auth",
+            Arg.Any<string>(), RiscoAuditoria.High);
     }
 }

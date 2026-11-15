@@ -24,12 +24,14 @@ public class LowStockChecker(
         var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
 
         bool houveMudanca = false;
+        var emails = new EmailsPendentes();
 
         foreach (var r in abaixoMinimo)
         {
+            ct.ThrowIfCancellationRequested();
             foreach (var u in destinatarios.Do(r.LaboratorioId))
             {
-                if (await notifs.ExisteNaoLidaAsync(u.Id, "low-stock", r.Id)) continue;
+                if (await notifs.ExisteAsync(u.Id, "low-stock", r.Id)) continue;
 
                 await notifs.AddAsync(new Notificacao
                 {
@@ -47,12 +49,14 @@ public class LowStockChecker(
                     if (NotificacaoPrefs.Habilitada(prefsJson, "low-stock", logger, u.Id))
                     {
                         var (subject, html) = NotificacaoEmailBuilder.BuildLowStock(r.Nome, r.Id, r.Estoque, r.EstoqueMin!.Value, r.Unidade);
-                        await email.SendAsync(u.Email, subject, html);
+                        emails.Adicionar(u.Email, subject, html);
                     }
                 }
             }
         }
 
-        if (houveMudanca) await notifs.SaveChangesAsync();
+        if (!houveMudanca) return;
+        await notifs.SaveChangesAsync();
+        await emails.EnviarAsync(email, logger, ct);
     }
 }

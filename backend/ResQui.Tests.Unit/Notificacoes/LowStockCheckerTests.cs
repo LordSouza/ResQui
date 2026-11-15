@@ -33,7 +33,7 @@ public class LowStockCheckerTests
         var r = new Reagente { Id = "R-00002", Nome = "Etanol", Estoque = 0.5m, EstoqueMin = 2m, Unidade = "L", Validade = DateOnly.MaxValue, LaboratorioId = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
-        _notifs.ExisteNaoLidaAsync("u-admin", "low-stock", "R-00002").Returns(false);
+        _notifs.ExisteAsync("u-admin", "low-stock", "R-00002").Returns(false);
 
         await _sut.RunAsync();
 

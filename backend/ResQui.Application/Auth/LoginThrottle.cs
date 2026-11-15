@@ -67,6 +67,17 @@ public class LoginThrottle : ILoginThrottle
         }
     }
 
+    public TimeSpan TempoAteLiberar(string email)
+    {
+        var agora = _clock.GetUtcNow();
+        lock (_lock)
+        {
+            if (!_janelas.TryGetValue(Normalizar(email), out var janela)) return TimeSpan.Zero;
+            var restante = janela.Inicio + _duracao - agora;
+            return restante > TimeSpan.Zero ? restante : TimeSpan.Zero;
+        }
+    }
+
     public void Zerar(string email)
     {
         lock (_lock) _janelas.Remove(Normalizar(email));

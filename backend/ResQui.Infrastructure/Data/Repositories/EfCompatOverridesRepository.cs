@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ResQui.Application.Common;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Interfaces;
 using ResQui.Infrastructure.Data;
@@ -25,7 +26,15 @@ public class EfCompatOverridesRepository(AppDbContext db) : ICompatOverridesRepo
             existing.Autor = entry.Autor;
             existing.DataEdicao = entry.DataEdicao;
         }
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ViolacaoDeUnicidade.Detecta(ex))
+        {
+            throw new ConflitoConcorrenciaException(
+                "Outra pessoa definiu esta combinação de classes ao mesmo tempo. Recarregue e tente novamente.");
+        }
     }
 
     public async Task DeleteAsync(int classeA, int classeB)

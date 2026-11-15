@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 // backend/ResQui.Tests.Unit/Compatibilidade/CompatAcoesServiceTests.cs
 using FluentAssertions;
 using NSubstitute;
@@ -25,7 +26,7 @@ public class CompatAcoesServiceTests
 
     public CompatAcoesServiceTests()
     {
-        _sut = new CompatAcoesService(_reagentes, _compat, _audit, _notifs, _auth, _usuarioLabs);
+        _sut = new CompatAcoesService(_reagentes, _compat, _audit, _notifs, _auth, _usuarioLabs, new TransacoesDiretas());
         SeedPar(nivel: 2, descricao: "Perigo");
         _usuarioLabs.DeTodosAsync().Returns(new Dictionary<string, IReadOnlyList<string>>
         {

@@ -1,5 +1,7 @@
+using ResQui.Tests.Unit.Common;
 // backend/ResQui.Tests.Unit/Notificacoes/NotificacoesServiceTests.cs
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using ResQui.Domain.Enums;
 using ResQui.Application.Auditoria;
@@ -17,7 +19,9 @@ public class NotificacoesServiceTests
 
     private readonly IAuditoriaService _auditoria = Substitute.For<IAuditoriaService>();
 
-    public NotificacoesServiceTests() => _sut = new NotificacoesService(_repo, _auth, _auditoria);
+    private readonly ILogger<NotificacoesService> _logger = Substitute.For<ILogger<NotificacoesService>>();
+
+    public NotificacoesServiceTests() => _sut = new NotificacoesService(_repo, _auth, _auditoria, _logger, new TransacoesDiretas());
 
     [Fact]
     public async Task CriarAsync_PersisteNotificacaoComOsCamposInformados()
@@ -56,13 +60,17 @@ public class NotificacoesServiceTests
     }
 
     [Fact]
-    public async Task GetPrefsAsync_JsonInvalido_RetornaTudoDesligado()
+    public async Task GetPrefsAsync_JsonInvalido_RetornaTudoDesligadoELogaAviso()
     {
         _auth.GetNotificacaoPrefsJsonAsync("u-1").Returns("{corrompido");
 
         var prefs = await _sut.GetPrefsAsync("u-1");
 
         prefs.Should().Be(new NotificacaoPrefsDto(false, false, false, false));
+        _logger.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == nameof(ILogger.Log) && (LogLevel)c.GetArguments()[0]! == LogLevel.Warning)
+            .Should().ContainSingle()
+            .Which.GetArguments()[2]!.ToString().Should().Contain("u-1");
     }
 
     [Fact]

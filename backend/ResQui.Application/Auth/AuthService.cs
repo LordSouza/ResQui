@@ -10,20 +10,25 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Auth;
 
-public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email, ILoginThrottle throttle, IUsuarioLaboratoriosRepository usuarioLabs, ILaboratoriosRepository labRepo, IFalhasLoginPorIp falhasPorIp) : IAuthService
+public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoriaService auditoria, ISessoesRepository sessoes, IEmailService email, ILoginThrottle throttle, IUsuarioLaboratoriosRepository usuarioLabs, ILaboratoriosRepository labRepo, IFalhasLoginPorIp falhasPorIp, ITransacoes transacoes) : IAuthService
 {
     private const int QuantidadeCodigosRecuperacao = 10;
 
     public async Task<LoginResultDto?> LoginAsync(LoginCmd cmd, string? userAgent = null, string? ip = null)
     {
-        if (ip is not null && falhasPorIp.EstaBloqueado(ip))
-            throw new ValidationException("Muitas tentativas de login malsucedidas a partir desta rede. Aguarde alguns minutos e tente novamente.");
+        cmd = cmd with { Email = EmailDeEntrada.Normalizar(cmd.Email) };
+        if (string.IsNullOrEmpty(cmd.Senha))
+            throw new ValidationException("Senha é obrigatória.");
 
-        // Antes do FindByEmailAsync de propósito: assim a resposta do throttle é idêntica para
-        // e-mail existente, arquivado e inexistente, e o vazamento de enumeração fica confinado
-        // à mensagem de bloqueio abaixo — que é uma escolha declarada, não um descuido.
+        // Os dois portões abaixo vêm antes do FindByEmailAsync de propósito: assim a resposta é
+        // idêntica para e-mail existente, arquivado e inexistente, e o vazamento de enumeração
+        // fica confinado à mensagem de conta bloqueada — que é uma escolha declarada, não um descuido.
+        if (ip is not null && falhasPorIp.TempoAteLiberar(ip, cmd.Email) is { } restanteIp)
+            throw new MuitasTentativasException("Muitas tentativas de login malsucedidas a partir desta rede. Aguarde alguns minutos e tente novamente.", restanteIp);
+
         if (!throttle.TentarConsumir(cmd.Email))
-            throw new ValidationException("Muitas tentativas de login. Aguarde um momento e tente novamente.");
+            throw new MuitasTentativasException("Muitas tentativas de login. Aguarde um momento e tente novamente.",
+                throttle.TempoAteLiberar(cmd.Email));
 
         var user = await repo.FindByEmailAsync(cmd.Email);
         if (user is null)
@@ -35,7 +40,8 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
 
         // Depois da busca e antes da senha: conta travada não paga PBKDF2.
         if (await repo.EstaBloqueadoAsync(user.Id))
-            throw new ValidationException("Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em alguns minutos.");
+            throw new MuitasTentativasException("Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em alguns minutos.",
+                await repo.TempoAteDesbloquearAsync(user.Id));
 
         var valid = await repo.CheckPasswordAsync(user.Id, cmd.Senha);
         if (!valid)
@@ -69,30 +75,34 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
 
         // Só aqui, com o login inteiro aprovado. Zerar logo após a senha e antes do segundo fator
         // deixaria o TOTP sem custo, com a feature parecendo pronta.
-        await repo.ZerarFalhasLoginAsync(user.Id);
-        throttle.Zerar(cmd.Email);
-
         var expireAt = DateTime.UtcNow.AddHours(jwtOptions.ExpirationHours);
         var jti = Guid.NewGuid().ToString("N");
         var token = GenerateToken(user, expireAt, jti);
-        await sessoes.AddAsync(new Domain.Entities.SessaoToken
+        var profile = await transacoes.ExecutarAsync(async () =>
         {
-            UsuarioId = user.Id,
-            Jti = jti,
-            ExpiraEm = expireAt,
-            UserAgent = userAgent is { Length: > 200 } ? userAgent[..200] : userAgent,
+            await repo.ZerarFalhasLoginAsync(user.Id);
+            await sessoes.AddAsync(new Domain.Entities.SessaoToken
+            {
+                UsuarioId = user.Id,
+                Jti = jti,
+                ExpiraEm = expireAt,
+                UserAgent = userAgent is { Length: > 200 } ? userAgent[..200] : userAgent,
+            });
+            await sessoes.SaveChangesAsync();
+            var perfil = await MontarPerfilAsync(user);
+            if (viaRecuperacao)
+                await auditoria.RegistrarAsync(cmd.Email, "user.2fa-recuperacao-usada", "Auth",
+                    $"Entrou com código de recuperação; restam {perfil.CodigosRecuperacaoRestantes} código(s)", RiscoAuditoria.High);
+            await auditoria.RegistrarAsync(cmd.Email, "user.login", "Auth",
+                $"Login de {cmd.Email}", RiscoAuditoria.Low);
+            return perfil;
         });
-        await sessoes.SaveChangesAsync();
-        var profile = await MontarPerfilAsync(user);
+        throttle.Zerar(cmd.Email);
         if (viaRecuperacao)
         {
-            await auditoria.RegistrarAsync(cmd.Email, "user.2fa-recuperacao-usada", "Auth",
-                $"Entrou com código de recuperação; restam {profile.CodigosRecuperacaoRestantes} código(s)", RiscoAuditoria.High);
             var (assunto, html) = NotificacaoEmailBuilder.BuildCodigoRecuperacaoUsado(profile.CodigosRecuperacaoRestantes);
             await email.SendAsync(user.Email, assunto, html);
         }
-        await auditoria.RegistrarAsync(cmd.Email, "user.login", "Auth",
-            $"Login de {cmd.Email}", RiscoAuditoria.Low);
         return new LoginResultDto(false, new TokenDto(token, expireAt, profile));
     }
 
@@ -100,11 +110,14 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
     {
         if (string.IsNullOrWhiteSpace(cmd.NovaSenha))
             throw new ValidationException("Nova senha é obrigatória.");
-        var ok = await repo.ChangePasswordAsync(userId, cmd.SenhaAtual, cmd.NovaSenha);
-        if (!ok)
-            throw new ValidationException("Senha atual incorreta ou nova senha não atende aos requisitos.");
-        await auditoria.RegistrarAsync(usuarioEmail, "user.alterar-senha", "Auth",
-            $"Alterou a própria senha", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            var ok = await repo.ChangePasswordAsync(userId, cmd.SenhaAtual, cmd.NovaSenha);
+            if (!ok)
+                throw new ValidationException("Senha atual incorreta ou nova senha não atende aos requisitos.");
+            await auditoria.RegistrarAsync(usuarioEmail, "user.alterar-senha", "Auth",
+                $"Alterou a própria senha", RiscoAuditoria.Medium);
+        });
     }
 
     public async Task<Setup2faDto?> Setup2faAsync(string userId, string senha)
@@ -119,10 +132,15 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         // quando inativo, e /2fa/ativar já recusa reativação.
         if (user.TwoFactorEnabled)
             throw new ValidationException("2FA já está ativo. Desative antes de configurar um novo autenticador.");
-        var key = await repo.ResetAuthenticatorKeyAsync(userId);
+        var key = await transacoes.ExecutarAsync(async () =>
+        {
+            var novaChave = await repo.ResetAuthenticatorKeyAsync(userId);
+            if (novaChave is null) return null;
+            await auditoria.RegistrarAsync(user.Email, "user.2fa-configurado", "Auth",
+                "Gerou nova chave do aplicativo autenticador (2FA ainda inativo)", RiscoAuditoria.Medium);
+            return novaChave;
+        });
         if (key is null) return null;
-        await auditoria.RegistrarAsync(user.Email, "user.2fa-configurado", "Auth",
-            "Gerou nova chave do aplicativo autenticador (2FA ainda inativo)", RiscoAuditoria.Medium);
         var uri = $"otpauth://totp/ResQui:{Uri.EscapeDataString(user.Email)}?secret={key}&issuer=ResQui";
         return new Setup2faDto(key, uri, Convert.ToBase64String(QrCode.Png(uri, 6)));
     }
@@ -138,13 +156,16 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
             throw new ValidationException("2FA já está ativo. Use \"Gerar novos códigos\" para renovar os códigos de recuperação.");
         if (!await repo.VerifyTwoFactorCodeAsync(userId, codigo))
             throw new ValidationException("Código inválido — confira o aplicativo autenticador.");
-        await repo.SetTwoFactorEnabledAsync(userId, true);
-        var codigos = await repo.GerarCodigosRecuperacaoAsync(userId, QuantidadeCodigosRecuperacao);
-        await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-ativado", "Auth",
-            "Ativou autenticação em dois fatores", RiscoAuditoria.Medium);
-        await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-codigos-gerados", "Auth",
-            $"Gerou {QuantidadeCodigosRecuperacao} códigos de recuperação", RiscoAuditoria.Medium);
-        return codigos;
+        return await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SetTwoFactorEnabledAsync(userId, true);
+            var codigos = await repo.GerarCodigosRecuperacaoAsync(userId, QuantidadeCodigosRecuperacao);
+            await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-ativado", "Auth",
+                "Ativou autenticação em dois fatores", RiscoAuditoria.Medium);
+            await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-codigos-gerados", "Auth",
+                $"Gerou {QuantidadeCodigosRecuperacao} códigos de recuperação", RiscoAuditoria.Medium);
+            return codigos;
+        });
     }
 
     public async Task Desativar2faAsync(string userId, string codigo, string usuarioEmail)
@@ -156,19 +177,22 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         // códigos ao desligar a flag) e gravaria auditoria High sem fato correspondente.
         if (!user.TwoFactorEnabled)
             throw new ValidationException("2FA não está ativo nesta conta.");
-        var fator = await VerificarSegundoFatorAsync(userId, codigo);
-        if (fator == SegundoFator.Invalido)
-            throw new ValidationException("Código inválido — use o aplicativo autenticador ou um código de recuperação.");
-        if (fator == SegundoFator.Recuperacao)
-            await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-recuperacao-usada", "Auth",
-                "Usou código de recuperação para desativar o 2FA", RiscoAuditoria.High);
-        await repo.SetTwoFactorEnabledAsync(userId, false);
-        // Sem isto, a chave usada para ativar continua valendo depois de desativar: um JWT
-        // roubado + a chave exfiltrada reativam o 2FA via /2fa/ativar pulando o gate de senha
-        // que /2fa/setup exige — exatamente o que esse gate existe para impedir.
-        await repo.ResetAuthenticatorKeyAsync(userId);
-        await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-desativado", "Auth",
-            "Desativou autenticação em dois fatores", RiscoAuditoria.High);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            var fator = await VerificarSegundoFatorAsync(userId, codigo);
+            if (fator == SegundoFator.Invalido)
+                throw new ValidationException("Código inválido — use o aplicativo autenticador ou um código de recuperação.");
+            if (fator == SegundoFator.Recuperacao)
+                await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-recuperacao-usada", "Auth",
+                    "Usou código de recuperação para desativar o 2FA", RiscoAuditoria.High);
+            await repo.SetTwoFactorEnabledAsync(userId, false);
+            // Sem isto, a chave usada para ativar continua valendo depois de desativar: um JWT
+            // roubado + a chave exfiltrada reativam o 2FA via /2fa/ativar pulando o gate de senha
+            // que /2fa/setup exige — exatamente o que esse gate existe para impedir.
+            await repo.ResetAuthenticatorKeyAsync(userId);
+            await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-desativado", "Auth",
+                "Desativou autenticação em dois fatores", RiscoAuditoria.High);
+        });
     }
 
     public async Task<IEnumerable<string>> GerarCodigosRecuperacaoAsync(string userId, string codigo, string usuarioEmail)
@@ -177,17 +201,20 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
             ?? throw new ValidationException("Usuário não encontrado.");
         if (!user.TwoFactorEnabled)
             throw new ValidationException("2FA não está ativo nesta conta.");
-        var fator = await VerificarSegundoFatorAsync(userId, codigo);
-        if (fator == SegundoFator.Invalido)
-            throw new ValidationException("Código inválido — use o aplicativo autenticador ou um código de recuperação.");
-        if (fator == SegundoFator.Recuperacao)
-            await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-recuperacao-usada", "Auth",
-                "Usou código de recuperação para gerar novos códigos", RiscoAuditoria.High);
+        return await transacoes.ExecutarAsync(async () =>
+        {
+            var fator = await VerificarSegundoFatorAsync(userId, codigo);
+            if (fator == SegundoFator.Invalido)
+                throw new ValidationException("Código inválido — use o aplicativo autenticador ou um código de recuperação.");
+            if (fator == SegundoFator.Recuperacao)
+                await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-recuperacao-usada", "Auth",
+                    "Usou código de recuperação para gerar novos códigos", RiscoAuditoria.High);
 
-        var codigos = await repo.GerarCodigosRecuperacaoAsync(userId, QuantidadeCodigosRecuperacao);
-        await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-codigos-gerados", "Auth",
-            $"Gerou {QuantidadeCodigosRecuperacao} novos códigos de recuperação", RiscoAuditoria.Medium);
-        return codigos;
+            var codigos = await repo.GerarCodigosRecuperacaoAsync(userId, QuantidadeCodigosRecuperacao);
+            await auditoria.RegistrarAsync(usuarioEmail, "user.2fa-codigos-gerados", "Auth",
+                $"Gerou {QuantidadeCodigosRecuperacao} novos códigos de recuperação", RiscoAuditoria.Medium);
+            return codigos;
+        });
     }
 
     public async Task<bool> ResetarSegundoFatorAsync(string alvoId, string requesterId, string requesterEmail)
@@ -199,24 +226,27 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         var alvo = await repo.FindByIdIncluindoArquivadosAsync(alvoId);
         if (alvo is null) return false;
 
-        await repo.SetTwoFactorEnabledAsync(alvoId, false);
-        await repo.ResetAuthenticatorKeyAsync(alvoId);
-        // Desligar a flag não apaga os códigos (Desativar2faAsync depende disso), e rotacionar
-        // a chave também não: substituir o conjunto por vazio é o passo que os invalida.
-        await repo.GerarCodigosRecuperacaoAsync(alvoId, 0);
-
-        // O motivo canônico do reset é conta/aparelho comprometido, e o JWT vale até expirar
-        // salvo revogação do jti: deixar as sessões vivas manteria o invasor logado.
-        var ativas = (await sessoes.GetAtivasByUsuarioAsync(alvoId)).ToList();
-        foreach (var s in ativas)
+        await transacoes.ExecutarAsync(async () =>
         {
-            s.Revogada = true;
-            await sessoes.UpdateAsync(s);
-        }
-        if (ativas.Count > 0) await sessoes.SaveChangesAsync();
+            await repo.SetTwoFactorEnabledAsync(alvoId, false);
+            await repo.ResetAuthenticatorKeyAsync(alvoId);
+            // Desligar a flag não apaga os códigos (Desativar2faAsync depende disso), e rotacionar
+            // a chave também não: substituir o conjunto por vazio é o passo que os invalida.
+            await repo.GerarCodigosRecuperacaoAsync(alvoId, 0);
 
-        await auditoria.RegistrarAsync(requesterEmail, "user.2fa-reset-admin", "Usuários",
-            $"Resetou o 2FA de {alvo.Email}; {ativas.Count} sessão(ões) revogada(s)", RiscoAuditoria.High);
+            // O motivo canônico do reset é conta/aparelho comprometido, e o JWT vale até expirar
+            // salvo revogação do jti: deixar as sessões vivas manteria o invasor logado.
+            var ativas = (await sessoes.GetAtivasByUsuarioAsync(alvoId)).ToList();
+            foreach (var s in ativas)
+            {
+                s.Revogada = true;
+                await sessoes.UpdateAsync(s);
+            }
+            if (ativas.Count > 0) await sessoes.SaveChangesAsync();
+
+            await auditoria.RegistrarAsync(requesterEmail, "user.2fa-reset-admin", "Usuários",
+                $"Resetou o 2FA de {alvo.Email}; {ativas.Count} sessão(ões) revogada(s)", RiscoAuditoria.High);
+        });
         var (assunto, html) = NotificacaoEmailBuilder.Build2faResetadoPorAdmin(requesterEmail);
         await email.SendAsync(alvo.Email, assunto, html);
         return true;
@@ -234,9 +264,12 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         if (s is null || s.UsuarioId != userId) return false;
         s.Revogada = true;
         await sessoes.UpdateAsync(s);
-        await sessoes.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "user.sessao-revogada", "Auth",
-            $"Revogou a sessão {jti[..8]}…", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await sessoes.SaveChangesAsync();
+            await auditoria.RegistrarAsync(usuarioEmail, "user.sessao-revogada", "Auth",
+                $"Revogou a sessão {jti[..8]}…", RiscoAuditoria.Medium);
+        });
         return true;
     }
 
@@ -248,9 +281,12 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
             s.Revogada = true;
             await sessoes.UpdateAsync(s);
         }
-        if (ativas.Count > 0) await sessoes.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "user.sessoes-revogadas", "Auth",
-            $"Encerrou {ativas.Count} outra(s) sessão(ões)", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            if (ativas.Count > 0) await sessoes.SaveChangesAsync();
+            await auditoria.RegistrarAsync(usuarioEmail, "user.sessoes-revogadas", "Auth",
+                $"Encerrou {ativas.Count} outra(s) sessão(ões)", RiscoAuditoria.Medium);
+        });
         return ativas.Count;
     }
 
@@ -276,12 +312,16 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         if (solicitante.Papel != "Admin" && laboratorios.Count == 0)
             throw new ValidationException("Escolha pelo menos um laboratório: conta sem laboratório só o Admin enxerga.");
 
-        var id = await repo.CreateAsync(cmd.Email, cmd.Senha, cmd.Matricula, cmd.Papel, cmd.Nome);
-        await repo.AddToRoleAsync(id, cmd.Papel);
-        await usuarioLabs.DefinirAsync(id, laboratorios);
+        var id = await transacoes.ExecutarAsync(async () =>
+        {
+            var novoId = await repo.CreateAsync(cmd.Email, cmd.Senha, cmd.Matricula, cmd.Papel, cmd.Nome);
+            await repo.AddToRoleAsync(novoId, cmd.Papel);
+            await usuarioLabs.DefinirAsync(novoId, laboratorios);
+            await auditoria.RegistrarAsync(solicitante.Email, "user.criar", "Usuários",
+                $"Criou usuário {cmd.Email} com papel {cmd.Papel}", RiscoAuditoria.Medium);
+            return novoId;
+        });
         var roles = await repo.GetRolesAsync(id);
-        await auditoria.RegistrarAsync(solicitante.Email, "user.criar", "Usuários",
-            $"Criou usuário {cmd.Email} com papel {cmd.Papel}", RiscoAuditoria.Medium);
         return new UserProfileDto(id, cmd.Email, cmd.Nome, cmd.Matricula, cmd.Papel, roles, laboratorios);
     }
 
@@ -312,9 +352,12 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
                 throw new ValidationException("E-mail já em uso.");
         }
 
-        await repo.UpdateProfileAsync(userId, nome, email);
-        await auditoria.RegistrarAsync(requesterEmail, "user.perfil-atualizar", "Conta",
-            "Atualizou perfil (nome/e-mail)", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.UpdateProfileAsync(userId, nome, email);
+            await auditoria.RegistrarAsync(requesterEmail, "user.perfil-atualizar", "Conta",
+                "Atualizou perfil (nome/e-mail)", RiscoAuditoria.Low);
+        });
         return (await GetMeAsync(userId))!;
     }
 
@@ -341,21 +384,22 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
                 "Conta bloqueada por excesso de tentativas de login", RiscoAuditoria.High);
     }
 
-    // O e-mail vem cru da requisição e a coluna Who tem 200 caracteres.
+    // O e-mail vem da requisição (até EmailDeEntrada.MaxCaracteres) e a coluna Who tem 200.
+    private static string QuemParaAuditoria(string email) => email.Length > 200 ? email[..200] : email;
+
     private async Task RegistrarFalhaDeLoginAsync(string email, string motivo, string? ip)
     {
-        var quem = email.Length > 200 ? email[..200] : email;
         var origem = ip is null ? "" : $" a partir de {ip}";
-        await auditoria.RegistrarAsync(quem, "user.login-falha", "Auth",
+        await auditoria.RegistrarAsync(QuemParaAuditoria(email), "user.login-falha", "Auth",
             $"Login recusado: {motivo}{origem}", RiscoAuditoria.Low);
     }
 
     private async Task ContabilizarFalhaDoIpAsync(string? ip, string email)
     {
         if (ip is null) return;
-        if (falhasPorIp.RegistrarFalha(ip))
-            await auditoria.RegistrarAsync(email, "auth.ip-bloqueado", "Auth",
-                $"Logins malsucedidos a partir de {ip} atingiram o teto; novas tentativas desse endereço estão recusadas", RiscoAuditoria.High);
+        if (falhasPorIp.RegistrarFalha(ip, email))
+            await auditoria.RegistrarAsync(QuemParaAuditoria(email), "auth.ip-bloqueado", "Auth",
+                $"Logins malsucedidos para muitos e-mails distintos a partir de {ip} atingiram o teto; novas tentativas dessa rede estão recusadas", RiscoAuditoria.High);
     }
 
     private async Task<SegundoFator> VerificarSegundoFatorAsync(string userId, string codigo)

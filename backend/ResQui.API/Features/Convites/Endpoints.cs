@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ResQui.API.Common;
 using ResQui.Domain.Interfaces;
+using ResQui.Application.Common;
 using ResQui.Application.Convites;
 
 namespace ResQui.API.Features.Convites;
@@ -32,7 +33,7 @@ public static class Endpoints
 
         group.MapPost("/{token}/aceitar", async (string token, AceitarConviteCmd cmd, IConvitesService svc) =>
         {
-            await svc.AceitarAsync(token, cmd);
+            await svc.AceitarAsync(token, cmd with { Email = EmailDeEntrada.Normalizar(cmd.Email) });
             return Results.NoContent();
         })
         .AllowAnonymous()

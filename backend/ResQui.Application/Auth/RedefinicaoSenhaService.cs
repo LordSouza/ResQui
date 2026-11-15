@@ -28,7 +28,8 @@ public class RedefinicaoSenhaService(
     IEmailService email,
     IFilaPedidosRedefinicao fila,
     ILoginThrottle throttle,
-    RedefinicaoSenhaOptions opcoes) : IRedefinicaoSenhaService
+    RedefinicaoSenhaOptions opcoes,
+    ITransacoes transacoes) : IRedefinicaoSenhaService
 {
     public const string LinkInvalido = "Link inválido ou expirado. Peça outro em \"Esqueci minha senha\".";
     public const string EmailNaoConfigurado = "A recuperação de senha por e-mail não está configurada nesta instalação. Procure o administrador.";
@@ -37,9 +38,10 @@ public class RedefinicaoSenhaService(
     {
         if (!email.Habilitado)
             throw new EmailIndisponivelException(EmailNaoConfigurado);
-        if (string.IsNullOrWhiteSpace(cmd.Email) || !cmd.Email.Contains('@'))
+        var emailInformado = EmailDeEntrada.Normalizar(cmd.Email);
+        if (!emailInformado.Contains('@'))
             throw new ValidationException("E-mail inválido.");
-        fila.Enfileirar(cmd.Email.Trim());
+        fila.Enfileirar(emailInformado);
     }
 
     public async Task ProcessarPedidoAsync(string emailInformado)
@@ -63,9 +65,12 @@ public class RedefinicaoSenhaService(
             CriadaEm = agora,
             ExpiraEm = agora.AddMinutes(opcoes.ValidadeMinutos),
         });
-        await redefinicoes.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuario.Email, "user.senha-redefinicao-solicitada", "Auth",
-            "Pediu um link de redefinição de senha", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await redefinicoes.SaveChangesAsync();
+            await auditoria.RegistrarAsync(usuario.Email, "user.senha-redefinicao-solicitada", "Auth",
+                "Pediu um link de redefinição de senha", RiscoAuditoria.Low);
+        });
         var (assunto, html) = NotificacaoEmailBuilder.BuildRedefinicaoSenha(LinkDe(token), opcoes.ValidadeMinutos);
         await email.SendAsync(usuario.Email, assunto, html);
     }
@@ -80,29 +85,25 @@ public class RedefinicaoSenhaService(
             ?? throw new ValidationException(LinkInvalido);
 
         var agora = DateTime.UtcNow;
-        redefinicao.UsadaEm = agora;
-        await redefinicoes.SaveChangesAsync();
-        try
+        await transacoes.ExecutarAsync(async () =>
         {
-            await usuarios.RedefinirSenhaAsync(usuario.Id, cmd.NovaSenha);
-        }
-        catch (ValidationException)
-        {
-            redefinicao.UsadaEm = null;
+            // Marcar o uso primeiro faz o xmin do link decidir a corrida entre dois envios; senha
+            // recusada pela política desfaz a marcação junto, e o link continua valendo.
+            redefinicao.UsadaEm = agora;
             await redefinicoes.SaveChangesAsync();
-            throw;
-        }
+            await usuarios.RedefinirSenhaAsync(usuario.Id, cmd.NovaSenha);
 
-        foreach (var outra in await redefinicoes.PendentesDoUsuarioAsync(usuario.Id))
-            outra.UsadaEm = agora;
-        await redefinicoes.SaveChangesAsync();
+            foreach (var outra in await redefinicoes.PendentesDoUsuarioAsync(usuario.Id))
+                outra.UsadaEm = agora;
+            await redefinicoes.SaveChangesAsync();
 
-        var encerradas = await EncerrarSessoesAsync(usuario.Id);
-        await usuarios.DesbloquearLoginAsync(usuario.Id);
+            var encerradas = await EncerrarSessoesAsync(usuario.Id);
+            await usuarios.DesbloquearLoginAsync(usuario.Id);
+            await auditoria.RegistrarAsync(usuario.Email, "user.senha-redefinida", "Auth",
+                $"Redefiniu a senha pelo link do e-mail; {encerradas} sessão(ões) encerrada(s)", RiscoAuditoria.High);
+        });
         throttle.Zerar(usuario.Email);
 
-        await auditoria.RegistrarAsync(usuario.Email, "user.senha-redefinida", "Auth",
-            $"Redefiniu a senha pelo link do e-mail; {encerradas} sessão(ões) encerrada(s)", RiscoAuditoria.High);
         var (assunto, html) = NotificacaoEmailBuilder.BuildSenhaRedefinida();
         await email.SendAsync(usuario.Email, assunto, html);
     }

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../lib/api';
 
 const TOKEN_KEY = 'resqui_token';
@@ -16,6 +17,8 @@ export const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [sessaoExpirada, setSessaoExpirada] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const stored = localStorage.getItem(TOKEN_KEY);
@@ -37,27 +40,35 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, []);
 
+  // O cache do React Query é por aba, não por usuário: sem limpar, quem entra depois vê dados do anterior.
   const login = useCallback((tokenStr, userDto) => {
+    queryClient.clear();
     localStorage.setItem(TOKEN_KEY, tokenStr);
     setToken(tokenStr);
     setUser(userDto);
-  }, []);
+    setSessaoExpirada(false);
+  }, [queryClient]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
-  }, []);
+    queryClient.clear();
+  }, [queryClient]);
 
   const updateUser = useCallback((profile) => setUser(profile), []);
 
   useEffect(() => {
-    window.addEventListener('auth:unauthorized', logout);
-    return () => window.removeEventListener('auth:unauthorized', logout);
+    const encerrarSessaoExpirada = () => {
+      logout();
+      setSessaoExpirada(true);
+    };
+    window.addEventListener('auth:unauthorized', encerrarSessaoExpirada);
+    return () => window.removeEventListener('auth:unauthorized', encerrarSessaoExpirada);
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, sessaoExpirada }}>
       {children}
     </AuthContext.Provider>
   );

@@ -20,10 +20,11 @@ public static class Endpoints
             string? risk = null,
             string? who = null,
             string? what = null,
-            string? where = null) =>
+            string? where = null,
+            int? limite = null) =>
         {
             var autores = await visibilidade.EmailsQueEnxergaAsync(await user.ResolverAsync(labs));
-            var filtro = new AuditoriaFiltroDto(from, to, risk, who, what, where, Autores: autores);
+            var filtro = new AuditoriaFiltroDto(from, to, risk, who, what, where, Limite: limite, Autores: autores);
             return Results.Ok(await svc.ListarAsync(filtro));
         });
 

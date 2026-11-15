@@ -16,5 +16,6 @@ public class AuditoriaConfiguration : IEntityTypeConfiguration<AuditoriaEntry>
         builder.Property(a => a.HashAnterior).HasMaxLength(64);
         builder.Property(a => a.Hash).HasMaxLength(64);
         builder.HasIndex(a => a.Sequencia).IsUnique();
+        builder.HasIndex(a => a.Timestamp);
     }
 }

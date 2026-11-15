@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -29,7 +30,7 @@ public class MtrsServiceTests
     public MtrsServiceTests()
     {
         _sut = new MtrsService(_repo, _residuosRepo, _audit, _compat, _pdf, _auth,
-            new VisibilidadeUsuarios(_auth, _usuarioLabs));
+            new VisibilidadeUsuarios(_auth, _usuarioLabs), new TransacoesDiretas());
     }
 
     private static Mtr FakeMtr(int id = 1) => new()
