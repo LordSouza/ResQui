@@ -188,5 +188,8 @@ jobs:
               docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail 200 backend
               exit 1
             fi
-            # Cada deploy deixa a imagem anterior com tag (sha), que o prune sem -a não remove; rollback puxa do GHCR.
-            docker image prune -af'
+            # Cada deploy deixa a imagem anterior com tag (sha). Remove só as do ResQui, menos a atual
+            # (prune -a apagaria imagens de outros projetos da VPS); o rollback puxa do GHCR.
+            docker images --filter "reference=ghcr.io/lordsouza/resqui-*" --format "{{.Repository}}:{{.Tag}}" \
+              | grep -v -e ":$RESQUI_TAG\$" -e ":latest\$" | xargs -r docker image rm || true
+            docker image prune -f'
