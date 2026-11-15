@@ -35,7 +35,7 @@ public class ExpiryCheckerTests
         var r = new Reagente { Id = "R-00001", Nome = "Acetona", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)), Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
-        _notifs.ExisteAsync("u-admin", "expiry", "R-00001").Returns(false);
+        _notifs.ExisteAsync("u-admin", "expiry", "R-00001", Arg.Any<string>()).Returns(false);
 
         await _sut.RunAsync();
 
@@ -49,7 +49,7 @@ public class ExpiryCheckerTests
         var r = new Reagente { Id = "R-00007", Nome = "Éter", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-45)), Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
-        _notifs.ExisteAsync("u-admin", "expiry", "R-00007").Returns(false);
+        _notifs.ExisteAsync("u-admin", "expiry", "R-00007", Arg.Any<string>()).Returns(false);
 
         await _sut.RunAsync();
 
@@ -63,11 +63,49 @@ public class ExpiryCheckerTests
         var r = new Reagente { Id = "R-00001", Nome = "Acetona", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)), Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201" };
         _reagentes.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Admin]);
-        _notifs.ExisteAsync("u-admin", "expiry", "R-00001").Returns(true);
+        _notifs.ExisteAsync("u-admin", "expiry", "R-00001", Arg.Any<string>()).Returns(true);
 
         await _sut.RunAsync();
 
         await _notifs.DidNotReceive().AddAsync(Arg.Any<Notificacao>());
+    }
+
+    [Fact]
+    public async Task RunAsync_AvisoAmareloJaExiste_EscaladaParaVermelhoAvisaDeNovo()
+    {
+        var r = new Reagente { Id = "R-00001", Nome = "Acetona", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)), Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201" };
+        _reagentes.GetAllAsync().Returns([r]);
+        _auth.GetAllAsync().Returns([Admin]);
+        _notifs.ExisteAsync("u-admin", "expiry", "R-00001", "amber").Returns(true);
+        _notifs.ExisteAsync("u-admin", "expiry", "R-00001", "red").Returns(false);
+
+        await _sut.RunAsync();
+
+        await _notifs.Received(1).AddAsync(Arg.Is<Notificacao>(n => n.ReferenciaId == "R-00001" && n.Severidade == "red"));
+    }
+
+    [Fact]
+    public async Task RunAsync_RearmaOsItensQueSairamDaCondicao()
+    {
+        var vencendo = new Reagente { Id = "R-00001", Nome = "Acetona", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)), Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201" };
+        var longe = new Reagente { Id = "R-00002", Nome = "Etanol", Validade = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(300)), Estoque = 5, Unidade = "L", LaboratorioId = "Lab-201" };
+        _reagentes.GetAllAsync().Returns([vencendo, longe]);
+        _auth.GetAllAsync().Returns([Admin]);
+
+        await _sut.RunAsync();
+
+        await _notifs.Received(1).RearmarAsync("expiry",
+            Arg.Is<IReadOnlyCollection<string>>(refs => refs.SequenceEqual(new[] { "R-00001" })));
+    }
+
+    [Fact]
+    public async Task RunAsync_NadaNaCondicao_AindaRearma()
+    {
+        _reagentes.GetAllAsync().Returns([]);
+
+        await _sut.RunAsync();
+
+        await _notifs.Received(1).RearmarAsync("expiry", Arg.Is<IReadOnlyCollection<string>>(refs => refs.Count == 0));
     }
 
     [Fact]

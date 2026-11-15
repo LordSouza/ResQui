@@ -19,6 +19,7 @@ public class LowStockChecker(
             .Where(r => r.EstoqueMin.HasValue && r.Estoque < r.EstoqueMin.Value)
             .ToList();
 
+        await notifs.RearmarAsync("low-stock", abaixoMinimo.Select(r => r.Id).ToList());
         if (abaixoMinimo.Count == 0) return;
 
         var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
@@ -31,7 +32,7 @@ public class LowStockChecker(
             ct.ThrowIfCancellationRequested();
             foreach (var u in destinatarios.Do(r.LaboratorioId))
             {
-                if (await notifs.ExisteAsync(u.Id, "low-stock", r.Id)) continue;
+                if (await notifs.ExisteAsync(u.Id, "low-stock", r.Id, "red")) continue;
 
                 await notifs.AddAsync(new Notificacao
                 {

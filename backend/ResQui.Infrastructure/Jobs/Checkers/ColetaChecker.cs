@@ -20,6 +20,7 @@ public class ColetaChecker(
             .Where(r => r.Status == "aguardando-coleta" && r.DataRegistro < limite)
             .ToList();
 
+        await notifs.RearmarAsync("coleta", atrasados.Select(r => r.Id.ToString()).ToList());
         if (atrasados.Count == 0) return;
 
         var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
@@ -33,7 +34,7 @@ public class ColetaChecker(
             var refId = r.Id.ToString();
             foreach (var u in destinatarios.Do(r.LaboratorioId))
             {
-                if (await notifs.ExisteAsync(u.Id, "coleta", refId)) continue;
+                if (await notifs.ExisteAsync(u.Id, "coleta", refId, "amber")) continue;
 
                 await notifs.AddAsync(new Notificacao
                 {

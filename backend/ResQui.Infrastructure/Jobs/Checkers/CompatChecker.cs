@@ -25,12 +25,11 @@ public class CompatChecker(
             .Where(g => g.Count() > 1)
             .ToList();
 
-        if (porLocal.Count == 0) return;
-
         var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
 
         bool houveMudanca = false;
         var emails = new EmailsPendentes();
+        var paresNaCondicao = new List<string>();
 
         foreach (var grupo in porLocal)
         {
@@ -46,10 +45,12 @@ public class CompatChecker(
                 if (result is null || result.Nivel < 2) continue;
 
                 var refId = string.CompareOrdinal(a.Id, b.Id) < 0 ? $"{a.Id}|{b.Id}" : $"{b.Id}|{a.Id}";
+                paresNaCondicao.Add(refId);
                 var nivel = Descricoes[result.Nivel];
+                var severidade = result.Nivel >= 3 ? "red" : "amber";
                 foreach (var u in destinatarios.Do(grupo.Key.LaboratorioId))
                 {
-                    if (await notifs.ExisteAsync(u.Id, "compat", refId)) continue;
+                    if (await notifs.ExisteAsync(u.Id, "compat", refId, severidade)) continue;
 
                     await notifs.AddAsync(new Notificacao
                     {
@@ -57,7 +58,7 @@ public class CompatChecker(
                         Mensagem = $"Armazenamento incompatível em {local}: {a.Nome} e {b.Nome} (nível {nivel}).",
                         Tipo = "compat",
                         ReferenciaId = refId,
-                        Severidade = result.Nivel >= 3 ? "red" : "amber",
+                        Severidade = severidade,
                     });
                     houveMudanca = true;
 
@@ -74,6 +75,7 @@ public class CompatChecker(
             }
         }
 
+        await notifs.RearmarAsync("compat", paresNaCondicao);
         if (!houveMudanca) return;
         await notifs.SaveChangesAsync();
         await emails.EnviarAsync(email, logger, ct);
