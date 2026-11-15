@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '../../src/auth/AuthContext';
 
 // Gera um JWT fake com payload arbitrário
@@ -7,11 +8,17 @@ function makeToken(payload) {
   return `header.${btoa(JSON.stringify(payload))}.sig`;
 }
 
-const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
+let queryClient;
+const wrapper = ({ children }) => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>{children}</AuthProvider>
+  </QueryClientProvider>
+);
 
 describe('AuthContext', () => {
   let mockFetch;
   beforeEach(() => {
+    queryClient = new QueryClient();
     vi.stubGlobal('localStorage', {
       data: {},
       setItem(key, value) { this.data[key] = String(value); },
@@ -111,6 +118,51 @@ describe('AuthContext', () => {
 
     expect(result.current.user).toBeNull();
     expect(localStorage.getItem('resqui_token')).toBeNull();
+  });
+
+  it('logout() apaga o cache de queries do usuário anterior', () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    act(() => {
+      result.current.login('some-token', { id: 'u1', email: 'a@b.com', papel: 'Professor' });
+    });
+    queryClient.setQueryData(['reagentes'], [{ id: 'R-001' }]);
+
+    act(() => {
+      result.current.logout();
+    });
+
+    expect(queryClient.getQueryData(['reagentes'])).toBeUndefined();
+    expect(result.current.sessaoExpirada).toBe(false);
+  });
+
+  it('auth:unauthorized apaga o cache e marca a sessão como expirada', () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    act(() => {
+      result.current.login('some-token', { id: 'u1', email: 'a@b.com', papel: 'Professor' });
+    });
+    queryClient.setQueryData(['reagentes'], [{ id: 'R-001' }]);
+
+    act(() => {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    });
+
+    expect(queryClient.getQueryData(['reagentes'])).toBeUndefined();
+    expect(result.current.sessaoExpirada).toBe(true);
+  });
+
+  it('login() apaga o cache anterior e desfaz o aviso de sessão expirada', () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    act(() => {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    });
+    queryClient.setQueryData(['reagentes'], [{ id: 'R-001' }]);
+
+    act(() => {
+      result.current.login('outro-token', { id: 'u2', email: 'b@c.com', papel: 'Aluno' });
+    });
+
+    expect(queryClient.getQueryData(['reagentes'])).toBeUndefined();
+    expect(result.current.sessaoExpirada).toBe(false);
   });
 
   it('useAuth throws when used outside AuthProvider', () => {

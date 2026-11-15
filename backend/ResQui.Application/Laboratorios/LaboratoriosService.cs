@@ -11,7 +11,8 @@ public class LaboratoriosService(
     IAuditoriaService auditoria,
     IResiduosRepository residuosRepo,
     IUsuarioLaboratoriosRepository usuarioLabs,
-    IReagentesRepository reagentesRepo) : ILaboratoriosService
+    IReagentesRepository reagentesRepo,
+    ITransacoes transacoes) : ILaboratoriosService
 {
     public async Task<IEnumerable<LaboratorioDto>> ListarAsync(Solicitante solicitante) =>
         (await repo.GetAllAsync()).Where(l => solicitante.Responde(l.Id)).Select(ToDto);
@@ -34,11 +35,14 @@ public class LaboratoriosService(
             Sala = cmd.Sala, Armarios = cmd.Armarios, Cor = cmd.Cor,
             Criado = DateOnly.FromDateTime(DateTime.UtcNow),
         };
-        await repo.AddAsync(l);
-        await repo.SaveChangesAsync();
-        await usuarioLabs.AdicionarAsync(solicitante.Id, l.Id);
-        await auditoria.RegistrarAsync(solicitante.Email, "lab.criar", "Laboratórios",
-            $"Criou laboratório {l.Id} — {l.Nome}", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.AddAsync(l);
+            await repo.SaveChangesAsync();
+            await usuarioLabs.AdicionarAsync(solicitante.Id, l.Id);
+            await auditoria.RegistrarAsync(solicitante.Email, "lab.criar", "Laboratórios",
+                $"Criou laboratório {l.Id} — {l.Nome}", RiscoAuditoria.Low);
+        });
         return ToDto(l);
     }
 
@@ -51,9 +55,12 @@ public class LaboratoriosService(
         GarantirEscopo(id, solicitante);
         l.Nome = cmd.Nome; l.Sala = cmd.Sala; l.Armarios = cmd.Armarios;
         await repo.UpdateAsync(l);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "lab.atualizar", "Laboratórios",
-            $"Editou laboratório {id} — {l.Nome}", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "lab.atualizar", "Laboratórios",
+                $"Editou laboratório {id} — {l.Nome}", RiscoAuditoria.Low);
+        });
         return ToDto(l);
     }
 
@@ -77,9 +84,12 @@ public class LaboratoriosService(
                 + "transfira ou remova esses reagentes antes de excluir.");
 
         await repo.DeleteAsync(id);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "lab.deletar", "Laboratórios",
-            $"Removeu laboratório {id}", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "lab.deletar", "Laboratórios",
+                $"Removeu laboratório {id}", RiscoAuditoria.Medium);
+        });
         return true;
     }
 

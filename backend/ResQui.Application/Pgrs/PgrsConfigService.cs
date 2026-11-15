@@ -7,7 +7,7 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Pgrs;
 
-public class PgrsConfigService(IPgrsConfigRepository repo, IAuditoriaService auditoria) : IPgrsConfigService
+public class PgrsConfigService(IPgrsConfigRepository repo, IAuditoriaService auditoria, ITransacoes transacoes) : IPgrsConfigService
 {
     public async Task<ConfiguracaoPgrsDto> ObterAsync() =>
         ToDto(await repo.GetAsync() ?? new ConfiguracaoPgrs());
@@ -53,9 +53,12 @@ public class PgrsConfigService(IPgrsConfigRepository repo, IAuditoriaService aud
         cfg.AtualizadoEm = Truncar(DateTime.UtcNow);
         cfg.AtualizadoPor = usuarioEmail;
 
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(usuarioEmail, "pgrs.configurar", "Relatórios",
-            "Atualizou a configuração institucional do PGRS", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(usuarioEmail, "pgrs.configurar", "Relatórios",
+                "Atualizou a configuração institucional do PGRS", RiscoAuditoria.Medium);
+        });
 
         return ToDto(cfg);
     }

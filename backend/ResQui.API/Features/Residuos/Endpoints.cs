@@ -55,7 +55,7 @@ public static class Endpoints
         .RequireAuthorization("Aprovador");
 
         group.MapGet("/analytics", async (IResiduosService svc, ClaimsPrincipal user, IUsuarioLaboratoriosRepository labs, int meses = 6) =>
-            Results.Ok(await svc.AnalyticsAsync(meses, await user.ResolverAsync(labs))));
+            Results.Ok(await svc.AnalyticsAsync(Math.Clamp(meses, 1, 60), await user.ResolverAsync(labs))));
 
         return group;
     }

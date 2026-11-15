@@ -197,6 +197,15 @@ public class EfAuthRepository(UserManager<Usuario> userManager) : IAuthRepositor
         return await userManager.IsLockedOutAsync(u);
     }
 
+    public async Task<TimeSpan> TempoAteDesbloquearAsync(string userId)
+    {
+        var u = await userManager.FindByIdAsync(userId);
+        if (u is null) return TimeSpan.Zero;
+        var fim = await userManager.GetLockoutEndDateAsync(u);
+        var restante = fim - DateTimeOffset.UtcNow;
+        return restante > TimeSpan.Zero ? restante.Value : TimeSpan.Zero;
+    }
+
     public async Task RegistrarFalhaLoginAsync(string userId)
     {
         var u = await userManager.FindByIdAsync(userId);

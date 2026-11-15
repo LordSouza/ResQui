@@ -16,7 +16,8 @@ public class RelatoriosService(
     IMtrsRepository mtrsRepo,
     ILaboratoriosRepository laboratoriosRepo,
     IPgrsConfigRepository pgrsConfigRepo,
-    IAuditoriaService auditoria) : IRelatoriosService
+    IAuditoriaService auditoria,
+    ITransacoes transacoes) : IRelatoriosService
 {
     private static readonly Dictionary<string, string> Titulos = new()
     {
@@ -51,9 +52,12 @@ public class RelatoriosService(
             LaboratorioIds = recorte.LaboratorioIds?.ToList(),
         };
         await relatoriosRepo.AddAsync(r);
-        await relatoriosRepo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "relatorio.gerar", "Relatórios",
-            $"Gerou o relatório {titulo} ({totalLinhas} linhas)", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await relatoriosRepo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "relatorio.gerar", "Relatórios",
+                $"Gerou o relatório {titulo} ({totalLinhas} linhas)", RiscoAuditoria.Low);
+        });
         return ToDto(r);
     }
 

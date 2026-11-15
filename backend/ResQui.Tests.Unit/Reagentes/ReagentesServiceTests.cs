@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -28,7 +29,7 @@ public class ReagentesServiceTests
         _laboratorios.GetByIdAsync("Lab-001").Returns(LabQuimica);
         _laboratorios.GetByIdAsync("Lab-002").Returns(LabInflamaveis);
         _laboratorios.GetByIdAsync("Lab-003").Returns(LabSemArmario);
-        _sut = new ReagentesService(_repo, _audit, _pdf, _lotes, new VisibilidadeUsuarios(_auth, _usuarioLabs), _laboratorios);
+        _sut = new ReagentesService(_repo, _audit, _pdf, _lotes, new VisibilidadeUsuarios(_auth, _usuarioLabs), _laboratorios, new TransacoesDiretas());
     }
 
     private static readonly Laboratorio LabQuimica = new() { Id = "Lab-001", Nome = "Química", Armarios = ["Armário A", "Armário B"] };
@@ -205,7 +206,7 @@ public class ReagentesServiceTests
         _repo.GetByIdAsync("R-001").Returns(FakeReagente());
 
         var act = () => _sut.AtualizarAsync(
-            "R-001", new AtualizarReagenteCmd("Ácido X", 1m, 0.5m, "Lab-001", "Armário A", "31/12/2026 ou nada"), Quem("ana@lab.com"));
+            "R-001", new AtualizarReagenteCmd("Ácido X", 0.5m, "Lab-001", "Armário A", "31/12/2026 ou nada"), Quem("ana@lab.com"));
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*validade*");
     }
@@ -671,10 +672,24 @@ public class ReagentesServiceTests
         _repo.GetByIdAsync("R-001").Returns(r);
 
         var atualizado = await _sut.AtualizarAsync("R-001",
-            new AtualizarReagenteCmd("Novo nome", 1m, null, "Lab-001", "Armário Desativado", null), Quem("ana@lab.com"));
+            new AtualizarReagenteCmd("Novo nome", null, "Lab-001", "Armário Desativado", null), Quem("ana@lab.com"));
 
         atualizado!.Nome.Should().Be("Novo nome");
         atualizado.Local.Should().Be("Química · Armário Desativado");
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_NaoMexeNoEstoque_QueSoMudaPorBaixaOuLote()
+    {
+        var r = FakeReagente("R-001");
+        r.Estoque = 7m;
+        _repo.GetByIdAsync("R-001").Returns(r);
+
+        var atualizado = await _sut.AtualizarAsync("R-001",
+            new AtualizarReagenteCmd("Novo nome", 1m, "Lab-001", "Armário A", null), Quem("ana@lab.com"));
+
+        atualizado!.Estoque.Should().Be(7m);
+        r.Estoque.Should().Be(7m);
     }
 
     [Fact]
@@ -687,7 +702,7 @@ public class ReagentesServiceTests
         _repo.GetByIdAsync("R-001").Returns(r);
 
         var act = () => _sut.AtualizarAsync("R-001",
-            new AtualizarReagenteCmd("Nome", 1m, null, null, "texto antigo", null), Admin);
+            new AtualizarReagenteCmd("Nome", null, null, "texto antigo", null), Admin);
 
         await act.Should().ThrowAsync<ValidationException>().WithMessage("*Laboratório*");
     }

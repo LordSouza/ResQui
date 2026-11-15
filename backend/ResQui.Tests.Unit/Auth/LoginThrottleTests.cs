@@ -62,6 +62,20 @@ public class LoginThrottleTests
     }
 
     [Fact]
+    public void TempoAteLiberar_DevolveORestanteDaJanelaOuZero()
+    {
+        var sut = Criar(max: 3);
+        sut.TempoAteLiberar("ana@lab.com").Should().Be(TimeSpan.Zero);
+
+        sut.TentarConsumir("ana@lab.com");
+        _relogio.Agora = _relogio.Agora.AddSeconds(20);
+        sut.TempoAteLiberar("Ana@Lab.com").Should().Be(TimeSpan.FromSeconds(40));
+
+        _relogio.Agora = _relogio.Agora.AddSeconds(41);
+        sut.TempoAteLiberar("ana@lab.com").Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
     public void TentarConsumir_JanelaExpirada_Reabre()
     {
         var sut = Criar(max: 3);

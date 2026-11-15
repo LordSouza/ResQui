@@ -10,7 +10,7 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger) :
 {
     public bool Habilitado => config.GetValue("Email:Enabled", false);
 
-    public async Task SendAsync(string to, string subject, string htmlBody)
+    public async Task SendAsync(string to, string subject, string htmlBody, CancellationToken ct = default)
     {
         if (!Habilitado)
             return;
@@ -31,7 +31,8 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger) :
 
         try
         {
-            using var cts = new CancellationTokenSource(timeout);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(timeout);
             var message = new MimeMessage();
             message.From.Add(MailboxAddress.Parse(from));
             message.To.Add(MailboxAddress.Parse(to));
@@ -46,6 +47,12 @@ public class EmailService(IConfiguration config, ILogger<EmailService> logger) :
                 await smtp.AuthenticateAsync(user, pass, cts.Token);
             await smtp.SendAsync(message, cts.Token);
             await smtp.DisconnectAsync(true, cts.Token);
+        }
+        // Cancelamento de quem chamou (ex.: desligamento do host) não é falha de SMTP: propaga para
+        // que o laço de envio pare em vez de tentar o próximo destinatário.
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         // O MailKit não aflora estouro de tempo de forma uniforme: o CTS vira
         // OperationCanceledException, o SmtpClient.Timeout pode virar TimeoutException, e alguns

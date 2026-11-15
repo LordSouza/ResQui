@@ -9,7 +9,8 @@ namespace ResQui.Application.Compatibilidade;
 public class CompatService(
     ICompatibilidadeRepository repo,
     ICompatOverridesRepository overridesRepo,
-    IAuditoriaService auditoria) : ICompatService
+    IAuditoriaService auditoria,
+    ITransacoes transacoes) : ICompatService
 {
     private static readonly string[] Descricoes = ["Compatível", "Cautela", "Perigo", "Proibido"];
 
@@ -83,19 +84,25 @@ public class CompatService(
             Autor = cmd.Autor,
             DataEdicao = DateTime.UtcNow,
         };
-        await overridesRepo.UpsertAsync(entry);
-        await auditoria.RegistrarAsync(usuarioEmail, "compat.override-salvar", "Compatibilidade",
-            $"Definiu o par {canonicoA}×{canonicoB} como {Descricoes[cmd.Nivel]}. Motivo: {Resumir(cmd.Motivo)}",
-            RiscoAuditoria.High);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await overridesRepo.UpsertAsync(entry);
+            await auditoria.RegistrarAsync(usuarioEmail, "compat.override-salvar", "Compatibilidade",
+                $"Definiu o par {canonicoA}×{canonicoB} como {Descricoes[cmd.Nivel]}. Motivo: {Resumir(cmd.Motivo)}",
+                RiscoAuditoria.High);
+        });
         return ToDto(entry);
     }
 
     public async Task RemoverOverrideAsync(int classeA, int classeB, string usuarioEmail)
     {
         var (canonicoA, canonicoB) = ParCanonico(classeA, classeB);
-        await overridesRepo.DeleteAsync(canonicoA, canonicoB);
-        await auditoria.RegistrarAsync(usuarioEmail, "compat.override-remover", "Compatibilidade",
-            $"Removeu o override do par {canonicoA}×{canonicoB}; volta a valer a matriz base", RiscoAuditoria.High);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await overridesRepo.DeleteAsync(canonicoA, canonicoB);
+            await auditoria.RegistrarAsync(usuarioEmail, "compat.override-remover", "Compatibilidade",
+                $"Removeu o override do par {canonicoA}×{canonicoB}; volta a valer a matriz base", RiscoAuditoria.High);
+        });
     }
 
     // O Detail da auditoria tem 1000 caracteres; o motivo é texto livre.

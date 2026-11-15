@@ -15,7 +15,8 @@ public class CompatAcoesService(
     IAuditoriaService auditoria,
     INotificacoesService notificacoes,
     IAuthRepository auth,
-    IUsuarioLaboratoriosRepository usuarioLabs) : ICompatAcoesService
+    IUsuarioLaboratoriosRepository usuarioLabs,
+    ITransacoes transacoes) : ICompatAcoesService
 {
     private const int LimiteParecer = 1000;
 
@@ -55,13 +56,15 @@ public class CompatAcoesService(
         var mensagem = $"{solicitante.Email} sinalizou incompatibilidade entre {a.Nome} e {b.Nome} " +
                        $"(nível {resultado.Descricao}).";
 
-        foreach (var n in notificados)
-            await notificacoes.CriarAsync(n.UsuarioId, mensagem, "compat", refId, severidade);
-
         var detalhe = $"{a.Id} + {b.Id} → nível {resultado.Nivel} ({resultado.Descricao}). " +
                       $"Notificados: {(notificados.Count > 0 ? string.Join(", ", notificados.Select(n => n.Nome)) : "nenhum")}.";
 
-        await auditoria.RegistrarAsync(solicitante.Email, "compat.notificar", "Compatibilidade", detalhe, RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            foreach (var n in notificados)
+                await notificacoes.CriarAsync(n.UsuarioId, mensagem, "compat", refId, severidade);
+            await auditoria.RegistrarAsync(solicitante.Email, "compat.notificar", "Compatibilidade", detalhe, RiscoAuditoria.Medium);
+        });
 
         return new NotificarProfessoresResultDto(notificados);
     }

@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 // Valida o critério de eficácia do TCC: 100% das misturas de alto risco
 // (nível Perigo/Proibido na matriz baseada no chart EPA-600/2-80-076 seedada) devem ser bloqueadas.
 using FluentAssertions;
@@ -31,15 +32,15 @@ public class MisturasAltoRiscoTests
             .Returns(ci => matriz.FirstOrDefault(e => e.ClasseA == ci.ArgAt<int>(0) && e.ClasseB == ci.ArgAt<int>(1)));
         var overrides = Substitute.For<ICompatOverridesRepository>();
         overrides.GetAsync(Arg.Any<int>(), Arg.Any<int>()).Returns((CompatOverride?)null);
-        _compat = new CompatService(repo, overrides, Substitute.For<IAuditoriaService>());
+        _compat = new CompatService(repo, overrides, Substitute.For<IAuditoriaService>(), new TransacoesDiretas());
 
         var labRepo = Substitute.For<ILaboratoriosRepository>();
         labRepo.GetAllAsync().Returns([new Laboratorio { Id = "Lab-001", Nome = "Lab Teste" }]);
         var audit = Substitute.For<IAuditoriaService>();
-        _residuos = new ResiduosService(_residuosRepo, audit, labRepo, _compat);
+        _residuos = new ResiduosService(_residuosRepo, audit, labRepo, _compat, new TransacoesDiretas());
         var auth = Substitute.For<IAuthRepository>();
         _mtrs = new MtrsService(_mtrsRepo, _residuosRepo, audit, _compat, Substitute.For<IPdfService>(),
-            auth, new VisibilidadeUsuarios(auth, Substitute.For<IUsuarioLaboratoriosRepository>()));
+            auth, new VisibilidadeUsuarios(auth, Substitute.For<IUsuarioLaboratoriosRepository>()), new TransacoesDiretas());
     }
 
     private static CriarResiduoCmd CmdComClasses(params int[] classes) =>

@@ -30,9 +30,11 @@ public class CompatChecker(
         var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
 
         bool houveMudanca = false;
+        var emails = new EmailsPendentes();
 
         foreach (var grupo in porLocal)
         {
+            ct.ThrowIfCancellationRequested();
             var itens = grupo.ToList();
             var local = itens[0].DescreverLocal();
             for (var i = 0; i < itens.Count; i++)
@@ -47,7 +49,7 @@ public class CompatChecker(
                 var nivel = Descricoes[result.Nivel];
                 foreach (var u in destinatarios.Do(grupo.Key.LaboratorioId))
                 {
-                    if (await notifs.ExisteNaoLidaAsync(u.Id, "compat", refId)) continue;
+                    if (await notifs.ExisteAsync(u.Id, "compat", refId)) continue;
 
                     await notifs.AddAsync(new Notificacao
                     {
@@ -65,13 +67,15 @@ public class CompatChecker(
                         if (NotificacaoPrefs.Habilitada(prefsJson, "compat", logger, u.Id))
                         {
                             var (subject, html) = NotificacaoEmailBuilder.BuildCompatLocal(local, a.Nome, b.Nome, nivel);
-                            await email.SendAsync(u.Email, subject, html);
+                            emails.Adicionar(u.Email, subject, html);
                         }
                     }
                 }
             }
         }
 
-        if (houveMudanca) await notifs.SaveChangesAsync();
+        if (!houveMudanca) return;
+        await notifs.SaveChangesAsync();
+        await emails.EnviarAsync(email, logger, ct);
     }
 }

@@ -6,7 +6,7 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Reagentes;
 
-public class ReagentesService(IReagentesRepository repo, IAuditoriaService auditoria, Pdf.IPdfService pdf, IReagenteLotesRepository lotes, IVisibilidadeUsuarios visibilidade, ILaboratoriosRepository laboratorios) : IReagentesService
+public class ReagentesService(IReagentesRepository repo, IAuditoriaService auditoria, Pdf.IPdfService pdf, IReagenteLotesRepository lotes, IVisibilidadeUsuarios visibilidade, ILaboratoriosRepository laboratorios, ITransacoes transacoes) : IReagentesService
 {
     public const string AutorDeOutroLaboratorio = "outro laboratório";
 
@@ -61,9 +61,12 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         await lotes.AddAsync(lote);
         r.Estoque += cmd.Estoque;
         await repo.UpdateAsync(r);
-        await lotes.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "reagente.lote.criar", "Inventário",
-            $"Registrou lote {lote.Codigo} ({cmd.Estoque} {r.Unidade}) do reagente {r.Id}", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await lotes.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "reagente.lote.criar", "Inventário",
+                $"Registrou lote {lote.Codigo} ({cmd.Estoque} {r.Unidade}) do reagente {r.Id}", RiscoAuditoria.Low);
+        });
         return ToLoteDto(lote);
     }
 
@@ -82,9 +85,12 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         r.Estoque = Math.Round(r.Estoque - cmd.Quantidade, 3);
         await lotes.UpdateAsync(lote);
         await repo.UpdateAsync(r);
-        await lotes.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "reagente.lote.baixa", "Inventário",
-            $"Baixa de {cmd.Quantidade} {r.Unidade} no lote {lote.Codigo} do reagente {r.Id}", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await lotes.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "reagente.lote.baixa", "Inventário",
+                $"Baixa de {cmd.Quantidade} {r.Unidade} no lote {lote.Codigo} do reagente {r.Id}", RiscoAuditoria.Medium);
+        });
         return ToLoteDto(lote);
     }
 
@@ -173,9 +179,12 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             }
         };
         await repo.AddAsync(r);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "reagente.criar", "Inventário",
-            $"Criou reagente {r.Id} — {r.Nome}", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "reagente.criar", "Inventário",
+                $"Criou reagente {r.Id} — {r.Nome}", RiscoAuditoria.Low);
+        });
         return ToDetalhe(r);
     }
 
@@ -208,7 +217,6 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
     public async Task<ReagenteDetalheDto?> AtualizarAsync(string id, AtualizarReagenteCmd cmd, Solicitante solicitante)
     {
         if (string.IsNullOrWhiteSpace(cmd.Nome)) throw new ValidationException("Nome é obrigatório.");
-        if (cmd.Estoque < 0) throw new ValidationException("Estoque não pode ser negativo.");
         if (cmd.EstoqueMin is < 0) throw new ValidationException("Estoque mínimo não pode ser negativo.");
 
         var r = await CarregarAsync(id, solicitante);
@@ -216,13 +224,16 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         var (laboratorio, armario) = MantemOLocal(r, cmd.LaboratorioId, cmd.Armario)
             ? (r.Laboratorio!, r.Armario)
             : await ResolverLocalAsync(cmd.LaboratorioId, cmd.Armario, solicitante);
-        r.Nome = cmd.Nome; r.Estoque = cmd.Estoque; r.EstoqueMin = cmd.EstoqueMin;
+        r.Nome = cmd.Nome; r.EstoqueMin = cmd.EstoqueMin;
         r.LaboratorioId = laboratorio.Id; r.Laboratorio = laboratorio; r.Armario = armario;
         if (ParseValidade(cmd.Validade) is { } validade) r.Validade = validade;
         await repo.UpdateAsync(r);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "reagente.atualizar", "Inventário",
-            $"Editou reagente {id}", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "reagente.atualizar", "Inventário",
+                $"Editou reagente {id}", RiscoAuditoria.Low);
+        });
         return ToDetalhe(r);
     }
 
@@ -231,9 +242,12 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         var r = await CarregarAsync(id, solicitante);
         if (r is null) return false;
         await repo.DeleteAsync(id);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "reagente.deletar", "Inventário",
-            $"Removeu reagente {id}", RiscoAuditoria.High);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "reagente.deletar", "Inventário",
+                $"Removeu reagente {id}", RiscoAuditoria.High);
+        });
         return true;
     }
 
@@ -249,10 +263,13 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
             throw new ValidationException($"Estoque insuficiente: {r.Estoque} {r.Unidade} disponíveis.");
         r.Estoque = Math.Round(r.Estoque - cmd.Quantidade, 3);
         await repo.UpdateAsync(r);
-        await repo.SaveChangesAsync();
         var sufixoDoMotivo = string.IsNullOrEmpty(motivo) ? "" : $" · motivo: {motivo}";
-        await auditoria.RegistrarAsync(solicitante.Email, "reagente.baixa", "Inventário",
-            $"Baixa de {cmd.Quantidade} {r.Unidade} de {r.Nome} (reagente {r.Id}){sufixoDoMotivo}", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "reagente.baixa", "Inventário",
+                $"Baixa de {cmd.Quantidade} {r.Unidade} de {r.Nome} (reagente {r.Id}){sufixoDoMotivo}", RiscoAuditoria.Medium);
+        });
         return ToDetalhe(r);
     }
 
@@ -267,9 +284,12 @@ public class ReagentesService(IReagentesRepository repo, IAuditoriaService audit
         var origem = r.DescreverLocal();
         r.LaboratorioId = laboratorio.Id; r.Laboratorio = laboratorio; r.Armario = armario;
         await repo.UpdateAsync(r);
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "reagente.transferencia", "Inventário",
-            $"Transferiu {r.Nome} ({r.Id}) de {origem} para {r.DescreverLocal()}", RiscoAuditoria.Low);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "reagente.transferencia", "Inventário",
+                $"Transferiu {r.Nome} ({r.Id}) de {origem} para {r.DescreverLocal()}", RiscoAuditoria.Low);
+        });
         return ToDetalhe(r);
     }
 

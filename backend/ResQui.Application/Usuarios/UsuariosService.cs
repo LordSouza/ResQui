@@ -23,7 +23,8 @@ public class UsuariosService(
     IAuditoriaService auditoria,
     IUsuarioLaboratoriosRepository usuarioLabs,
     ILaboratoriosRepository labRepo,
-    ISessoesRepository sessoes) : IUsuariosService
+    ISessoesRepository sessoes,
+    ITransacoes transacoes) : IUsuariosService
 {
     private static readonly string[] PapeisValidos = ["Admin", "Professor", "Aluno"];
 
@@ -43,11 +44,14 @@ public class UsuariosService(
         if (!PapeisValidos.Contains(cmd.NovoPapel))
             throw new ValidationException($"Papel inválido: {cmd.NovoPapel}.");
         if (await repo.FindByIdIncluindoArquivadosAsync(id) is null) return;
-        await repo.UpdateRoleAsync(id, cmd.NovoPapel);
-        var revogadas = await RevogarSessoesAsync(id);
-        await auditoria.RegistrarAsync(usuarioEmail, "user.papel", "Usuários",
-            $"Alterou papel do usuário {id} para {cmd.NovoPapel}; {revogadas} sessão(ões) revogada(s)",
-            RiscoAuditoria.High);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.UpdateRoleAsync(id, cmd.NovoPapel);
+            var revogadas = await RevogarSessoesAsync(id);
+            await auditoria.RegistrarAsync(usuarioEmail, "user.papel", "Usuários",
+                $"Alterou papel do usuário {id} para {cmd.NovoPapel}; {revogadas} sessão(ões) revogada(s)",
+                RiscoAuditoria.High);
+        });
     }
 
     public async Task ArquivarAsync(string id, Solicitante solicitante)
@@ -56,10 +60,13 @@ public class UsuariosService(
         await GarantirQueEnxergaAsync(solicitante, alvo);
         if (alvo.Papel != "Aluno" && solicitante.Papel != "Admin")
             throw new ValidationException($"Arquivar conta de {alvo.Papel} é só o Admin; você pode arquivar Aluno.");
-        await repo.SoftDeleteAsync(id);
-        var revogadas = await RevogarSessoesAsync(id);
-        await auditoria.RegistrarAsync(solicitante.Email, "user.arquivar", "Usuários",
-            $"Arquivou usuário {id}; {revogadas} sessão(ões) revogada(s)", RiscoAuditoria.High);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await repo.SoftDeleteAsync(id);
+            var revogadas = await RevogarSessoesAsync(id);
+            await auditoria.RegistrarAsync(solicitante.Email, "user.arquivar", "Usuários",
+                $"Arquivou usuário {id}; {revogadas} sessão(ões) revogada(s)", RiscoAuditoria.High);
+        });
     }
 
     public async Task DefinirLaboratoriosAsync(string id, DefinirLaboratoriosCmd cmd, Solicitante solicitante)
@@ -89,19 +96,25 @@ public class UsuariosService(
                     "O aluno ficaria sem laboratório, e conta sem laboratório só o Admin enxerga. Mantenha pelo menos um.");
         }
 
-        await usuarioLabs.DefinirAsync(id, resultante);
         var lista = resultante.Count == 0 ? "nenhum laboratório" : string.Join(", ", resultante);
-        await auditoria.RegistrarAsync(solicitante.Email, "usuario.laboratorios", "Usuários",
-            $"Definiu os laboratórios do usuário {id}: {lista}", RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await usuarioLabs.DefinirAsync(id, resultante);
+            await auditoria.RegistrarAsync(solicitante.Email, "usuario.laboratorios", "Usuários",
+                $"Definiu os laboratórios do usuário {id}: {lista}", RiscoAuditoria.Medium);
+        });
     }
 
     public async Task ExcluirAsync(string id, string requesterId, string usuarioEmail)
     {
         if (id == requesterId)
             throw new ValidationException("Você não pode excluir a própria conta.");
-        if (!await repo.HardDeleteAsync(id)) return;
-        await auditoria.RegistrarAsync(usuarioEmail, "user.excluir", "Usuários",
-            $"Excluiu definitivamente o usuário {id}", RiscoAuditoria.High);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            if (!await repo.HardDeleteAsync(id)) return;
+            await auditoria.RegistrarAsync(usuarioEmail, "user.excluir", "Usuários",
+                $"Excluiu definitivamente o usuário {id}", RiscoAuditoria.High);
+        });
     }
 
     private async Task GarantirQueEnxergaAsync(Solicitante solicitante, UsuarioInfo alvo)

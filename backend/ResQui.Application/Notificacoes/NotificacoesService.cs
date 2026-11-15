@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using ResQui.Application.Auditoria;
 using ResQui.Domain.Entities;
 using ResQui.Domain.Enums;
@@ -6,7 +7,12 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Notificacoes;
 
-public class NotificacoesService(INotificacoesRepository repo, IAuthRepository auth, IAuditoriaService auditoria) : INotificacoesService
+public class NotificacoesService(
+    INotificacoesRepository repo,
+    IAuthRepository auth,
+    IAuditoriaService auditoria,
+    ILogger<NotificacoesService> logger,
+    ITransacoes transacoes) : INotificacoesService
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
@@ -16,17 +22,25 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
 
     public async Task MarcarComoLidaAsync(int id, string usuarioId)
     {
-        if (!await repo.MarkAsReadAsync(id, usuarioId)) return;
-        await auditoria.RegistrarAsync(await EmailDoUsuarioAsync(usuarioId), "notificacao.lida", "Conta",
-            $"Marcou a notificação {id} como lida", RiscoAuditoria.Low);
+        var email = await EmailDoUsuarioAsync(usuarioId);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            if (!await repo.MarkAsReadAsync(id, usuarioId)) return;
+            await auditoria.RegistrarAsync(email, "notificacao.lida", "Conta",
+                $"Marcou a notificação {id} como lida", RiscoAuditoria.Low);
+        });
     }
 
     public async Task MarcarTodasLidasAsync(string usuarioId)
     {
-        var marcadas = await repo.MarcarTodasLidasAsync(usuarioId);
-        if (marcadas == 0) return;
-        await auditoria.RegistrarAsync(await EmailDoUsuarioAsync(usuarioId), "notificacao.todas-lidas", "Conta",
-            $"Marcou {marcadas} notificação(ões) como lida(s)", RiscoAuditoria.Low);
+        var email = await EmailDoUsuarioAsync(usuarioId);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            var marcadas = await repo.MarcarTodasLidasAsync(usuarioId);
+            if (marcadas == 0) return;
+            await auditoria.RegistrarAsync(email, "notificacao.todas-lidas", "Conta",
+                $"Marcou {marcadas} notificação(ões) como lida(s)", RiscoAuditoria.Low);
+        });
     }
 
     public async Task CriarAsync(string usuarioId, string mensagem, string tipo, string referenciaId, string severidade)
@@ -52,8 +66,9 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
                 ? []
                 : JsonSerializer.Deserialize<Dictionary<string, bool>>(json, JsonOpts) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            logger.LogWarning(ex, "Prefs de notificação inválidas (usuário {UsuarioId}); exibidas como todas desligadas.", usuarioId);
             dict = [];
         }
         return new NotificacaoPrefsDto(
@@ -73,10 +88,14 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
             ["compat"] = prefs.Compat,
             ["coleta"] = prefs.Coleta,
         };
-        await auth.SaveNotificacaoPrefsJsonAsync(usuarioId, JsonSerializer.Serialize(dict));
-        await auditoria.RegistrarAsync(await EmailDoUsuarioAsync(usuarioId), "user.notificacao-prefs", "Conta",
-            "Alterou preferências de e-mail: " + string.Join(", ", dict.Select(p => $"{p.Key}={(p.Value ? "on" : "off")}")),
-            RiscoAuditoria.Low);
+        var email = await EmailDoUsuarioAsync(usuarioId);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await auth.SaveNotificacaoPrefsJsonAsync(usuarioId, JsonSerializer.Serialize(dict));
+            await auditoria.RegistrarAsync(email, "user.notificacao-prefs", "Conta",
+                "Alterou preferências de e-mail: " + string.Join(", ", dict.Select(p => $"{p.Key}={(p.Value ? "on" : "off")}")),
+                RiscoAuditoria.Low);
+        });
     }
 
     private async Task<string> EmailDoUsuarioAsync(string usuarioId) =>

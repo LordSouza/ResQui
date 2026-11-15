@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -18,6 +19,7 @@ public class ConvitesServiceTests
     private readonly ILaboratoriosRepository _labRepo = Substitute.For<ILaboratoriosRepository>();
     private readonly ConvitesService _sut;
     private readonly List<Convite> _gravados = [];
+    private readonly TransacoesDiretas _transacoes = new();
 
     public ConvitesServiceTests()
     {
@@ -26,7 +28,7 @@ public class ConvitesServiceTests
             new Laboratorio { Id = "Lab-001", Nome = "A" },
             new Laboratorio { Id = "Lab-002", Nome = "B" },
         ]);
-        _sut = new ConvitesService(_convites, _usuarios, _audit, _usuarioLabs, _labRepo);
+        _sut = new ConvitesService(_convites, _usuarios, _audit, _usuarioLabs, _labRepo, _transacoes);
     }
 
     private static Solicitante Quem(string id, string email, string papel, params string[] labs) =>
@@ -136,9 +138,9 @@ public class ConvitesServiceTests
     }
 
     [Fact]
-    public async Task AceitarAsync_FalhaAoCriarAConta_DevolveOConviteAoEstadoPendente()
+    public async Task AceitarAsync_FalhaAoCriarAConta_DesfazATransacaoQueMarcouOUso()
     {
-        var (token, convite) = await CriarConviteAsync();
+        var (token, _) = await CriarConviteAsync();
         _usuarios.FindByEmailIncluindoArquivadosAsync("novo@lab.com").Returns((UsuarioInfo?)null);
         _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
             .Returns<string>(_ => throw new ValidationException("Passwords must have at least one digit."));
@@ -146,8 +148,9 @@ public class ConvitesServiceTests
         var act = () => _sut.AceitarAsync(token, new AceitarConviteCmd("Novo Aluno", "novo@lab.com", null, "senha"));
 
         await act.Should().ThrowAsync<ValidationException>();
-        convite.UsadoEm.Should().BeNull();
-        (await _sut.ConsultarAsync(token)).Should().NotBeNull();
+        _transacoes.Desfeitas.Should().Be(1);
+        await _audit.DidNotReceive().RegistrarAsync(Arg.Any<string>(), "convite.aceito", Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
 
     [Fact]
@@ -236,9 +239,9 @@ public class ConvitesServiceTests
     }
 
     [Fact]
-    public async Task AceitarAsync_FalhaInesperadaAoCriarAConta_TambemDevolveOConvite()
+    public async Task AceitarAsync_FalhaInesperadaAoCriarAConta_TambemDesfazATransacao()
     {
-        var (token, convite) = await CriarConviteAsync();
+        var (token, _) = await CriarConviteAsync();
         _usuarios.FindByEmailIncluindoArquivadosAsync("novo@lab.com").Returns((UsuarioInfo?)null);
         _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
             .Returns<string>(_ => throw new InvalidOperationException("falha de infraestrutura"));
@@ -246,7 +249,23 @@ public class ConvitesServiceTests
         var act = () => _sut.AceitarAsync(token, new AceitarConviteCmd("Novo", "novo@lab.com", null, "Senha@123"));
 
         await act.Should().ThrowAsync<InvalidOperationException>();
-        convite.UsadoEm.Should().BeNull();
+        _transacoes.Desfeitas.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task AceitarAsync_FalhaAoDefinirOsLaboratorios_DesfazAContaJunto()
+    {
+        var (token, _) = await CriarConviteAsync();
+        _usuarios.FindByEmailIncluindoArquivadosAsync("novo@lab.com").Returns((UsuarioInfo?)null);
+        _usuarios.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>())
+            .Returns("novo-id");
+        _usuarioLabs.DefinirAsync("novo-id", Arg.Any<IEnumerable<string>>())
+            .Returns<Task>(_ => throw new InvalidOperationException("conexão caiu"));
+
+        var act = () => _sut.AceitarAsync(token, new AceitarConviteCmd("Novo", "novo@lab.com", null, "Senha@123"));
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        _transacoes.Desfeitas.Should().Be(1);
     }
 
     [Theory]

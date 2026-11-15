@@ -34,6 +34,7 @@ public static class ServiceCollectionExtensions
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders(); // necessário para o AuthenticatorTokenProvider (TOTP)
 
+        services.AddScoped<ITransacoes, EfTransacoes>();
         services.AddScoped<IReagentesRepository, EfReagentesRepository>();
         services.AddScoped<IReagenteLotesRepository, EfReagenteLotesRepository>();
         services.AddScoped<ILaboratoriosRepository, EfLaboratoriosRepository>();

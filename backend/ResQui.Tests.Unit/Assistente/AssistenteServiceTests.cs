@@ -34,7 +34,7 @@ public class AssistenteServiceTests
     private static Solicitante Professor(params string[] labs) => new("u1", "prof@x.com", "Professor", labs);
 
     private void ProviderResponde(string conteudo) =>
-        _provider.CompletarAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<MensagemChat>>(), Arg.Any<string>())
+        _provider.CompletarAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<MensagemChat>>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(conteudo);
 
     private string PromptEnviado() =>
@@ -96,7 +96,7 @@ public class AssistenteServiceTests
     }
 
     [Fact]
-    public async Task ResponderAsync_JsonInvalido_LancaValidationException()
+    public async Task ResponderAsync_JsonInvalido_TrataComoAssistenteIndisponivel()
     {
         _reagentes.GetAllAsync().Returns(new List<Reagente>());
         _residuos.GetAllAsync().Returns(new List<Residuo>());
@@ -104,7 +104,7 @@ public class AssistenteServiceTests
 
         var acao = () => Criar().ResponderAsync(Cmd(), Admin());
 
-        await acao.Should().ThrowAsync<ValidationException>().WithMessage("*interpretar*");
+        await acao.Should().ThrowAsync<AssistenteIndisponivelException>().WithMessage("*interpretar*");
     }
 
     [Fact]
@@ -229,5 +229,19 @@ public class AssistenteServiceTests
 
         var enviado = (IReadOnlyList<MensagemChat>)_provider.ReceivedCalls().Single().GetArguments()[1]!;
         enviado.Single().Texto.Should().HaveLength(AssistenteService.MaxCaracteresMensagem);
+    }
+
+    [Fact]
+    public async Task ResponderAsync_RepassaOCancelamentoDaRequisicaoAoProvedor()
+    {
+        _reagentes.GetAllAsync().Returns(new List<Reagente>());
+        _residuos.GetAllAsync().Returns(new List<Residuo>());
+        ProviderResponde("{\"say\":\"oi\",\"action\":\"explain\"}");
+        using var requisicao = new CancellationTokenSource();
+
+        await Criar().ResponderAsync(Cmd(), Admin(), requisicao.Token);
+
+        await _provider.Received(1).CompletarAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<MensagemChat>>(),
+            Arg.Any<string>(), requisicao.Token);
     }
 }

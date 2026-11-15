@@ -28,13 +28,15 @@ public class ExpiryChecker(
         var destinatarios = await DestinatariosPorLaboratorio.CarregarAsync(auth, usuarioLabs);
 
         bool houveMudanca = false;
+        var emails = new EmailsPendentes();
 
         foreach (var r in vencendo)
         {
+            ct.ThrowIfCancellationRequested();
             var diasRestantes = r.Validade.DayNumber - hoje.DayNumber;
             foreach (var u in destinatarios.Do(r.LaboratorioId))
             {
-                if (await notifs.ExisteNaoLidaAsync(u.Id, "expiry", r.Id)) continue;
+                if (await notifs.ExisteAsync(u.Id, "expiry", r.Id)) continue;
 
                 await notifs.AddAsync(new Notificacao
                 {
@@ -52,12 +54,14 @@ public class ExpiryChecker(
                     if (NotificacaoPrefs.Habilitada(prefsJson, "expiry", logger, u.Id))
                     {
                         var (subject, html) = NotificacaoEmailBuilder.BuildExpiry(r.Nome, r.Id, diasRestantes);
-                        await email.SendAsync(u.Email, subject, html);
+                        emails.Adicionar(u.Email, subject, html);
                     }
                 }
             }
         }
 
-        if (houveMudanca) await notifs.SaveChangesAsync();
+        if (!houveMudanca) return;
+        await notifs.SaveChangesAsync();
+        await emails.EnviarAsync(email, logger, ct);
     }
 }

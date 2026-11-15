@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 // backend/ResQui.Tests.Unit/Relatorios/RelatoriosServiceTests.cs
 using System.Globalization;
 using FluentAssertions;
@@ -25,7 +26,7 @@ public class RelatoriosServiceTests
     private static readonly Solicitante Admin = new("adm", "admin@resqui.local", "Admin", []);
 
     public RelatoriosServiceTests() =>
-        _sut = new RelatoriosService(_repo, _reagentesRepo, _residuosRepo, _mtrsRepo, _labsRepo, _pgrsRepo, _auditoria);
+        _sut = new RelatoriosService(_repo, _reagentesRepo, _residuosRepo, _mtrsRepo, _labsRepo, _pgrsRepo, _auditoria, new TransacoesDiretas());
 
     private static RelatorioGerado FakeRelatorio(int id = 1) => new()
     {

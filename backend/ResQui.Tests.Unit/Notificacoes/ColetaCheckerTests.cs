@@ -45,7 +45,7 @@ public class ColetaCheckerTests
         var r = new Residuo { Id = 10, Descricao = "Solvente", Status = "aguardando-coleta", DataRegistro = DateTime.UtcNow.AddDays(-10), LaboratorioId = "Lab-001", Tipo = "solvente", Volume = 5, Unidade = "L", Composicao = "", Risco = "medio" };
         _residuos.GetAllAsync().Returns([r]);
         _auth.GetAllAsync().Returns([Professor]);
-        _notifs.ExisteNaoLidaAsync("u-prof", "coleta", "10").Returns(false);
+        _notifs.ExisteAsync("u-prof", "coleta", "10").Returns(false);
 
         await _sut.RunAsync();
 
@@ -74,7 +74,7 @@ public class ColetaCheckerTests
             ["u-prof"] = ["Lab-001"],
             ["u-outro"] = ["Lab-002"],
         });
-        _notifs.ExisteNaoLidaAsync(Arg.Any<string>(), "coleta", "10").Returns(false);
+        _notifs.ExisteAsync(Arg.Any<string>(), "coleta", "10").Returns(false);
 
         await _sut.RunAsync();
 
@@ -88,7 +88,7 @@ public class ColetaCheckerTests
         _residuos.GetAllAsync().Returns([Atrasado(12, "Lab-009")]);
         _auth.GetAllAsync().Returns([Professor, Admin]);
         Vinculos(new Dictionary<string, IReadOnlyList<string>> { ["u-prof"] = ["Lab-001"] });
-        _notifs.ExisteNaoLidaAsync(Arg.Any<string>(), "coleta", "12").Returns(false);
+        _notifs.ExisteAsync(Arg.Any<string>(), "coleta", "12").Returns(false);
 
         await _sut.RunAsync();
 
@@ -102,7 +102,7 @@ public class ColetaCheckerTests
         var arquivado = new UsuarioInfo("u-prof", "prof@x.com", "Professor", null, "Professor", ["Professor"], true);
         _residuos.GetAllAsync().Returns([Atrasado()]);
         _auth.GetAllAsync().Returns([arquivado]);
-        _notifs.ExisteNaoLidaAsync(Arg.Any<string>(), "coleta", "10").Returns(false);
+        _notifs.ExisteAsync(Arg.Any<string>(), "coleta", "10").Returns(false);
 
         await _sut.RunAsync();
 

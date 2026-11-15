@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -22,7 +23,7 @@ public class LaboratoriosServiceTests
     {
         _residuosRepo.GetAllAsync().Returns([]);
         _reagentesRepo.GetAllAsync().Returns([]);
-        _sut = new LaboratoriosService(_repo, _audit, _residuosRepo, _usuarioLabs, _reagentesRepo);
+        _sut = new LaboratoriosService(_repo, _audit, _residuosRepo, _usuarioLabs, _reagentesRepo, new TransacoesDiretas());
     }
 
     private static Solicitante Dono(string email = "admin@lab.com") =>
@@ -153,7 +154,7 @@ public class LaboratoriosServiceTests
             new Residuo { Id = 1, LaboratorioId = "Lab-001" },
             new Residuo { Id = 2, LaboratorioId = "Lab-002" },
         ]);
-        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>(), _reagentesRepo);
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>(), _reagentesRepo, new TransacoesDiretas());
 
         var act = () => svc.DeletarAsync("Lab-001", Dono("gestor@resqui.local"));
 
@@ -185,7 +186,7 @@ public class LaboratoriosServiceTests
         labRepo.GetByIdAsync("Lab-003").Returns(new Laboratorio { Id = "Lab-003", Nome = "Vazio" });
         var residuosRepo = Substitute.For<IResiduosRepository>();
         residuosRepo.GetAllAsync().Returns([new Residuo { Id = 1, LaboratorioId = "Lab-001" }]);
-        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>(), _reagentesRepo);
+        var svc = new LaboratoriosService(labRepo, Substitute.For<IAuditoriaService>(), residuosRepo, Substitute.For<IUsuarioLaboratoriosRepository>(), _reagentesRepo, new TransacoesDiretas());
 
         var ok = await svc.DeletarAsync("Lab-003", Dono("gestor@resqui.local"));
 

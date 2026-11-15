@@ -10,15 +10,35 @@ public class AuditoriaService(IAuditoriaRepository repo) : IAuditoriaService
     {
         var entry = new AuditoriaEntry
         {
-            Who = who,
-            What = what,
-            Where = where,
-            Detail = detail,
+            Who = Truncar(who, MaxCurto),
+            What = Truncar(what, MaxCurto),
+            Where = Truncar(where, MaxCurto),
+            Detail = Truncar(detail, MaxDetalhe),
             Risk = risk,
             Timestamp = DateTime.UtcNow
         };
         await repo.AddAsync(entry);
         await repo.SaveChangesAsync();
+    }
+
+    // A tabela só cresce (logins e falhas de login também entram) e não pode ser podada.
+    public const int LimitePadrao = 1000;
+    public const int LimiteMaximo = 5000;
+
+    // Espelham as colunas varchar de AuditoriaConfiguration: texto maior fazia o INSERT falhar
+    // depois de a operação auditada já ter sido gravada.
+    private const int MaxCurto = 200;
+    private const int MaxDetalhe = 1000;
+    private const string Reticencias = "…";
+
+    private static string Truncar(string? texto, int maximo)
+    {
+        if (string.IsNullOrEmpty(texto)) return "";
+        if (texto.Length <= maximo) return texto;
+        var corte = maximo - Reticencias.Length;
+        // Não separa um par substituto (emoji etc.): metade dele não é UTF-8 válido.
+        if (char.IsHighSurrogate(texto[corte - 1])) corte--;
+        return texto[..corte] + Reticencias;
     }
 
     public async Task<IEnumerable<AuditoriaItemDto>> ListarAsync(AuditoriaFiltroDto filtro)
@@ -31,7 +51,8 @@ public class AuditoriaService(IAuditoriaRepository repo) : IAuditoriaService
         var entries = await repo.BuscarAsync(
             filtro.From is { } de ? ComoUtc(de) : null,
             filtro.To is { } ate ? ComoUtc(ate.Date.AddDays(1)) : null,
-            risco, filtro.Who, filtro.What, filtro.Where, filtro.Detail, filtro.Limite, filtro.Autores);
+            risco, filtro.Who, filtro.What, filtro.Where, filtro.Detail,
+            Math.Clamp(filtro.Limite ?? LimitePadrao, 1, LimiteMaximo), filtro.Autores);
 
         return entries.Select(e => new AuditoriaItemDto(
             e.Id, e.Timestamp, e.Who, e.What, e.Where, e.Detail,

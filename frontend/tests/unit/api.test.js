@@ -53,12 +53,98 @@ describe('apiFetch', () => {
     await expect(apiFetch('/api/test')).rejects.toThrow('Erro desconhecido (HTTP 500)');
   });
 
-  it('lança com fallback quando body não é JSON', async () => {
+  it('lança mensagem de indisponibilidade quando 503 vem sem corpo', async () => {
     fetch.mockResolvedValueOnce({
       ok: false, status: 503,
       text: async () => '',
     });
-    await expect(apiFetch('/api/test')).rejects.toThrow('Erro desconhecido (HTTP 503)');
+    await expect(apiFetch('/api/test')).rejects.toThrow('O servidor está indisponível ou demorou demais para responder.');
+  });
+
+  it('não mostra a página HTML de erro do proxy: 502/504 viram mensagem de indisponibilidade', async () => {
+    for (const status of [502, 504]) {
+      fetch.mockResolvedValueOnce({
+        ok: false, status,
+        text: async () => '<html><body><h1>504 Gateway Time-out</h1></body></html>',
+      });
+      const err = await apiFetch('/api/test').catch(e => e);
+      expect(err.message).toBe('O servidor está indisponível ou demorou demais para responder. Tente novamente em instantes.');
+      expect(err.status).toBe(status);
+    }
+  });
+
+  it('504 num POST avisa para conferir se a operação foi registrada antes de repetir', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false, status: 504,
+      text: async () => '<html><body><h1>504 Gateway Time-out</h1></body></html>',
+    });
+    const err = await apiFetch('/api/reagentes/importar-lote', { method: 'POST' }).catch(e => e);
+    expect(err.message).toBe('O servidor demorou demais para responder. Confira se a operação foi registrada antes de repeti-la.');
+  });
+
+  it('413 com corpo HTML vira mensagem de envio grande demais', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false, status: 413,
+      text: async () => '<html><body>413 Request Entity Too Large</body></html>',
+    });
+    await expect(apiFetch('/api/test', { method: 'POST' })).rejects.toThrow('O envio é grande demais para o servidor.');
+  });
+
+  it('outro status com corpo não-JSON cai no genérico, sem o corpo cru', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false, status: 500,
+      text: async () => '<html>Internal Server Error</html>',
+    });
+    await expect(apiFetch('/api/test')).rejects.toThrow(/^Erro desconhecido \(HTTP 500\)$/);
+  });
+
+  it('traduz falha de rede (TypeError do fetch) para mensagem em pt-BR', async () => {
+    fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(apiFetch('/api/test')).rejects.toThrow(
+      'Não foi possível falar com o servidor. Verifique sua conexão e tente novamente.'
+    );
+  });
+
+  describe('timeout', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      fetch.mockImplementation((_url, init) => new Promise((_resolve, reject) => {
+        init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }));
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('GET sem resposta em 30 s lança mensagem de timeout simples', async () => {
+      const p = apiFetch('/api/test');
+      const check = expect(p).rejects.toThrow(/^O servidor não respondeu a tempo. Tente novamente.$/);
+      await vi.advanceTimersByTimeAsync(30_000);
+      await check;
+    });
+
+    it('não-GET sem resposta pede para conferir se a operação foi registrada', async () => {
+      const p = apiFetch('/api/test', { method: 'POST' });
+      const check = expect(p).rejects.toThrow('Confira se a operação foi registrada antes de repeti-la.');
+      await vi.advanceTimersByTimeAsync(30_000);
+      await check;
+    });
+
+    it('não aborta antes dos 30 s', async () => {
+      const p = apiFetch('/api/test');
+      let rejeitou = false;
+      p.catch(() => { rejeitou = true; });
+      await vi.advanceTimersByTimeAsync(29_999);
+      expect(rejeitou).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(rejeitou).toBe(true);
+    });
+
+    it('abort do chamador propaga o AbortError original, sem virar mensagem de timeout', async () => {
+      const controller = new AbortController();
+      const p = apiFetch('/api/test', { signal: controller.signal });
+      controller.abort();
+      const err = await p.catch(e => e);
+      expect(err.name).toBe('AbortError');
+    });
   });
 
   it('NÃO dispara auth:unauthorized no 401 sem token', async () => {

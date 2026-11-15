@@ -7,7 +7,7 @@ using ResQui.Domain.Interfaces;
 
 namespace ResQui.Application.Mtrs;
 
-public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo, IAuditoriaService auditoria, ICompatService compat, Pdf.IPdfService pdf, IAuthRepository auth, IVisibilidadeUsuarios visibilidade) : IMtrsService
+public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo, IAuditoriaService auditoria, ICompatService compat, Pdf.IPdfService pdf, IAuthRepository auth, IVisibilidadeUsuarios visibilidade, ITransacoes transacoes) : IMtrsService
 {
     public async Task<IEnumerable<MtrDto>> ListarAsync(Solicitante solicitante)
     {
@@ -75,20 +75,25 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
             CodigoIbama = cmd.CodigoIbama,
             ResponsavelId = usuarioId,
         };
-        await repo.AddAsync(m);
-        await repo.SaveChangesAsync();
-
-        foreach (var r in residuos)
+        // O primeiro save resolve Id e Numero; se o vínculo dos resíduos perder a corrida de xmin,
+        // o manifesto é desfeito junto em vez de ficar órfão (o número da sequência se perde).
+        await transacoes.ExecutarAsync(async () =>
         {
-            r.MtrId = m.Id;
-            r.Status = "em-coleta";
-            await residuosRepo.UpdateAsync(r);
-        }
-        await repo.UpdateAsync(m);
-        await residuosRepo.SaveChangesAsync();
-        await repo.SaveChangesAsync();
-        await auditoria.RegistrarAsync(solicitante.Email, "mtr.criar", "MTR",
-            $"Criou MTR {m.Numero} com {residuos.Count} resíduo(s)", RiscoAuditoria.Medium);
+            await repo.AddAsync(m);
+            await repo.SaveChangesAsync();
+
+            foreach (var r in residuos)
+            {
+                r.MtrId = m.Id;
+                r.Status = "em-coleta";
+                await residuosRepo.UpdateAsync(r);
+            }
+            await repo.UpdateAsync(m);
+            await residuosRepo.SaveChangesAsync();
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "mtr.criar", "MTR",
+                $"Criou MTR {m.Numero} com {residuos.Count} resíduo(s)", RiscoAuditoria.Medium);
+        });
         return ToDto(m, residuos, solicitante);
     }
 
@@ -128,12 +133,14 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         m.DataDestinacao = data;
         m.DestinadoPorId = usuarioId;
         await repo.UpdateAsync(m);
-        await residuosRepo.SaveChangesAsync();
-        await repo.SaveChangesAsync();
-
-        await auditoria.RegistrarAsync(solicitante.Email, "mtr.destinacao", "MTR",
-            $"Destinação do MTR {m.Numero} confirmada em {data:yyyy-MM-dd} — {emColeta.Count} resíduo(s) encerrado(s)",
-            RiscoAuditoria.Medium);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await residuosRepo.SaveChangesAsync();
+            await repo.SaveChangesAsync();
+            await auditoria.RegistrarAsync(solicitante.Email, "mtr.destinacao", "MTR",
+                $"Destinação do MTR {m.Numero} confirmada em {data:yyyy-MM-dd} — {emColeta.Count} resíduo(s) encerrado(s)",
+                RiscoAuditoria.Medium);
+        });
         return ToDto(m, todos, solicitante, await NomeDeQuemDestinouAsync(m.DestinadoPorId));
     }
 
@@ -155,13 +162,15 @@ public class MtrsService(IMtrsRepository repo, IResiduosRepository residuosRepo,
         m.DataDestinacao = null;
         m.DestinadoPorId = null;
         await repo.UpdateAsync(m);
-        await residuosRepo.SaveChangesAsync();
-        await repo.SaveChangesAsync();
-
-        // High: desfazer um registro de rastreabilidade não é operação corriqueira.
-        await auditoria.RegistrarAsync(solicitante.Email, "mtr.destinacao-reaberta", "MTR",
-            $"Reabriu o MTR {m.Numero} — {destinados.Count} resíduo(s) de volta para coleta",
-            RiscoAuditoria.High);
+        await transacoes.ExecutarAsync(async () =>
+        {
+            await residuosRepo.SaveChangesAsync();
+            await repo.SaveChangesAsync();
+            // High: desfazer um registro de rastreabilidade não é operação corriqueira.
+            await auditoria.RegistrarAsync(solicitante.Email, "mtr.destinacao-reaberta", "MTR",
+                $"Reabriu o MTR {m.Numero} — {destinados.Count} resíduo(s) de volta para coleta",
+                RiscoAuditoria.High);
+        });
         return true;
     }
 

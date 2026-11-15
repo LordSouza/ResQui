@@ -20,7 +20,7 @@ public class AssistenteService(
 
     private static readonly JsonElement ParamsVazio = JsonDocument.Parse("{}").RootElement.Clone();
 
-    public async Task<RespostaAssistenteDto> ResponderAsync(MensagemAssistenteCmd cmd, Solicitante solicitante)
+    public async Task<RespostaAssistenteDto> ResponderAsync(MensagemAssistenteCmd cmd, Solicitante solicitante, CancellationToken ct = default)
     {
         if (!config.GetValue("Assistente:Enabled", false))
             throw new AssistenteIndisponivelException("O assistente não está configurado nesta instalação.");
@@ -53,7 +53,7 @@ public class AssistenteService(
             .Select(m => m with { Texto = Truncar(m.Texto) })
             .ToList();
 
-        var conteudo = await provider.CompletarAsync(prompt, historico, cmd.Mensagem);
+        var conteudo = await provider.CompletarAsync(prompt, historico, cmd.Mensagem, ct);
 
         return Interpretar(conteudo);
     }
@@ -80,14 +80,14 @@ public class AssistenteService(
         }
         catch (JsonException)
         {
-            throw new ValidationException("Não consegui interpretar a resposta do assistente. Tente reformular.");
+            throw new AssistenteIndisponivelException("Não consegui interpretar a resposta do assistente. Tente reformular.");
         }
 
         using (doc)
         {
             var raiz = doc.RootElement;
             if (raiz.ValueKind != JsonValueKind.Object)
-                throw new ValidationException("Não consegui interpretar a resposta do assistente. Tente reformular.");
+                throw new AssistenteIndisponivelException("Não consegui interpretar a resposta do assistente. Tente reformular.");
 
             var say = raiz.TryGetProperty("say", out var s) && s.ValueKind == JsonValueKind.String
                 ? s.GetString() ?? "" : "";

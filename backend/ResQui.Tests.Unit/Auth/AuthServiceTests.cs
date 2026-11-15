@@ -1,3 +1,4 @@
+using ResQui.Tests.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using ResQui.Application.Auditoria;
@@ -33,7 +34,7 @@ public class AuthServiceTests
 
     public AuthServiceTests()
     {
-        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs, _labRepo, Substitute.For<IFalhasLoginPorIp>());
+        _sut = new AuthService(_repo, _jwt, _audit, _sessoes, _email, _throttle, _usuarioLabs, _labRepo, Substitute.For<IFalhasLoginPorIp>(), new TransacoesDiretas());
         // Sem isto, TentarConsumir devolve false (default de bool) e todo login destes testes
         // morre no throttle.
         _throttle.TentarConsumir(Arg.Any<string>()).Returns(true);
@@ -89,7 +90,7 @@ public class AuthServiceTests
     [Fact]
     public async Task LoginAsync_EmailMaiorQueAColuna_RegistraTruncado()
     {
-        var longo = new string('a', 300) + "@lab.com";
+        var longo = new string('a', 240) + "@lab.com";
         _repo.FindByEmailAsync(longo).Returns((UsuarioInfo?)null);
 
         await _sut.LoginAsync(new LoginCmd(longo, "x"));
@@ -106,7 +107,7 @@ public class AuthServiceTests
 
         var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"));
 
-        await act.Should().ThrowAsync<ValidationException>();
+        await act.Should().ThrowAsync<MuitasTentativasException>();
         await _audit.DidNotReceive().RegistrarAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }

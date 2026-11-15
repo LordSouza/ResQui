@@ -4,5 +4,5 @@ namespace ResQui.Application.Assistente;
 
 public interface IAssistenteService
 {
-    Task<RespostaAssistenteDto> ResponderAsync(MensagemAssistenteCmd cmd, Solicitante solicitante);
+    Task<RespostaAssistenteDto> ResponderAsync(MensagemAssistenteCmd cmd, Solicitante solicitante, CancellationToken ct = default);
 }

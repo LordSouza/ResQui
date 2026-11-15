@@ -8,7 +8,9 @@ namespace ResQui.Application.Assistente;
 
 public class DeepSeekProvider(HttpClient http, IConfiguration config, ILogger<DeepSeekProvider> logger) : IAssistenteProvider
 {
-    public async Task<string> CompletarAsync(string systemPrompt, IReadOnlyList<MensagemChat> historico, string mensagem)
+    private const int MaxCaracteresCorpoDeErroNoLog = 2048;
+
+    public async Task<string> CompletarAsync(string systemPrompt, IReadOnlyList<MensagemChat> historico, string mensagem, CancellationToken ct = default)
     {
         var modelo = config["Assistente:Model"] ?? "deepseek-v4-flash";
         var timeout = TimeSpan.FromSeconds(config.GetValue("Assistente:TimeoutSeconds", 20));
@@ -28,28 +30,34 @@ public class DeepSeekProvider(HttpClient http, IConfiguration config, ILogger<De
             stream = false,
         };
 
-        using var cts = new CancellationTokenSource(timeout);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(timeout);
         HttpResponseMessage resposta;
         try
         {
             resposta = await http.PostAsJsonAsync("/chat/completions", payload, cts.Token);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex) when (ex is OperationCanceledException or TimeoutException)
         {
             logger.LogWarning("Assistente: provedor não respondeu em {Timeout}s", timeout.TotalSeconds);
-            throw new ValidationException("O assistente não respondeu a tempo. Tente de novo em instantes.");
+            throw new AssistenteIndisponivelException("O assistente não respondeu a tempo. Tente de novo em instantes.");
         }
         catch (HttpRequestException ex)
         {
             logger.LogError(ex, "Assistente: falha de rede ao chamar o provedor");
-            throw new ValidationException("O serviço do assistente está indisponível agora.");
+            throw new AssistenteIndisponivelException("O serviço do assistente está indisponível agora.");
         }
 
         if (!resposta.IsSuccessStatusCode)
         {
             var corpo = await resposta.Content.ReadAsStringAsync(cts.Token);
+            if (corpo.Length > MaxCaracteresCorpoDeErroNoLog) corpo = corpo[..MaxCaracteresCorpoDeErroNoLog] + "…";
             logger.LogError("Assistente: provedor devolveu {Status}: {Corpo}", (int)resposta.StatusCode, corpo);
-            throw new ValidationException("O serviço do assistente está indisponível agora.");
+            throw new AssistenteIndisponivelException("O serviço do assistente está indisponível agora.");
         }
 
         JsonElement doc;
@@ -60,7 +68,7 @@ public class DeepSeekProvider(HttpClient http, IConfiguration config, ILogger<De
         catch (JsonException ex)
         {
             logger.LogError(ex, "Assistente: resposta do provedor não é JSON");
-            throw new ValidationException("O serviço do assistente devolveu uma resposta inesperada.");
+            throw new AssistenteIndisponivelException("O serviço do assistente devolveu uma resposta inesperada.");
         }
 
         if (doc.ValueKind != JsonValueKind.Object
@@ -74,14 +82,14 @@ public class DeepSeekProvider(HttpClient http, IConfiguration config, ILogger<De
             || content.ValueKind != JsonValueKind.String)
         {
             logger.LogError("Assistente: resposta do provedor fora do formato esperado");
-            throw new ValidationException("O serviço do assistente devolveu uma resposta inesperada.");
+            throw new AssistenteIndisponivelException("O serviço do assistente devolveu uma resposta inesperada.");
         }
 
         var conteudo = content.GetString();
         if (string.IsNullOrWhiteSpace(conteudo))
         {
             logger.LogError("Assistente: provedor devolveu conteúdo vazio");
-            throw new ValidationException("O serviço do assistente devolveu uma resposta vazia.");
+            throw new AssistenteIndisponivelException("O serviço do assistente devolveu uma resposta vazia.");
         }
 
         return conteudo;

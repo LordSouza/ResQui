@@ -91,6 +91,7 @@ builder.Services.AddHttpClient<IAssistenteProvider, DeepSeekProvider>(http =>
     var chave = builder.Configuration["Assistente:ApiKey"];
     if (!string.IsNullOrWhiteSpace(chave))
         http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", chave);
+    http.MaxResponseContentBufferSize = 1024 * 1024;
 });
 // Singleton: o estado do throttle vive em memória e precisa sobreviver entre requisições.
 builder.Services.AddSingleton<ILoginThrottle, LoginThrottle>();
@@ -119,6 +120,8 @@ builder.Services.AddRateLimiter(opcoes =>
             ? "Muitos pedidos de redefinição de senha a partir desta rede. Aguarde alguns minutos e tente novamente."
             : $"Limite de {maxMensagens} mensagens a cada {janela.TotalMinutes:0} minutos atingido. Aguarde um pouco para continuar.";
         ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        if (ctx.Lease.TryGetMetadata(MetadataName.RetryAfter, out var tentarNovamenteEm))
+            ctx.HttpContext.Response.Headers.RetryAfter = SegundosParaRetryAfter(tentarNovamenteEm);
         await ctx.HttpContext.Response.WriteAsJsonAsync(new { message = mensagem }, ct);
     };
 });
@@ -214,6 +217,12 @@ app.Use(async (ctx, next) =>
         ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
     }
+    catch (MuitasTentativasException ex)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        ctx.Response.Headers.RetryAfter = SegundosParaRetryAfter(ex.TentarNovamenteEm);
+        await ctx.Response.WriteAsJsonAsync(new { message = ex.Message });
+    }
     catch (ValidationException ex)
     {
         ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -235,6 +244,11 @@ app.Use(async (ctx, next) =>
         await ctx.Response.WriteAsJsonAsync(new { message = "O registro foi alterado por outro usuário. Recarregue e tente novamente." });
     }
 });
+
+// Retry-After só aceita segundos inteiros; arredondar para cima evita mandar o cliente voltar
+// antes de a janela abrir, e o mínimo de 1 evita "0", que convida a repetir na hora.
+static string SegundosParaRetryAfter(TimeSpan espera) =>
+    Math.Max(1, (int)Math.Ceiling(espera.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
 // Seed on startup (idempotent in all environments)
 using (var scope = app.Services.CreateScope())
@@ -262,6 +276,8 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 // Endpoints
+// Sob /api/ para o probe externo passar pelo proxy do nginx; só responde depois do seed/migrations acima.
+app.MapGet("/api/health", () => Results.Ok()).AllowAnonymous().DisableRateLimiting();
 app.MapGroup("/api/auth").MapAuthEndpoints();
 app.MapGroup("/api/reagentes").RequireAuthorization().MapReagentesEndpoints();
 app.MapGroup("/api/laboratorios").RequireAuthorization().MapLaboratoriosEndpoints();

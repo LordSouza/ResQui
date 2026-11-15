@@ -52,7 +52,7 @@ describe('AssistenteChat', () => {
 
   it('mostra a mensagem de erro do servidor no lugar de uma desculpa genérica', async () => {
     vi.stubGlobal('fetch', responderCom({
-      ok: false, status: 400,
+      ok: false, status: 503,
       text: async () => JSON.stringify({ message: 'O assistente não respondeu a tempo.' }),
     }));
     const user = userEvent.setup();
@@ -64,7 +64,7 @@ describe('AssistenteChat', () => {
     await waitFor(() => expect(screen.getByText('O assistente não respondeu a tempo.')).toBeInTheDocument());
   });
 
-  it('declara-se indisponível e desabilita a entrada quando o backend responde 503', async () => {
+  it('declara-se indisponível no 503 mas deixa tentar de novo, porque a falha pode ser passageira', async () => {
     vi.stubGlobal('fetch', responderCom({
       ok: false, status: 503,
       text: async () => JSON.stringify({ message: 'O assistente não está configurado nesta instalação.' }),
@@ -75,8 +75,9 @@ describe('AssistenteChat', () => {
     await user.type(screen.getByLabelText(/Mensagem para o assistente/i), 'oi');
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(screen.getByText(/não configurado/i)).toBeInTheDocument());
-    expect(screen.getByLabelText(/Mensagem para o assistente/i)).toBeDisabled();
+    await waitFor(() => expect(screen.getByText(/indisponível no momento/i)).toBeInTheDocument());
+    expect(screen.getByText('O assistente não está configurado nesta instalação.')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Mensagem para o assistente/i)).toBeEnabled();
   });
 
   it('fecha com Esc a partir do campo de mensagem', async () => {

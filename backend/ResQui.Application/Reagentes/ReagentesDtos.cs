@@ -59,9 +59,10 @@ public record CriarReagenteCmd(
     GhsDto? Ghs
 );
 
+// Sem Estoque: ele só muda por baixa ou lote. Reenviar o valor lido ao abrir o formulário
+// sobrescrevia baixas feitas por outra pessoa nesse meio-tempo.
 public record AtualizarReagenteCmd(
     string Nome,
-    decimal Estoque,
     decimal? EstoqueMin,
     string? LaboratorioId,
     string? Armario,

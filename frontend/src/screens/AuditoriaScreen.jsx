@@ -2,7 +2,7 @@ import { useState, useMemo, useReducer } from 'react';
 import { Icon, Badge, SectionTitle } from '../components';
 import Modal from '../forms/Modal';
 import { exportCsv } from '../utils';
-import { useAuditoria, useVerificarCadeia, obterAncoraAuditoria } from '../auditoria/useAuditoria';
+import { useAuditoria, useVerificarCadeia, obterAncoraAuditoria, LIMITE_AUDITORIA } from '../auditoria/useAuditoria';
 import { usePode } from '../auth/permissoes';
 import { useToast } from '../components/ToastContext';
 
@@ -276,6 +276,9 @@ export function AuditoriaScreen({ state, dispatch }) {
             }
             const rows = [['Timestamp', 'Usuário', 'Ação', 'Local', 'Detalhe', 'Risco']];
             filtered.forEach(a => rows.push([a.ts, a.who, a.what, a.where, a.detail, a.risk]));
+            if (rawData.length >= LIMITE_AUDITORIA) {
+              rows.push([], [`Exportação limitada aos ${LIMITE_AUDITORIA} eventos mais recentes; use as datas em Filtros avançados para eventos anteriores.`]);
+            }
             if (ancora) rows.push([], ['Âncora da auditoria', `seq. ${ancora.ultimaSequencia}`, `hash ${ancora.prefixoHash}`]);
             exportCsv(rows, `auditoria-${exportDate.toISOString().slice(0,10)}.csv`);
             dispatch({type: 'refresh'});
@@ -312,6 +315,11 @@ export function AuditoriaScreen({ state, dispatch }) {
             </button>
           }
         </div>
+        {rawData.length >= LIMITE_AUDITORIA &&
+        <div className="small muted" role="status" style={{padding: '4px 0 8px'}}>
+            Mostrando os {LIMITE_AUDITORIA} eventos mais recentes. Para ver eventos mais antigos, use as datas em Filtros avançados.
+          </div>
+        }
         <div className="audit-col-header">
           <span>Timestamp</span>
           <span>Usuário</span>
