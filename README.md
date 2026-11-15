@@ -50,12 +50,20 @@ npm test
 npm run build
 ```
 
-E2E (Playwright): com o backend rodando em `http://localhost:5000` com dados de demonstração
-(`Seed__DemoData=true`), rode:
+E2E (Playwright), como no job `e2e` do CI. O backend roda em modo Development, que semeia o
+admin com a senha `Admin@123` esperada pelos testes, e não pelo Compose:
 
 ```bash
+docker compose up -d postgres
+
+cd backend
+ASPNETCORE_ENVIRONMENT=Development Seed__DemoData=true ASPNETCORE_URLS=http://localhost:5000 \
+  dotnet run --project ResQui.API --no-launch-profile
+
+# em outro terminal; o Playwright sobe o Vite em http://localhost:5173
 cd frontend
-npx playwright test
+npx playwright install chromium
+PLAYWRIGHT_CHANNEL=chromium npx playwright test
 ```
 
 A pipeline completa está em `.github/workflows/ci.yml`.
