@@ -28,6 +28,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         var user = await repo.FindByEmailAsync(cmd.Email);
         if (user is null)
         {
+            await RegistrarFalhaDeLoginAsync(cmd.Email, "e-mail não cadastrado", ip);
             await ContabilizarFalhaDoIpAsync(ip, cmd.Email);
             return null;
         }
@@ -39,6 +40,7 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
         var valid = await repo.CheckPasswordAsync(user.Id, cmd.Senha);
         if (!valid)
         {
+            await RegistrarFalhaDeLoginAsync(cmd.Email, "senha incorreta", ip);
             await ContabilizarFalhaAsync(user.Id, cmd.Email);
             await ContabilizarFalhaDoIpAsync(ip, cmd.Email);
             return null;
@@ -332,11 +334,20 @@ public class AuthService(IAuthRepository repo, JwtOptions jwtOptions, IAuditoria
     private async Task ContabilizarFalhaAsync(string userId, string email)
     {
         await repo.RegistrarFalhaLoginAsync(userId);
-        // Auditar só a falha que aciona o bloqueio. Auditar toda tentativa em conta já travada
-        // inundaria a trilha justamente durante o ataque, que é quando ela precisa ser legível.
+        // A falha que aciona o bloqueio ganha um registro próprio. Tentativas em conta já travada
+        // não chegam aqui: auditá-las inundaria a trilha justamente durante o ataque.
         if (await repo.EstaBloqueadoAsync(userId))
             await auditoria.RegistrarAsync(email, "user.login-bloqueado", "Auth",
                 "Conta bloqueada por excesso de tentativas de login", RiscoAuditoria.High);
+    }
+
+    // O e-mail vem cru da requisição e a coluna Who tem 200 caracteres.
+    private async Task RegistrarFalhaDeLoginAsync(string email, string motivo, string? ip)
+    {
+        var quem = email.Length > 200 ? email[..200] : email;
+        var origem = ip is null ? "" : $" a partir de {ip}";
+        await auditoria.RegistrarAsync(quem, "user.login-falha", "Auth",
+            $"Login recusado: {motivo}{origem}", RiscoAuditoria.Low);
     }
 
     private async Task ContabilizarFalhaDoIpAsync(string? ip, string email)

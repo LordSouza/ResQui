@@ -14,11 +14,20 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
         (await repo.GetByUsuarioAsync(usuarioId))
             .Select(n => new NotificacaoDto(n.Id, n.Mensagem, n.Lida, n.CriadaEm, n.Tipo, n.ReferenciaId, n.Severidade));
 
-    public async Task MarcarComoLidaAsync(int id, string usuarioId) =>
-        await repo.MarkAsReadAsync(id, usuarioId);
+    public async Task MarcarComoLidaAsync(int id, string usuarioId)
+    {
+        if (!await repo.MarkAsReadAsync(id, usuarioId)) return;
+        await auditoria.RegistrarAsync(await EmailDoUsuarioAsync(usuarioId), "notificacao.lida", "Conta",
+            $"Marcou a notificação {id} como lida", RiscoAuditoria.Low);
+    }
 
-    public async Task MarcarTodasLidasAsync(string usuarioId) =>
-        await repo.MarcarTodasLidasAsync(usuarioId);
+    public async Task MarcarTodasLidasAsync(string usuarioId)
+    {
+        var marcadas = await repo.MarcarTodasLidasAsync(usuarioId);
+        if (marcadas == 0) return;
+        await auditoria.RegistrarAsync(await EmailDoUsuarioAsync(usuarioId), "notificacao.todas-lidas", "Conta",
+            $"Marcou {marcadas} notificação(ões) como lida(s)", RiscoAuditoria.Low);
+    }
 
     public async Task CriarAsync(string usuarioId, string mensagem, string tipo, string referenciaId, string severidade)
     {
@@ -65,9 +74,11 @@ public class NotificacoesService(INotificacoesRepository repo, IAuthRepository a
             ["coleta"] = prefs.Coleta,
         };
         await auth.SaveNotificacaoPrefsJsonAsync(usuarioId, JsonSerializer.Serialize(dict));
-        var usuario = await auth.FindByIdAsync(usuarioId);
-        await auditoria.RegistrarAsync(usuario?.Email ?? usuarioId, "user.notificacao-prefs", "Conta",
+        await auditoria.RegistrarAsync(await EmailDoUsuarioAsync(usuarioId), "user.notificacao-prefs", "Conta",
             "Alterou preferências de e-mail: " + string.Join(", ", dict.Select(p => $"{p.Key}={(p.Value ? "on" : "off")}")),
             RiscoAuditoria.Low);
     }
+
+    private async Task<string> EmailDoUsuarioAsync(string usuarioId) =>
+        (await auth.FindByIdAsync(usuarioId))?.Email ?? usuarioId;
 }

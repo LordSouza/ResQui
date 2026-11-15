@@ -62,27 +62,52 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_CredenciaisInvalidas_NaoRegistraAuditoria()
+    public async Task LoginAsync_EmailNaoCadastrado_RegistraFalhaDeLogin()
     {
         _repo.FindByEmailAsync("ana@lab.com").Returns((UsuarioInfo?)null);
 
-        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"));
+        await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"), ip: "203.0.113.7");
 
-        await _audit.DidNotReceive().RegistrarAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "user.login-falha", "Auth",
+            "Login recusado: e-mail não cadastrado a partir de 203.0.113.7", RiscoAuditoria.Low);
     }
 
     [Fact]
-    public async Task LoginAsync_SenhaErrada_NaoRegistraAuditoria()
+    public async Task LoginAsync_SenhaErrada_RegistraFalhaDeLoginSemBloqueio()
     {
         _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser());
         _repo.CheckPasswordAsync("user-1", "errada").Returns(false);
 
         await _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"));
 
-        await _audit.DidNotReceive().RegistrarAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+        await _audit.Received(1).RegistrarAsync("ana@lab.com", "user.login-falha", "Auth",
+            "Login recusado: senha incorreta", RiscoAuditoria.Low);
+        await _audit.DidNotReceive().RegistrarAsync(Arg.Any<string>(), "user.login-bloqueado",
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task LoginAsync_EmailMaiorQueAColuna_RegistraTruncado()
+    {
+        var longo = new string('a', 300) + "@lab.com";
+        _repo.FindByEmailAsync(longo).Returns((UsuarioInfo?)null);
+
+        await _sut.LoginAsync(new LoginCmd(longo, "x"));
+
+        await _audit.Received(1).RegistrarAsync(Arg.Is<string>(q => q.Length == 200), "user.login-falha",
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
+    }
+
+    [Fact]
+    public async Task LoginAsync_ContaBloqueada_NaoRegistraNovaFalha()
+    {
+        _repo.FindByEmailAsync("ana@lab.com").Returns(FakeUser());
+        _repo.EstaBloqueadoAsync("user-1").Returns(true);
+
+        var act = () => _sut.LoginAsync(new LoginCmd("ana@lab.com", "errada"));
+
+        await act.Should().ThrowAsync<ValidationException>();
+        await _audit.DidNotReceive().RegistrarAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<RiscoAuditoria>());
     }
 

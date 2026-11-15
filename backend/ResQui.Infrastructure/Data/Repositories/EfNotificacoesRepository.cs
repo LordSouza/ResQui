@@ -10,10 +10,13 @@ public class EfNotificacoesRepository(AppDbContext db) : INotificacoesRepository
     public async Task<IEnumerable<Notificacao>> GetByUsuarioAsync(string usuarioId) =>
         await db.Notificacoes.Where(n => n.UsuarioId == usuarioId).ToListAsync();
 
-    public async Task MarkAsReadAsync(int id, string usuarioId)
+    public async Task<bool> MarkAsReadAsync(int id, string usuarioId)
     {
         var n = await db.Notificacoes.FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == usuarioId);
-        if (n is not null) { n.Lida = true; await db.SaveChangesAsync(); }
+        if (n is null || n.Lida) return false;
+        n.Lida = true;
+        await db.SaveChangesAsync();
+        return true;
     }
 
     public async Task AddAsync(Notificacao notificacao) =>
@@ -28,9 +31,9 @@ public class EfNotificacoesRepository(AppDbContext db) : INotificacoesRepository
             n.ReferenciaId == referenciaId &&
             !n.Lida);
 
-    public async Task MarcarTodasLidasAsync(string usuarioId)
+    public async Task<int> MarcarTodasLidasAsync(string usuarioId)
     {
-        await db.Notificacoes
+        return await db.Notificacoes
             .Where(n => n.UsuarioId == usuarioId && !n.Lida)
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.Lida, true));
     }
