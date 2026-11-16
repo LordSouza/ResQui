@@ -7,8 +7,7 @@ public record CompatFonteDto(
     string Fonte,
     string Referencia,
     string Url,
-    string RevisadoEm,
-    string Detalhamento);
+    string RevisadoEm);
 
 public record CompatOverrideDto(
     int ClasseA,

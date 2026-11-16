@@ -6,8 +6,7 @@ namespace ResQui.Infrastructure.Data.Migrations
 {
     /// <summary>
     /// Torna a trilha de auditoria somente de inclusão e encadeada por SHA-256.
-    /// A serialização canônica está em docs/auditoria-integridade.md e precisa bater com
-    /// ResQui.Application.Auditoria.CadeiaAuditoria.
+    /// A serialização canônica precisa bater com ResQui.Application.Auditoria.CadeiaAuditoria.
     /// </summary>
     public partial class AddCadeiaAuditoria : Migration
     {

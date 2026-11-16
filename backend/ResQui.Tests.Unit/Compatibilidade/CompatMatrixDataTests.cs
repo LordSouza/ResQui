@@ -34,7 +34,7 @@ public class CompatMatrixDataTests
     [Fact]
     public void GetAll_DiagonalEhZero()
     {
-        // Simplificação declarada em docs/compatibilidade-proveniencia.md: classe consigo mesma
+        // Simplificação declarada: classe consigo mesma
         // é tratada como compatível, o que não vale para peróxidos nem reativos com água.
         CompatMatrixData.GetAll()
             .Where(e => e.ClasseA == e.ClasseB)
@@ -45,7 +45,7 @@ public class CompatMatrixDataTests
     public void GetAll_Classe12_EhProibidaComTodasAsOutrasClasses()
     {
         // RGN 107 no chart EPA-600/2-80-076: "extremamente reativo — não misturar com nenhum
-        // produto químico ou resíduo". Ver docs/compatibilidade-proveniencia.md.
+        // produto químico ou resíduo".
         var pares = CompatMatrixData.GetAll()
             .Where(e => (e.ClasseA == 12 || e.ClasseB == 12) && e.ClasseA != e.ClasseB)
             .ToList();
@@ -63,7 +63,6 @@ public class CompatMatrixDataTests
     {
         // Pares com um único grupo de reatividade (RGN) de cada lado no chart EPA-600/2-80-076:
         // o nível é leitura direta dos códigos de consequência, sem teto de agregação.
-        // Ver docs/compatibilidade-proveniencia.md e o spec da reconciliação de 2026-07-27.
         var nivel = CompatMatrixData.GetAll().ToDictionary(e => (e.ClasseA, e.ClasseB), e => e.Nivel);
 
         nivel[(classeA, classeB)].Should().Be(esperado);
@@ -89,10 +88,7 @@ public class CompatMatrixDataTests
     {
         // Pares em que ao menos um lado agrega vários grupos de reatividade da EPA — o nível da
         // fonte é o pior caso do grupo, um teto. A decisão par a par (adotar o teto, adotar por
-        // precaução quando ele vem de meia classe, ou declarar desvio) está em
-        // docs/superpowers/specs/2026-07-28-reconciliacao-classes-agregadas-design.md.
-        // Os dois desvios só podem mudar junto com a seção "Desvios declarados" de
-        // docs/compatibilidade-proveniencia.md e o dict DESVIOS de docs/fontes/.../derive.py.
+        // precaução quando ele vem de meia classe, ou declarar desvio) é feita par a par.
         var nivel = CompatMatrixData.GetAll().ToDictionary(e => (e.ClasseA, e.ClasseB), e => e.Nivel);
 
         nivel[(classeA, classeB)].Should().Be(esperado);

@@ -75,7 +75,6 @@ describe('useCompatMatriz', () => {
           referencia: 'Johnson, L. E. & Farr, J. K. (2008).',
           url: 'https://www.epa.gov/',
           revisadoEm: '2026-07-27',
-          detalhamento: 'docs/compatibilidade-proveniencia.md',
         },
       }),
     });

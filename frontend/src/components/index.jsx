@@ -86,7 +86,7 @@ export const residuoStatusBadge = (s) => {
   return <Badge kind={k}>{l}</Badge>;
 };
 
-// Pictograma GHS — arte oficial da UNECE (domínio público), ver docs/fontes/ghs-pictogramas.md
+// Pictograma GHS — arte oficial da UNECE (domínio público)
 export const Picto = ({ kind, small }) => {
   const fonte = PICTOGRAMAS_GHS[kind];
   if (!fonte) return null;

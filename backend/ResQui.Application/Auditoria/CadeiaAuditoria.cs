@@ -7,7 +7,7 @@ namespace ResQui.Application.Auditoria;
 
 /// <summary>
 /// Espelho em C# da função SQL auditoria_hash (migração AddCadeiaAuditoria); as duas precisam
-/// produzir a mesma serialização, documentada em docs/auditoria-integridade.md.
+/// produzir a mesma serialização.
 /// </summary>
 public static class CadeiaAuditoria
 {

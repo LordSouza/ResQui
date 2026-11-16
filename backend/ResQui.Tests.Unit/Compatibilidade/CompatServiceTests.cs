@@ -239,7 +239,6 @@ public class CompatServiceTests
         matriz.Fonte.Referencia.Should().Contain("Johnson");
         matriz.Fonte.Referencia.Should().Contain("2008");
         matriz.Fonte.Url.Should().StartWith("https://");
-        matriz.Fonte.Detalhamento.Should().Be("docs/compatibilidade-proveniencia.md");
     }
 
     // --- Auditoria dos overrides ---

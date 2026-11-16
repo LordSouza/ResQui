@@ -1,6 +1,5 @@
 // Trava as FKs do modelo e a política de exclusão de cada uma. O modelo do EF é inspecionável sem
-// abrir conexão com o banco: UseNpgsql só configura o provider. Decisões em
-// docs/superpowers/specs/2026-07-28-integridade-referencial-design.md.
+// abrir conexão com o banco: UseNpgsql só configura o provider.
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using ResQui.Domain.Entities;

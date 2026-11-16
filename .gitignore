@@ -62,7 +62,4 @@ frontend/blog/dist/
 # Claude Code agent worktrees (não versionar)
 .claude/worktrees/
 
-# Cache do Python (scripts de auditoria em docs/fontes/)
-__pycache__/
-
 .playwright-mcp/

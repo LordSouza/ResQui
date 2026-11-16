@@ -87,11 +87,6 @@ RESQUI_TAG=<sha> docker compose -f docker-compose.yml -f docker-compose.prod.yml
 - Usa os arquivos compose que já estão na VPS (os do último deploy).
 - Um `docker compose up` sem `RESQUI_TAG` volta para `latest`, e o próximo push em `master` sobe o commit novo.
 
-## Documentação
-
-- [Proveniência da matriz de compatibilidade química](docs/compatibilidade-proveniencia.md)
-- [Integridade da trilha de auditoria](docs/auditoria-integridade.md)
-
 ## Licença
 
 Distribuído sob a licença MIT. Veja [LICENSE](LICENSE).

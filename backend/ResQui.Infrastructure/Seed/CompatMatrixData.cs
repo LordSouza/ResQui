@@ -6,9 +6,9 @@ public static class CompatMatrixData
 {
     // Níveis: 0=compatível 1=cautela 2=perigo 3=proibido.
     // Proveniência (fonte, referência e mapeamento classe → grupo de reatividade da EPA):
-    // ResQui.Application.Compatibilidade.CompatProveniencia e docs/compatibilidade-proveniencia.md.
+    // ResQui.Application.Compatibilidade.CompatProveniencia.
     // A matriz é simétrica com diagonal zero — propriedades travadas por CompatMatrixDataTests.
-    // Divergências em relação à fonte, todas declaradas em docs/compatibilidade-proveniencia.md:
+    // Divergências em relação à fonte:
     // 19 pares são mais restritivos que a EPA (que não documenta reação para eles) e 2 são
     // desvios de projeto declarados — 2x5 em nível 1 contra teto 2, e 5x10 em nível 2 contra
     // teto 3. Nenhum par é mais permissivo que a fonte sem declaração.

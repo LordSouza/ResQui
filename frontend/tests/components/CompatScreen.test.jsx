@@ -42,7 +42,6 @@ const baseFonte = {
   referencia: 'Johnson, L. E. & Farr, J. K. (2008). CRW 2.0. Process Safety Progress, 27(3), 212–218.',
   url: 'https://www.epa.gov/sites/default/files/2016-03/documents/compat-haz-waste.pdf',
   revisadoEm: '2026-07-27',
-  detalhamento: 'docs/compatibilidade-proveniencia.md',
 };
 
 let addToast;
@@ -129,7 +128,6 @@ describe('CompatScreen', () => {
     expect(linha('Fonte')[1]).toBe(baseFonte.fonte);
     expect(linha('Referência')[1]).toBe(baseFonte.referencia);
     expect(linha('URL')[1]).toBe(baseFonte.url);
-    expect(linha('Detalhamento')[1]).toBe(baseFonte.detalhamento);
     expect(linha('Revisado em')[1]).toBe(baseFonte.revisadoEm);
   });
 });
